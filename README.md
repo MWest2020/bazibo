@@ -1,12 +1,13 @@
-# Idaveld
+# Bazibo
 
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies) and Picturedoku (a
 sudoku with pictures); more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
-`web/js/brand.js` (issue #2): Idaveld, after Iðavöllr, the plain where the young Norse gods
-played with golden game pieces. The repository, the package id (`work.westerweel.bubbels`) and
+`web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
+gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
+the source of every app icon). The repository, the package id (`work.westerweel.bubbels`) and
 the website path keep the old name `bubbels`.
 
 - Home screen with a tile per game (a game that is not ready yet can show a "binnenkort" /

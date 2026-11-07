@@ -6,7 +6,7 @@ Plak deze teksten in Play Console (Hoofdvermelding in de winkel) en App Store Co
 
 ## Naam (30)
 
-Idaveld: spelen en leren
+Bazibo: spelen en leren
 
 Google staat woorden als "gratis" of "geen reclame" niet toe in de titel; daarom staat de
 belofte in de korte beschrijving en de ondertitel.
@@ -29,9 +29,9 @@ bubble shooter,sudoku,hondjes,puzzel,logica,kinderen,kleuter,leren,zonder reclam
 
 ## Beschrijving (4000)
 
-Idaveld is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu drie spellen in: Bubbels schieten, Dogudoku en Picturedoku. Er komen meer spellen bij, ook spellen om van te leren.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu drie spellen in: Bubbels schieten, Dogudoku en Picturedoku. Er komen meer spellen bij, ook spellen om van te leren.
 
-De naam komt uit de Noorse mythen: Idavöllr is het veld waar de jonge goden speelden met gouden spelstukken.
+De naam komt van "bāzi", het Perzische woord voor spelen. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
 
 BUBBELS SCHIETEN
 • Sleep om te mikken en laat los om te schieten.

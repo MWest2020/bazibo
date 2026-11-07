@@ -7,7 +7,7 @@ if it changes (issue #2), change this text too.
 
 ## Name (30)
 
-Idaveld: play and learn
+Bazibo: play and learn
 
 ## Subtitle, App Store only (30)
 
@@ -27,9 +27,9 @@ bubble shooter,sudoku,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,off
 
 ## Description (4000)
 
-Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has three games now: Bubble Shooter, Dogudoku and Picturedoku. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has three games now: Bubble Shooter, Dogudoku and Picturedoku. More games will follow, including games to learn from.
 
-The name comes from Norse myth: Idavöllr is the field where the young gods played with golden game pieces.
+The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
 BUBBLE SHOOTER
 • Drag to aim and let go to shoot.

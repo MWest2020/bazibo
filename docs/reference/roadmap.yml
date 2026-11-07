@@ -23,7 +23,8 @@ done_means:
   - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Android and iOS projects, €1 unlock through the stores, parental gate, privacy policy", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/1"}
-  - {item: "Brand name Idaveld in the app, the native app names, the store texts and the privacy pages (issue #2 default)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
+  - {item: "Brand name in the app, the native app names, the store texts and the privacy pages (Idaveld, issue #2 default)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
+  - {item: "Brand name Bazibo (Mark's choice, issue #2) with a gazebo logo: app icons, splash screens, home screen, store icon and feature graphic", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/8"}
   - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/4"}
   - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
