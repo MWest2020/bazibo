@@ -1,16 +1,37 @@
-# Bubbels
+# Idaveld
 
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
-wrapped with Capacitor as an Android and an iOS app. The first game is the bubble shooter
-("Bubbels schieten" / "Bubble Shooter"); a picture sudoku, "Dogudoku" (a logic puzzle with dogs) and more learning games follow
-(`docs/reference/roadmap.yml`). The brand name lives in `web/js/brand.js` (issue #2).
+wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
+("Bubbels schieten" / "Bubble Shooter") and Dogudoku (a logic puzzle with puppies); a picture
+sudoku and more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
+`web/js/brand.js` (issue #2): Idaveld, after Iðavöllr, the plain where the young Norse gods
+played with golden game pieces. The repository, the package id (`work.westerweel.bubbels`) and
+the website path keep the old name `bubbels`.
 
 - Home screen with a tile per game (a "binnenkort" / "coming soon" tile for the next one) and a
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
   sound, the full version, privacy.
 
 Play it: https://mwest2020.github.io/bubbels/ (every merge to `main` runs the tests and publishes `web/` there through GitHub Actions; releases to the stores: `docs/release.md`).
+
+### Dogudoku
+
+A Queens / Star Battle puzzle with puppies, in `web/games/dogudoku/` (rules in `rules.js`,
+pictures drawn as SVG in `art.js`, the screen in `dogudoku.js`).
+
+- One puppy per row and per column; from 5×5 also one per colour; from 6×6 puppies never touch,
+  not even diagonally. 4×4 (ages 3-5) has bushes instead of colours and needs no reading.
+- Tap a square: the youngest boards toggle a puppy; the others cycle empty, cross, puppy. Drag
+  over empty squares to cross them. Auto-cross (optional, from 5×5) shows the squares a puppy
+  rules out. A broken rule outlines the puppies in red and lights up the rule's picture.
+- A hint marks one square that must be crossed or must get a puppy (unlimited on 4×4, 3 on 5×5,
+  2 from 6×6). Stars: 3 without hints, 2 with one, 1 with more. A solved board hops and woofs.
+- 60 puzzles in `puzzles.json`, made by `npm run puzzles` (`tools/gen-dogudoku.mjs`, seeded);
+  every puzzle has exactly one solution and `npm test` solves them all again. 10 are free, the
+  easiest of every size.
+
+### Bubbels schieten
 
 - Glossy bubbles that look like soap or glass, each colour with its own symbol (circle, star,
   triangle, diamond, heart, square), so colour-blind children can play too.

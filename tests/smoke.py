@@ -1,5 +1,6 @@
 """Playwright smoke test: serve web/ locally, open Bubbels from the home screen, play level 1 with
-5 real drag-and-release shots, check that nothing went to the network and nothing threw, that the
+5 real drag-and-release shots, solve the first Dogudoku puzzle by tapping (with one wrong puppy
+first, which must light up), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -43,10 +44,12 @@ WORDS = {
 TEXT = {
     "nl": {"ok": "Oké", "promise": "Geen reclame. Nooit.", "tile": "Bubbels schieten", "soon": "Komt eraan!",
            "more": "Meer levels", "wrong": "Dat klopt niet", "ask": r"Hoeveel is (\w+) keer (\w+)\?",
-           "settings": "Instellingen"},
+           "settings": "Instellingen", "puzzles": "Puzzels", "stars3": "3 van 3", "dogWin": "Super!",
+           "brand": "Idaveld", "lore": "Idaveld: waar de goden speelden"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
-           "settings": "Settings"},
+           "settings": "Settings", "puzzles": "Puzzles", "stars3": "3 of 3", "dogWin": "Super!",
+           "brand": "Idaveld", "lore": "Idaveld: where the gods played"},
 }
 
 
@@ -72,12 +75,14 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     page.screenshot(path=str(SHOTS / f"{name}-1-home.png"))
     if page.evaluate("window.__bubbels.lang()") != lang:
         problems.append(f"{name}: device language {lang} not followed")
-    for sel, want in (("#tile-bubbels .tile-name", say["tile"]), (".promise", say["promise"])):
+    for sel, want in (("#tile-bubbels .tile-name", say["tile"]), (".promise", say["promise"]), ("#brand-name", say["brand"]), ("#brand-lore", say["lore"])):
         if page.inner_text(sel).strip() != want:
             problems.append(f"{name}: {sel} says {page.inner_text(sel)!r}, expected {want!r}")
 
+    play_dogudoku(page, name, say, problems)
+
     # the coming-soon tile only shows a friendly card
-    page.click("#tile-dogudoku")
+    page.click("#tile-sudoku")
     page.wait_for_timeout(300)
     if page.inner_text("#ov-title") != say["soon"]:
         problems.append(f"{name}: coming-soon tile shows {page.inner_text('#ov-title')!r}")
@@ -237,6 +242,56 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     ctx.close()
 
 
+def play_dogudoku(page, name, say, problems):
+    """Open Dogudoku, put one puppy wrong (it must light up), then solve puzzle 1 by tapping."""
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-d1-puzzles.png"))
+    # a locked puzzle: on the web only a friendly card with OK
+    page.click("#dogu-levels .level-btn.locked >> nth=0")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]]:
+        problems.append(f"{name}: locked Dogudoku puzzle offers {labels}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+    page.click("#dogu-levels .level-btn[data-puzzle='1']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):  # the how-to card, first time per size
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.dogu.puzzle()")
+    sol, n = pz["solution"], pz["n"]
+    cell = lambda r, c: f"#dogu-board .dcell[data-r='{r}'][data-c='{c}']"
+    # one wrong puppy: same column as the right one in row 0
+    page.click(cell(0, sol[0]))
+    page.click(cell(1, sol[0]))
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-d2-oops.png"))
+    st = page.evaluate("window.__bubbels.dogu.state()")
+    if not st["status"] or page.locator("#dogu-board .dcell.bad").count() != 2:
+        problems.append(f"{name}: a wrong puppy did not light up ({st['status']!r})")
+    page.click(cell(1, sol[0]))  # lift it again
+    for r in range(1, n):
+        page.click(cell(r, sol[r]))
+    page.wait_for_timeout(500)
+    page.screenshot(path=str(SHOTS / f"{name}-d3-solved.png"))
+    if not page.evaluate("window.__bubbels.dogu.state().solved"):
+        problems.append(f"{name}: Dogudoku puzzle 1 not solved by tapping the solution")
+    page.wait_for_timeout(1300)
+    if page.inner_text("#ov-title") != say["dogWin"]:
+        problems.append(f"{name}: Dogudoku win card says {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / f"{name}-d4-win.png"))
+    page.click(f"#ov-buttons button >> text={say['puzzles']}")
+    page.wait_for_timeout(200)
+    label = page.locator("#dogu-levels .level-btn[data-puzzle='1']").get_attribute("aria-label") or ""
+    if say["stars3"] not in label:
+        problems.append(f"{name}: Dogudoku puzzle 1 not saved with 3 stars ({label!r})")
+    saved = page.evaluate("window.__bubbels.save().games.dogudoku")
+    if not saved or saved.get("stars", {}).get("1") != 3:
+        problems.append(f"{name}: Dogudoku save section wrong: {saved}")
+    page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+
 def run_sideways(browser, base, problems):
     ctx = browser.new_context(
         viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True
@@ -257,6 +312,19 @@ def run_sideways(browser, base, problems):
     if box["height"] < 340:
         problems.append(f"sideways: board only {box['height']:.0f} px tall")
     page.screenshot(path=str(SHOTS / "sideways-game.png"))
+    page.evaluate("document.querySelector('[data-go=home]').click()")
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(200)
+    page.click("#dogu-levels .level-btn[data-puzzle='13']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.wait_for_timeout(300)
+    b = page.locator("#dogu-board").bounding_box()
+    print(f"[sideways] dogudoku board {b['width']:.0f}x{b['height']:.0f}")
+    if b["height"] < 260 or b["y"] < 0 or b["y"] + b["height"] > 390:
+        problems.append(f"sideways: Dogudoku board {b['width']:.0f}x{b['height']:.0f} at y={b['y']:.0f}")
+    page.screenshot(path=str(SHOTS / "sideways-dogudoku.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
     ctx.close()

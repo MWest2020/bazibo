@@ -1,7 +1,9 @@
 // Save data: everything is remembered only on this device, in one versioned document.
 //
 //   { version: 1,
-//     games:    { bubbels: { stars: {1: 3, ...} }, <later games add their own section> },
+//     games:    { bubbels: { stars: {1: 3, ...} },
+//                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
+//                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
 //     migrated: { from, at } }             // set once, when older save data was copied in
@@ -334,6 +336,18 @@ export function loadProgress(gameId) {
 
 export function saveProgress(gameId, progress) {
   save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), stars: clone(progress.stars) };
+  persist();
+}
+
+/** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
+export function loadGameOption(gameId, key, fallback) {
+  const g = save.games[gameId];
+  return isObj(g) && key in g && key !== 'stars' ? clone(g[key]) : fallback;
+}
+
+export function saveGameOption(gameId, key, value) {
+  if (key === 'stars') throw new Error('stars go through saveProgress');
+  save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
   persist();
 }
 

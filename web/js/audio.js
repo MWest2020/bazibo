@@ -161,3 +161,40 @@ export function lose() {
   const t = ac.currentTime + 0.02;
   [392, 329.63, 261.63].forEach((f, i) => tone('sine', f, f * 0.97, t + i * 0.16, 0.3, 0.16));
 }
+
+// Dogudoku: a soft, cartoon "woof" (a buzzy tone through a vowel-like filter, falling in pitch).
+function bark(t, f0, f1, dur, peak) {
+  const o = ac.createOscillator();
+  const f = ac.createBiquadFilter();
+  const lp = ac.createBiquadFilter();
+  const g = ac.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  f.type = 'bandpass';
+  f.Q.value = 1.6;
+  f.frequency.setValueAtTime(1100, t);
+  f.frequency.exponentialRampToValueAtTime(650, t + dur);
+  lp.type = 'lowpass';
+  lp.frequency.value = 2400;
+  env(g, t, peak, 0.012, dur);
+  o.connect(f).connect(lp).connect(g).connect(master);
+  o.start(t);
+  o.stop(t + 0.012 + dur * TAIL + 0.02);
+  hiss(t, dur * 0.6, peak * 0.35, 'bandpass', 900, 600, 1.2);
+}
+
+/** A puppy placed: one tiny, high yip. */
+export function yip() {
+  if (!on()) return;
+  bark(ac.currentTime + 0.005, 950, 640, 0.07, 0.16);
+}
+
+/** A puzzle solved: "woof woof", quiet and friendly. */
+export function woof() {
+  if (!on()) return;
+  const t = ac.currentTime + 0.02;
+  bark(t, 520, 300, 0.14, 0.3);
+  bark(t + 0.24, 600, 330, 0.13, 0.26);
+  [784, 988, 1175].forEach((f, i) => tone('triangle', f, f, t + 0.5 + i * 0.09, 0.25, 0.1));
+}

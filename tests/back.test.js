@@ -20,3 +20,10 @@ test('back: other cards and the parental gate close; a busy store card is left a
   assert.equal(backAction({ screen: 'game', overlay: 'busy' }), 'ignore');
   assert.equal(backAction({ screen: 'home', overlay: 'busy' }), 'ignore');
 });
+
+test('back: a Dogudoku puzzle goes to its list, the list to home, a card there closes', () => {
+  assert.equal(backAction({ screen: 'dogudoku' }), 'dogudoku-levels');
+  assert.equal(backAction({ screen: 'dogudoku-levels' }), 'home');
+  assert.equal(backAction({ screen: 'dogudoku', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'dogudoku', overlay: 'busy' }), 'ignore');
+});

@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGS, allStrings, pickLang, setLang, t, getLang } from '../web/js/i18n.js';
 import '../web/games/bubbels/strings.js';
+import '../web/games/dogudoku/strings.js';
 import { GAMES } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';
 
@@ -38,6 +39,8 @@ test('every key used in index.html and in the code exists', () => {
   }
   for (const g of GAMES) used.add(g.titleKey);
   for (const n of [1, 2, 3]) used.add(`bubbels.win${n}`); // built as t(`bubbels.win${stars}`)
+  for (const n of [1, 2, 3]) used.add(`dogudoku.win${n}`);
+  for (const r of ['row', 'col', 'region', 'touch', 'bush']) used.add(`dogudoku.rule.${r}`).add(`dogudoku.oops.${r}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 
