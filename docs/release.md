@@ -2,7 +2,7 @@
 
 Bazibo (the repository and package id keep the old name `bubbels`) is one app with several
 games (the brand, tagline and the line about the name are in `web/js/brand.js`; issue #2 holds
-the name decision, default Bazibo). The app lives in `web/`: the shell in `web/js/`, each game
+the name decision, decided: Bazibo). The app lives in `web/`: the shell in `web/js/`, each game
 in `web/games/<id>/`. Capacitor wraps it as `android/` and `ios/`; both apps load the same files
 from inside the package (no server). The €1 full version is the non-consumable product
 `unlock_all`; it opens every game. It is sold through Google Play Billing and Apple StoreKit by

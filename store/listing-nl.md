@@ -31,7 +31,7 @@ bubble shooter,sudoku,hondjes,puzzel,logica,kinderen,kleuter,leren,zonder reclam
 
 Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu drie spellen in: Bubbels schieten, Dogudoku en Picturedoku. Er komen meer spellen bij, ook spellen om van te leren.
 
-De naam komt van "bāzi", het Perzische woord voor spelen. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
+De naam komt van "bāzi", het Perzische woord voor spel. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
 
 BUBBELS SCHIETEN
 • Sleep om te mikken en laat los om te schieten.
