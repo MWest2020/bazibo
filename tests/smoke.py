@@ -1,7 +1,8 @@
 """Playwright smoke test: serve web/ locally, open Bubbels from the home screen, play level 1 with
 5 real drag-and-release shots, solve the first Dogudoku puzzle by tapping (with one wrong puppy
 first, which must light up), solve the first Picturedoku puzzle (one wrong picture first, then
-square-then-picture) and try picture-first on a 6×6, check that nothing went to the network and nothing threw, that the
+square-then-picture) and check on 4×4, 6×6 and 9×9 that tapping another picture after a placement
+never changes the placed square, check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -342,11 +343,12 @@ def play_picturedoku(page, name, say, problems):
         problems.append(f"{name}: a wrong picture did not light up ({st['status']!r})")
     page.click(cell(first))  # choose the square again: the right picture replaces the wrong one
     page.click(pick(sol[first]))
-    # on 4×4 a picture tapped without a square only shows where to tap (no picture-first here)
+    # Mark's sequence (2026-11-08): after a placement, tapping another picture changes nothing;
+    # on 4×4 it only shows where to tap (no picture-first here)
     page.click(pick(sol[empties[1]]))
     st = page.evaluate("window.__bubbels.pdoku.state()")
-    if st["brush"] != 0 or not st["status"]:
-        problems.append(f"{name}: 4×4 picture without a square armed it or said nothing ({st})")
+    if st["brush"] != 0 or not st["status"] or str(st["board"][first]) != sol[first]:
+        problems.append(f"{name}: 4×4 picture after a placement changed the square, armed it or said nothing ({st})")
     for i in empties[1:]:  # square first, then the picture
         page.click(cell(i))
         page.click(pick(sol[i]))
@@ -365,23 +367,29 @@ def play_picturedoku(page, name, say, problems):
     saved = page.evaluate("window.__bubbels.save().games.picturedoku")
     if not saved or saved.get("stars", {}).get("1") != 3:
         problems.append(f"{name}: Picturedoku save section wrong: {saved}")
-    # picture-first on a free 6×6: arm a picture, paint a square, switch to another picture
-    page.click("#pdoku-levels .level-btn[data-puzzle='21']")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
-    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
-    empty6 = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
-    page.click(pick(1))
-    page.click(cell(empty6[0]))
-    page.click(pick(2))
-    st = page.evaluate("window.__bubbels.pdoku.state()")
-    if st["brush"] != 2 or st["board"][empty6[0]] != 2 or "brushing" not in (page.get_attribute("#pdoku-board", "class") or ""):
-        problems.append(f"{name}: picture-first on 6×6 did not arm, paint and switch ({st['brush']}, {st['board'][empty6[0]]})")
-    page.screenshot(path=str(SHOTS / f"{name}-p4-armed.png"))
-    page.click(pick(2))  # put the picture down again
-    page.click("#pdoku-back")
-    page.wait_for_timeout(200)
+    # Mark's sequence on a free 6×6 and 9×9: place a picture (square first, and picture first),
+    # then tap a different picture: the placed square must stay as it is
+    for pid in (21, 43):
+        page.click(f"#pdoku-levels .level-btn[data-puzzle='{pid}']")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+        pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+        e = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
+        page.click(cell(e[0]))
+        page.click(pick(1))  # square first
+        page.click(pick(2))  # another picture: arms 2, the square keeps 1
+        page.click(cell(e[1]))  # picture first: 2 into an empty square
+        page.click(pick(3))  # another picture: switches to 3, the square keeps 2
+        st = page.evaluate("window.__bubbels.pdoku.state()")
+        armed = "brushing" in (page.get_attribute("#pdoku-board", "class") or "")
+        if st["board"][e[0]] != 1 or st["board"][e[1]] != 2 or st["brush"] != 3 or not armed:
+            problems.append(f"{name}: {pz['n']}×{pz['n']} switching pictures changed a square ({st['board'][e[0]]}, {st['board'][e[1]]}, brush {st['brush']})")
+        if pid == 21:
+            page.screenshot(path=str(SHOTS / f"{name}-p4-armed.png"))
+        page.click(pick(3))  # put the picture down again
+        page.click("#pdoku-back")
+        page.wait_for_timeout(200)
     page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
     page.wait_for_timeout(200)
 

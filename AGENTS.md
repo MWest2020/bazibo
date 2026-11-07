@@ -58,7 +58,8 @@ Push over SSH (`git@github.com:MWest2020/bubbels.git`): the gh token cannot push
 puzzles only through `npm run puzzles` (`tools/gen-dogudoku.mjs`; `npm test` fails if
 `puzzles.json` differs from what it generates, or if a puzzle has more than one solution). Its
 dogs must never look like cats (floppy or rounded ears only). Picturedoku the same way:
-`web/games/picturedoku/rules.js` with a test, puzzles through `tools/gen-picturedoku.mjs` (also
+`web/games/picturedoku/rules.js` with a test, what a tap does in `input.js` with a test (a picture
+tap never changes a filled square the child did not just choose), puzzles through `tools/gen-picturedoku.mjs` (also
 `npm run puzzles`; every puzzle unique and solvable with singles only); its pictures must stay
 different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with a test. Level changes go through
 `tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run
