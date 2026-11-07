@@ -1,6 +1,6 @@
 {
   "appId": "work.westerweel.bubbels",
-  "appName": "Idaveld",
+  "appName": "Bazibo",
   "webDir": "web",
   "android": {
     "allowMixedContent": false,

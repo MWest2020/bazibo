@@ -1,4 +1,4 @@
-# Release automation for Idaveld (repo: bubbels) (docs/release.md). Store texts and images come from store/;
+# Release automation for Bazibo (repo: bubbels) (docs/release.md). Store texts and images come from store/;
 # tools/store-to-fastlane.mjs puts them in fastlane's layout (fastlane/metadata, gitignored).
 #
 #   fastlane android check      offline: store texts within the limits, keys present or not

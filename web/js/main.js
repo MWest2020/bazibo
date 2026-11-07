@@ -1,6 +1,7 @@
 // The shell: home screen with a tile per game, settings, the overlay card, the parental gate and
 // the one purchase that opens every game. Each game lives in web/games/<id>/.
 import { BRAND } from './brand.js';
+import { gazeboSvg } from './logo.js';
 import { GAMES } from './games.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
 import { COLORS, getSprite, drawBubble } from './bubble-art.js';
@@ -70,6 +71,7 @@ function renderLanguage() {
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);
+$('#brand-mark').innerHTML = gazeboSvg(); // the logo next to the name, drawn once
 
 document.querySelectorAll('[data-lang]').forEach((b) =>
   b.addEventListener('click', () => {

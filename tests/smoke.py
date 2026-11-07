@@ -46,11 +46,11 @@ TEXT = {
     "nl": {"ok": "Oké", "promise": "Geen reclame. Nooit.", "tile": "Bubbels schieten", "soon": "Komt eraan!",
            "more": "Meer levels", "wrong": "Dat klopt niet", "ask": r"Hoeveel is (\w+) keer (\w+)\?",
            "settings": "Instellingen", "puzzles": "Puzzels", "stars3": "3 van 3", "dogWin": "Super!",
-           "brand": "Idaveld", "lore": "Idaveld: waar de goden speelden"},
+           "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
            "settings": "Settings", "puzzles": "Puzzles", "stars3": "3 of 3", "dogWin": "Super!",
-           "brand": "Idaveld", "lore": "Idaveld: where the gods played"},
+           "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play"},
 }
 
 

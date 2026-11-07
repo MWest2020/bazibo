@@ -1,17 +1,19 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Idaveld icons</title></head>
+<html lang="en"><head><meta charset="utf-8"><title>Bazibo icons</title></head>
 <body>
 <script type="module">
-// Renders the app icons with the same bubble drawing code as the game.
-// Used by tools/make_icons.py; open it through a local server to look at the result.
-import { drawBubble, COLORS } from '../web/js/bubble-art.js';
+// Renders every app icon and launch screen from the Bazibo logo (web/js/logo.js): a garden
+// gazebo with a bubble under its roof, on the app's purple. Used by tools/make_icons.py; open
+// it through a local server to look at the result.
+import { gazeboSvg } from '../web/js/logo.js';
 
-const BUBBLES = [
-  [0.36, 0.6, 0.25, 0],
-  [0.68, 0.64, 0.19, 1],
-  [0.6, 0.31, 0.15, 4],
-  [0.27, 0.25, 0.09, 2],
-];
+// The logo as an image, loaded once; drawn onto canvases at any size.
+const logo = await new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => resolve(img);
+  img.onerror = reject;
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(gazeboSvg({ outline: false }));
+});
 
 function background(ctx, x, y, w, h, radius) {
   const g = ctx.createLinearGradient(0, y, 0, y + h);
@@ -24,21 +26,23 @@ function background(ctx, x, y, w, h, radius) {
   ctx.fill();
 }
 
-function bubbles(ctx, o, s) {
-  for (const [x, y, r, col] of BUBBLES) drawBubble(ctx, o + x * s, o + y * s, r * s, COLORS[col], { symbol: false });
+// the gazebo in a box of side s at (o, o), with a little margin
+function mark(ctx, o, s) {
+  const m = s * 0.08;
+  ctx.drawImage(logo, o + m, o + m, s - 2 * m, s - 2 * m);
 }
 
 // shape: 'rounded' (web/legacy), 'square' (maskable, iOS), 'circle' (Android round legacy),
-// 'foreground' (Android adaptive foreground: transparent, bubbles inside the 66/108 safe zone)
+// 'foreground' (Android adaptive foreground: transparent, the gazebo inside the 66/108 safe zone)
 function icon(size, shape) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d');
   if (shape !== 'foreground') background(ctx, 0, 0, size, size, shape === 'circle' ? 'circle' : shape === 'square' ? 0 : size * 0.22);
   // safe zones: maskable icons keep the centre 80%, adaptive foregrounds the centre 66/108
-  const k = shape === 'square' && size !== 1024 ? 0.78 : shape === 'foreground' ? 0.7 : shape === 'circle' ? 0.8 : 1;
+  const k = shape === 'square' && size !== 1024 ? 0.78 : shape === 'foreground' ? 0.64 : shape === 'circle' ? 0.8 : 1;
   const s = size * k;
-  bubbles(ctx, (size - s) / 2, s);
+  mark(ctx, (size - s) / 2, s);
   return c.toDataURL('image/png');
 }
 
@@ -59,7 +63,7 @@ function splash(w, h) {
   background(ctx, x, y, size, size, size * 0.22);
   ctx.save();
   ctx.translate(x, y);
-  bubbles(ctx, 0, size);
+  mark(ctx, 0, size);
   ctx.restore();
   return c.toDataURL('image/png');
 }

@@ -1,8 +1,8 @@
-# Releasing Idaveld to Google Play and the App Store
+# Releasing Bazibo to Google Play and the App Store
 
-Idaveld (the repository and package id keep the old name `bubbels`) is one app with several
+Bazibo (the repository and package id keep the old name `bubbels`) is one app with several
 games (the brand, tagline and the line about the name are in `web/js/brand.js`; issue #2 holds
-the name decision, default Idaveld). The app lives in `web/`: the shell in `web/js/`, each game
+the name decision, decided: Bazibo). The app lives in `web/`: the shell in `web/js/`, each game
 in `web/games/<id>/`. Capacitor wraps it as `android/` and `ios/`; both apps load the same files
 from inside the package (no server). The €1 full version is the non-consumable product
 `unlock_all`; it opens every game. It is sold through Google Play Billing and Apple StoreKit by
@@ -59,7 +59,7 @@ regenerate the app icons and launch screens, run
    organisation accounts. Check the Play Console text when you sign up, because Google changes
    these rules.
 2. **Create the app.** Package name `work.westerweel.bubbels` (it stays, whatever the brand
-   name becomes; users never see it). Name "Idaveld: spelen en leren". It is a game and it is
+   name becomes; users never see it). Name "Bazibo: spelen en leren". It is a game and it is
    free (with an in-app purchase).
 3. **Signing.** Use Play App Signing: Google keeps the app signing key, and we only hold an
    *upload key*. It exists (made 2026-11-07) and lives outside the repository:
@@ -124,7 +124,7 @@ regenerate the app icons and launch screens, run
 2. **App ID.** Under Certificates, Identifiers & Profiles, register the bundle ID
    `work.westerweel.bubbels` with the *In-App Purchase* capability.
 3. **App record.** In App Store Connect, create a new app with bundle ID
-   `work.westerweel.bubbels`, name "Idaveld: spelen en leren" (English localization "Idaveld:
+   `work.westerweel.bubbels`, name "Bazibo: spelen en leren" (English localization "Bazibo:
    play and learn") and primary language Dutch.
 4. **Product.** Under In-App Purchases, create a Non-Consumable with product ID `unlock_all`,
    price € 1 and the texts from the listings. It goes to review together with the first build.

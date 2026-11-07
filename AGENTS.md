@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**What this is:** Idaveld (repo and package still called bubbels), one app of play-and-learn
+**What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
 `web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`). Wrapped with Capacitor as Android and iOS
