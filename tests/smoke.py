@@ -77,10 +77,10 @@ def run(browser, base, name, context_args, problems, lang="nl"):
             problems.append(f"{name}: {sel} says {page.inner_text(sel)!r}, expected {want!r}")
 
     # the coming-soon tile only shows a friendly card
-    page.click("#tile-sudoku")
+    page.click("#tile-dogudoku")
     page.wait_for_timeout(300)
     if page.inner_text("#ov-title") != say["soon"]:
-        problems.append(f"{name}: sudoku tile shows {page.inner_text('#ov-title')!r}")
+        problems.append(f"{name}: coming-soon tile shows {page.inner_text('#ov-title')!r}")
     page.click(f"#ov-buttons button >> text={say['ok']}")
 
     page.click("#tile-bubbels")

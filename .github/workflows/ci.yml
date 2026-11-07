@@ -1,0 +1,60 @@
+# Tests on every push and PR; on main, also the website (web/ to GitHub Pages) after the tests.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FASTLANE_OPT_OUT_USAGE: '1'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+  fastlane:
+    # the release lanes parse, and the store texts fit the limits (no keys needed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: bundle install --jobs 4
+      - run: bundle exec fastlane lanes
+      - run: bundle exec fastlane android check
+      - name: without a Play key the upload lanes stop with a clear message
+        run: |
+          if bundle exec fastlane android internal > out.txt 2>&1; then echo "expected a failure"; exit 1; fi
+          grep -q "No Play key yet" out.txt
+  pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, fastlane]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -9,6 +9,7 @@ import * as sfx from './audio.js';
 import { createUnlock, noBilling } from './unlock.js';
 import { isNativeApp, createNativeBilling } from './billing-native.js';
 import { createGate } from './parental-gate.js';
+import { backAction } from './back.js';
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
 
@@ -33,6 +34,9 @@ function show(name) {
   for (const fn of showHooks) fn(name);
 }
 
+// Until boot() has loaded the save data, settings taps would change a default save (review of PR #3).
+const starting = () => !document.documentElement.dataset.ready;
+
 const tap = () => {
   sfx.unlock();
   sfx.click();
@@ -40,7 +44,7 @@ const tap = () => {
 
 document.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
-  if (go) {
+  if (go && !starting()) {
     tap();
     show(go.dataset.go);
   }
@@ -62,6 +66,7 @@ onLangChange(renderLanguage);
 
 document.querySelectorAll('[data-lang]').forEach((b) =>
   b.addEventListener('click', () => {
+    if (starting()) return;
     tap();
     settings.lang = b.dataset.lang;
     store.saveSettings(settings);
@@ -83,6 +88,7 @@ function setMuted(muted) {
 
 document.querySelectorAll('[data-sound]').forEach((b) =>
   b.addEventListener('click', () => {
+    if (starting()) return;
     sfx.unlock();
     setMuted(b.dataset.sound === 'off');
     renderSettings();
@@ -122,7 +128,7 @@ const games = {};
 
 document.querySelectorAll('[data-game]').forEach((tile) =>
   tile.addEventListener('click', () => {
-    if (!document.documentElement.dataset.ready) return; // still starting up
+    if (starting()) return;
     tap();
     const game = GAMES.find((g) => g.id === tile.dataset.game);
     if (game?.status === 'ready' && games[game.id]) games[game.id].open();
@@ -343,6 +349,7 @@ const homeAnim = {
 // ---------- boot ----------
 
 async function boot() {
+  listenForBack(); // first, so the button works even if loading fails below
   await store.init();
   settings = store.loadSettings();
   setLang(pickLang(settings.lang, navigator.languages || [navigator.language]));
@@ -380,10 +387,38 @@ async function boot() {
       full: () => unlock.owned,
       lang: () => getLang(),
       save: () => store.snapshot(),
+      back: () => onBack(),
     };
   }
   document.documentElement.dataset.ready = '1';
   unlock.start(); // asks the store in the app; a no-op on the web
+}
+
+// ---------- the Android back button (apps only) ----------
+
+function currentScreen() {
+  return document.querySelector('.screen.active')?.id.replace('screen-', '') || 'home';
+}
+
+function overlayState() {
+  if ($('#overlay').hidden) return 'none';
+  return $('#ov-buttons').querySelector('button, input') ? 'card' : 'busy';
+}
+
+function onBack() {
+  const App = window.Capacitor?.Plugins?.App;
+  const action = backAction({ screen: currentScreen(), overlay: overlayState() });
+  if (action === 'close') hideOverlay();
+  else if (action === 'levels') show('levels');
+  else if (action === 'home') show('home');
+  else if (action === 'pause') $('#btn-pause').click();
+  else if (action === 'exit') App?.exitApp?.();
+}
+
+function listenForBack() {
+  const App = window.Capacitor?.Plugins?.App;
+  if (!isNativeApp() || !App?.addListener) return; // the website has the browser's own back
+  App.addListener('backButton', onBack); // a listener replaces Capacitor's default (close the app)
 }
 
 boot();

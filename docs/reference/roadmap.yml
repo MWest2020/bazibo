@@ -16,6 +16,7 @@ phases:
     # for the current phase only).
     done_means:
       - {item: "Picture sudoku: 4x4 with animals for young children, up to 6x6 and 9x9", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
+      - {item: "Dogudoku (working name): a Queens-style logic puzzle with dogs, one per garden bed, row and column, never touching. 4x4 rows and columns only for ages 3-5, 5x5 with beds for 5-7, 6x6 to 8x8 with all rules for 7-10; every puzzle has exactly one solution", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
       - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
       - {item: "Letters with a voice: hear a sound, tap the letter (local Dutch voice, no cloud)", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
 done_means:
@@ -23,7 +24,8 @@ done_means:
   - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Android and iOS projects, €1 unlock through the stores, parental gate, privacy policy", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/1"}
   - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
-  - {item: "Release automation: fastlane builds, signs, uploads to Play internal testing and TestFlight, pushes listings and screenshots from store/", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
+  - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/4"}
+  - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
   - {item: "The €1 purchase tested on a real device (Play internal testing)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
   - {item: "Live on Google Play (organisation account, D-U-N-S)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
   - {item: "Live on the App Store", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}

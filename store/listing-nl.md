@@ -17,7 +17,7 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-Spelletjes voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
+Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
@@ -25,7 +25,7 @@ Bubbels schieten: mikken, schieten… plop! Het eerste spel in Bubbels, een app 
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
-bubbels,bubble shooter,kinderen,kleuter,leren,puzzel,zonder reclame,offline,spelletjes,sudoku
+bubbels,bubble shooter,kinderen,kleuter,leren,zonder reclame,offline,spelletjes,logische puzzel
 
 ## Beschrijving (4000)
 

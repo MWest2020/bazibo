@@ -147,37 +147,160 @@ function defaultBackend() {
 // ---------- the live save ----------
 
 let save = emptySave();
-let backend = null;
+let backend = null; // set only once a read has succeeded: until then nothing is ever written
+let pending = null; // a backend whose read failed; tried again later (adopt), never written blindly
+let legacySource = null;
 let queue = Promise.resolve();
+let writeFailed = false;
+let settingsTouched = false; // the child changed a setting this session
+let adopting = null;
 
 function persist() {
-  if (!backend) return;
-  const text = JSON.stringify(save);
+  if (!backend) {
+    if (pending) adopt(); // the read failed at startup: try again, write only after a good read
+    return;
+  }
+  const text = JSON.stringify(save); // always the whole, latest save
   const b = backend;
-  queue = queue.then(() => b.set(SAVE_KEY, text)).catch(() => {});
+  queue = queue
+    .then(() => b.set(SAVE_KEY, text))
+    .then(() => {
+      writeFailed = false;
+    })
+    .catch((e) => {
+      // kept in memory; the next persist() or a visibilitychange writes the latest save again
+      writeFailed = true;
+      console.warn('storage: saving failed, will retry', e?.message || e);
+    });
 }
 
-/** Load (and if needed migrate) the save. Resolves to the migrate() note; never rejects. */
-export async function init({ backend: b = defaultBackend(), legacyStorage = globalThis.window?.localStorage, now = new Date().toISOString() } = {}) {
-  backend = b;
-  let raw = null;
-  try {
-    raw = await b.get(SAVE_KEY);
-  } catch {
-    raw = null;
+/** Write the latest save again after a failed write; retry a failed read (also on visibilitychange). */
+export function retryFailedWrite() {
+  if (writeFailed) persist();
+  else if (!backend && pending) adopt();
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => (timer = setTimeout(() => reject(new Error('timeout')), ms))),
+  ]).finally(() => clearTimeout(timer));
+}
+
+/** get() with retries and a timeout. {ok:false} means the read failed, which is not "nothing stored". */
+async function readSave(b, tries, delayMs, timeoutMs) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      return { ok: true, raw: await withTimeout(Promise.resolve().then(() => b.get(SAVE_KEY)), timeoutMs) };
+    } catch {
+      if (i < tries - 1) await sleep(delayMs);
+    }
   }
-  const result = migrate(raw, raw == null || isCorrupt(raw) ? readLegacy(legacyStorage) : null, now);
-  save = result.save;
+  return { ok: false, raw: null };
+}
+
+/**
+ * What was stored, combined with what happened in a session that could not read it: the best
+ * stars per level, the full version if either says so, and the session's settings only if the
+ * child changed them. Everything else (unknown fields, a newer version's data) comes from storage.
+ */
+export function mergeSaves(stored, session, sessionSettingsChanged) {
+  const out = clone(stored);
+  for (const [id, g] of Object.entries(session.games || {})) {
+    const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
+    const stars = isObj(mine.stars) ? mine.stars : (mine.stars = {});
+    for (const [level, n] of Object.entries(isObj(g?.stars) ? g.stars : {})) stars[level] = Math.max(stars[level] || 0, n || 0);
+  }
+  out.purchase = { ...out.purchase, owned: out.purchase?.owned === true || session.purchase?.owned === true };
+  if (sessionSettingsChanged) out.settings = { ...out.settings, muted: !!session.settings.muted, lang: session.settings.lang || null };
+  return out;
+}
+
+/** Turn a successful read into the live save; false if the broken copy could not be kept. */
+async function take(b, raw, now) {
+  const result = migrate(raw, raw == null || isCorrupt(raw) ? readLegacy(legacySource) : null, now);
   if (result.note === 'corrupt' || result.note === 'corrupt-legacy') {
     try {
       await b.set(`${SAVE_KEY}.corrupt`, String(raw)); // keep the broken copy for a look later
     } catch {
-      /* ignore */
+      return { ok: false, result }; // could not keep it: do not overwrite it either
     }
   }
+  return { ok: true, result };
+}
+
+/** A later attempt after a failed read: on success, merge this session in and start writing. */
+function adopt({ timeoutMs = 3000 } = {}) {
+  if (adopting || !pending) return adopting;
+  const b = pending;
+  adopting = (async () => {
+    const read = await readSave(b, 1, 0, timeoutMs);
+    if (!read.ok || pending !== b) return false;
+    const { ok, result } = await take(b, read.raw, new Date().toISOString());
+    if (!ok) return false;
+    save = mergeSaves(result.save, save, settingsTouched);
+    pending = null;
+    backend = b;
+    persist();
+    return true;
+  })().finally(() => (adopting = null));
+  return adopting;
+}
+
+/** Resolves when a running read-again attempt has finished (for tests). */
+export function adopted() {
+  return adopting || Promise.resolve(false);
+}
+
+/**
+ * Load (and if needed migrate) the save. Resolves to the migrate() note, or 'read-failed'; never rejects.
+ * A failed (or hanging) read never counts as an empty save: the session then runs in memory and
+ * writes nothing until a later read succeeds (on visibilitychange or the next save), and then
+ * merges what happened in between (mergeSaves).
+ */
+export async function init({
+  backend: b = defaultBackend(),
+  legacyStorage = globalThis.window?.localStorage,
+  now = new Date().toISOString(),
+  tries = 3,
+  retryDelayMs = 150,
+  timeoutMs = 3000,
+} = {}) {
+  backend = null;
+  pending = null;
+  writeFailed = false;
+  settingsTouched = false;
+  legacySource = legacyStorage;
+  watchVisibility();
+  const read = await readSave(b, tries, retryDelayMs, timeoutMs);
+  if (!read.ok) {
+    console.warn('storage: could not read the save; playing without saving until a read works');
+    save = migrate(null, readLegacy(legacyStorage), now).save; // shown, never written as it is
+    pending = b;
+    return 'read-failed';
+  }
+  const { ok, result } = await take(b, read.raw, now);
+  save = result.save;
+  if (!ok) {
+    console.warn('storage: could not keep a copy of a broken save; playing without saving');
+    pending = b;
+    return 'read-failed';
+  }
+  backend = b;
   if (result.write) persist();
   await queue;
   return result.note;
+}
+
+let watching = false;
+function watchVisibility() {
+  const doc = globalThis.document;
+  if (watching || !doc?.addEventListener) return;
+  watching = true;
+  doc.addEventListener('visibilitychange', retryFailedWrite);
 }
 
 function isCorrupt(raw) {
@@ -200,6 +323,7 @@ export function loadSettings() {
 
 export function saveSettings(settings) {
   save.settings = { ...save.settings, muted: !!settings.muted, lang: settings.lang || null };
+  settingsTouched = true;
   persist();
 }
 

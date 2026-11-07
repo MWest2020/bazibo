@@ -11,8 +11,8 @@ evidence, in the same PR).
 **Hard rules**
 - No ads, no trackers, no analytics, no accounts, no third-party SDKs. Ever. Zero network
   requests outside the game's own origin; the CSP in `web/index.html` stays strict. The only
-  native additions are Capacitor, `@capacitor/preferences` and `cordova-plugin-purchase` (all
-  MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
+  native additions are Capacitor, `@capacitor/preferences`, `@capacitor/app` (back button) and
+  `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
   Only CC0, MIT, BSD or Apache-2.0 assets.
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
@@ -44,7 +44,13 @@ assembleDebug` for an APK. There is no emulator or Mac here; purchases are teste
 internal track or in TestFlight. Never create, print or commit a signing key: the upload key and
 its properties file live in `~/.config/bubbels/` (backup in OpenBao), `build.gradle` reads them
 from `$BUBBELS_KEYSTORE_PROPERTIES` or that path, and `*.jks` / `keystore.properties` are
-gitignored.
+gitignored. The Android back button: `web/js/back.js` decides, `main.js` wires it (apps only).
+
+**Release and CI:** `.github/workflows/ci.yml` runs `npm test` and a fastlane check on every push
+and PR, and on `main` publishes `web/` to GitHub Pages. Store releases go through the lanes in
+`fastlane/Fastfile` (table in `docs/release.md`, section 6); store texts and images stay in
+`store/`, `tools/store-to-fastlane.mjs` converts them and `npm test` checks the store limits.
+Push over SSH (`git@github.com:MWest2020/bubbels.git`): the gh token cannot push workflow files.
 
 **When you change things:** grid rules go in `web/games/bubbels/grid.js` with a test. Level changes go through
 `tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run

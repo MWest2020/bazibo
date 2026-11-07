@@ -516,15 +516,17 @@ export class Game {
     ctx.font = '800 22px ui-rounded, "Nunito", system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const text = this.hooks.hintText?.() || 'Sleep omhoog en laat los!';
-    const tw = ctx.measureText(text).width + 36;
-    const ty = DEADLINE - 44;
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - tw / 2, ty - 22, tw, 44, 22);
-    ctx.fill();
-    ctx.fillStyle = '#3B2FA8';
-    ctx.fillText(text, W / 2, ty + 1);
+    const text = this.hooks.hintText?.() || ''; // the words come from the string tables (strings.js)
+    if (text) {
+      const tw = ctx.measureText(text).width + 36;
+      const ty = DEADLINE - 44;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.beginPath();
+      ctx.roundRect(W / 2 - tw / 2, ty - 22, tw, 44, 22);
+      ctx.fill();
+      ctx.fillStyle = '#3B2FA8';
+      ctx.fillText(text, W / 2, ty + 1);
+    }
     // touch ripple under the finger
     if (h.press || h.released) {
       const k = h.released;

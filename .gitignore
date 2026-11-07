@@ -6,3 +6,8 @@ shots/*.png
 *.jks
 *.keystore
 keystore.properties
+
+# generated from store/ by tools/store-to-fastlane.mjs
+fastlane/metadata/
+fastlane/report.xml
+fastlane/README.md
