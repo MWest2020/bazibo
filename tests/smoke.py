@@ -238,7 +238,8 @@ def run(browser, base, name, context_args, problems, lang="nl"):
 
 
 def play_dogudoku(page, name, say, problems):
-    """Open Dogudoku, put one puppy wrong (it must light up), then solve puzzle 1 by tapping."""
+    """Open Dogudoku: on a 4×4, two diagonal neighbours must light up (puppies never touch, on every
+    size), then solve puzzle 1 by tapping; also solve the first 5×5 (tap twice: cross, puppy)."""
     page.click("#tile-dogudoku")
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-d1-puzzles.png"))
@@ -256,15 +257,20 @@ def play_dogudoku(page, name, say, problems):
     pz = page.evaluate("window.__bubbels.dogu.puzzle()")
     sol, n = pz["solution"], pz["n"]
     cell = lambda r, c: f"#dogu-board .dcell[data-r='{r}'][data-c='{c}']"
-    # one wrong puppy: same column as the right one in row 0
+    if page.locator("#dogu-rules .rule[data-rule='touch']").count() != 1:
+        problems.append(f"{name}: the 4×4 does not show the never-touch rule")
+    # two puppies that touch diagonally: the right one in row 0 and a free neighbour in row 1
     page.click(cell(0, sol[0]))
-    page.click(cell(1, sol[0]))
+    diag = next(c for c in (sol[0] - 1, sol[0] + 1)
+                if 0 <= c < n and "bush" not in (page.get_attribute(cell(1, c), "class") or ""))
+    page.click(cell(1, diag))
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-d2-oops.png"))
     st = page.evaluate("window.__bubbels.dogu.state()")
-    if not st["status"] or page.locator("#dogu-board .dcell.bad").count() != 2:
-        problems.append(f"{name}: a wrong puppy did not light up ({st['status']!r})")
-    page.click(cell(1, sol[0]))  # lift it again
+    touch_lit = "oops" in (page.get_attribute("#dogu-rules .rule[data-rule='touch']", "class") or "")
+    if not st["status"] or page.locator("#dogu-board .dcell.bad").count() != 2 or not touch_lit:
+        problems.append(f"{name}: two touching puppies on a 4×4 did not light up ({st['status']!r})")
+    page.click(cell(1, diag))  # lift it again
     for r in range(1, n):
         page.click(cell(r, sol[r]))
     page.wait_for_timeout(500)
@@ -283,6 +289,22 @@ def play_dogudoku(page, name, say, problems):
     saved = page.evaluate("window.__bubbels.save().games.dogudoku")
     if not saved or saved.get("stars", {}).get("1") != 3:
         problems.append(f"{name}: Dogudoku save section wrong: {saved}")
+    # the first 5×5 (colours too), solved by tapping each square twice: cross, then puppy
+    page.click("#dogu-levels .level-btn[data-puzzle='13']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.dogu.puzzle()")
+    for r, c in enumerate(pz["solution"]):
+        page.click(cell(r, c))
+        page.click(cell(r, c))
+    page.wait_for_timeout(400)
+    page.screenshot(path=str(SHOTS / f"{name}-d5-solved-5x5.png"))
+    if pz["n"] != 5 or not page.evaluate("window.__bubbels.dogu.state().solved"):
+        problems.append(f"{name}: Dogudoku 5×5 puzzle 13 not solved by tapping")
+    page.wait_for_timeout(1500)
+    page.click(f"#ov-buttons button >> text={say['puzzles']}")
+    page.wait_for_timeout(200)
     page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
     page.wait_for_timeout(200)
 

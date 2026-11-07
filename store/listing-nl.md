@@ -40,10 +40,10 @@ BUBBELS SCHIETEN
 • 30 levels. Level 1 laat met een handje zien hoe het moet.
 
 DOGUDOKU: VERSTOP DE HONDJES
-• Een logische puzzel: zet in elke rij en elke kolom één hondje.
+• Een logische puzzel: zet in elke rij en elke kolom één hondje, en hondjes mogen elkaar niet raken, ook niet schuin.
 • Voor de kleinsten (vanaf 3 jaar): een tuintje van 4 bij 4 met struiken, zonder lezen.
 • Vanaf 5 jaar komen er kleurvakken bij: één hondje per kleur.
-• Vanaf 7 jaar tot 8 bij 8, en hondjes mogen elkaar niet raken, ook niet schuin.
+• Vanaf 7 jaar grotere tuinen, tot 8 bij 8.
 • 60 puzzels, elk met precies één oplossing. Een fout licht vriendelijk op, met uitleg in beeld; een hint helpt een stapje verder.
 • Zes verschillende hondjes, en een blij "woef" als het gelukt is.
 

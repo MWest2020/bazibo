@@ -17,7 +17,7 @@ test('every committed puzzle is well formed and has exactly one solution, the st
   }
 });
 
-test('the age ladder: 4×4 rows/columns with bushes, 5×5 adds colours, 6×6-8×8 add "never touch"', () => {
+test('the age ladder: never touching on every size; 4×4 with bushes, from 5×5 colours too', () => {
   for (const p of PUZZLES) {
     assert.equal(p.tier, TIER_OF[p.n], `puzzle ${p.id}`);
     if (p.tier === 'tiny') {
@@ -28,8 +28,8 @@ test('the age ladder: 4×4 rows/columns with bushes, 5×5 adds colours, 6×6-8×
       assert.deepEqual(p.bushes, []);
     }
   }
-  assert.deepEqual(TIERS.tiny, { regions: false, touch: false });
-  assert.deepEqual(TIERS.small, { regions: true, touch: false });
+  assert.deepEqual(TIERS.tiny, { regions: false, touch: true });
+  assert.deepEqual(TIERS.small, { regions: true, touch: true });
   assert.deepEqual(TIERS.full, { regions: true, touch: true });
 });
 
@@ -52,16 +52,20 @@ test('puzzles.json is exactly what tools/gen-dogudoku.mjs makes (no hand edits)'
   assert.equal(PLAN.reduce((s, x) => s + x.count, 0), PUZZLES.length);
 });
 
-const small = { n: 5, tier: 'small', regions: ['AABBB', 'AACBB', 'DDCCE', 'DDCEE', 'DDDEE'], bushes: [], solution: [0, 3, 1, 2, 4] };
+const small = { n: 5, tier: 'small', regions: ['AABBB', 'AACBB', 'DDCCE', 'DDCEE', 'DDDEE'], bushes: [], solution: [1, 3, 0, 2, 4] };
 const full = { n: 4, tier: 'full', regions: ['AABB', 'AABB', 'CCDD', 'CCDD'], bushes: [], solution: [1, 3, 0, 2] };
-const tiny = { n: 4, tier: 'tiny', regions: null, bushes: [[0, 0], [1, 1]], solution: [1, 0, 2, 3] };
+const tiny = { n: 4, tier: 'tiny', regions: null, bushes: [[0, 0], [1, 1]], solution: [1, 3, 0, 2] };
 
 test('conflicts: same row, column, colour, touching, and a puppy in a bush', () => {
   assert.deepEqual(conflicts(small, [[0, 0], [0, 3]]).map((c) => c.rule), ['row']);
   assert.deepEqual(conflicts(small, [[0, 1], [3, 1]]).map((c) => c.rule), ['col']);
-  assert.deepEqual(conflicts(small, [[0, 0], [1, 1]]).map((c) => c.rule), ['region']);
-  // 5×5 has no touch rule; the 6×6+ tier does
-  assert.deepEqual(conflicts(small, [[2, 2], [3, 3]]), []); // touching diagonally, other colours: fine on 5×5
+  assert.deepEqual(conflicts(small, [[0, 0], [1, 1]]).map((c) => c.rule), ['region', 'touch']);
+  assert.deepEqual(conflicts(small, [[2, 2], [4, 0]]), []); // apart and other colours
+  // never touching, not even diagonally, on every size (Mark, 2026-11-07)
+  assert.deepEqual(conflicts(small, [[2, 2], [3, 3]]).map((c) => c.rule), ['touch']);
+  assert.deepEqual(conflicts(tiny, [[0, 1], [1, 2]]).map((c) => c.rule), ['touch']);
+  assert.deepEqual(conflicts(tiny, [[2, 0], [3, 1]]).map((c) => c.rule), ['touch']);
+  assert.deepEqual(conflicts(tiny, [[0, 1], [2, 0]]), []); // two rows apart: fine
   assert.deepEqual(conflicts(full, [[1, 1], [2, 2]]).map((c) => c.rule), ['touch']);
   assert.deepEqual(conflicts(tiny, [[0, 0]]).map((c) => c.rule), ['bush']);
   assert.deepEqual(conflicts(small, []), []);
@@ -73,7 +77,8 @@ test('isSolved and attacked follow the tier rules', () => {
   assert.ok(isSolved(tiny, dogs(tiny)));
   assert.ok(!isSolved(small, dogs(small).slice(1)));
   assert.equal(attacked(full, [[0, 1]], 1, 2), true); // diagonal neighbour
-  assert.equal(attacked(small, [[0, 1]], 1, 2), false); // a diagonal neighbour is fine on 5×5 (other colour)
+  assert.equal(attacked(small, [[0, 1]], 1, 2), true); // a diagonal neighbour, on 5×5 too
+  assert.equal(attacked(tiny, [[0, 1]], 1, 0), true); // and on 4×4
   assert.equal(attacked(small, [[0, 0]], 1, 1), true); // same colour
   assert.equal(attacked(small, [[0, 0]], 2, 3), false);
   assert.equal(attacked(tiny, [], 1, 1), true); // a bush
@@ -81,13 +86,13 @@ test('isSolved and attacked follow the tier rules', () => {
 });
 
 test('hints: a wrong puppy goes, a wrong cross is cleared, a ruled-out square is crossed, else a puppy is placed', () => {
-  assert.deepEqual(nextHint(small, { '0,1': 'dog' }), { r: 0, c: 1, to: 'cross', why: 'wrong-dog' });
+  assert.deepEqual(nextHint(small, { '0,0': 'dog' }), { r: 0, c: 0, to: 'cross', why: 'wrong-dog' });
   assert.deepEqual(nextHint(tiny, { '0,2': 'dog' }), { r: 0, c: 2, to: 'empty', why: 'wrong-dog' });
-  assert.deepEqual(nextHint(small, { '0,0': 'cross' }), { r: 0, c: 0, to: 'empty', why: 'wrong-cross' });
-  const ruled = nextHint(small, { '0,0': 'dog' });
+  assert.deepEqual(nextHint(small, { '0,1': 'cross' }), { r: 0, c: 1, to: 'empty', why: 'wrong-cross' });
+  const ruled = nextHint(small, { '0,1': 'dog' });
   assert.equal(ruled.to, 'cross');
   assert.equal(ruled.why, 'ruled-out');
-  assert.equal(nextHint(small, { '0,0': 'dog' }, { autoCross: true }).to, 'dog'); // auto-cross already shows those
+  assert.equal(nextHint(small, { '0,1': 'dog' }, { autoCross: true }).to, 'dog'); // auto-cross already shows those
   assert.equal(nextHint(tiny, {}).to, 'dog'); // the youngest never get crosses
   assert.equal(nextHint(small, Object.fromEntries(small.solution.map((c, r) => [`${r},${c}`, 'dog']))), null);
 });

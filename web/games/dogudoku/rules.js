@@ -1,14 +1,15 @@
 // Dogudoku's rules, pure so they can be tested and used by the puzzle generator
-// (tools/gen-dogudoku.mjs). A puzzle is an n×n board; a solution has exactly one dog per row and
-// per column, plus, depending on the tier:
+// (tools/gen-dogudoku.mjs). A puzzle is an n×n board; on every size a solution has exactly one
+// dog per row and per column, and dogs never touch, not even diagonally (Mark, 2026-11-07: "no
+// adjacent puppies" is a rule everywhere). Per tier:
 //   tiny  (4×4, ages 3-5): no regions; some cells are bushes where no dog can sit
 //   small (5×5, ages 5-7): one dog per colour region as well
-//   full  (6×6-8×8, 7-10): one dog per region, and dogs never touch, not even diagonally
+//   full  (6×6-8×8, 7-10): the same rules as small, on bigger boards
 // Puzzle data: { id, n, tier, regions: ['AABB', ...] | null, bushes: [[r, c], ...], solution: [col per row] }
 
 export const TIERS = Object.freeze({
-  tiny: Object.freeze({ regions: false, touch: false }),
-  small: Object.freeze({ regions: true, touch: false }),
+  tiny: Object.freeze({ regions: false, touch: true }),
+  small: Object.freeze({ regions: true, touch: true }),
   full: Object.freeze({ regions: true, touch: true }),
 });
 

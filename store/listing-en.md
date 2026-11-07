@@ -38,10 +38,10 @@ BUBBLE SHOOTER
 • 30 levels. Level 1 shows how it works with a little hand.
 
 DOGUDOKU: HIDE THE PUPPIES
-• A logic puzzle: put one puppy in every row and every column.
+• A logic puzzle: put one puppy in every row and every column, and puppies may not touch, not even diagonally.
 • For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
 • From age 5, coloured beds join in: one puppy per colour.
-• From age 7, up to 8 by 8, and puppies may not touch, not even diagonally.
+• From age 7, bigger gardens, up to 8 by 8.
 • 60 puzzles, each with exactly one solution. A mistake lights up gently, with a picture that explains it; a hint helps one step further.
 • Six different puppies, and a happy "woof" when you solve it.
 
