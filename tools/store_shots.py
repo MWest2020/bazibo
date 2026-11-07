@@ -91,7 +91,7 @@ def shoot(browser, base, name, viewport, dpr, lang):
     shots.append(out / "2-levels.png")
     page.screenshot(path=str(shots[-1]))
 
-    tmp = out / "4-pop.png"
+    tmp = out / "3-pop.png"
     caught = False
     for seed in range(1, 9):
         page.evaluate(f"window.__seed({seed}); window.__bubbels.play(6)")  # level 7: a colourful board
@@ -110,13 +110,6 @@ def shoot(browser, base, name, viewport, dpr, lang):
             page.mouse.down()
             page.mouse.move(tx, ty, steps=6)
             page.wait_for_timeout(150)
-
-        if seed == 1:
-            aim(64)  # shows the dotted guide line and the ghost bubble where the shot will land
-            shots.append(out / "3-aim.png")
-            page.screenshot(path=str(shots[-1]))
-            page.mouse.up()
-            page.wait_for_function("window.__bubbels.state().phase === 'aim' && window.__bubbels.state().effects === 0", timeout=8000)
 
         # fire until a shot pops bubbles, and catch the moment the pop starts
         for deg in (82, 98, 110, 70, 120, 90):
@@ -138,14 +131,14 @@ def shoot(browser, base, name, viewport, dpr, lang):
             break
     if not caught:
         page.screenshot(path=str(tmp))
-        print(f"[{name}] no popping shot caught; 4-pop.png shows the board")
+        print(f"[{name}] no popping shot caught; 3-pop.png shows the board")
     shots.append(tmp)
 
     # Dogudoku: a 4×4 garden for the youngest, and a 6×6 with crosses for the older ones
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('[data-go=home]').click()")
     page.click("#tile-dogudoku")
     page.wait_for_timeout(300)
-    for pid, file, place, auto in ((1, "5-dogudoku-4x4.png", 2, False), (27, "6-dogudoku-6x6.png", 3, True)):
+    for pid, file, place, auto in ((1, "4-dogudoku-4x4.png", 2, False), (27, "5-dogudoku-6x6.png", 3, True)):
         page.evaluate(f"window.__bubbels.dogu.play({pid})")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
@@ -164,11 +157,11 @@ def shoot(browser, base, name, viewport, dpr, lang):
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
 
-    # Picturedoku: a 4×4 with pictures for the youngest, and a 9×9 with pencil notes for the older ones
+    # Picturedoku: a 9×9 with pictures and pencil notes (the stores take 8 shots; the 4×4 made way for Vier op een rij)
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
     page.click("#tile-picturedoku")
     page.wait_for_timeout(300)
-    for pid, file, fill in ((1, "7-picturedoku-4x4.png", 3), (43, "8-picturedoku-9x9.png", 14)):
+    for pid, file, fill in ((43, "6-picturedoku-9x9.png", 14),):
         page.evaluate(f"window.__bubbels.pdoku.play({pid})")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
@@ -189,6 +182,29 @@ def shoot(browser, base, name, viewport, dpr, lang):
         page.wait_for_timeout(500)
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
+
+    # Vier op een rij: the big board against the easy computer, and the kleuterbord with a won row
+    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
+    page.click("#tile-vier")
+    page.wait_for_timeout(300)
+    page.emulate_media(reduced_motion="reduce")  # tokens land at once and a won row holds still for the shot
+    wait = "(() => { const s = window.__bubbels.vier.state(); return s && !s.busy && (s.over || s.setup.mode === 'duo' || s.turn === 1); })()"
+    page.evaluate("window.__seed(5); window.__bubbels.vier.choose({board: 'big', mode: 'cpu', level: 1}); window.__bubbels.vier.start(1)")
+    page.wait_for_timeout(300)
+    for col in (3, 3, 2, 4):
+        page.click(f".vcol[data-col='{col}']")
+        page.wait_for_function(wait, timeout=8000)
+    page.wait_for_timeout(300)
+    shots.append(out / "7-vier-7x6.png")
+    page.screenshot(path=str(shots[-1]))
+    page.evaluate("window.__bubbels.vier.choose({board: 'small', mode: 'duo', tokens: ['pup', 'apple']}); window.__bubbels.vier.start(1)")
+    page.wait_for_timeout(300)
+    for col in (1, 1, 2, 2, 3):
+        page.click(f".vcol[data-col='{col}']")
+        page.wait_for_function(wait, timeout=8000)
+    page.wait_for_timeout(450)
+    shots.append(out / "8-vier-5x4.png")
+    page.screenshot(path=str(shots[-1]))
     ctx.close()
     for s in shots:
         flatten(s)

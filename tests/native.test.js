@@ -4,11 +4,26 @@ import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
-test('Android keeps save data in the phone backup (Auto Backup includes shared_prefs)', () => {
+test('Android keeps save data in the phone backup and in a phone-to-phone transfer', () => {
+  // Capacitor Preferences lives in shared_prefs/CapacitorStorage.xml: it must be in the Auto Backup
+  // of Android 6-11 (fullBackupContent) and, on Android 12+, in both the cloud backup and the
+  // device transfer (dataExtractionRules)
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   assert.match(manifest, /android:allowBackup="true"/);
-  // custom backup rules could leave out Capacitor Preferences (shared_prefs/CapacitorStorage.xml)
-  assert.doesNotMatch(manifest, /fullBackupContent|dataExtractionRules/, 'add shared_prefs to any backup rules before adding them');
+  assert.match(manifest, /android:fullBackupContent="@xml\/backup_rules"/);
+  assert.match(manifest, /android:dataExtractionRules="@xml\/data_extraction_rules"/);
+  const sharedPref = /<include\s+domain="sharedpref"\s+path="\."\s*\/>/;
+  const full = read('android/app/src/main/res/xml/backup_rules.xml');
+  assert.match(full, /<full-backup-content>[\s\S]*<\/full-backup-content>/);
+  assert.match(full, sharedPref);
+  const rules = read('android/app/src/main/res/xml/data_extraction_rules.xml');
+  for (const section of ['cloud-backup', 'device-transfer']) {
+    const body = rules.match(new RegExp(`<${section}[^>]*>([\\s\\S]*?)</${section}>`));
+    assert.ok(body, `${section} is missing`);
+    assert.match(body[1], sharedPref, `${section} leaves out shared_prefs`);
+    assert.doesNotMatch(body[1], /<exclude\s+domain="sharedpref"/, `${section} excludes shared_prefs`);
+  }
+  assert.doesNotMatch(full, /<exclude\s+domain="sharedpref"/);
 });
 
 test('both apps ship the Preferences plugin the save data uses', () => {

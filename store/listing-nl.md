@@ -21,15 +21,15 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku met hondjes en Picturedoku, sudoku met plaatjes: spelletjes voor kinderen van 3 tot 10, zonder één advertentie.
+Bubbels schieten, Dogudoku met hondjes, Picturedoku en Vier op een rij, samen of tegen de computer: spelletjes voor 3 tot 10 jaar, zonder reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
-bubble shooter,sudoku,hondjes,puzzel,logica,kinderen,kleuter,leren,zonder reclame,offline
+bubble shooter,sudoku,vier op een rij,hondjes,puzzel,logica,kinderen,kleuter,zonder reclame,offline
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu drie spellen in: Bubbels schieten, Dogudoku en Picturedoku. Er komen meer spellen bij, ook spellen om van te leren.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu vier spellen in: Bubbels schieten, Dogudoku, Picturedoku en Vier op een rij. Er komen meer spellen bij, ook spellen om van te leren.
 
 De naam komt van "bāzi", het Perzische woord voor spel. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
 
@@ -54,6 +54,13 @@ PICTUREDOKU: SUDOKU MET PLAATJES
 • Tik een vakje en dan een plaatje, of kies eerst een plaatje en tik dan de vakjes. Met potlood, gum en ongedaan maken.
 • 60 puzzels, elk met precies één oplossing en op te lossen zonder gokken. Een fout licht vriendelijk op; een hint helpt een stapje verder.
 
+VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
+• Laat om de beurt een fiche in een kolom vallen. Wie als eerste vier op een rij heeft (recht of schuin), wint.
+• Samen spelen op één scherm, met broertje, zusje of ouder. Of tegen de computer: Makkelijk, Gemiddeld of Moeilijk. Op Makkelijk maakt de computer expres foutjes, zodat jonge kinderen ook winnen.
+• Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
+• Kies je eigen fiche: een puppy, een bubbel, een appel, een bloem, een vis of een mopshond.
+• Tegen de computer kun je een zet terugnemen. Je overwinningen worden bijgehouden.
+
 GEMAAKT VOOR KINDEREN
 • Kleuren met elk een eigen symbool of patroon, zodat ook kleurenblinde kinderen kunnen meespelen.
 • Grote knoppen, korte teksten, in het Nederlands of het Engels.
@@ -62,7 +69,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, en bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://mwest2020.github.io/bubbels/privacy/index.html
 Broncode (MIT): https://github.com/MWest2020/bubbels
@@ -76,7 +83,7 @@ Broncode (MIT): https://github.com/MWest2020/bubbels
 
 ## Categorie en contact
 
-- Play: Games › Educatief (of Games › Puzzel); tags: Kinderen, Bubble shooter, Puzzel. App Store: primair
+- Play: Games › Educatief (of Games › Puzzel); tags: Kinderen, Bubble shooter, Puzzel, Bordspel. App Store: primair
   Games › Familie, secundair Educatie; Kids-categorie: zie `forms.md`.
 - Contact-e-mail: mark@westerweel.work
 - Website: https://mwest2020.github.io/bubbels/

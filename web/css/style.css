@@ -85,6 +85,7 @@ html, body {
 .btn.icon:active { box-shadow: 0 1px 0 #c9c1ff; }
 
 /* ---------- home ---------- */
+#screen-home { overflow-y: auto; -webkit-overflow-scrolling: touch; } /* short phones scroll to the last tiles */
 #home-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .home-inner {
   position: relative;
@@ -168,6 +169,7 @@ html, body {
 .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9c1ff, 0 4px 10px rgba(59, 47, 168, 0.18); }
 .tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 4px; }
 .tile-art { width: 92px; height: 92px; display: block; }
+.tile-art > span { flex: none; } /* the drawn mini boards keep their shape when scaled */
 .tile-name { font-size: 1.15rem; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; hyphens: manual; }
 .tile.soon { background: rgba(255, 255, 255, 0.72); color: var(--ink-soft); }
 .tile.soon .tile-art { opacity: 0.6; }
@@ -291,6 +293,17 @@ html, body {
   .card, .ov-art .star.on { animation: none; }
 }
 
+/* short screens (small phones, sideways): a compact card, so every button stays on screen */
+@media (max-height: 600px) {
+  .card { padding: 18px 18px 18px; }
+  .card h2 { font-size: 1.8rem; }
+  .card p { margin-bottom: 12px; font-size: 1.05rem; }
+  .ov-buttons { gap: 10px; }
+  .ov-buttons .btn.big { min-height: 54px; font-size: 1.3rem; }
+  .ov-art .star { width: 48px; height: 48px; }
+  .ov-art .lock { width: 60px; height: 60px; }
+}
+
 /* short landscape screens: keep buttons reachable */
 @media (max-height: 520px) {
   .home-inner { gap: 12px; padding-top: 16px; } /* wide enough that the gear sits beside the name */
@@ -300,5 +313,15 @@ html, body {
   .tagline { margin-bottom: 4px; }
   .tile { min-height: 132px; width: 132px; padding: 10px; }
   .tile-art { width: 64px; height: 64px; }
+  .tile-art > span { transform: scale(0.72); } /* the small drawn boards on the tiles */
   .promise { display: none; }
+}
+
+/* narrow phones (320-360 px): two tiles side by side instead of one long column */
+@media (max-width: 360px) {
+  .tiles { gap: 14px; }
+  .tile { width: 132px; min-height: 152px; padding: 10px 8px 12px; gap: 8px; }
+  .tile-art { width: 76px; height: 76px; }
+  .tile-art > span { transform: scale(0.84); }
+  .tile-name { font-size: 1.05rem; }
 }

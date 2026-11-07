@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku with puppies and Picturedoku, sudoku with pictures: games for children aged 3 to 10, without a single ad.
+Bubble Shooter, Dogudoku with puppies, Picturedoku and Four in a Row, together or against the computer: games for ages 3 to 10, without a single ad.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,offline
+bubble shooter,sudoku,four in a row,puppies,puzzle,logic,kids,toddler,no ads,offline
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has three games now: Bubble Shooter, Dogudoku and Picturedoku. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has four games now: Bubble Shooter, Dogudoku, Picturedoku and Four in a Row. More games will follow, including games to learn from.
 
 The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
@@ -52,6 +52,13 @@ PICTUREDOKU: SUDOKU WITH PICTURES
 • Tap a square and then a picture, or pick a picture first and tap the squares. With a pencil, an eraser and undo.
 • 60 puzzles, each with exactly one solution and solvable without guessing. A mistake lights up gently; a hint helps one step further.
 
+FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
+• Take turns dropping a token into a column. The first to get four in a row (straight or slanting) wins.
+• Play together on one screen, with a brother, sister or parent. Or against the computer: Easy, Medium or Hard. On Easy the computer makes mistakes on purpose, so young children win too.
+• For the youngest (age 3 and up): the little board, 5 by 4, where three in a row already wins. No reading needed.
+• Pick your own token: a puppy, a bubble, an apple, a flower, a fish or a pug.
+• Against the computer you can take back a move. Your wins are counted.
+
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.
 • Big buttons, short texts, in English or Dutch.
@@ -60,7 +67,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, and in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, and in Four in a Row playing together and the Easy and Medium computer. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://mwest2020.github.io/bubbels/privacy/en.html
 Source code (MIT): https://github.com/MWest2020/bubbels
@@ -74,7 +81,7 @@ Source code (MIT): https://github.com/MWest2020/bubbels
 
 ## Category and contact
 
-- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter, Puzzle. App Store: primary
+- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter, Puzzle, Board game. App Store: primary
   Games › Family, secondary Education; Kids category: see `forms.md`.
 - Contact email: mark@westerweel.work
 - Website: https://mwest2020.github.io/bubbels/

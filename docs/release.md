@@ -95,7 +95,7 @@ regenerate the app icons and launch screens, run
 6. **Test purchases.** Add your Google account under Settings › License testing, and as a tester
    on the internal track. Install the app from the testing link. Buy and restore with test cards;
    no money moves. Check that:
-   - Bubbels level 11 and the locked Dogudoku and Picturedoku puzzles open after buying (and the offer after level 10 leads to the purchase);
+   - Bubbels level 11, the locked Dogudoku and Picturedoku puzzles and the hard computer in Vier op een rij open after buying (and the offer after level 10 leads to the purchase);
    - the app restarts unlocked, also with the phone offline;
    - "Aankoop herstellen" works after reinstalling;
    - progress survives an app update (section 5).
@@ -158,7 +158,7 @@ regenerate the app icons and launch screens, run
 ## 4. How the purchase works (for reviewers and future changes)
 
 - One purchase opens every game. Each game declares its free part in `web/games/<id>/meta.js`
-  (Bubbels: `free: 10` levels; Dogudoku and Picturedoku: the 10 puzzles marked `free: true` in their `puzzles.json`, a few of every size); the offer appears at the end of a free part and in Settings.
+  (Bubbels: `free: 10` levels; Dogudoku and Picturedoku: the 10 puzzles marked `free: true` in their `puzzles.json`, a few of every size; Vier op een rij: playing together and the easy and medium computer, `freeLevels` in its `meta.js`); the offer appears at the end of a free part and in Settings.
 - `web/js/unlock.js` holds the purchase state:
   - it only becomes "owned" when the store says so;
   - the last answer is cached for offline play;
@@ -198,8 +198,12 @@ regenerate the app icons and launch screens, run
   full version if either side has it, settings only if the child changed them) and saving starts.
 - A failed write is retried with the latest save on the next save or when the app comes back.
 - It stays on the device and nothing goes to us. It is part of the phone's own backup: Android
-  Auto Backup (`android:allowBackup="true"`, no rules that leave out `shared_prefs`;
-  `tests/native.test.js` checks this) and the iPhone's iCloud or computer backup. So progress
+  Auto Backup and, on Android 12+, the phone-to-phone transfer (`android:allowBackup="true"` with
+  explicit rules that include the `sharedpref` domain, where Capacitor Preferences keeps the save:
+  `res/xml/backup_rules.xml` for Android 6-11 and `res/xml/data_extraction_rules.xml` with
+  `cloud-backup` and `device-transfer` for 12+; `tests/native.test.js` checks all of it) and the
+  iPhone's iCloud or computer backup. Android makes the cloud backup about once a day (charging,
+  on Wi-Fi), so the last day's progress can be missing after a restore. So progress
   moves to a new phone without an account. The store answers stay "no data collected"
   (`store/forms.md`).
 

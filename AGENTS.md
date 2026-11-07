@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -35,6 +35,7 @@ evidence, in the same PR).
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,
 native config) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
+home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
@@ -47,6 +48,9 @@ internal track or in TestFlight. Never create, print or commit a signing key: th
 its properties file live in `~/.config/bubbels/` (backup in OpenBao), `build.gradle` reads them
 from `$BUBBELS_KEYSTORE_PROPERTIES` or that path, and `*.jks` / `keystore.properties` are
 gitignored. The Android back button: `web/js/back.js` decides, `main.js` wires it (apps only).
+Backup: `android/app/src/main/res/xml/backup_rules.xml` (Android 6-11) and
+`data_extraction_rules.xml` (12+, cloud backup and device transfer) must keep including the
+`sharedpref` domain, where Capacitor Preferences keeps the save; `tests/native.test.js` checks it.
 
 **Release and CI:** `.github/workflows/ci.yml` runs `npm test` and a fastlane check on every push
 and PR, and on `main` publishes `web/` to GitHub Pages. Store releases go through the lanes in
@@ -65,5 +69,9 @@ different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with
 `tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
+Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pure, seeded in the
+tests: hard and medium never miss a win or a block, easy loses often to a simple strategy, every
+level plays only legal moves). Never call it "Connect Four" and never use its blue frame with red
+and yellow discs. Win counters go through `recordStars` (they only go up).
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.
