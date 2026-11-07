@@ -19,3 +19,9 @@ export function isLevelLocked(levelId) {
 export async function unlock() {
   return { ok: false, reason: 'not-available-yet' };
 }
+
+/** Has every free level been won at least once? `stars` maps level id -> best stars. */
+export function allFreeLevelsDone(levels, stars) {
+  const free = levels.filter((l) => !isLevelLocked(l.id));
+  return free.length > 0 && free.every((l) => (stars[l.id] || 0) > 0);
+}

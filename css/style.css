@@ -204,9 +204,13 @@ html, body {
 .locked-grid .level-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
 /* ---------- game ---------- */
+/* keep pause and mute next to the board instead of in the far corners of a wide screen */
+.hud { width: min(100%, calc(var(--board-w, 100vw) + 32px)); margin: 0 auto; }
+
 #stage {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,4 +272,20 @@ html, body {
   .home-inner { gap: 12px; }
   .logo { font-size: 3.4rem; }
   .btn.big { min-height: 60px; font-size: 1.4rem; }
+}
+
+/* phone held sideways (browser only; the installed app is portrait): HUD becomes a side column
+   so the board gets the full height */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-game { flex-direction: row; }
+  .hud {
+    width: auto;
+    margin: 0;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px 6px 10px 12px;
+  }
+  .hud-mid { flex: 0; }
+  .hud-score { font-size: 1.4rem; }
+  #stage { padding: 6px 0; }
 }

@@ -4,7 +4,7 @@ import { loadLevels } from './levels.js';
 import { COLORS, getSprite } from './bubble-art.js';
 import * as store from './storage.js';
 import * as sfx from './audio.js';
-import { FREE_LEVELS, isLevelLocked } from './unlock.js';
+import { FREE_LEVELS, isLevelLocked, allFreeLevelsDone } from './unlock.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -119,7 +119,7 @@ function onWin({ stars, score }) {
   showOverlay({
     art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
     title: words[stars],
-    text: nextLocked && next ? `${score} punten. Je hebt alle gratis levels gehaald!` : `${score} punten`,
+    text: !nextLocked ? `${score} punten` : allFreeLevelsDone(levels, progress.stars) ? `${score} punten. Je hebt alle gratis levels gehaald!` : `${score} punten. Dit was het laatste gratis level.`,
     buttons,
   });
 }
@@ -228,9 +228,13 @@ document.addEventListener('keydown', (e) => {
 const homeAnim = {
   running: true,
   started: false,
+  looping: false,
   bubbles: [],
   start() {
-    if (this.started) return;
+    if (this.started) {
+      this._loop?.();
+      return;
+    }
     this.started = true;
     const canvas = $('#home-bg');
     const ctx = canvas.getContext('2d');
@@ -238,15 +242,22 @@ const homeAnim = {
     let w = 0;
     let h = 0;
     let dpr = 1;
+    let keepOut = []; // the logo and tagline: bubbles fade while they pass behind the text
     const size = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = canvas.clientWidth;
       h = canvas.clientHeight;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
+      const base = canvas.getBoundingClientRect();
+      keepOut = ['.logo', '.tagline'].map((sel) => {
+        const r = $(sel).getBoundingClientRect();
+        return { x0: r.left - base.left, x1: r.right - base.left, y0: r.top - base.top, y1: r.bottom - base.top };
+      });
     };
+    const behindText = (x, y, r) => keepOut.some((k) => x + r > k.x0 && x - r < k.x1 && y + r > k.y0 && y - r < k.y1);
     size();
-    window.addEventListener('resize', size);
+    window.addEventListener('resize', () => this.running && size());
     const make = (initial) => ({
       x: Math.random() * w,
       y: initial ? Math.random() * h : h + 60,
@@ -254,32 +265,44 @@ const homeAnim = {
       c: Math.floor(Math.random() * COLORS.length),
       v: 18 + Math.random() * 30,
       ph: Math.random() * 6.28,
+      a: 0.7,
     });
     this.bubbles = Array.from({ length: 16 }, () => make(true));
     let last = performance.now();
     const frame = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
-      if (this.running) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, w, h);
-        for (const b of this.bubbles) {
-          if (!reduced) {
-            b.y -= b.v * dt;
-            b.ph += dt;
-          }
-          if (b.y < -60) Object.assign(b, make(false));
-          const x = b.x + Math.sin(b.ph) * 12;
-          const spr = getSprite(b.c, b.r * dpr);
-          const s = spr.width / dpr;
-          ctx.globalAlpha = 0.7;
-          ctx.drawImage(spr, x - s / 2, b.y - s / 2, s, s);
-        }
-        ctx.globalAlpha = 1;
+      if (!this.running) {
+        this.looping = false; // stops until the start screen is shown again
+        return;
       }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      for (const b of this.bubbles) {
+        if (!reduced) {
+          b.y -= b.v * dt;
+          b.ph += dt;
+        }
+        if (b.y < -60) Object.assign(b, make(false));
+        const x = b.x + Math.sin(b.ph) * 12;
+        const target = behindText(x, b.y, b.r) ? 0.12 : 0.7;
+        b.a += (target - b.a) * Math.min(1, dt * 6);
+        const spr = getSprite(b.c, b.r * dpr);
+        const s = spr.width / dpr;
+        ctx.globalAlpha = b.a;
+        ctx.drawImage(spr, x - s / 2, b.y - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1;
       requestAnimationFrame(frame);
     };
-    requestAnimationFrame(frame);
+    this._loop = () => {
+      if (this.looping) return;
+      this.looping = true;
+      size(); // the screen may have been resized while it was hidden
+      last = performance.now();
+      requestAnimationFrame(frame);
+    };
+    this._loop();
   },
 };
 
@@ -295,12 +318,14 @@ async function boot() {
     showOverlay({ title: 'Oeps', text: 'De levels konden niet geladen worden.', buttons: [['Opnieuw', 'big primary', () => location.reload()]] });
     return;
   }
-  // test and debug hook: read-only state plus a way to fire at an angle
-  window.__bubbels = {
-    state: () => game.snapshot(),
-    fire: (deg) => game.fire((deg * Math.PI) / 180),
-    play: (i) => play(i),
-  };
+  // test and debug hook (only with ?test in the address): read-only state, fire at an angle
+  if (new URLSearchParams(location.search).has('test')) {
+    window.__bubbels = {
+      state: () => ({ ...game.snapshot(), loop: game.running, homeLoop: homeAnim.looping }),
+      fire: (deg) => game.fire((deg * Math.PI) / 180),
+      play: (i) => play(i),
+    };
+  }
   document.documentElement.dataset.ready = '1';
 }
 
