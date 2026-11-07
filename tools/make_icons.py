@@ -1,12 +1,16 @@
 """Generate web/icons/*.png by rendering tools/icons.html in headless Chromium.
+With --native it also writes the Android launcher icons and splash screens, the iOS app icon
+and launch images, and the 512 px Play Store icon. Store and iOS icons may not have an alpha
+channel, so those are flattened to RGB with Pillow.
 
-Run: uv run --with playwright python tools/make_icons.py
+Run: uv run --with playwright --with pillow python tools/make_icons.py [--native]
 """
 import base64
 import functools
 import http.server
 import os
 import socket
+import sys
 import threading
 from pathlib import Path
 
@@ -25,6 +29,14 @@ def free_port():
         return s.getsockname()[1]
 
 
+def flatten(path):
+    from PIL import Image
+
+    img = Image.open(path)
+    if img.mode != "RGB":
+        img.convert("RGB").save(path, optimize=True)
+
+
 def main():
     port = free_port()
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT))
@@ -34,14 +46,19 @@ def main():
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME)
             page = browser.new_page()
-            page.goto(f"http://127.0.0.1:{port}/tools/icons.html")
+            native = "--native" in sys.argv
+            page.goto(f"http://127.0.0.1:{port}/tools/icons.html" + ("?native" if native else ""))
             page.wait_for_function("window.icons")
-            icons = page.evaluate("window.icons")
-            out = ROOT / "web" / "icons"
-            out.mkdir(parents=True, exist_ok=True)
+            icons = {f"web/icons/{k}": v for k, v in page.evaluate("window.icons").items()}
+            if native:
+                icons.update(page.evaluate("window.nativeIcons"))
             for name, url in icons.items():
-                (out / name).write_bytes(base64.b64decode(url.split(",", 1)[1]))
-                print("wrote", out / name)
+                path = ROOT / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(base64.b64decode(url.split(",", 1)[1]))
+                if name.startswith(("ios/", "store/")):
+                    flatten(path)
+                print("wrote", name)
             browser.close()
     finally:
         httpd.shutdown()
