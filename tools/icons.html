@@ -6,38 +6,92 @@
 // Used by tools/make_icons.py; open it through a local server to look at the result.
 import { drawBubble, COLORS } from '../web/js/bubble-art.js';
 
-function icon(size, maskable) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, 0, size);
+const BUBBLES = [
+  [0.36, 0.6, 0.25, 0],
+  [0.68, 0.64, 0.19, 1],
+  [0.6, 0.31, 0.15, 4],
+  [0.27, 0.25, 0.09, 2],
+];
+
+function background(ctx, x, y, w, h, radius) {
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
   g.addColorStop(0, '#6B5CF0');
   g.addColorStop(1, '#3B2FA8');
   ctx.fillStyle = g;
-  if (maskable) {
-    ctx.fillRect(0, 0, size, size);
-  } else {
-    ctx.beginPath();
-    ctx.roundRect(0, 0, size, size, size * 0.22);
-    ctx.fill();
-  }
-  // safe zone for maskable icons is the centre 80%
-  const k = maskable ? 0.78 : 1;
+  ctx.beginPath();
+  if (radius === 'circle') ctx.arc(x + w / 2, y + h / 2, w / 2, 0, Math.PI * 2);
+  else ctx.roundRect(x, y, w, h, radius);
+  ctx.fill();
+}
+
+function bubbles(ctx, o, s) {
+  for (const [x, y, r, col] of BUBBLES) drawBubble(ctx, o + x * s, o + y * s, r * s, COLORS[col], { symbol: false });
+}
+
+// shape: 'rounded' (web/legacy), 'square' (maskable, iOS), 'circle' (Android round legacy),
+// 'foreground' (Android adaptive foreground: transparent, bubbles inside the 66/108 safe zone)
+function icon(size, shape) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  if (shape !== 'foreground') background(ctx, 0, 0, size, size, shape === 'circle' ? 'circle' : shape === 'square' ? 0 : size * 0.22);
+  // safe zones: maskable icons keep the centre 80%, adaptive foregrounds the centre 66/108
+  const k = shape === 'square' && size !== 1024 ? 0.78 : shape === 'foreground' ? 0.7 : shape === 'circle' ? 0.8 : 1;
   const s = size * k;
-  const o = (size - s) / 2;
-  const B = (x, y, r, col) => drawBubble(ctx, o + x * s, o + y * s, r * s, COLORS[col], { symbol: false });
-  B(0.36, 0.6, 0.25, 0);
-  B(0.68, 0.64, 0.19, 1);
-  B(0.6, 0.31, 0.15, 4);
-  B(0.27, 0.25, 0.09, 2);
+  bubbles(ctx, (size - s) / 2, s);
   return c.toDataURL('image/png');
 }
 
+// Launch screen: the game's soft background with the rounded icon in the middle.
+function splash(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#DCE8FF');
+  g.addColorStop(1, '#FBE4F3');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  const size = Math.round(Math.min(w, h) * 0.28);
+  const x = (w - size) / 2;
+  const y = (h - size) / 2;
+  background(ctx, x, y, size, size, size * 0.22);
+  ctx.save();
+  ctx.translate(x, y);
+  bubbles(ctx, 0, size);
+  ctx.restore();
+  return c.toDataURL('image/png');
+}
+
+function nativeSet() {
+  const out = {};
+  const dens = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+  for (const [d, f] of Object.entries(dens)) {
+    out[`android/app/src/main/res/mipmap-${d}/ic_launcher.png`] = icon(48 * f, 'rounded');
+    out[`android/app/src/main/res/mipmap-${d}/ic_launcher_round.png`] = icon(48 * f, 'circle');
+    out[`android/app/src/main/res/mipmap-${d}/ic_launcher_foreground.png`] = icon(108 * f, 'foreground');
+  }
+  const splashes = { mdpi: [480, 320], hdpi: [800, 480], xhdpi: [1280, 720], xxhdpi: [1600, 960], xxxhdpi: [1920, 1280] };
+  for (const [d, [w, h]] of Object.entries(splashes)) {
+    out[`android/app/src/main/res/drawable-land-${d}/splash.png`] = splash(w, h);
+    out[`android/app/src/main/res/drawable-port-${d}/splash.png`] = splash(h, w);
+  }
+  out['android/app/src/main/res/drawable/splash.png'] = splash(480, 320);
+  out['ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'] = icon(1024, 'square');
+  for (const n of ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png']) {
+    out[`ios/App/App/Assets.xcassets/Splash.imageset/${n}`] = splash(2732, 2732);
+  }
+  out['store/play-icon-512.png'] = icon(512, 'square');
+  return out;
+}
+
 window.icons = {
-  'icon-192.png': icon(192, false),
-  'icon-512.png': icon(512, false),
-  'icon-maskable-512.png': icon(512, true),
+  'icon-192.png': icon(192, 'rounded'),
+  'icon-512.png': icon(512, 'rounded'),
+  'icon-maskable-512.png': icon(512, 'square'),
 };
+if (new URLSearchParams(location.search).has('native')) window.nativeIcons = nativeSet();
 document.body.append(...Object.values(window.icons).map((src) => Object.assign(new Image(), { src })));
 </script>
 </body></html>

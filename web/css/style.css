@@ -195,6 +195,7 @@ html, body {
 }
 .full-divider::before, .full-divider::after { content: ""; flex: 1; height: 3px; border-radius: 3px; background: #d4ccff; }
 .full-divider svg { width: 24px; height: 24px; fill: currentColor; }
+.full-divider[hidden] { display: none; }
 
 .locked-grid .level-btn {
   background: rgba(255, 255, 255, 0.55);
@@ -259,6 +260,21 @@ html, body {
 .ov-art .star:nth-child(2).on { animation-delay: 0.15s; }
 .ov-art .star:nth-child(3).on { animation-delay: 0.3s; }
 .ov-art .lock { width: 84px; height: 84px; fill: var(--primary); }
+.card { max-height: 100%; overflow-y: auto; }
+.gate-input {
+  width: 100%;
+  max-width: 300px;
+  min-height: 64px;
+  border: 3px solid var(--primary-light);
+  border-radius: 20px;
+  font: 900 2rem var(--font);
+  color: var(--ink);
+  text-align: center;
+  background: #fff;
+}
+.gate-input:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; border-color: var(--primary); }
+.small-links { margin: 28px 0 8px; text-align: center; font-size: 0.95rem; font-weight: 700; }
+.small-links a { color: var(--ink-soft); }
 
 @keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes star-in { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }

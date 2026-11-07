@@ -1,0 +1,14 @@
+{
+  "appId": "work.westerweel.bubbels",
+  "appName": "Bubbels",
+  "webDir": "web",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": true
+  }
+}

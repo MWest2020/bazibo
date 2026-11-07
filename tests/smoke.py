@@ -8,6 +8,7 @@ import functools
 import http.server
 import math
 import os
+import re
 import socket
 import sys
 import threading
@@ -30,6 +31,9 @@ ANGLES = [90, 68, 112, 50, 32]  # the last one goes off the right wall
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
+
+
+WORDS = ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf", "twaalf"]
 
 
 def free_port():
@@ -111,6 +115,42 @@ def run(browser, base, name, context_args, problems):
     page.click("#levels-full .level-btn >> nth=0")
     page.wait_for_timeout(350)
     page.screenshot(path=str(SHOTS / f"{name}-7-locked.png"))
+    # the web build sells nothing: the locked card only has an OK button
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Oké"]:
+        problems.append(f"{name}: web locked card offers {labels}")
+    if page.evaluate("window.__bubbels.full()"):
+        problems.append(f"{name}: web build reports the full version as owned")
+
+    # parental gate (used before buying in the app): a wrong answer brings a new question,
+    # the right one passes. The sum is in words, so read it back with a small word list.
+    page.evaluate("window.__bubbels.gate()")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SHOTS / f"{name}-8-gate.png"))
+    first = page.inner_text("#ov-text")
+    page.fill(".gate-input", "7")
+    page.click("#ov-buttons button >> text=OK")
+    question = page.inner_text("#ov-text")
+    if question == first or "Dat klopt niet" not in question:
+        problems.append(f"{name}: gate did not ask a new question after a wrong answer: {question!r}")
+    m = re.search(r"Hoeveel is (\w+) keer (\w+)\?", question)
+    if not m:
+        problems.append(f"{name}: gate question not understood: {question!r}")
+    else:
+        page.fill(".gate-input", str(WORDS.index(m.group(1)) * WORDS.index(m.group(2))))
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(100)
+        if page.evaluate("document.documentElement.dataset.gate") != "passed":
+            problems.append(f"{name}: right answer did not pass the gate")
+
+    # privacy pages: served next to the game, no scripts, no outside requests
+    for path in ("privacy/index.html", "privacy/en.html"):
+        r = page.goto(f"{base}/{path}")
+        if not r or r.status != 200 or "mark@westerweel.work" not in page.content():
+            problems.append(f"{name}: {path} missing or incomplete")
+    page.screenshot(path=str(SHOTS / f"{name}-9-privacy.png"))
+    page.goto(f"{base}/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
 
     # offline: the service worker must serve the whole game without the server
     page.evaluate("navigator.serviceWorker.ready.then(() => true)")

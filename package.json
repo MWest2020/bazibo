@@ -2,13 +2,22 @@
   "name": "bubbels",
   "version": "0.1.0",
   "private": true,
-  "description": "Ad-free bubble shooter for children (web, later wrapped for Android)",
+  "description": "Ad-free bubble shooter for children (web, Android, iOS)",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "levels": "node tools/gen-levels.mjs",
     "serve": "python3 -m http.server 8080 --directory web",
     "stamp": "node tools/stamp-sw.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "cordova-plugin-purchase": "^13.20.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
   }
 }
