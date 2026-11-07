@@ -1,22 +1,29 @@
-// Offline play: precache the whole (small) game, then serve cache-first.
+// Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-9efb35b06c';
+const VERSION = 'bubbels-3dfbcbfadc';
 const ASSETS = [
   './',
   'index.html',
   'css/style.css',
   'js/main.js',
-  'js/game.js',
-  'js/grid.js',
+  'js/brand.js',
+  'js/i18n.js',
+  'js/games.js',
   'js/bubble-art.js',
   'js/audio.js',
   'js/storage.js',
-  'js/levels.js',
   'js/unlock.js',
   'js/billing-native.js',
   'js/parental-gate.js',
-  'levels/levels.json',
+  'games/bubbels/bubbels.css',
+  'games/bubbels/bubbels.js',
+  'games/bubbels/game.js',
+  'games/bubbels/grid.js',
+  'games/bubbels/levels.js',
+  'games/bubbels/levels.json',
+  'games/bubbels/meta.js',
+  'games/bubbels/strings.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
