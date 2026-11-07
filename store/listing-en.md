@@ -7,7 +7,7 @@ if it changes (issue #2), change this text too.
 
 ## Name (30)
 
-Bubbels: play and learn
+Idaveld: play and learn
 
 ## Subtitle, App Store only (30)
 
@@ -19,32 +19,41 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter: aim, shoot… pop! The first game in Bubbels, an app of games for children without a single ad. More games are on their way.
+Bubble Shooter and Dogudoku, the puzzle with puppies: games for children aged 3 to 10, without a single ad. More games are on their way.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubbles,bubble shooter,kids,toddler,learning,no ads,offline,games,logic puzzle
+bubble shooter,bubbles,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,offline
 
 ## Description (4000)
 
-Bubbels is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. The first game is Bubble Shooter; more games will follow, including games to learn from.
+Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has two games now: Bubble Shooter and Dogudoku. More games will follow, including games to learn from; the next one is Picturedoku, a picture sudoku.
+
+The name comes from Norse myth: Idavöllr is the field where the young gods played with golden game pieces.
 
 BUBBLE SHOOTER
 • Drag to aim and let go to shoot.
 • A dotted line shows where the bubble will go, also off the wall. The bubble always lands exactly where the line points.
 • Three or more of the same colour pop, with a real pop sound.
-• Bubbles that no longer hang on to anything fall down.
 • 30 levels. Level 1 shows how it works with a little hand.
 
+DOGUDOKU: HIDE THE PUPPIES
+• A logic puzzle: put one puppy in every row and every column.
+• For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
+• From age 5, coloured beds join in: one puppy per colour.
+• From age 7, up to 8 by 8, and puppies may not touch, not even diagonally.
+• 60 puzzles, each with exactly one solution. A mistake lights up gently, with a picture that explains it; a hint helps one step further.
+• Six different puppies, and a happy "woof" when you solve it.
+
 MADE FOR CHILDREN
-• Shiny bubbles, each colour with its own symbol (circle, star, triangle, diamond, heart, square), so colour-blind children can play too.
+• Colours each have their own symbol or pattern, so colour-blind children can play too.
 • Big buttons, short texts, in English or Dutch.
 • Works without internet.
 
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part; in Bubble Shooter that is levels 1 to 10. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, and in Dogudoku 10 free puzzles, spread over every size. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://mwest2020.github.io/bubbels/privacy/en.html
 Source code (MIT): https://github.com/MWest2020/bubbels
@@ -58,7 +67,7 @@ Source code (MIT): https://github.com/MWest2020/bubbels
 
 ## Category and contact
 
-- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter. App Store: primary
+- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter, Puzzle. App Store: primary
   Games › Family, secondary Education; Kids category: see `forms.md`.
 - Contact email: mark@westerweel.work
 - Website: https://mwest2020.github.io/bubbels/

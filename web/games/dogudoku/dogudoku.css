@@ -1,0 +1,200 @@
+/* Dogudoku: puzzle list, HUD, board and rule chips. Shared look lives in css/style.css. */
+
+/* ---------- home tile: a little garden with puppies ---------- */
+#tile-dogudoku .tile-art { display: flex; align-items: center; justify-content: center; }
+.mini-board {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border-radius: 14px;
+  background: #b9e2a8;
+}
+.mini-board span { border-radius: 6px; background: #e6f4d8; display: block; }
+.mini-board span:nth-child(3n + 2) { background: #ffd8a6; }
+.mini-board span:nth-child(n + 7) { background: #c4dcfb; }
+.mini-board svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- puzzle list ---------- */
+.dogu-size {
+  max-width: 560px;
+  margin: 22px auto 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--primary-dark);
+}
+.dogu-size:first-child { margin-top: 6px; }
+.dogu-size-age {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.dogu-grid .level-btn.locked {
+  background: rgba(255, 255, 255, 0.55);
+  color: #a59fd0;
+  box-shadow: 0 4px 0 #ddd8f7;
+}
+.dogu-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* ---------- HUD ---------- */
+.dogu-hud { gap: 10px; }
+.dogu-title { font-size: clamp(1.1rem, 5.4vw, 1.5rem); font-weight: 900; color: var(--primary); line-height: 1.1; white-space: nowrap; }
+#dogu-auto[hidden] { display: none; }
+#dogu-auto[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }
+#dogu-hint { position: relative; }
+#dogu-hint .count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 24px;
+  box-shadow: 0 2px 0 #c95f17;
+}
+#dogu-hint .count:empty { display: none; }
+#dogu-hint.empty { opacity: 0.55; }
+
+/* ---------- board ---------- */
+#dogu-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px 14px;
+}
+#dogu-stage.side { flex-direction: row; }
+.dogu-board {
+  --n: 6;
+  --edge: #4b3fb3;
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  grid-template-rows: repeat(var(--n), 1fr);
+  border: 4px solid var(--edge);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--edge);
+  box-shadow: 0 8px 0 #c9c1ff, 0 14px 30px rgba(59, 47, 168, 0.22);
+  touch-action: none;
+  flex: none;
+}
+.dcell {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(75, 63, 179, 0.18);
+  border-bottom: 1px solid rgba(75, 63, 179, 0.18);
+  color: #8c80b8;
+  cursor: pointer;
+  font: inherit;
+  min-width: 0;
+  min-height: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+/* thick lines where one colour ends and the next begins */
+.dcell.er { border-right: 3px solid var(--edge); }
+.dcell.eb { border-bottom: 3px solid var(--edge); }
+.dogu-board.tiny .dcell { border-right: 2px solid #b9dca6; border-bottom: 2px solid #b9dca6; }
+.dcell:focus-visible { outline: 4px solid var(--gold); outline-offset: -4px; z-index: 1; }
+.dcell > svg { position: absolute; inset: 6%; width: 88%; height: 88%; pointer-events: none; }
+.dcell > svg.cross { inset: 18%; width: 64%; height: 64%; }
+.dcell > svg.bush { inset: 2%; width: 96%; height: 96%; }
+.dcell > svg.cross.auto { inset: 28%; width: 44%; height: 44%; opacity: 0.38; }
+.dcell > svg.dog { animation: dog-in 0.22s cubic-bezier(0.2, 1.6, 0.4, 1); filter: drop-shadow(0 2px 0 rgba(59, 42, 34, 0.18)); }
+.dcell.bad > svg.dog { animation: dog-sad 0.5s ease; }
+.dcell.bad::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 3px solid #e5484d;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18);
+  pointer-events: none;
+}
+.dcell.hinted::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 12px;
+  border: 4px solid var(--gold);
+  animation: hint-pulse 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+.dcell.wiggle, .rule.wiggle, #dogu-hint.wiggle { animation: wiggle 0.4s ease; }
+
+/* solved: every puppy hops, one after the other */
+.dogu-board.won .dcell > svg.dog { animation: dog-hop 0.6s ease calc(var(--i) * 60ms) 2; }
+
+/* ---------- status line and rule chips ---------- */
+.dogu-side { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 560px; }
+#dogu-stage.side .dogu-side { width: 200px; }
+.dogu-status { margin: 0; min-height: 1.4em; font-weight: 800; color: #c8333a; text-align: center; }
+.dogu-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--primary-dark);
+  font-weight: 800;
+  font-size: 0.92rem;
+  border: 2px solid transparent;
+}
+.rule svg { width: 24px; height: 24px; flex: none; color: var(--primary); }
+.rule.oops { border-color: #e5484d; color: #c8333a; background: #fff1f1; }
+/* the youngest tier: pictures only (the text stays for screen readers) */
+.dogu-rules.pictures .rule span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.dogu-rules.pictures .rule { padding: 8px; }
+.dogu-rules.pictures .rule svg { width: 34px; height: 34px; }
+
+/* short sideways phones: the HUD becomes a column on the left, the rules sit beside the board */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-dogudoku { flex-direction: row; }
+  .dogu-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; }
+  .dogu-hud .hud-mid { flex: 0; }
+  .dogu-title { font-size: 1.25rem; white-space: nowrap; }
+  .dogu-hud .btn.icon { width: 54px; height: 54px; }
+}
+
+/* the how-to card shows a puppy */
+.ov-art .ov-dog { width: 96px; height: 96px; }
+
+/* ---------- home: the line about the name ---------- */
+.lore { margin: -4px 0 0; font-size: 0.95rem; font-weight: 700; font-style: italic; color: var(--ink-soft); opacity: 0.85; }
+@media (max-height: 520px) { .lore { display: none; } }
+
+@keyframes dog-in { from { transform: scale(0.4); } to { transform: scale(1); } }
+@keyframes dog-sad { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes dog-hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-18%) scale(1.08); } 70% { transform: translateY(2%) scale(0.98, 1.02); } }
+@keyframes hint-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dcell > svg.dog, .dogu-board.won .dcell > svg.dog, .dcell.bad > svg.dog, .dcell.hinted::before, .wiggle { animation: none !important; }
+}

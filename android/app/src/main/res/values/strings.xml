@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Bubbels</string>
-    <string name="title_activity_main">Bubbels</string>
+    <string name="app_name">Idaveld</string>
+    <string name="title_activity_main">Idaveld</string>
     <string name="package_name">work.westerweel.bubbels</string>
     <string name="custom_url_scheme">work.westerweel.bubbels</string>
 </resources>

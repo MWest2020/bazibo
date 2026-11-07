@@ -316,3 +316,33 @@ test('app: a hanging read times out and nothing is written', async () => {
     console.warn = warn;
   }
 });
+
+// Review of PR #5: after a failed read that a later read merges in, the games' own copy of their
+// stars is older than the save; saving it must never lower or drop stars.
+for (const game of ['bubbels', 'dogudoku']) {
+  test(`stars survive a failed read, the merge, and two later wins (${game})`, async () => {
+    let value = JSON.stringify({ version: 1, games: { [game]: { stars: { 1: 3, 2: 3, 3: 3 } } }, settings: {}, purchase: { owned: false } });
+    let fails = 3;
+    const b = {
+      name: 'flaky',
+      get: async () => {
+        if (fails-- > 0) throw new Error('not yet');
+        return value;
+      },
+      set: async (k, v) => void (value = v),
+    };
+    assert.equal(await store.init({ backend: b, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
+    const copy = store.loadProgress(game); // what the game holds: nothing, the read failed
+    copy.stars[4] = 2;
+    store.saveProgress(game, copy); // win 1: triggers the read again and the merge
+    await store.adopted();
+    await store.flushed();
+    assert.deepEqual(JSON.parse(value).games[game].stars, { 1: 3, 2: 3, 3: 3, 4: 2 });
+    copy.stars[5] = 1; // win 2 from the same, now stale, copy
+    store.saveProgress(game, copy);
+    store.recordStars(game, 2, 1); // and a worse replay never lowers a level
+    await store.flushed();
+    assert.deepEqual(JSON.parse(value).games[game].stars, { 1: 3, 2: 3, 3: 3, 4: 2, 5: 1 });
+    assert.deepEqual(store.loadProgress(game).stars, { 1: 3, 2: 3, 3: 3, 4: 2, 5: 1 });
+  });
+}

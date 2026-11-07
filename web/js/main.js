@@ -12,6 +12,9 @@ import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
+import '../games/dogudoku/strings.js';
+import { createDogudoku } from '../games/dogudoku/dogudoku.js';
+import { dogSvg } from '../games/dogudoku/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -58,6 +61,7 @@ function renderLanguage() {
   document.title = BRAND.name;
   $('#brand-name').textContent = BRAND.name;
   $('#brand-tagline').textContent = BRAND.tagline[lang];
+  $('#brand-lore').textContent = BRAND.lore[lang];
   translateDom(document);
   $('#privacy-link').href = lang === 'en' ? 'privacy/en.html' : 'privacy/index.html';
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
@@ -122,6 +126,16 @@ function drawTileArt() {
   ]) {
     drawBubble(ctx, x, y, r, COLORS[col % COLORS.length]);
   }
+}
+
+function drawDoguTile() {
+  // a little 3×3 garden with two puppies, from the game's own pictures
+  const box = $('#tile-dogudoku .tile-art');
+  box.innerHTML = `<span class="mini-board">${'<span></span>'.repeat(9)}</span>`;
+  const spots = box.querySelectorAll('.mini-board span');
+  spots[2].innerHTML = dogSvg(0);
+  spots[3].innerHTML = dogSvg(3);
+  spots[7].innerHTML = dogSvg(4);
 }
 
 const games = {};
@@ -372,15 +386,28 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.dogudoku = createDogudoku({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   renderLanguage();
   drawTileArt();
+  drawDoguTile();
   homeAnim.start();
-  const ok = await games.bubbels.init();
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init()]); // a Dogudoku load error shows on its tile
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
     window.__bubbels = {
       ...games.bubbels.testHook(),
+      dogu: games.dogudoku.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -410,6 +437,7 @@ function onBack() {
   const action = backAction({ screen: currentScreen(), overlay: overlayState() });
   if (action === 'close') hideOverlay();
   else if (action === 'levels') show('levels');
+  else if (action === 'dogudoku-levels') games.dogudoku.leave();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

@@ -1,7 +1,9 @@
 // Save data: everything is remembered only on this device, in one versioned document.
 //
 //   { version: 1,
-//     games:    { bubbels: { stars: {1: 3, ...} }, <later games add their own section> },
+//     games:    { bubbels: { stars: {1: 3, ...} },
+//                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
+//                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
 //     migrated: { from, at } }             // set once, when older save data was copied in
@@ -246,7 +248,10 @@ function adopt({ timeoutMs = 3000 } = {}) {
     backend = b;
     persist();
     return true;
-  })().finally(() => (adopting = null));
+  })().finally(() => {
+    if (adopting === attempt) adopting = null; // a later init() may have started its own
+  });
+  const attempt = adopting;
   return adopting;
 }
 
@@ -271,6 +276,7 @@ export async function init({
 } = {}) {
   backend = null;
   pending = null;
+  adopting = null; // an attempt left over from an earlier init() belongs to its own backend
   writeFailed = false;
   settingsTouched = false;
   legacySource = legacyStorage;
@@ -332,8 +338,33 @@ export function loadProgress(gameId) {
   return { stars: isObj(g?.stars) ? clone(g.stars) : {} };
 }
 
+/**
+ * Store a game's stars. Never lowers a level's stars: the game's own copy can be older than the
+ * save (after a failed read that a later read merged in, review of PR #5), so per level the best
+ * of both is kept.
+ */
 export function saveProgress(gameId, progress) {
-  save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), stars: clone(progress.stars) };
+  const g = isObj(save.games[gameId]) ? save.games[gameId] : {};
+  const stars = isObj(g.stars) ? clone(g.stars) : {};
+  for (const [id, n] of Object.entries(isObj(progress?.stars) ? progress.stars : {})) stars[id] = Math.max(stars[id] || 0, n || 0);
+  save.games[gameId] = { ...g, stars };
+  persist();
+}
+
+/** One result: level or puzzle `id` got `n` stars (kept only if better). */
+export function recordStars(gameId, id, n) {
+  saveProgress(gameId, { stars: { [id]: n } });
+}
+
+/** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
+export function loadGameOption(gameId, key, fallback) {
+  const g = save.games[gameId];
+  return isObj(g) && key in g && key !== 'stars' ? clone(g[key]) : fallback;
+}
+
+export function saveGameOption(gameId, key, value) {
+  if (key === 'stars') throw new Error('stars go through saveProgress');
+  save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
   persist();
 }
 

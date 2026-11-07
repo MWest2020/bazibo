@@ -1,7 +1,8 @@
-# Releasing Bubbels to Google Play and the App Store
+# Releasing Idaveld to Google Play and the App Store
 
-Bubbels is one app with several games (the brand and tagline are in `web/js/brand.js`; the
-name is an open question in issue #2). The app lives in `web/`: the shell in `web/js/`, each game
+Idaveld (the repository and package id keep the old name `bubbels`) is one app with several
+games (the brand, tagline and the line about the name are in `web/js/brand.js`; issue #2 holds
+the name decision, default Idaveld). The app lives in `web/`: the shell in `web/js/`, each game
 in `web/games/<id>/`. Capacitor wraps it as `android/` and `ios/`; both apps load the same files
 from inside the package (no server). The €1 full version is the non-consumable product
 `unlock_all`; it opens every game. It is sold through Google Play Billing and Apple StoreKit by
@@ -58,7 +59,7 @@ regenerate the app icons and launch screens, run
    organisation accounts. Check the Play Console text when you sign up, because Google changes
    these rules.
 2. **Create the app.** Package name `work.westerweel.bubbels` (it stays, whatever the brand
-   name becomes; users never see it). Name "Bubbels: spelen en leren". It is a game and it is
+   name becomes; users never see it). Name "Idaveld: spelen en leren". It is a game and it is
    free (with an in-app purchase).
 3. **Signing.** Use Play App Signing: Google keeps the app signing key, and we only hold an
    *upload key*. It exists (made 2026-11-07) and lives outside the repository:
@@ -94,7 +95,7 @@ regenerate the app icons and launch screens, run
 6. **Test purchases.** Add your Google account under Settings › License testing, and as a tester
    on the internal track. Install the app from the testing link. Buy and restore with test cards;
    no money moves. Check that:
-   - Bubbels level 11 opens after buying (and the offer after level 10 leads to the purchase);
+   - Bubbels level 11 and Dogudoku's locked puzzles open after buying (and the offer after level 10 leads to the purchase);
    - the app restarts unlocked, also with the phone offline;
    - "Aankoop herstellen" works after reinstalling;
    - progress survives an app update (section 5).
@@ -123,7 +124,7 @@ regenerate the app icons and launch screens, run
 2. **App ID.** Under Certificates, Identifiers & Profiles, register the bundle ID
    `work.westerweel.bubbels` with the *In-App Purchase* capability.
 3. **App record.** In App Store Connect, create a new app with bundle ID
-   `work.westerweel.bubbels`, name "Bubbels: spelen en leren" (English localization "Bubbels:
+   `work.westerweel.bubbels`, name "Idaveld: spelen en leren" (English localization "Idaveld:
    play and learn") and primary language Dutch.
 4. **Product.** Under In-App Purchases, create a Non-Consumable with product ID `unlock_all`,
    price € 1 and the texts from the listings. It goes to review together with the first build.
@@ -157,7 +158,7 @@ regenerate the app icons and launch screens, run
 ## 4. How the purchase works (for reviewers and future changes)
 
 - One purchase opens every game. Each game declares its free part in `web/games/<id>/meta.js`
-  (Bubbels: `free: 10`); the offer appears at the end of a free part and in Settings.
+  (Bubbels: `free: 10` levels; Dogudoku: the 10 puzzles marked `free: true` in `puzzles.json`, a few of every size); the offer appears at the end of a free part and in Settings.
 - `web/js/unlock.js` holds the purchase state:
   - it only becomes "owned" when the store says so;
   - the last answer is cached for offline play;

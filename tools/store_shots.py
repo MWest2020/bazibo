@@ -140,6 +140,29 @@ def shoot(browser, base, name, viewport, dpr, lang):
         page.screenshot(path=str(tmp))
         print(f"[{name}] no popping shot caught; 4-pop.png shows the board")
     shots.append(tmp)
+
+    # Dogudoku: a 4×4 garden for the youngest, and a 6×6 with crosses for the older ones
+    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('[data-go=home]').click()")
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(300)
+    for pid, file, place, auto in ((1, "5-dogudoku-4x4.png", 2, False), (27, "6-dogudoku-6x6.png", 3, True)):
+        page.evaluate(f"window.__bubbels.dogu.play({pid})")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+        if auto:
+            page.click("#dogu-auto")
+        pz = page.evaluate("window.__bubbels.dogu.puzzle()")
+        taps = 1 if pz["tier"] == "tiny" else 2
+        for r in range(place):
+            for _ in range(taps):
+                page.evaluate(f"window.__bubbels.dogu.tapCell({r}, {pz['solution'][r]})")
+        if pz["tier"] != "tiny":  # one cross the child set by hand
+            r = pz["n"] - 1
+            page.evaluate(f"window.__bubbels.dogu.tapCell({r}, {(pz['solution'][r] + 2) % pz['n']})")
+        page.wait_for_timeout(500)
+        shots.append(out / file)
+        page.screenshot(path=str(shots[-1]))
     ctx.close()
     for s in shots:
         flatten(s)

@@ -13,7 +13,10 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 
 export function createBubbels(shell) {
   const { t, tap } = shell;
-  const progress = store.loadProgress(meta.id);
+  // read from the save each time it is needed: a copy kept here could be older than the save
+  // (a failed read that a later read merged in) and would hide or lower stars
+  let progress = store.loadProgress(meta.id);
+  const refresh = () => (progress = store.loadProgress(meta.id));
   let levels = [];
   let index = 0; // index into levels of the level being played
   let game = null;
@@ -37,7 +40,7 @@ export function createBubbels(shell) {
 
   // ---------- level select ----------
 
-  const nextOpenIndex = () => levels.findIndex((l) => !progress.stars[l.id] && !locked(l.id));
+  const nextOpenIndex = () => (refresh(), levels.findIndex((l) => !progress.stars[l.id] && !locked(l.id)));
 
   $('#btn-play').addEventListener('click', () => {
     tap();
@@ -104,8 +107,8 @@ export function createBubbels(shell) {
 
   function onWin({ stars, score }) {
     const level = levels[index];
-    progress.stars[level.id] = Math.max(stars, progress.stars[level.id] || 0);
-    store.saveProgress(meta.id, progress);
+    store.recordStars(meta.id, level.id, stars);
+    refresh();
     const next = levels[index + 1];
     const buttons = [];
     let text = t('bubbels.points', { score });

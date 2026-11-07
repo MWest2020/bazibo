@@ -1,9 +1,9 @@
 # AGENTS.md
 
-**What this is:** Bubbels, one app of play-and-learn games for children of 3 to 10, with one €1
-purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
+**What this is:** Idaveld (repo and package still called bubbels), one app of play-and-learn
+games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the first is the bubble shooter). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -33,7 +33,8 @@ evidence, in the same PR).
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,
-native config) and `uv run --with playwright python tests/smoke.py` (home → Bubbels, 5 shots on
+native config) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
+home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
 right. The test hook `window.__bubbels` only exists with `?test` in the address.
@@ -52,7 +53,10 @@ and PR, and on `main` publishes `web/` to GitHub Pages. Store releases go throug
 `store/`, `tools/store-to-fastlane.mjs` converts them and `npm test` checks the store limits.
 Push over SSH (`git@github.com:MWest2020/bubbels.git`): the gh token cannot push workflow files.
 
-**When you change things:** grid rules go in `web/games/bubbels/grid.js` with a test. Level changes go through
+**When you change things:** Dogudoku's rules go in `web/games/dogudoku/rules.js` with a test;
+puzzles only through `npm run puzzles` (`tools/gen-dogudoku.mjs`; `npm test` fails if
+`puzzles.json` differs from what it generates, or if a puzzle has more than one solution). Its
+dogs must never look like cats (floppy or rounded ears only). Grid rules go in `web/games/bubbels/grid.js` with a test. Level changes go through
 `tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
