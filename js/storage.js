@@ -20,3 +20,24 @@ export function save(progress) {
     /* not available: progress stays in memory for this session */
   }
 }
+
+// Last known store answer for the full version (see unlock.js). Only a cache: the store decides.
+const FULL = 'bubbels.full.v1';
+
+export const fullCache = {
+  get() {
+    try {
+      return window.localStorage.getItem(FULL) === '1';
+    } catch {
+      return false;
+    }
+  },
+  set(owned) {
+    try {
+      if (owned) window.localStorage.setItem(FULL, '1');
+      else window.localStorage.removeItem(FULL);
+    } catch {
+      /* not available */
+    }
+  },
+};

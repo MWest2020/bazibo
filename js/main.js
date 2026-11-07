@@ -4,7 +4,9 @@ import { loadLevels } from './levels.js';
 import { COLORS, getSprite } from './bubble-art.js';
 import * as store from './storage.js';
 import * as sfx from './audio.js';
-import { FREE_LEVELS, isLevelLocked, allFreeLevelsDone } from './unlock.js';
+import { FREE_LEVELS, isLevelLocked, allFreeLevelsDone, createUnlock, noBilling } from './unlock.js';
+import { isNativeApp, createNativeBilling } from './billing-native.js';
+import { createGate } from './parental-gate.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -14,6 +16,13 @@ const progress = store.load();
 let levels = [];
 let index = 0; // index into levels of the level being played
 let game = null;
+
+// The full version: bought in the Android/iOS app; on the web nothing can be bought.
+const unlock = createUnlock({ billing: isNativeApp() ? createNativeBilling() : noBilling, cache: store.fullCache });
+const locked = (id) => isLevelLocked(id, unlock.owned);
+unlock.onChange(() => {
+  if ($('#screen-levels').classList.contains('active')) renderLevels();
+});
 
 sfx.setMuted(progress.muted);
 
@@ -41,7 +50,7 @@ document.addEventListener('click', (e) => {
 $('#btn-play').addEventListener('click', () => {
   sfx.unlock();
   sfx.click();
-  const firstOpen = levels.findIndex((l) => !progress.stars[l.id] && !isLevelLocked(l.id));
+  const firstOpen = levels.findIndex((l) => !progress.stars[l.id] && !locked(l.id));
   play(firstOpen >= 0 ? firstOpen : 0);
 });
 $('#btn-levels').addEventListener('click', () => {
@@ -61,12 +70,13 @@ function renderLevels() {
   const full = $('#levels-full');
   free.textContent = '';
   full.textContent = '';
-  const nextOpen = levels.find((l) => !progress.stars[l.id] && !isLevelLocked(l.id));
+  $('.full-divider').hidden = unlock.owned;
+  const nextOpen = levels.find((l) => !progress.stars[l.id] && !locked(l.id));
   levels.forEach((l, i) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'level-btn';
-    if (isLevelLocked(l.id)) {
+    if (locked(l.id)) {
       b.innerHTML = `<span class="num">${l.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
       b.setAttribute('aria-label', `Level ${l.id}, volledige versie`);
       b.addEventListener('click', () => {
@@ -95,7 +105,7 @@ function renderLevels() {
 function play(i) {
   const level = levels[i];
   if (!level) return;
-  if (isLevelLocked(level.id)) {
+  if (locked(level.id)) {
     showLocked();
     return;
   }
@@ -110,7 +120,7 @@ function onWin({ stars, score }) {
   progress.stars[level.id] = Math.max(stars, progress.stars[level.id] || 0);
   store.save(progress);
   const next = levels[index + 1];
-  const nextLocked = !next || isLevelLocked(next.id);
+  const nextLocked = !next || locked(next.id);
   const words = ['', 'Goed gedaan!', 'Heel goed!', 'Super!'];
   const buttons = [];
   if (!nextLocked) buttons.push(['Volgende', 'big primary', () => play(index + 1)]);
@@ -154,22 +164,111 @@ function resume() {
 }
 
 function showLocked() {
+  const art = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+  const last = levels.length || 30;
+  if (!unlock.available) {
+    showOverlay({
+      art,
+      title: 'Volledige versie',
+      text: `Level ${FREE_LEVELS + 1} tot en met ${last} komen in de volledige versie van de Bubbels-app. Op deze website kun je level 1 tot en met ${FREE_LEVELS} zo vaak spelen als je wilt!`,
+      buttons: [['Oké', 'big primary', hideOverlay]],
+    });
+    return;
+  }
+  const price = unlock.price();
   showOverlay({
-    art: `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`,
+    art,
     title: 'Volledige versie',
-    text: `Level ${FREE_LEVELS + 1} tot en met ${levels.length || 30} komen in de volledige versie. Die komt later. Tot die tijd kun je level 1 tot en met ${FREE_LEVELS} zo vaak spelen als je wilt!`,
-    buttons: [['Oké', 'big primary', hideOverlay]],
+    text: `Level ${FREE_LEVELS + 1} tot en met ${last} zitten in de volledige versie. Eén keer betalen${price ? ` (${price})` : ''}, dan zijn alle levels open. Geen reclame, geen abonnement. Vraag het aan je papa of mama!`,
+    buttons: [
+      ['Voor ouders: kopen', 'big primary', () => askParent(buyFullVersion)],
+      ['Aankoop herstellen', 'big secondary', () => askParent(restoreFullVersion)],
+      ['Later', 'big secondary', hideOverlay],
+    ],
   });
+}
+
+function showBusy() {
+  showOverlay({ title: 'Even geduld…', text: 'De winkel van je telefoon is bezig.', buttons: [] });
+}
+
+function showUnlocked(title) {
+  showOverlay({
+    art: `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`,
+    title,
+    text: 'Alle levels zijn open. Veel plezier!',
+    buttons: [['Naar de levels', 'big primary', () => show('levels')]],
+  });
+}
+
+function showStoreProblem(text) {
+  showOverlay({ title: 'Dat lukte niet', text, buttons: [['Oké', 'big primary', hideOverlay]] });
+}
+
+async function buyFullVersion() {
+  showBusy();
+  const r = await unlock.buy();
+  if (r.ok && (r.owned || unlock.owned)) showUnlocked('Gelukt!');
+  else if (r.ok && r.pending) {
+    showOverlay({ title: 'Bijna klaar', text: 'De betaling wordt nog verwerkt. Daarna gaan de levels vanzelf open.', buttons: [['Oké', 'big primary', hideOverlay]] });
+  } else if (r.reason === 'cancelled') hideOverlay();
+  else showStoreProblem('De winkel gaf geen antwoord. Probeer het later nog eens.');
+}
+
+async function restoreFullVersion() {
+  showBusy();
+  const r = await unlock.restore();
+  if (r.ok && r.owned) showUnlocked('Hersteld!');
+  else if (r.ok) showStoreProblem('Er is geen aankoop gevonden bij dit account.');
+  else showStoreProblem('De winkel gaf geen antwoord. Probeer het later nog eens.');
+}
+
+// Parental gate (parental-gate.js): an adult question before buying or restoring.
+function askParent(onPass) {
+  const gate = createGate();
+  let input = null;
+  const submit = () => {
+    const result = gate.check(input.value);
+    if (result === 'pass') onPass();
+    else if (result === 'closed') hideOverlay();
+    else ask('Dat klopt niet. Nieuwe vraag:');
+  };
+  const ask = (lead) => {
+    input = showOverlay({
+      title: 'Vraag voor ouders',
+      text: `${lead} ${gate.question}`,
+      field: { label: 'Antwoord (in cijfers)', onEnter: submit },
+      buttons: [
+        ['OK', 'big primary', submit],
+        ['Annuleren', 'big secondary', hideOverlay],
+      ],
+    });
+  };
+  ask('Typ het antwoord in cijfers.');
 }
 
 // ---------- overlay ----------
 
-function showOverlay({ art = '', title = '', text = '', buttons = [] }) {
+function showOverlay({ art = '', title = '', text = '', buttons = [], field = null }) {
   $('#ov-art').innerHTML = art;
   $('#ov-title').textContent = title;
   $('#ov-text').textContent = text;
   const box = $('#ov-buttons');
   box.textContent = '';
+  let input = null;
+  if (field) {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.maxLength = 3;
+    input.className = 'gate-input';
+    input.setAttribute('aria-label', field.label);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') field.onEnter();
+    });
+    box.appendChild(input);
+  }
   for (const [label, cls, fn] of buttons) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -183,7 +282,8 @@ function showOverlay({ art = '', title = '', text = '', buttons = [] }) {
     box.appendChild(b);
   }
   $('#overlay').hidden = false;
-  box.querySelector('button')?.focus({ preventScroll: true });
+  (input || box.querySelector('button'))?.focus({ preventScroll: true });
+  return input;
 }
 
 function hideOverlay() {
@@ -324,13 +424,18 @@ async function boot() {
       state: () => ({ ...game.snapshot(), loop: game.running, homeLoop: homeAnim.looping }),
       fire: (deg) => game.fire((deg * Math.PI) / 180),
       play: (i) => play(i),
+      locked: () => showLocked(),
+      gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
+      full: () => unlock.owned,
     };
   }
   document.documentElement.dataset.ready = '1';
+  unlock.start(); // asks the store in the app; a no-op on the web
 }
 
 boot();
 
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+// The apps ship their files inside the package, so only the web version needs the offline cache.
+if (!isNativeApp() && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
