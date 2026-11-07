@@ -24,8 +24,10 @@ Android Studio brings the JDK and the SDK.
 
 1. `npm test` and `uv run --with playwright python tests/smoke.py` pass.
 2. After changing anything under `web/`, run `npm run stamp`.
-3. Bump the version in two places:
-   - Android: `versionCode` (+1) and `versionName` in `android/app/build.gradle`.
+3. The version:
+   - Android: `fastlane android internal` asks Play for the highest version code and builds with
+     the next one. By hand: `./gradlew bundleRelease -PbubbelsVersionCode=<n> -PbubbelsVersionName=<x.y.z>`
+     (without them the build is code 1, name 1.0.0).
    - iOS: `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in Xcode (target App, General).
 4. `npx cap sync` copies `web/` and the plugin into both native projects. The copies are
    gitignored, so a fresh checkout always needs this step.
@@ -37,7 +39,9 @@ Android Studio brings the JDK and the SDK.
      Check the result with `jarsigner -verify -certs app/build/outputs/bundle/release/app-release.aab`
      and compare the SHA-256 from `keytool -printcert -jarfile <aab>` with the one in step 2.3.
    - iOS: see step 3.
-6. After merging to `main`, publish the web version: `npm test && git subtree push --prefix web origin gh-pages`.
+6. The website updates itself: on every merge to `main`, `.github/workflows/ci.yml` runs the tests
+   and the fastlane check, then publishes `web/` to GitHub Pages. (The old `gh-pages` branch is no
+   longer used.)
 
 Store texts, form answers and screenshots are in `store/` (screenshots per language in
 `store/screenshots/nl/` and `store/screenshots/en/`). To regenerate the screenshots and the
@@ -69,15 +73,20 @@ regenerate the app icons and launch screens, run
 
    `android/app/build.gradle` reads the properties file named in `$BUBBELS_KEYSTORE_PROPERTIES`,
    else `~/.config/bubbels/keystore.properties`; a relative `storeFile` is taken relative to that
-   file. With neither file it builds unsigned. Never commit the keystore or the properties file
+   file. With neither file it builds unsigned. A `$BUBBELS_KEYSTORE_PROPERTIES` that points nowhere,
+   a properties file that lacks one of the four keys, or a missing keystore stops the build with
+   a clear message instead of quietly building unsigned; an old `android/keystore.properties` is
+   not read and gives a warning. Never commit the keystore or the properties file
    (`*.jks` and `keystore.properties` are gitignored). On a new machine, restore both from
    OpenBao into `~/.config/bubbels/`.
 
    If the upload key is lost or leaks, ask for an *upload key reset* in Play Console (Setup ›
    App signing › Request upload key reset) with a new key's certificate. The app signing key
    stays with Google, so installed apps keep updating.
-4. **First upload.** Build with `./gradlew bundleRelease` and upload the AAB to the *Internal
-   testing* track. Play only lets you create in-app products after a build with the BILLING
+4. **First upload, by hand.** Build with `fastlane android build` (or `./gradlew bundleRelease`)
+   and upload the AAB in Play Console to the *Internal testing* track. The Play API cannot create
+   an app or make its first release, so this one is manual; every later one is automatic
+   (section 6). Play only lets you create in-app products after a build with the BILLING
    permission has been uploaded.
 5. **Product.** Go to Monetise › Products › In-app products. Create a product with ID
    `unlock_all`, the name and description from `store/listing-nl.md` (English in
@@ -96,6 +105,12 @@ regenerate the app icons and launch screens, run
    (`feature-graphic-1024x500.png`, `feature-graphic-en-1024x500.png`) and the 512 px icon.
 8. **Release.** Promote the build from internal testing to production and send it for review.
    Apps for children get a stricter review, which can take several days.
+9. **API access for the automation.** Play Console › Setup › API access: link a Google Cloud
+   project, create a service account, download its JSON key, and in Users and permissions give
+   that account release rights for this app (Release to production, Manage testing tracks, Edit
+   store listing). Put the JSON at `~/.config/bubbels/play-service-account.json` on the release
+   machine (or point `PLAY_JSON_KEY` at it), and keep a copy in OpenBao next to the upload key.
+   Never commit it.
 
 ## 3. Apple App Store
 
@@ -181,9 +196,34 @@ regenerate the app icons and launch screens, run
   moves to a new phone without an account. The store answers stay "no data collected"
   (`store/forms.md`).
 
-## 6. Release automation (planned)
+## 6. Release automation (fastlane)
 
-Not built yet; it is an item on `docs/reference/roadmap.yml`. The plan is fastlane for both
-stores: build and sign with the upload key, upload to the Play internal track and promote, push
-the listings and screenshots from `store/`, and on the iOS side upload to TestFlight and App
-Store Connect. Until then, follow the steps above by hand.
+`fastlane/Fastfile` holds the lanes; `Gemfile` pins fastlane. Install once with Ruby 3.3:
+`bundle install`. CI (`.github/workflows/ci.yml`) installs it on every push and checks that the
+lanes load, that the store texts fit the limits, and that an upload lane without a Play key
+stops with "No Play key yet".
+
+| Lane | Does | Needs |
+| --- | --- | --- |
+| `fastlane android check` | writes `fastlane/metadata/` from `store/` (`tools/store-to-fastlane.mjs`), checks the store limits, says which keys are present | nothing |
+| `fastlane android build` | `npx cap sync android`, signed release AAB, stops the Gradle daemon | the upload key (section 2.3) |
+| `fastlane android internal` | asks Play for the highest version code, builds the next one, uploads it to *Internal testing* (`status:draft` until the app is published) | upload key + Play key (2.9) |
+| `fastlane android promote` | internal → production, staged: `rollout:0.2` is 20 %, `rollout:1` everyone | Play key |
+| `fastlane android metadata` | texts, screenshots, feature graphic and icon, NL and EN, from `store/` (`validate_only:true` to try) | Play key |
+| `fastlane ios beta` | (Mac with Xcode) sync, next build number, archive, upload to TestFlight | App Store Connect API key: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_B64` |
+| `fastlane ios metadata` | App Store texts and screenshots from `store/` | the same key |
+
+**After the one-time steps** (2.1–2.9: account, app, first upload by hand, product, forms, API
+access), a release is:
+
+    fastlane android internal        # test it from the internal testing link
+    fastlane android promote         # 20 % of users, then: fastlane android promote rollout:1
+
+Store texts or screenshots changed: `fastlane android metadata`.
+
+**Later, in CI:** a tag push (`v1.2.0`) runs `fastlane android internal` in GitHub Actions with
+the upload key and the Play key as repository secrets. That job is not written yet, on purpose:
+it can only be tested once the Play key exists.
+
+The iOS lanes are a skeleton until there is a Mac or the macOS job from
+`docs/ci/ios-build.yml.example`.

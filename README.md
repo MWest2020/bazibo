@@ -10,7 +10,7 @@ wrapped with Capacitor as an Android and an iOS app. The first game is the bubbl
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
   sound, the full version, privacy.
 
-Play it: https://mwest2020.github.io/bubbels/ (served from the `gh-pages` branch; publish with `npm test && git subtree push --prefix web origin gh-pages`).
+Play it: https://mwest2020.github.io/bubbels/ (every merge to `main` runs the tests and publishes `web/` there through GitHub Actions; releases to the stores: `docs/release.md`).
 
 - Glossy bubbles that look like soap or glass, each colour with its own symbol (circle, star,
   triangle, diamond, heart, square), so colour-blind children can play too.
