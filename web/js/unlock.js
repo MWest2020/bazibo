@@ -1,25 +1,25 @@
-// Full-version gate, kept apart from the game on purpose.
+// The full version, kept apart from the games on purpose.
 //
-// Levels 1-10 are free. Levels 11-30 belong to the "volledige versie": one non-consumable
-// in-app product (PRODUCT_ID) bought once through Google Play or the App Store. The store talks
-// through a billing adapter (billing-native.js in the Android/iOS app). On the web there is no
-// adapter: nothing can be bought and no purchase is ever faked.
+// One non-consumable in-app product (PRODUCT_ID), bought once through Google Play or the App
+// Store, opens every game. Each game declares its own free tier in its meta.js (Bubbels: levels
+// 1-10). The store talks through a billing adapter (billing-native.js in the Android/iOS app). On
+// the web there is no adapter: nothing can be bought and no purchase is ever faked.
 //
 // Ownership only becomes true when the store reports the product as owned. The last answer is
 // cached so a child can keep playing offline; a store answer that says "not owned" (refund,
 // restore that finds nothing) clears the cache again.
 
-export const FREE_LEVELS = 10;
 export const PRODUCT_ID = 'unlock_all';
 
-export function isLevelLocked(levelId, owned = false) {
-  return levelId > FREE_LEVELS && !owned;
+/** Is item `n` (1-based: a level, a puzzle) locked, for a game whose first `free` items are free? */
+export function isLocked(n, free, owned = false) {
+  return n > free && !owned;
 }
 
 /** Has every free level been won at least once? `stars` maps level id -> best stars. */
-export function allFreeLevelsDone(levels, stars) {
-  const free = levels.filter((l) => l.id <= FREE_LEVELS);
-  return free.length > 0 && free.every((l) => (stars[l.id] || 0) > 0);
+export function allFreeDone(levels, stars, free) {
+  const inTier = levels.filter((l) => l.id <= free);
+  return inTier.length > 0 && inTier.every((l) => (stars[l.id] || 0) > 0);
 }
 
 /** The web build: no store, nothing to buy. */
@@ -44,7 +44,7 @@ export const noBilling = {
  * Purchase state around a billing adapter.
  * adapter: { available, start(), buy(), restore(), price(), onOwnedChange(fn) }
  *   start/restore resolve { ok, owned?, reason? }; buy resolves { ok, owned?, pending?, reason? }.
- * cache: { get() -> boolean, set(boolean) } (the game passes its localStorage wrapper).
+ * cache: { get() -> boolean, set(boolean) } (the app passes its localStorage wrapper).
  */
 export function createUnlock({ billing = noBilling, cache = { get: () => false, set() {} } } = {}) {
   let owned = billing.available ? !!cache.get() : false;

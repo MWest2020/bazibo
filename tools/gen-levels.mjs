@@ -1,8 +1,8 @@
-// Generates web/levels/levels.json deterministically (seeded). Run: node tools/gen-levels.mjs
+// Generates web/games/bubbels/levels.json deterministically (seeded). Run: node tools/gen-levels.mjs
 // Levels get more colours, more rows and denser, less clustered boards as they go up.
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { rowWidth, makeGrid, findFloating, removeCells, count, colorsPresent, toRows, set, get, neighbors } from '../web/js/grid.js';
+import { rowWidth, makeGrid, findFloating, removeCells, count, colorsPresent, toRows, set, get, neighbors } from '../web/games/bubbels/grid.js';
 
 const COLS = 8;
 const TOTAL = 30;
@@ -105,7 +105,7 @@ for (const l of levels) {
   if (n < 10) throw new Error(`level ${l.id} too sparse (${n})`);
 }
 const out = { version: 1, cols: COLS, levels };
-const file = fileURLToPath(new URL('../web/levels/levels.json', import.meta.url));
+const file = fileURLToPath(new URL('../web/games/bubbels/levels.json', import.meta.url));
 writeFileSync(file, JSON.stringify(out, null, 1) + '\n');
 console.log(`wrote ${levels.length} levels to ${file}`);
 for (const l of levels) console.log(String(l.id).padStart(2), l.shape.padEnd(8), `colours=${l.colors}`, `rows=${l.rows.length}`, `par=${l.par}`);

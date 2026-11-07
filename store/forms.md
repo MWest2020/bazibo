@@ -33,6 +33,11 @@ to map onto them.
   The payment itself is Google's. Check Play's current help text on billing data when filling
   this in; as of writing it does not ask developers to declare data that only Google Play's
   own billing system collects.
+- About save data: progress, settings and the purchase cache stay on the device, in Capacitor
+  Preferences (SharedPreferences). Android Auto Backup copies them to the user's own Google
+  account backup; the developer never receives them. Play's Data safety help treats data that
+  only leaves the device through the user's own Android backup as not collected; check the
+  current wording when filling the form in.
 
 ### App access, ads, government apps, financial features, health
 
@@ -50,7 +55,8 @@ https://mwest2020.github.io/bubbels/privacy/index.html
 - Do you or your third-party partners collect data from this app? **No, we do not collect data
   from this app.**
 - The label then reads **Data Not Collected**. Purchases are handled by Apple and do not count
-  as collection by the developer.
+  as collection by the developer. Save data sits in UserDefaults on the device and is part of the
+  user's own iCloud or computer backup, which the developer never sees.
 - Privacy policy URL: https://mwest2020.github.io/bubbels/privacy/en.html
 
 ### Age rating
@@ -80,10 +86,12 @@ https://mwest2020.github.io/bubbels/privacy/index.html
 
 - Type: **Non-Consumable**. Product ID: `unlock_all`. Price tier: € 1 (Tier 1 in the EU
   storefronts; check the current tier table).
-- The review screenshot for the purchase: `store/screenshots/appstore-iphone-6.9-1290x2796/2-levels.png`
-  shows where the full version sits. Review notes: "Tap a locked level (11+), then 'Voor ouders:
-  kopen'. The parental gate asks a multiplication written in Dutch words, for example 'zeven keer
-  acht' = 56."
+- One purchase opens every game in the app. Each game has a free part (Bubbels: levels 1-10).
+- The review screenshot for the purchase: `store/screenshots/en/appstore-iphone-6.9-1290x2796/2-levels.png`
+  shows where the full version sits. Review notes: "Open Bubble Shooter, tap a locked level (11+),
+  then 'For parents: buy'. The parental gate asks a multiplication written in words, for example
+  'seven times eight' = 56 (in Dutch: 'zeven keer acht'). The same offer is in Settings, 'More about
+  the full version'. The app follows the device language (Dutch or English); Settings switches it."
 
 ## Screenshots and graphics
 
@@ -91,8 +99,8 @@ https://mwest2020.github.io/bubbels/privacy/index.html
 
 | File | Use |
 | --- | --- |
-| `store/screenshots/play-phone-1080x1920/*.png` | Play phone screenshots (2-8 needed) |
-| `store/screenshots/appstore-iphone-6.9-1290x2796/*.png` | App Store iPhone 6.9" (required) |
-| `store/screenshots/appstore-ipad-13-2064x2752/*.png` | App Store iPad 13" (required while the app runs on iPad) |
-| `store/feature-graphic-1024x500.png` | Play feature graphic (required) |
+| `store/screenshots/<nl\|en>/play-phone-1080x1920/*.png` | Play phone screenshots (2-8 needed), per language |
+| `store/screenshots/<nl\|en>/appstore-iphone-6.9-1290x2796/*.png` | App Store iPhone 6.9" (required), per language |
+| `store/screenshots/<nl\|en>/appstore-ipad-13-2064x2752/*.png` | App Store iPad 13" (required while the app runs on iPad), per language |
+| `store/feature-graphic-1024x500.png`, `store/feature-graphic-en-1024x500.png` | Play feature graphic (required), Dutch and English |
 | `store/play-icon-512.png` | Play app icon (512x512, no alpha) |

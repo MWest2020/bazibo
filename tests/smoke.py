@@ -1,6 +1,8 @@
-"""Playwright smoke test: serve web/ locally, play level 1 with 5 real drag-and-release shots,
-check that nothing went to the network and nothing threw, that the animation loops stop when
-they are not needed, and save screenshots to shots/ (also a sideways phone).
+"""Playwright smoke test: serve web/ locally, open Bubbels from the home screen, play level 1 with
+5 real drag-and-release shots, check that nothing went to the network and nothing threw, that the
+animation loops stop when they are not needed, that settings, the language switch, the parental
+gate and the free-tier offer work in Dutch and English, that a returning player keeps their
+progress, and save screenshots to shots/ (also a sideways phone).
 
 Run: uv run --with playwright python tests/smoke.py
 """
@@ -33,7 +35,19 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-WORDS = ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf", "twaalf"]
+WORDS = {
+    "nl": ["nul", "een", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf", "twaalf"],
+    "en": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"],
+}
+# what the page must say, per language
+TEXT = {
+    "nl": {"ok": "Oké", "promise": "Geen reclame. Nooit.", "tile": "Bubbels schieten", "soon": "Komt eraan!",
+           "more": "Meer levels", "wrong": "Dat klopt niet", "ask": r"Hoeveel is (\w+) keer (\w+)\?",
+           "settings": "Instellingen"},
+    "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
+           "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
+           "settings": "Settings"},
+}
 
 
 def free_port():
@@ -42,9 +56,10 @@ def free_port():
         return s.getsockname()[1]
 
 
-def run(browser, base, name, context_args, problems):
+def run(browser, base, name, context_args, problems, lang="nl"):
     # bypass_csp: the page CSP forbids eval, which Playwright needs for wait_for_function
-    ctx = browser.new_context(bypass_csp=True, **context_args)
+    ctx = browser.new_context(bypass_csp=True, locale={"nl": "nl-NL", "en": "en-GB"}[lang], **context_args)
+    say = TEXT[lang]
     page = ctx.new_page()
     errors, foreign = [], []
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -55,13 +70,25 @@ def run(browser, base, name, context_args, problems):
     page.wait_for_selector("html[data-ready='1']")
     page.wait_for_timeout(600)
     page.screenshot(path=str(SHOTS / f"{name}-1-home.png"))
+    if page.evaluate("window.__bubbels.lang()") != lang:
+        problems.append(f"{name}: device language {lang} not followed")
+    for sel, want in (("#tile-bubbels .tile-name", say["tile"]), (".promise", say["promise"])):
+        if page.inner_text(sel).strip() != want:
+            problems.append(f"{name}: {sel} says {page.inner_text(sel)!r}, expected {want!r}")
 
-    page.click("#btn-levels")
+    # the coming-soon tile only shows a friendly card
+    page.click("#tile-sudoku")
+    page.wait_for_timeout(300)
+    if page.inner_text("#ov-title") != say["soon"]:
+        problems.append(f"{name}: sudoku tile shows {page.inner_text('#ov-title')!r}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+
+    page.click("#tile-bubbels")
     page.wait_for_timeout(300)
     page.screenshot(path=str(SHOTS / f"{name}-2-levels.png"))
 
-    if page.evaluate("window.__bubbels.state().homeLoop"):
-        problems.append(f"{name}: start-screen animation still runs on the level screen")
+    if page.evaluate("window.__bubbels.homeLoop()"):
+        problems.append(f"{name}: home-screen animation still runs on the level screen")
 
     page.click("#levels-free .level-btn >> nth=0")
     page.wait_for_timeout(1300)
@@ -117,10 +144,25 @@ def run(browser, base, name, context_args, problems):
     page.screenshot(path=str(SHOTS / f"{name}-7-locked.png"))
     # the web build sells nothing: the locked card only has an OK button
     labels = page.locator("#ov-buttons button").all_inner_texts()
-    if labels != ["Oké"]:
+    if labels != [say["ok"]]:
         problems.append(f"{name}: web locked card offers {labels}")
     if page.evaluate("window.__bubbels.full()"):
         problems.append(f"{name}: web build reports the full version as owned")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+
+    # winning the last free level leads to the offer, not to level 11
+    page.evaluate("window.__bubbels.setIndex(9); window.__bubbels.win(3)")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SHOTS / f"{name}-7b-free-tier-end.png"))
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if not labels or labels[0] != say["more"]:
+        problems.append(f"{name}: end of the free tier offers {labels}")
+    else:
+        page.click(f"#ov-buttons button >> text={say['more']}")
+        page.wait_for_timeout(200)
+        if page.locator("#ov-buttons button").all_inner_texts() != [say["ok"]]:
+            problems.append(f"{name}: the offer after level 10 is not the web card")
+        page.click(f"#ov-buttons button >> text={say['ok']}")
 
     # parental gate (used before buying in the app): a wrong answer brings a new question,
     # the right one passes. The sum is in words, so read it back with a small word list.
@@ -131,17 +173,37 @@ def run(browser, base, name, context_args, problems):
     page.fill(".gate-input", "7")
     page.click("#ov-buttons button >> text=OK")
     question = page.inner_text("#ov-text")
-    if question == first or "Dat klopt niet" not in question:
+    if question == first or say["wrong"] not in question:
         problems.append(f"{name}: gate did not ask a new question after a wrong answer: {question!r}")
-    m = re.search(r"Hoeveel is (\w+) keer (\w+)\?", question)
+    m = re.search(say["ask"], question)
     if not m:
         problems.append(f"{name}: gate question not understood: {question!r}")
     else:
-        page.fill(".gate-input", str(WORDS.index(m.group(1)) * WORDS.index(m.group(2))))
+        words = WORDS[lang]
+        page.fill(".gate-input", str(words.index(m.group(1)) * words.index(m.group(2))))
         page.keyboard.press("Enter")
         page.wait_for_timeout(100)
         if page.evaluate("document.documentElement.dataset.gate") != "passed":
             problems.append(f"{name}: right answer did not pass the gate")
+
+    # settings: switch the language, it sticks after a reload; then switch back
+    page.evaluate("document.querySelector('[data-go=home]').click()")
+    page.click("#btn-settings")
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-8b-settings.png"))
+    other = "en" if lang == "nl" else "nl"
+    page.click(f"[data-lang={other}]")
+    page.wait_for_timeout(100)
+    if page.inner_text("#screen-settings h2") != TEXT[other]["settings"]:
+        problems.append(f"{name}: language switch did not translate the settings screen")
+    page.goto(f"{base}/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.evaluate("window.__bubbels.lang()") != other or page.inner_text(".promise").strip() != TEXT[other]["promise"]:
+        problems.append(f"{name}: language choice not kept after a reload")
+    page.click("#btn-settings")
+    page.click(f"[data-lang={lang}]")
+    if page.get_attribute("#privacy-link", "href") != ("privacy/en.html" if lang == "en" else "privacy/index.html"):
+        problems.append(f"{name}: privacy link does not follow the language")
 
     # privacy pages: served next to the game, no scripts, no outside requests
     for path in ("privacy/index.html", "privacy/en.html"):
@@ -186,6 +248,8 @@ def run_sideways(browser, base, problems):
     page.wait_for_selector("html[data-ready='1']")
     if page.evaluate("typeof window.__bubbels") != "undefined":
         problems.append("test hook is exposed without ?test")
+    page.click("#tile-bubbels")
+    page.wait_for_timeout(200)
     page.click("#btn-play")
     page.wait_for_timeout(900)
     box = page.locator("#game").bounding_box()
@@ -195,6 +259,35 @@ def run_sideways(browser, base, problems):
     page.screenshot(path=str(SHOTS / "sideways-game.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
+    ctx.close()
+
+
+def run_returning(browser, base, problems):
+    """A player from the single-game version keeps stars, sound setting and purchase cache."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844})
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.evaluate(
+        """localStorage.clear();
+        localStorage.setItem('bubbels.v1', JSON.stringify({stars: {1: 3, 2: 2, 3: 1}, muted: true}));"""
+    )
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-bubbels")
+    page.wait_for_timeout(200)
+    stars = page.locator("#levels-free .level-btn >> nth=0").get_attribute("aria-label")
+    nxt = page.locator("#levels-free .level-btn.next .num").inner_text()
+    if "3 van 3" not in stars or nxt != "4":
+        problems.append(f"returning: progress lost (level 1: {stars!r}, next: {nxt!r})")
+    page.evaluate("document.querySelector('[data-go=home]').click()")
+    page.click("#btn-settings")
+    if page.get_attribute("[data-sound=off]", "aria-pressed") != "true":
+        problems.append("returning: sound setting lost")
+    page.screenshot(path=str(SHOTS / "returning-settings.png"))
+    save = page.evaluate("window.__bubbels.save()")
+    if save.get("version") != 1 or not save.get("migrated") or page.evaluate("localStorage.getItem('bubbels.v1')") is None:
+        problems.append(f"returning: save not migrated once with the old copy kept: {save}")
     ctx.close()
 
 
@@ -216,7 +309,16 @@ def main():
                 {"viewport": {"width": 390, "height": 844}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True},
                 problems,
             )
+            run(
+                browser,
+                base,
+                "phone-en",
+                {"viewport": {"width": 390, "height": 844}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True},
+                problems,
+                lang="en",
+            )
             run_sideways(browser, base, problems)
+            run_returning(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

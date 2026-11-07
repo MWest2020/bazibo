@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createUnlock, noBilling, isLevelLocked, FREE_LEVELS, PRODUCT_ID } from '../web/js/unlock.js';
+import { createUnlock, noBilling, isLocked, PRODUCT_ID } from '../web/js/unlock.js';
+import { meta } from '../web/games/bubbels/meta.js';
+
+const FREE_LEVELS = meta.free;
 
 function memoryCache(initial = false) {
   let v = initial;
@@ -23,9 +26,13 @@ function fakeBilling(answers = {}) {
 
 test('product id and free levels', () => {
   assert.equal(PRODUCT_ID, 'unlock_all');
-  assert.equal(isLevelLocked(FREE_LEVELS), false);
-  assert.equal(isLevelLocked(FREE_LEVELS + 1), true);
-  assert.equal(isLevelLocked(FREE_LEVELS + 1, true), false);
+  assert.equal(FREE_LEVELS, 10);
+  assert.equal(isLocked(FREE_LEVELS, FREE_LEVELS), false);
+  assert.equal(isLocked(FREE_LEVELS + 1, FREE_LEVELS), true);
+  assert.equal(isLocked(FREE_LEVELS + 1, FREE_LEVELS, true), false);
+  // one purchase for every game: another game's own free tier uses the same owned flag
+  assert.equal(isLocked(6, 5, false), true);
+  assert.equal(isLocked(6, 5, true), false);
 });
 
 test('the web build can never unlock, whatever the cache says', async () => {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as G from '../web/js/grid.js';
+import * as G from '../web/games/bubbels/grid.js';
 import { readFileSync } from 'node:fs';
 
 const R = 25;
@@ -148,7 +148,7 @@ test('stars: 3 at par, 2 up to 1.5x par, else 1', () => {
 });
 
 test('levels.json: 30 levels, nothing floating, colours and size grow', () => {
-  const data = JSON.parse(readFileSync(new URL('../web/levels/levels.json', import.meta.url), 'utf8'));
+  const data = JSON.parse(readFileSync(new URL('../web/games/bubbels/levels.json', import.meta.url), 'utf8'));
   assert.equal(data.levels.length, 30);
   let prevColours = 0;
   for (const l of data.levels) {

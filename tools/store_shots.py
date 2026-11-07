@@ -1,5 +1,6 @@
 """Store screenshots and the Play feature graphic, rendered from the real game in headless
-Chromium. Writes store/screenshots/<device>/*.png and store/feature-graphic-1024x500.png.
+Chromium. Writes store/screenshots/<lang>/<device>/*.png (Dutch and English) and
+store/feature-graphic{,-en}-1024x500.png.
 
 Run: uv run --with playwright --with pillow python tools/store_shots.py
 
@@ -67,11 +68,16 @@ def flatten(path):
         img.convert("RGB").save(path, optimize=True)
 
 
-def shoot(browser, base, name, viewport, dpr):
-    out = OUT / "screenshots" / name
+def shoot(browser, base, name, viewport, dpr, lang):
+    out = OUT / "screenshots" / lang / name
     out.mkdir(parents=True, exist_ok=True)
-    ctx = browser.new_context(bypass_csp=True, viewport=viewport, device_scale_factor=dpr, is_mobile=True, has_touch=True)
+    ctx = browser.new_context(
+        bypass_csp=True, viewport=viewport, device_scale_factor=dpr, is_mobile=True, has_touch=True,
+        locale={"nl": "nl-NL", "en": "en-GB"}[lang],
+    )
     ctx.add_init_script(f"localStorage.setItem('bubbels.v1', {json.dumps(json.dumps(PROGRESS))})")
+    settings = {"muted": True, "lang": lang}
+    ctx.add_init_script(f"localStorage.setItem('bubbels.settings.v1', {json.dumps(json.dumps(settings))})")
     ctx.add_init_script(SEEDED_RANDOM)
     page = ctx.new_page()
     page.goto(base + "/index.html?test=1")
@@ -80,7 +86,7 @@ def shoot(browser, base, name, viewport, dpr):
     shots = [out / "1-start.png"]
     page.screenshot(path=str(shots[-1]))
 
-    page.click("#btn-levels")
+    page.click("#tile-bubbels")
     page.wait_for_timeout(400)
     shots.append(out / "2-levels.png")
     page.screenshot(path=str(shots[-1]))
@@ -148,17 +154,18 @@ def main():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME)
-            for name, (viewport, dpr) in DEVICES.items():
-                for s in shoot(browser, base, name, viewport, dpr):
-                    print("wrote", s.relative_to(ROOT))
+            for lang in ("nl", "en"):
+                for name, (viewport, dpr) in DEVICES.items():
+                    for s in shoot(browser, base, name, viewport, dpr, lang):
+                        print("wrote", s.relative_to(ROOT))
             page = browser.new_page(viewport={"width": 1024, "height": 500})
-            page.goto(f"http://127.0.0.1:{port}/tools/feature.html")
-            page.wait_for_selector("html[data-ready='1']")
-            page.wait_for_timeout(300)
-            fg = OUT / "feature-graphic-1024x500.png"
-            page.screenshot(path=str(fg))
-            flatten(fg)
-            print("wrote", fg.relative_to(ROOT))
+            for lang, fg in (("nl", OUT / "feature-graphic-1024x500.png"), ("en", OUT / "feature-graphic-en-1024x500.png")):
+                page.goto(f"http://127.0.0.1:{port}/tools/feature.html?lang={lang}")
+                page.wait_for_selector("html[data-ready='1']")
+                page.wait_for_timeout(300)
+                page.screenshot(path=str(fg))
+                flatten(fg)
+                print("wrote", fg.relative_to(ROOT))
             browser.close()
     finally:
         httpd.shutdown()

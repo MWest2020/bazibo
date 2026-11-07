@@ -15,6 +15,12 @@
 // Play Store feature graphic (1024x500), drawn with the game's own bubbles.
 // Rendered by tools/store_shots.py.
 import { drawBubble, COLORS } from '../web/js/bubble-art.js';
+import { BRAND } from '../web/js/brand.js';
+// ?lang=en for the English listing; the line is the promise from the home screen
+const lang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'nl';
+document.documentElement.lang = lang;
+document.querySelector('.t h1').textContent = BRAND.name;
+document.querySelector('.t p').textContent = lang === 'en' ? 'No ads. Ever.' : 'Geen reclame. Nooit.';
 const ctx = document.getElementById('c').getContext('2d');
 const g = ctx.createLinearGradient(0, 0, 1024, 500);
 g.addColorStop(0, '#6B5CF0');
