@@ -3,6 +3,8 @@
 A bubble shooter for children. No ads, no trackers, no accounts. It is a plain web game
 (HTML, CSS and JavaScript on a canvas) that will later be wrapped as an Android app.
 
+Play it: https://mwest2020.github.io/bubbels/ (served from the `gh-pages` branch; publish with `npm test && git subtree push --prefix web origin gh-pages`).
+
 - Glossy bubbles that look like soap or glass, each colour with its own symbol (circle, star,
   triangle, diamond, heart, square), so colour-blind children can play too.
 - Drag to aim and release to fire. A dotted guide line shows one bounce off the wall and a ghost
