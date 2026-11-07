@@ -19,6 +19,9 @@ import { dogSvg } from '../games/dogudoku/art.js';
 import '../games/picturedoku/strings.js';
 import { createPicturedoku } from '../games/picturedoku/picturedoku.js';
 import { pictureSvg } from '../games/picturedoku/art.js';
+import '../games/vier/strings.js';
+import { createVier } from '../games/vier/vier.js';
+import { tokenSvg } from '../games/vier/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -147,6 +150,19 @@ function drawPicturedokuTile() {
   // a little 2×2 sudoku with four of the game's pictures
   const box = $('#tile-picturedoku .tile-art');
   box.innerHTML = `<span class="mini-sudoku">${[1, 2, 3, 4].map((v) => `<span>${pictureSvg(v)}</span>`).join('')}</span>`;
+}
+
+function drawVierTile() {
+  // a little board with three tokens in a slanting row
+  const box = $('#tile-vier .tile-art');
+  const spots = new Array(12).fill('');
+  spots[9] = tokenSvg('pup');
+  spots[6] = tokenSvg('pup');
+  spots[3] = tokenSvg('pup');
+  spots[10] = tokenSvg('bubble');
+  spots[11] = tokenSvg('bubble');
+  spots[7] = tokenSvg('bubble');
+  box.innerHTML = `<span class="mini-vier-tile">${spots.map((s) => `<span>${s}</span>`).join('')}</span>`;
 }
 
 const games = {};
@@ -419,13 +435,25 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.vier = createVier({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   renderLanguage();
   drawTileArt();
   drawDoguTile();
   drawPicturedokuTile();
+  drawVierTile();
   homeAnim.start();
-  // a Dogudoku or Picturedoku load error shows on its tile
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init()]);
+  // a Dogudoku or Picturedoku load error shows on its tile (Vier op een rij has nothing to load)
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -433,6 +461,7 @@ async function boot() {
       ...games.bubbels.testHook(),
       dogu: games.dogudoku.testHook(),
       pdoku: games.picturedoku.testHook(),
+      vier: games.vier.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -464,6 +493,7 @@ function onBack() {
   else if (action === 'levels') show('levels');
   else if (action === 'dogudoku-levels') games.dogudoku.leave();
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
+  else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 6-11 Auto Backup (android:fullBackupContent). The save data lives in Capacitor
+     Preferences, which is shared_prefs/CapacitorStorage.xml; the whole sharedpref domain is backed
+     up, so the save comes back on a new phone or after a reinstall. Nothing here is sent to us: it
+     is the phone's own backup to the user's Google account. -->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+</full-backup-content>

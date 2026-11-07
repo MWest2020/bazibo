@@ -2,7 +2,8 @@
 5 real drag-and-release shots, solve the first Dogudoku puzzle by tapping (with one wrong puppy
 first, which must light up), solve the first Picturedoku puzzle (one wrong picture first, then
 square-then-picture) and check on 4×4, 6×6 and 9×9 that tapping another picture after a placement
-never changes the placed square, check that nothing went to the network and nothing threw, that the
+never changes the placed square, play Vier op een rij (a two-player game to a win on the
+kleuterbord, and a game against the easy computer with one take-back), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -47,11 +48,13 @@ TEXT = {
     "nl": {"ok": "Oké", "promise": "Geen reclame. Nooit.", "tile": "Bubbels schieten", "soon": "Komt eraan!",
            "more": "Meer levels", "wrong": "Dat klopt niet", "ask": r"Hoeveel is (\w+) keer (\w+)\?",
            "settings": "Instellingen", "puzzles": "Puzzels", "stars3": "3 van 3", "dogWin": "Super!",
-           "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel"},
+           "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel", "vierTile": "Vier op een rij",
+           "pupWins": "Puppy wint!", "again": "Nog een keer", "keep": "Verder spelen"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
            "settings": "Settings", "puzzles": "Puzzles", "stars3": "3 of 3", "dogWin": "Super!",
-           "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play"},
+           "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play", "vierTile": "Four in a Row",
+           "pupWins": "Puppy wins!", "again": "Play again", "keep": "Keep playing"},
 }
 
 
@@ -83,6 +86,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
 
     play_dogudoku(page, name, say, problems)
     play_picturedoku(page, name, say, problems)
+    play_vier(page, name, say, problems)
 
     page.click("#tile-bubbels")
     page.wait_for_timeout(300)
@@ -394,6 +398,124 @@ def play_picturedoku(page, name, say, problems):
     page.wait_for_timeout(200)
 
 
+def vier_wait(page):
+    """Until no token is falling and the computer is not thinking."""
+    page.wait_for_function("(() => { const s = window.__bubbels.vier.state(); return s && !s.busy && (s.over || s.setup.mode === 'duo' || s.turn === 1); })()", timeout=8000)
+
+
+def vier_greedy(board, cols, rows, need, me):
+    """A simple player for the smoke test: win if it can, block if it must, else the middle-most free column."""
+    def land(b, c):
+        for r in range(rows - 1, -1, -1):
+            if not b[r * cols + c]:
+                return r
+        return -1
+
+    def wins(b, c, p):
+        r = land(b, c)
+        if r < 0:
+            return False
+        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            n = 1
+            for sign in (1, -1):
+                rr, cc = r + dr * sign, c + dc * sign
+                while 0 <= rr < rows and 0 <= cc < cols and b[rr * cols + cc] == p:
+                    n += 1
+                    rr, cc = rr + dr * sign, cc + dc * sign
+            if n >= need:
+                return True
+        return False
+
+    free = [c for c in range(cols) if land(board, c) >= 0]
+    for p in (me, 3 - me):
+        for c in free:
+            if wins(board, c, p):
+                return c
+    return sorted(free, key=lambda c: abs(c - (cols - 1) / 2))[0]
+
+
+def play_vier(page, name, say, problems):
+    """Vier op een rij: the hard computer is locked on the web; a two-player game on the kleuterbord
+    played to a win by tapping columns (counter saved, end card, the other player starts the next
+    game, "keep playing"); then a game against the easy computer on the big board, with one take-back."""
+    if page.inner_text("#tile-vier .tile-name").strip() != say["vierTile"]:
+        problems.append(f"{name}: Vier op een rij tile says {page.inner_text('#tile-vier .tile-name')!r}")
+    page.click("#tile-vier")
+    page.wait_for_timeout(250)
+    page.click(".vier-level[data-level='3']")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]]:
+        problems.append(f"{name}: locked hard computer offers {labels}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+    page.screenshot(path=str(SHOTS / f"{name}-v1-menu.png"), full_page=True)
+
+    # two players, kleuterbord: puppy (player 1) gets three in a row along the bottom
+    page.click(".vier-opt.board-small")
+    page.click(".vier-opt.mode-duo")
+    page.click("#vier-play")
+    page.wait_for_timeout(300)
+    for col in (0, 0, 1, 1, 2):
+        page.click(f".vcol[data-col='{col}']")
+        vier_wait(page)
+    st = page.evaluate("window.__bubbels.vier.state()")
+    if not st["over"] or st["over"].get("winner") != 1 or len(st["over"]["cells"]) != 3:
+        problems.append(f"{name}: two-player game on the kleuterbord did not end in a win for player 1: {st['over']}")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SHOTS / f"{name}-v2-duo-win.png"))
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.inner_text("#ov-title").strip() != say["pupWins"]:
+        problems.append(f"{name}: two-player end card says {page.inner_text('#ov-title')!r}")
+    wins = page.evaluate("window.__bubbels.save().games.vier.stars")
+    if wins.get("duo-small-1") != 1:
+        problems.append(f"{name}: two-player win not counted: {wins}")
+    page.click(f"#ov-buttons button >> text={say['again']}")
+    page.wait_for_timeout(200)
+    if page.evaluate("window.__bubbels.vier.state().turn") != 2:
+        problems.append(f"{name}: the next game should start with the other player")
+    page.click("#vier-back")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#vier-continue") or page.inner_text("#vier-continue").strip() != say["keep"]:
+        problems.append(f"{name}: no 'keep playing' for an unfinished game")
+
+    # against the easy computer on the big board
+    page.click(".vier-opt.board-big")
+    page.click(".vier-level[data-level='1']")
+    page.click("#vier-play")
+    page.wait_for_timeout(300)
+    took_back = False
+    for move in range(30):
+        st = page.evaluate("window.__bubbels.vier.state()")
+        if st["over"]:
+            break
+        col = vier_greedy(st["board"], 7, 6, 4, 1)
+        page.click(f".vcol[data-col='{col}']")
+        vier_wait(page)
+        if move == 2 and not took_back:
+            before = page.evaluate("window.__bubbels.vier.state()")
+            if not before["over"]:
+                page.click("#vier-undo")
+                page.wait_for_timeout(100)
+                after = page.evaluate("window.__bubbels.vier.state()")
+                if after["history"] != before["history"] - 2 or after["turn"] != 1:
+                    problems.append(f"{name}: take-back went from {before['history']} to {after['history']} moves")
+                took_back = True
+        if move == 1:
+            page.screenshot(path=str(SHOTS / f"{name}-v3-vs-easy.png"))
+    st = page.evaluate("window.__bubbels.vier.state()")
+    if not st["over"]:
+        problems.append(f"{name}: the game against the easy computer did not finish")
+    filled = sum(1 for v in st["board"] if v)
+    if filled != st["history"]:
+        problems.append(f"{name}: board has {filled} tokens but {st['history']} moves")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / f"{name}-v4-end.png"))
+    page.click("#ov-buttons button >> nth=-1")  # Menu
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#screen-vier-menu [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+
 def run_sideways(browser, base, problems):
     ctx = browser.new_context(
         viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True
@@ -441,6 +563,18 @@ def run_sideways(browser, base, problems):
     if b["height"] < 300 or b["y"] < 0 or b["y"] + b["height"] > 390 or pal["y"] + pal["height"] > 390 or pal["x"] < b["x"] + b["width"]:
         problems.append(f"sideways: Picturedoku board {b} / palette {pal}")
     page.screenshot(path=str(SHOTS / "sideways-picturedoku.png"))
+    page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
+    page.click("#tile-vier")
+    page.wait_for_timeout(200)
+    page.click(".vier-opt.board-big")
+    page.click("#vier-play")
+    page.wait_for_timeout(400)
+    b = page.locator("#vier-board").bounding_box()
+    side = page.locator("#vier-turn").bounding_box()
+    print(f"[sideways] vier board {b['width']:.0f}x{b['height']:.0f}")
+    if b["height"] < 280 or b["y"] < 0 or b["y"] + b["height"] > 390 or side["x"] < b["x"] + b["width"]:
+        problems.append(f"sideways: Vier op een rij board {b} / turn chips {side}")
+    page.screenshot(path=str(SHOTS / "sideways-vier.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
     ctx.close()

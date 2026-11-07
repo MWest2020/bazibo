@@ -220,3 +220,14 @@ export function chime() {
     tone('triangle', f * 2, f * 2, t + i * 0.11, 0.25, 0.035);
   });
 }
+
+// Vier op een rij: a token landing in its hole. `depth` 0..1 (top..bottom row): lower holes sound a
+// little deeper, like a longer fall.
+export function thud(depth = 1) {
+  if (!on()) return;
+  const t = ac.currentTime + 0.004;
+  const f = 330 - depth * 90;
+  tone('sine', f, f * 0.55, t, 0.12, 0.42, 0.003); // the "tok"
+  tone('triangle', f * 2.2, f * 1.4, t, 0.05, 0.12, 0.002); // a bit of click for small speakers
+  tone('sine', f * 0.9, f * 0.6, t + 0.09, 0.07, 0.12, 0.003); // the little bounce
+}

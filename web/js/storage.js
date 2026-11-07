@@ -3,6 +3,7 @@
 //   { version: 1,
 //     games:    { bubbels: { stars: {1: 3, ...} },
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
+//                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)

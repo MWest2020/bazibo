@@ -3,8 +3,9 @@
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
-("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies) and Picturedoku (a
-sudoku with pictures); more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
+("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
+sudoku with pictures) and Vier op een rij ("Four in a Row", together or against the computer); more
+learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
 the source of every app icon). The repository, the package id (`work.westerweel.bubbels`) and
@@ -57,6 +58,28 @@ in `art.js`, the screen in `picturedoku.js`).
   seeded): each has exactly one solution and can be solved with singles only (no guessing);
   within a size they go from easy to hard (fewer pictures to start with). `npm test` solves them
   all again. 10 are free, the easiest of every size (4 / 4 / 2).
+
+### Vier op een rij
+
+Four in a row, in `web/games/vier/` (rules in `rules.js`, the computer in `ai.js`, tokens and
+pictures drawn as SVG in `art.js`, the screens in `vier.js`). Our own name and look: a lilac frame
+with round holes and picture tokens, never "Connect Four" or its blue frame with red and yellow.
+
+- Two boards: the big board, 7×6, four in a row wins (ages 6+), and the kleuterbord, 5×4, three
+  in a row wins (ages 3+, no reading needed).
+- Play together on one screen, taking turns, or against the computer at three levels. Easy plays
+  near the middle and only sometimes takes a win or blocks one, so a young child can beat it;
+  medium always wins or blocks when it can and otherwise avoids handing over a win; hard looks a
+  few moves ahead (minimax with alpha-beta, depth 4 on the big board) and still loses to a child
+  who sets up two threats at once. The computer only ever plays a legal move (`npm test` checks
+  every level, and that hard and medium never miss a win or a block).
+- Tap anywhere in a column: the token drops with a little bounce and a soft "tok". A row lights
+  up with gold rings and hops; a draw gets a friendly card. Against the computer a move can be
+  taken back (also after the computer won); together it cannot. Who starts takes turns.
+- Each player picks a token (puppy, bubble, apple, flower, fish, pug); the chips under the board
+  show whose turn it is with pictures, not text alone. Leaving a game keeps it ("keep playing").
+- Free: playing together on both boards and the easy and medium computer. Hard is in the full
+  version (`meta.js`). Wins are counted per setup (never lowered, `storage.js`).
 
 ### Bubbels schieten
 
@@ -155,7 +178,9 @@ for both stores, including signing, are in `docs/release.md`.
 ## Save data
 
 One versioned document (`web/js/storage.js`): in the apps in Capacitor Preferences, so it is
-part of the phone's own backup and survives a new phone; on the web in localStorage. Older save
+part of the phone's own backup and survives a new phone (Android: Auto Backup and, from Android 12,
+the phone-to-phone transfer, through explicit rules that include `shared_prefs`); on the web in
+localStorage. Older save
 data is migrated once and kept. Details in `docs/release.md`, section 5.
 
 ## Licence
