@@ -7,8 +7,9 @@ android {
         applicationId "work.westerweel.bubbels"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        // fastlane passes the next code Play expects (-PbubbelsVersionCode); a plain build stays at 1
+        versionCode((project.findProperty("bubbelsVersionCode") ?: "1") as Integer)
+        versionName((project.findProperty("bubbelsVersionName") ?: "1.0.0") as String)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

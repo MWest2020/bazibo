@@ -1,0 +1,123 @@
+# Release automation for Bubbels (docs/release.md). Store texts and images come from store/;
+# tools/store-to-fastlane.mjs puts them in fastlane's layout (fastlane/metadata, gitignored).
+#
+#   fastlane android check      offline: store texts within the limits, keys present or not
+#   fastlane android build      signed release AAB (upload key from ~/.config/bubbels/keystore.properties)
+#   fastlane android internal   build with the next version code and upload to the internal track
+#   fastlane android promote    internal -> production, staged (rollout:0.2 = 20%)
+#   fastlane android metadata   listing texts, screenshots, feature graphic and icon, NL and EN
+#   fastlane ios beta           (Mac with Xcode) build and upload to TestFlight
+#   fastlane ios metadata       App Store texts and screenshots
+default_platform(:android)
+
+ROOT = File.expand_path("..", __dir__)
+PLAY_KEY = ENV.fetch("PLAY_JSON_KEY", File.expand_path("~/.config/bubbels/play-service-account.json"))
+KEYSTORE = ENV.fetch("BUBBELS_KEYSTORE_PROPERTIES", File.expand_path("~/.config/bubbels/keystore.properties"))
+
+def need_play_key!
+  return if File.exist?(PLAY_KEY)
+  UI.user_error!("No Play key yet: #{PLAY_KEY} does not exist. Mark creates the service account " \
+                 "with release rights in Play Console (docs/release.md, one-time step 5).")
+end
+
+def need_upload_key!
+  return if File.exist?(KEYSTORE)
+  UI.user_error!("No upload key: #{KEYSTORE} does not exist (docs/release.md, \"The upload key\").")
+end
+
+def store_metadata!
+  sh("node", File.join(ROOT, "tools", "store-to-fastlane.mjs"))
+end
+
+# App Store Connect API key for the iOS lanes: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_B64 (base64 of the .p8).
+def asc_key
+  %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_B64].each do |v|
+    UI.user_error!("No App Store Connect key yet: #{v} is not set (docs/release.md, App Store).") unless ENV[v]
+  end
+  app_store_connect_api_key(key_id: ENV["ASC_KEY_ID"], issuer_id: ENV["ASC_ISSUER_ID"],
+                            key_content: ENV["ASC_KEY_P8_B64"], is_key_content_base64: true)
+end
+
+platform :android do
+  desc "Offline check: store texts fit the limits; says which keys are present"
+  lane :check do
+    store_metadata!
+    UI.message("upload key: #{File.exist?(KEYSTORE) ? 'present' : 'missing'} (#{KEYSTORE})")
+    UI.message("Play key:   #{File.exist?(PLAY_KEY) ? 'present' : 'not yet'} (#{PLAY_KEY})")
+  end
+
+  desc "Signed release AAB. Options: version_code, version_name"
+  lane :build do |options|
+    need_upload_key!
+    sh("cd #{ROOT} && npx cap sync android")
+    props = {}
+    props["bubbelsVersionCode"] = options[:version_code].to_s if options[:version_code]
+    props["bubbelsVersionName"] = options[:version_name].to_s if options[:version_name]
+    # Gradle does not notice a changed key file; start from a clean bundle output
+    sh("rm -rf #{ROOT}/android/app/build/outputs/bundle")
+    gradle(project_dir: File.join(ROOT, "android"), task: "bundle", build_type: "Release", properties: props)
+    sh("cd #{ROOT}/android && ./gradlew --stop")
+    aab = lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    UI.success("AAB: #{aab}")
+    aab
+  end
+
+  desc "Upload a new build to the internal track. Options: status (completed|draft; draft until the app is published)"
+  lane :internal do |options|
+    need_play_key!
+    codes = %w[internal alpha beta production].flat_map do |track|
+      google_play_track_version_codes(track: track)
+    rescue StandardError
+      [] # a track with no release yet
+    end
+    code = (codes.map(&:to_i).max || 0) + 1
+    aab = build(version_code: code)
+    upload_to_play_store(track: "internal", aab: aab, release_status: options[:status] || "completed",
+                         skip_upload_metadata: true, skip_upload_images: true, skip_upload_screenshots: true,
+                         skip_upload_changelogs: true)
+    UI.success("version code #{code} is on the internal track")
+  end
+
+  desc "Promote the internal release to production. Options: rollout (0.2 = 20%, 1 = everyone)"
+  lane :promote do |options|
+    need_play_key!
+    rollout = (options[:rollout] || "0.2").to_s
+    upload_to_play_store(track: "internal", track_promote_to: "production",
+                         rollout: rollout == "1" ? nil : rollout,
+                         release_status: rollout == "1" ? "completed" : "inProgress",
+                         skip_upload_aab: true, skip_upload_apk: true, skip_upload_metadata: true,
+                         skip_upload_images: true, skip_upload_screenshots: true, skip_upload_changelogs: true)
+  end
+
+  desc "Push the listing (texts, screenshots, feature graphic, icon) from store/, NL and EN. Option: validate_only"
+  lane :metadata do |options|
+    need_play_key!
+    store_metadata!
+    upload_to_play_store(metadata_path: File.join(ROOT, "fastlane", "metadata", "android"),
+                         skip_upload_aab: true, skip_upload_apk: true, skip_upload_changelogs: true,
+                         sync_image_upload: true, validate_only: options[:validate_only] || false)
+  end
+end
+
+platform :ios do
+  # A skeleton until there is a Mac (or the macOS job from docs/ci/ios-build.yml.example) and the key.
+  desc "Build and upload to TestFlight (Mac with Xcode)"
+  lane :beta do
+    key = asc_key
+    sh("cd #{ROOT} && npx cap sync ios")
+    increment_build_number(xcodeproj: File.join(ROOT, "ios/App/App.xcodeproj"),
+                           build_number: latest_testflight_build_number(api_key: key) + 1)
+    build_app(project: File.join(ROOT, "ios/App/App.xcodeproj"), scheme: "App", export_method: "app-store")
+    upload_to_testflight(api_key: key, skip_waiting_for_build_processing: true)
+  end
+
+  desc "Push the App Store texts and screenshots from store/"
+  lane :metadata do
+    key = asc_key
+    store_metadata!
+    deliver(api_key: key, metadata_path: File.join(ROOT, "fastlane", "metadata", "ios"),
+            screenshots_path: File.join(ROOT, "fastlane", "metadata", "ios-screenshots"),
+            skip_binary_upload: true, submit_for_review: false, force: true,
+            run_precheck_before_submit: false, overwrite_screenshots: true)
+  end
+end
