@@ -1,0 +1,13 @@
+{
+  "name": "bubbels",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ad-free bubble shooter for children (web, later wrapped for Android)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "levels": "node tools/gen-levels.mjs",
+    "serve": "python3 -m http.server 8080 --directory web"
+  }
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Bubbels icons</title></head>
+<body>
+<script type="module">
+// Renders the app icons with the same bubble drawing code as the game.
+// Used by tools/make_icons.py; open it through a local server to look at the result.
+import { drawBubble, COLORS } from '../web/js/bubble-art.js';
+
+function icon(size, maskable) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, '#6B5CF0');
+  g.addColorStop(1, '#3B2FA8');
+  ctx.fillStyle = g;
+  if (maskable) {
+    ctx.fillRect(0, 0, size, size);
+  } else {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, size * 0.22);
+    ctx.fill();
+  }
+  // safe zone for maskable icons is the centre 80%
+  const k = maskable ? 0.78 : 1;
+  const s = size * k;
+  const o = (size - s) / 2;
+  const B = (x, y, r, col) => drawBubble(ctx, o + x * s, o + y * s, r * s, COLORS[col], { symbol: false });
+  B(0.36, 0.6, 0.25, 0);
+  B(0.68, 0.64, 0.19, 1);
+  B(0.6, 0.31, 0.15, 4);
+  B(0.27, 0.25, 0.09, 2);
+  return c.toDataURL('image/png');
+}
+
+window.icons = {
+  'icon-192.png': icon(192, false),
+  'icon-512.png': icon(512, false),
+  'icon-maskable-512.png': icon(512, true),
+};
+document.body.append(...Object.values(window.icons).map((src) => Object.assign(new Image(), { src })));
+</script>
+</body></html>
