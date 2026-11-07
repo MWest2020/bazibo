@@ -1,7 +1,7 @@
 """Playwright smoke test: serve web/ locally, open Bubbels from the home screen, play level 1 with
 5 real drag-and-release shots, solve the first Dogudoku puzzle by tapping (with one wrong puppy
 first, which must light up), solve the first Picturedoku puzzle (one wrong picture first, then
-square-then-picture and picture-first), check that nothing went to the network and nothing threw, that the
+square-then-picture) and try picture-first on a 6×6, check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -320,17 +320,14 @@ def play_picturedoku(page, name, say, problems):
         problems.append(f"{name}: a wrong picture did not light up ({st['status']!r})")
     page.click(cell(first))  # choose the square again: the right picture replaces the wrong one
     page.click(pick(sol[first]))
-    half = len(empties) // 2
-    for i in empties[1:half]:  # square first, then the picture
+    # on 4×4 a picture tapped without a square only shows where to tap (no picture-first here)
+    page.click(pick(sol[empties[1]]))
+    st = page.evaluate("window.__bubbels.pdoku.state()")
+    if st["brush"] != 0 or not st["status"]:
+        problems.append(f"{name}: 4×4 picture without a square armed it or said nothing ({st})")
+    for i in empties[1:]:  # square first, then the picture
         page.click(cell(i))
         page.click(pick(sol[i]))
-    rest = empties[half:]
-    for v in sorted({sol[i] for i in rest}):  # picture first, then its squares
-        page.click(pick(v))
-        for i in [i for i in rest if sol[i] == v]:
-            page.click(cell(i))
-        if not page.evaluate("window.__bubbels.pdoku.state().solved"):
-            page.click(pick(v))
     page.wait_for_timeout(500)
     page.screenshot(path=str(SHOTS / f"{name}-p3-solved.png"))
     if not page.evaluate("window.__bubbels.pdoku.state().solved"):
@@ -346,6 +343,23 @@ def play_picturedoku(page, name, say, problems):
     saved = page.evaluate("window.__bubbels.save().games.picturedoku")
     if not saved or saved.get("stars", {}).get("1") != 3:
         problems.append(f"{name}: Picturedoku save section wrong: {saved}")
+    # picture-first on a free 6×6: arm a picture, paint a square, switch to another picture
+    page.click("#pdoku-levels .level-btn[data-puzzle='21']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+    empty6 = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
+    page.click(pick(1))
+    page.click(cell(empty6[0]))
+    page.click(pick(2))
+    st = page.evaluate("window.__bubbels.pdoku.state()")
+    if st["brush"] != 2 or st["board"][empty6[0]] != 2 or "brushing" not in (page.get_attribute("#pdoku-board", "class") or ""):
+        problems.append(f"{name}: picture-first on 6×6 did not arm, paint and switch ({st['brush']}, {st['board'][empty6[0]]})")
+    page.screenshot(path=str(SHOTS / f"{name}-p4-armed.png"))
+    page.click(pick(2))  # put the picture down again
+    page.click("#pdoku-back")
+    page.wait_for_timeout(200)
     page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
     page.wait_for_timeout(200)
 

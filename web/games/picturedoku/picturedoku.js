@@ -1,7 +1,7 @@
 // Picturedoku: a sudoku with pictures. Every picture goes once in every row, column and box.
 // 4×4 for the youngest (pictures only), 6×6 and 9×9 for older children (who may switch to numbers).
-// Two ways to play: tap a square, then a picture in the palette; or pick a picture first and tap
-// squares with it. The rules live in rules.js, the pictures in art.js; the shell (web/js/main.js)
+// Two ways to play: tap a square, then a picture in the palette; or (from 6×6) pick a picture
+// first and tap squares with it. On 4×4 only the first way, so a toddler cannot paint by accident. The rules live in rules.js, the pictures in art.js; the shell (web/js/main.js)
 // owns the overlay card, the sound settings and the purchase, and passes them in as `shell`.
 import { meta } from './meta.js';
 import { parse, conflicts, candidates, peers, isSolved, nextHint, starsFor, boxOf } from './rules.js';
@@ -31,8 +31,10 @@ export function createPicturedoku(shell) {
   // { stars: { id: 1-3 } }, read from the save each time (a kept copy could be older than the save)
   let progress = store.loadProgress(meta.id);
   const refresh = () => (progress = store.loadProgress(meta.id));
-  let numbers = store.loadGameOption(meta.id, 'numbers', false) === true;
-  let howSeen = store.loadGameOption(meta.id, 'howSeen', {});
+  // options are read from the save when used (a kept copy could be older than the save, after a
+  // failed read that a later read recovered)
+  const numbersOn = () => store.loadGameOption(meta.id, 'numbers', false) === true;
+  const seenHow = () => store.loadGameOption(meta.id, 'howSeen', {}) || {};
   let puzzles = [];
   let loadFailed = false;
   let current = null; // the puzzle on the board
@@ -46,12 +48,15 @@ export function createPicturedoku(shell) {
   let hintsUsed = 0;
   let solved = false;
   let flash = -1; // the last hint's square, highlighted for a moment
+  let painted = -1; // the square the armed picture last went into (6×6 and up)
+  let notice = ''; // a short line under the board until the next action (fixed picture, hint, ...)
+  let plays = 0; // counts boards opened, so a late win card never lands on a newer board
   const boards = new Map(); // unfinished boards of this session, so leaving a puzzle loses nothing
   let cells = [];
 
   const locked = (p) => !p.free && !shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
-  const asNumbers = () => numbers && current && current.n > 4;
+  const asNumbers = () => numbersOn() && current && current.n > 4;
   const art = (v, opts) => (asNumbers() ? numberSvg(v, opts) : pictureSvg(v, opts));
   const picName = (v) => (asNumbers() ? String(v) : t(`pdoku.pic.${v}`));
 
@@ -142,6 +147,7 @@ export function createPicturedoku(shell) {
       return;
     }
     keep();
+    plays++;
     current = p;
     const start = parse(p.givens);
     given = start.map(Boolean);
@@ -155,18 +161,19 @@ export function createPicturedoku(shell) {
     brush = 0;
     pencil = false;
     flash = -1;
+    painted = -1;
+    notice = '';
     buildBoard();
     renderHud();
     renderRules();
     renderPalette();
     updateBoard();
     shell.show('picturedoku');
-    if (!howSeen[p.tier]) showHow();
+    if (!seenHow()[p.tier]) showHow();
   }
 
   function showHow() {
-    howSeen = { ...howSeen, [current.tier]: true };
-    store.saveGameOption(meta.id, 'howSeen', howSeen);
+    store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [current.tier]: true });
     const text = current.tier === 'tiny' ? t('pdoku.howTiny') : t('pdoku.how');
     shell.showOverlay({ art: pictureSvg(1, { cls: 'ov-pic' }), title: t('pdoku.howTitle'), text, buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
   }
@@ -232,7 +239,8 @@ export function createPicturedoku(shell) {
     // the first broken rule lights up under the board, with a short line
     const first = bad[0]?.rule || '';
     for (const chip of document.querySelectorAll('#pdoku-rules .rule')) chip.classList.toggle('oops', chip.dataset.rule === first);
-    $('#pdoku-status').textContent = first ? t(`pdoku.oops.${first}`) : '';
+    // a line about the last action (fixed picture, hint) wins; a clash keeps its red outline either way
+    $('#pdoku-status').textContent = notice || (first ? t(`pdoku.oops.${first}`) : '');
     renderPaletteState();
     renderHint();
     $('#pdoku-undo').disabled = !undo.length || solved;
@@ -282,18 +290,19 @@ export function createPicturedoku(shell) {
 
   /** Put picture v in square i (v = 0 clears it); with the pencil, toggle a small picture instead. */
   function put(i, v) {
-    if (solved) return;
+    if (solved) return false;
     if (given[i]) {
       wiggle(cells[i]);
-      $('#pdoku-status').textContent = t('pdoku.fixed');
-      return;
+      notice = t('pdoku.fixed');
+      updateBoard();
+      return false;
     }
     if (pencil && v > 0) {
-      if (board[i]) return; // a picture is already there: notes only go in empty squares
+      if (board[i]) return false; // a picture is already there: notes only go in empty squares
       apply([[i, 0, notes[i] ^ (1 << v)]]);
       sfx.click();
       afterChange();
-      return;
+      return false;
     }
     if (v > 0 && board[i] === v) v = 0; // the same picture again takes it out
     const changes = [[i, v, 0]];
@@ -301,10 +310,11 @@ export function createPicturedoku(shell) {
       // a placed picture is no longer a possibility for its row, column and box
       for (const j of peers(current.n)[i]) if (notes[j] & (1 << v)) changes.push([j, board[j], notes[j] & ~(1 << v)]);
     }
-    if (!apply(changes)) return;
+    if (!apply(changes)) return false;
     if (v > 0) sfx.plink(v);
     else sfx.click();
     afterChange();
+    return v > 0;
   }
 
   function afterChange() {
@@ -316,13 +326,27 @@ export function createPicturedoku(shell) {
   function tapCell(i) {
     if (!current || solved) return;
     sfx.unlock();
+    notice = '';
     if (brush !== 0) {
       selected = i;
-      put(i, brush > 0 ? brush : 0); // the eraser (brush -1) clears the picture and the small ones
+      // the eraser (brush -1) clears the picture and the small ones
+      painted = put(i, brush > 0 ? brush : 0) && !pencil ? i : -1;
       updateBoard();
       return;
     }
+    painted = -1;
     selected = selected === i ? -1 : i;
+    sfx.click();
+    updateBoard();
+  }
+
+  /** Picture-first is for 6×6 and up; on 4×4 a picture always goes into a chosen square. */
+  const canArm = () => current.tier !== 'tiny';
+
+  /** No square chosen on 4×4: the empty squares wiggle, to show where to tap first. */
+  function askForSquare() {
+    for (let i = 0; i < cells.length; i++) if (!given[i] && !board[i]) wiggle(cells[i]);
+    notice = t('pdoku.pickSquare');
     sfx.click();
     updateBoard();
   }
@@ -330,6 +354,17 @@ export function createPicturedoku(shell) {
   function tapPalette(v) {
     if (!current || solved) return;
     sfx.unlock();
+    notice = '';
+    if (brush > 0 && v !== brush && painted >= 0 && !pencil) {
+      // a square was just painted and another picture is tapped: that square gets the new picture,
+      // and the new picture is the armed one
+      const i = painted;
+      brush = v;
+      selected = i;
+      painted = put(i, v) ? i : -1;
+      updateBoard();
+      return;
+    }
     if (selected >= 0 && !given[selected] && brush === 0) {
       put(selected, v);
       // done with this square (with the pencil it stays chosen, for more small pictures); the next
@@ -340,18 +375,29 @@ export function createPicturedoku(shell) {
       }
       return;
     }
+    if (!canArm()) {
+      askForSquare();
+      return;
+    }
     // no square chosen (or a fixed one): pick the picture first, then tap squares with it
     brush = brush === v ? 0 : v;
     selected = -1;
+    painted = -1;
     sfx.click();
     updateBoard();
   }
 
   function erase() {
     if (!current || solved) return;
+    notice = '';
+    painted = -1;
     if (selected >= 0 && !given[selected] && brush === 0) {
       if (apply([[selected, 0, 0]])) sfx.click();
       afterChange();
+      return;
+    }
+    if (!canArm()) {
+      askForSquare();
       return;
     }
     brush = brush === -1 ? 0 : -1;
@@ -362,6 +408,8 @@ export function createPicturedoku(shell) {
 
   function undoLast() {
     if (!current || solved || !undo.length) return;
+    notice = '';
+    painted = -1;
     for (const { i, v, notes: m } of undo.pop()) {
       board[i] = v;
       notes[i] = m;
@@ -411,6 +459,7 @@ export function createPicturedoku(shell) {
     er.setAttribute('aria-pressed', String(brush === -1));
     $('#pdoku-pencil').setAttribute('aria-pressed', String(pencil));
     $('#pdoku-board').classList.toggle('pencil', pencil);
+    $('#pdoku-board').classList.toggle('brushing', brush !== 0);
   }
 
   $('#pdoku-pencil').addEventListener('click', () => {
@@ -450,7 +499,8 @@ export function createPicturedoku(shell) {
   function hint() {
     if (!current || solved) return;
     if (hintsUsed >= hintLimit()) {
-      $('#pdoku-status').textContent = t('pdoku.noHints');
+      notice = t('pdoku.noHints');
+      updateBoard();
       wiggle($('#pdoku-hint'));
       return;
     }
@@ -459,13 +509,16 @@ export function createPicturedoku(shell) {
     hintsUsed++;
     const changes = [[h.cell, h.to, 0]];
     if (h.to > 0) for (const j of peers(current.n)[h.cell]) if (notes[j] & (1 << h.to)) changes.push([j, board[j], notes[j] & ~(1 << h.to)]);
-    apply(changes);
-    undo.pop(); // a hint is not undone with the undo button
-    selected = h.cell;
+    if (apply(changes)) undo.pop(); // a hint is not undone with the undo button...
+    // ...and older undo steps never bring back what was in the squares the hint changed
+    const touched = new Set(changes.map(([i]) => i));
+    undo = undo.map((step) => step.filter((x) => !touched.has(x.i))).filter((step) => step.length);
+    selected = -1; // the hinted square only flashes, so the next picture tap cannot overwrite it
     brush = 0;
+    painted = -1;
     flash = h.cell;
+    notice = t(h.why === 'wrong' ? 'pdoku.hintWrong' : h.why === 'only' ? 'pdoku.hintOnly' : 'pdoku.hintFill');
     updateBoard();
-    $('#pdoku-status').textContent = t(h.why === 'wrong' ? 'pdoku.hintWrong' : h.why === 'only' ? 'pdoku.hintOnly' : 'pdoku.hintFill');
     if (h.to > 0) sfx.plink(h.to);
     if (board.every(Boolean) && isSolved(current, board)) win();
     else
@@ -487,12 +540,11 @@ export function createPicturedoku(shell) {
   function renderNumbers() {
     const b = $('#pdoku-numbers');
     b.hidden = !current || current.n === 4;
-    b.setAttribute('aria-pressed', String(numbers));
+    b.setAttribute('aria-pressed', String(numbersOn()));
   }
   $('#pdoku-numbers').addEventListener('click', () => {
     tap();
-    numbers = !numbers;
-    store.saveGameOption(meta.id, 'numbers', numbers);
+    store.saveGameOption(meta.id, 'numbers', !numbersOn());
     renderNumbers();
     renderPalette();
     updateBoard();
@@ -545,31 +597,28 @@ export function createPicturedoku(shell) {
     refresh();
     selected = -1;
     brush = 0;
+    painted = -1;
+    notice = '';
     updateBoard();
-    $('#pdoku-status').textContent = '';
     $('#pdoku-board').classList.add('won');
     sfx.chime();
     const done = current;
+    const token = plays;
     setTimeout(() => {
-      if (current !== done || !onScreen('picturedoku')) return;
+      if (token !== plays || !solved || current !== done || !onScreen('picturedoku')) return;
       showWinCard(done, stars);
     }, 1400);
   }
 
   function showWinCard(done, stars) {
-    const i = puzzles.indexOf(done);
-    const next = puzzles.slice(i + 1).find((p) => !locked(p));
-    const nextAny = puzzles[i + 1];
+    const nextAny = puzzles[puzzles.indexOf(done) + 1];
+    const sameSize = nextAny && nextAny.n === done.n; // "Next" never jumps to a bigger board
     const buttons = [];
     let text = t('pdoku.winText');
-    if (nextAny && !locked(nextAny)) {
+    if (sameSize && !locked(nextAny)) {
       buttons.push([t('pdoku.next'), 'big primary', () => play(nextAny.id)]);
-    } else if (next) {
-      // the next one of this size is in the full version: offer it, or jump to the next free size
-      text = `${t('pdoku.winText')} ${t('pdoku.lastFree')}`;
-      buttons.push([t('pdoku.next'), 'big primary', () => play(next.id)]);
-      buttons.push([t('pdoku.more'), 'big secondary', offer]);
-    } else if (nextAny) {
+    } else if (sameSize) {
+      // the next one of this size is in the full version
       text = `${t('pdoku.winText')} ${t('pdoku.lastFree')}`;
       buttons.push([t('pdoku.more'), 'big primary', offer]);
     }

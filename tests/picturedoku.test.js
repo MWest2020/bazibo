@@ -146,3 +146,40 @@ test('save: Picturedoku keeps its own section next to the other games', async ()
   assert.deepEqual(saved.games.picturedoku, { stars: { 1: 3, 43: 2 }, numbers: true, howSeen: { tiny: true } });
   assert.equal(saved.purchase.owned, true);
 });
+
+// Review of PR #6: the games read their options (numbers, auto-cross, how-to seen) from the save
+// each time, because after a failed read that a later read recovers, the save holds the real values.
+test('save: game options come back after a failed read is recovered (Picturedoku and Dogudoku)', async () => {
+  let value = JSON.stringify({
+    version: 1,
+    games: { picturedoku: { stars: { 1: 3 }, numbers: true, howSeen: { small: true } }, dogudoku: { stars: {}, autoCross: true } },
+    settings: {},
+    purchase: { owned: false },
+  });
+  let fails = 3;
+  const b = {
+    name: 'flaky',
+    get: async () => {
+      if (fails-- > 0) throw new Error('not yet');
+      return value;
+    },
+    set: async (k, v) => void (value = v),
+  };
+  assert.equal(await store.init({ backend: b, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
+  assert.equal(store.loadGameOption('picturedoku', 'numbers', false), false); // not known yet
+  assert.equal(store.loadGameOption('dogudoku', 'autoCross', false), false);
+  store.recordStars('picturedoku', 2, 2); // a win reads the save again and merges
+  await store.adopted();
+  await store.flushed();
+  assert.equal(store.loadGameOption('picturedoku', 'numbers', false), true);
+  assert.deepEqual(store.loadGameOption('picturedoku', 'howSeen', {}), { small: true });
+  assert.equal(store.loadGameOption('dogudoku', 'autoCross', false), true);
+  assert.deepEqual(JSON.parse(value).games.picturedoku.stars, { 1: 3, 2: 2 });
+});
+
+test('the games read their options from the save when they use them, never from a copy kept at start', () => {
+  for (const [file, opts] of [['../web/games/picturedoku/picturedoku.js', ['numbers', 'howSeen']], ['../web/games/dogudoku/dogudoku.js', ['autoCross', 'howSeen']]]) {
+    const src = readFileSync(new URL(file, import.meta.url), 'utf8');
+    for (const o of opts) assert.doesNotMatch(src, new RegExp(`let ${o}\\s*=\\s*store\\.loadGameOption`), `${file} keeps ${o} in a variable`);
+  }
+});
