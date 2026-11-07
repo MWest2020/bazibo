@@ -29,9 +29,14 @@ export class Game {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.hooks = hooks;
+    this._raf = 0;
+    this._last = performance.now();
+    this._frame = this._frame.bind(this);
     this.phase = 'idle';
-    this.paused = false;
-    this.active = false;
+    this._paused = false;
+    this._active = false;
+    this.idle = 0;
+    this.hintDone = true;
     this.effects = [];
     this.falling = [];
     this.time = 0;
@@ -41,9 +46,36 @@ export class Game {
     this.grid = G.makeGrid([], COLS);
     this._bind();
     this.resize();
+  }
+
+  // The animation loop only runs while the game screen is shown and not paused (battery).
+  get active() {
+    return this._active;
+  }
+
+  set active(v) {
+    this._active = !!v;
+    this._wake();
+  }
+
+  get paused() {
+    return this._paused;
+  }
+
+  set paused(v) {
+    this._paused = !!v;
+    this._wake();
+  }
+
+  _wake() {
+    if (this._raf || !this._active) return;
     this._last = performance.now();
-    this._frame = this._frame.bind(this);
-    requestAnimationFrame(this._frame);
+    this._raf = requestAnimationFrame(this._frame);
+  }
+
+  /** Is the animation loop scheduled? (for tests) */
+  get running() {
+    return this._raf !== 0;
   }
 
   // ---------- lifecycle ----------
@@ -67,6 +99,10 @@ export class Game {
     this.next = this.pickColor();
     this.aim.active = false;
     this.aim.angle = Math.PI / 2;
+    this.idle = 0;
+    this.hintT = 0;
+    // first level: show how to aim until the first shot
+    this.hintDone = level.id !== 1;
     this.paused = false;
     this.active = true;
     this.phase = 'aim';
@@ -112,6 +148,7 @@ export class Game {
     sfx.unlock();
     if (this.phase !== 'aim' || this.paused) return;
     e.preventDefault();
+    this.idle = 0;
     const p = this._toLogical(e);
     if (Math.hypot(p.x - NEXT.x, p.y - NEXT.y) < R * 1.7) {
       this.swap();
@@ -130,6 +167,7 @@ export class Game {
     if (this.phase !== 'aim' || this.paused) return;
     const p = this._toLogical(e);
     if (e.pointerType === 'mouse') this.aim.hover = p.y < SHOOTER.y;
+    if (this.aim.active || this.aim.hover) this.idle = 0;
     if (this.aim.active || e.pointerType === 'mouse') this._setAim(p);
   }
 
@@ -151,7 +189,11 @@ export class Game {
     if (this.phase !== 'aim') return false;
     this.aim.angle = clamp(angle, MIN_ANGLE, Math.PI - MIN_ANGLE);
     const a = this.aim.angle;
-    this.shot = { x: SHOOTER.x, y: SHOOTER.y, vx: Math.cos(a) * SPEED, vy: -Math.sin(a) * SPEED, color: this.current };
+    // plan the whole path now, with the same trace the guide draws, so the bubble always lands
+    // in the cell the ghost circle showed
+    const plan = G.planShot(this.grid, SHOOTER.x, SHOOTER.y, a, { R, width: W, gridTop: this.gridTop, hitDist: HIT });
+    this.shot = { x: SHOOTER.x, y: SHOOTER.y, color: this.current, plan, dist: 0, seg: 1 };
+    this.hintDone = true;
     this.current = null;
     this.phase = 'flying';
     this.shots++;
@@ -163,15 +205,27 @@ export class Game {
   // ---------- simulation ----------
 
   _frame(now) {
-    const dt = Math.min(0.033, (now - this._last) / 1000);
+    this._raf = 0;
+    const dt = Math.min(0.033, Math.max(0, (now - this._last) / 1000));
     this._last = now;
-    if (this.active && !this.paused) this.update(dt);
-    if (this.active) this.render();
-    requestAnimationFrame(this._frame);
+    if (!this._active) return;
+    if (!this._paused) this.update(dt);
+    this.render();
+    // behind the win or "Bijna!" card nothing moves once the effects are done: stop too
+    const settled = (this.phase === 'won' || this.phase === 'lost') && this.endTimer <= 0 && !this.effects.length && !this.falling.length;
+    if (!this._paused && !settled) this._raf = requestAnimationFrame(this._frame);
+  }
+
+  /** Show the "drag up and let go" hand? On level 1 before the first shot, or after a long wait. */
+  get hinting() {
+    return this.phase === 'aim' && !this.aim.active && !this.aim.hover && !this.paused && (!this.hintDone || this.idle > 9);
   }
 
   update(dt) {
     this.time += dt;
+    if (this.phase === 'aim' && !this.aim.active) this.idle += dt;
+    if (this.hinting) this.hintT += dt;
+    else this.hintT = 0;
     this.lidY += (this.gridTop - this.lidY) * Math.min(1, dt * 9);
     this.recoil = Math.max(0, this.recoil - dt * 5);
     this.shake = Math.max(0, this.shake - dt);
@@ -193,31 +247,20 @@ export class Game {
 
   _fly(dt) {
     const s = this.shot;
-    let dist = SPEED * dt;
-    const stepLen = R / 3;
-    while (dist > 0) {
-      const d = Math.min(stepLen, dist);
-      dist -= d;
-      s.x += (s.vx / SPEED) * d;
-      s.y += (s.vy / SPEED) * d;
-      const b = G.bounceX(s.x, s.vx, R, W - R);
-      if (b.bounced) {
-        s.x = b.x;
-        s.vx = b.vx;
-        sfx.tick();
-      }
-      if (G.collides(this.grid, s.x, s.y - this.gridTop, R, HIT)) {
-        this._land();
-        return;
-      }
-    }
+    s.dist += SPEED * dt;
+    const p = G.pointAlong(s.plan.points, s.dist);
+    // every point between the start and the end of the path is a wall bounce
+    for (; s.seg < p.seg; s.seg++) sfx.tick();
+    s.x = p.x;
+    s.y = p.y;
+    if (p.done) this._land();
   }
 
   _land() {
     const s = this.shot;
     this.shot = null;
     const top = this.gridTop;
-    const { r, c } = G.snapCell(this.grid, s.x, s.y - top, R);
+    const { r, c } = s.plan.cell;
     G.set(this.grid, r, c, s.color);
     this.settle = { r, c, t: 0 };
     const matches = G.findMatches(this.grid, r, c);
@@ -295,7 +338,7 @@ export class Game {
         row.forEach((v, c) => {
           if (v === null) return;
           const p = G.cellCenter(r, c, R);
-          this._spawnFall(p.x, p.y + this.gridTop, v, Math.random() * 0.3);
+          this._spawnFall(p.x, p.y + this.gridTop, v, Math.random() * 0.3, true);
         }),
       );
       this.grid = G.makeGrid([], COLS);
@@ -305,12 +348,13 @@ export class Game {
     }
   }
 
-  _spawnPop(x, y, color, delay, i, vol) {
-    this.effects.push({ type: 'pop', x, y, color, t: -delay, dur: 0.3, i, vol, sounded: false });
+  _spawnPop(x, y, color, delay, i, vol, gap = 0.03) {
+    this.effects.push({ type: 'pop', x, y, color, t: -delay, dur: 0.3, i, vol, gap, sounded: false });
   }
 
-  _spawnFall(x, y, color, delay = 0) {
-    this.falling.push({ x, y, color, vx: rand(-90, 90), vy: rand(-160, -40), wait: delay, bounces: 0 });
+  /** `quiet`: the tumble after losing, where only a few soft pops should be heard. */
+  _spawnFall(x, y, color, delay = 0, quiet = false) {
+    this.falling.push({ x, y, color, vx: rand(-90, 90), vy: rand(-160, -40), wait: delay, bounces: 0, quiet });
   }
 
   _updateEffects(dt) {
@@ -320,7 +364,7 @@ export class Game {
       e.t += dt;
       if (e.type === 'pop' && !e.sounded && e.t >= 0) {
         e.sounded = true;
-        sfx.pop(e.i, e.vol);
+        sfx.pop(e.i, e.vol, e.gap);
         const col = COLORS[e.color];
         const n = 7;
         for (let j = 0; j < n; j++) {
@@ -357,10 +401,12 @@ export class Game {
         b.vy = -b.vy * 0.5;
         b.vx *= 0.8;
         b.bounces++;
-        if (b.bounces === 1) sfx.bounce();
+        if (b.bounces === 1 && !b.quiet) sfx.bounce();
         if (b.bounces >= 2) {
           // pop it after the second bounce: children like popping
-          this._spawnPop(b.x, b.y, b.color, 0, 3 + Math.floor(Math.random() * 4), 0.5);
+          const i = 3 + Math.floor(Math.random() * 4);
+          if (b.quiet) this._spawnPop(b.x, b.y, b.color, 0, i, 0.35, 0.16);
+          else this._spawnPop(b.x, b.y, b.color, 0, i, 0.6, 0.06);
           list.splice(k, 1);
         }
       }
@@ -371,20 +417,24 @@ export class Game {
 
   resize() {
     const stage = this.canvas.parentElement;
-    const rw = stage?.clientWidth || 0;
-    const rh = stage?.clientHeight || 0;
+    const pad = stage ? getComputedStyle(stage) : null;
+    const rw = stage ? stage.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight) : 0;
+    const rh = stage ? stage.clientHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom) : 0;
     if (!rw || !rh) return;
     const scale = Math.min(rw / W, rh / H);
     const cssW = Math.floor(W * scale);
     const cssH = Math.floor(H * scale);
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
+    // lets the CSS keep pause and mute next to the board on wide screens
+    stage.parentElement?.style.setProperty('--board-w', `${cssW}px`);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.canvas.width = Math.round(cssW * dpr);
     this.canvas.height = Math.round(cssH * dpr);
     this.k = this.canvas.width / W;
     clearSprites();
     this.bg = makeBackground(this.k);
+    if (this._active && !this._raf) this.render(); // resizing clears the canvas
   }
 
   _sprite(ctx, color, x, y, scale = 1, alpha = 1) {
@@ -418,12 +468,100 @@ export class Game {
       }),
     );
 
-    if (this.phase === 'aim' && (this.aim.active || this.aim.hover) && this.current !== null) this._drawGuide(ctx);
+    const hint = this.hinting ? this._hintPose() : null;
+    if (this.phase === 'aim' && (this.aim.active || this.aim.hover || (hint && hint.press)) && this.current !== null) this._drawGuide(ctx, hint ? hint.alpha : 1);
     this._drawShooter(ctx);
     if (this.shot) this._sprite(ctx, this.shot.color, this.shot.x, this.shot.y);
 
     for (const b of this.falling) this._sprite(ctx, b.color, b.x, b.y);
     for (const e of this.effects) this._drawEffect(ctx, e);
+    if (hint) this._drawHint(ctx, hint);
+    ctx.restore();
+  }
+
+  _shownAngle() {
+    return this.hinting ? this._hintPose().angle : this.aim.angle;
+  }
+
+  /** Where the demo hand is in its 2.6 s loop: press near the launcher, drag up, let go. */
+  _hintPose() {
+    const T = 2.6;
+    const t = this.hintT % T;
+    const fadeIn = clamp(this.hintT / 0.4, 0, 1);
+    const sweep = Math.sin((Math.floor(this.hintT / T) % 2 ? -1 : 1) * 0.5); // left, then right
+    const start = { x: SHOOTER.x, y: SHOOTER.y - 50 };
+    const end = { x: SHOOTER.x + sweep * 150, y: SHOOTER.y - 230 };
+    let p;
+    let press = true;
+    let alpha = fadeIn;
+    if (t < 0.35) {
+      p = 0;
+      press = t > 0.2;
+    } else if (t < 1.6) p = easeOut((t - 0.35) / 1.25);
+    else {
+      p = 1;
+      press = false;
+      alpha *= 1 - clamp((t - 1.9) / 0.5, 0, 1);
+    }
+    const x = start.x + (end.x - start.x) * p;
+    const y = start.y + (end.y - start.y) * p;
+    const angle = clamp(Math.atan2(SHOOTER.y - y, x - SHOOTER.x), MIN_ANGLE, Math.PI - MIN_ANGLE);
+    return { x, y, press, alpha, angle, released: t >= 1.6 ? clamp((t - 1.6) / 0.4, 0, 1) : 0 };
+  }
+
+  _drawHint(ctx, h) {
+    ctx.save();
+    ctx.globalAlpha = h.alpha;
+    // the words, for the grown-up reading along
+    ctx.font = '800 22px ui-rounded, "Nunito", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const text = 'Sleep omhoog en laat los!';
+    const tw = ctx.measureText(text).width + 36;
+    const ty = DEADLINE - 44;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - tw / 2, ty - 22, tw, 44, 22);
+    ctx.fill();
+    ctx.fillStyle = '#3B2FA8';
+    ctx.fillText(text, W / 2, ty + 1);
+    // touch ripple under the finger
+    if (h.press || h.released) {
+      const k = h.released;
+      ctx.strokeStyle = 'rgba(91,75,219,0.6)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 14 + k * 26 + (h.press ? 2 * Math.sin(this.time * 10) : 0), 0, TAU);
+      ctx.globalAlpha = h.alpha * (1 - k);
+      ctx.stroke();
+      ctx.globalAlpha = h.alpha;
+    }
+    // a simple pointing hand; the fingertip is at (x, y)
+    const lift = h.press ? 0 : 8;
+    ctx.translate(h.x + 6, h.y + 4 - lift);
+    ctx.rotate(-0.25);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#3B2FA8';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.roundRect(-8, 0, 16, 40, 8); // index finger
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(-14, 26, 40, 38, 14); // palm with folded fingers
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(-24, 34, 18, 12, 6); // thumb
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(8, 38);
+    ctx.lineTo(20, 38);
+    ctx.moveTo(8, 48);
+    ctx.lineTo(20, 48);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -473,8 +611,8 @@ export class Game {
     ctx.restore();
   }
 
-  _drawGuide(ctx) {
-    const tr = G.traceGuide(this.grid, SHOOTER.x, SHOOTER.y, this.aim.angle, {
+  _drawGuide(ctx, alpha = 1) {
+    const tr = G.traceGuide(this.grid, SHOOTER.x, SHOOTER.y, this._shownAngle(), {
       R,
       width: W,
       gridTop: this.gridTop,
@@ -497,7 +635,7 @@ export class Game {
         const x = a.x + ((b.x - a.x) * d) / len;
         const y = a.y + ((b.y - a.y) * d) / len;
         const fade = clamp(1 - total / 900, 0.25, 1);
-        ctx.globalAlpha = fade;
+        ctx.globalAlpha = fade * alpha;
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(x, y, 4.2, 0, TAU);
@@ -516,7 +654,7 @@ export class Game {
       const cell = G.snapCell(this.grid, tr.end.x, tr.end.y - this.gridTop, R);
       const p = G.cellCenter(cell.r, cell.c, R);
       ctx.save();
-      ctx.globalAlpha = 0.75;
+      ctx.globalAlpha = 0.75 * alpha;
       ctx.setLineDash([6, 5]);
       ctx.lineWidth = 3;
       ctx.strokeStyle = col.dark;
@@ -545,7 +683,7 @@ export class Game {
     ctx.restore();
 
     // barrel
-    const a = this.aim.angle;
+    const a = this._shownAngle();
     const back = this.recoil * 6;
     ctx.save();
     ctx.translate(x, y);
@@ -622,6 +760,29 @@ export class Game {
         ctx.stroke();
       }
     }
+    // a tiny picture next to the dots: "when these run out, the ceiling comes down"
+    const ix = startX + 66;
+    const iy = H - 72;
+    const warn = left <= 2 ? 0.5 + 0.5 * Math.sin(this.time * 8) : 0;
+    const col = warn ? `rgb(${Math.round(91 + 144 * warn)}, ${Math.round(75 - 5 * warn)}, ${Math.round(219 - 129 * warn)})` : '#5B4BDB';
+    ctx.save();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.roundRect(ix - 15, iy, 30, 8, 3);
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const ay = iy + 14 + warn * 3;
+    ctx.beginPath();
+    ctx.moveTo(ix, ay);
+    ctx.lineTo(ix, ay + 14);
+    ctx.moveTo(ix - 7, ay + 7);
+    ctx.lineTo(ix, ay + 14);
+    ctx.lineTo(ix + 7, ay + 7);
+    ctx.stroke();
+    ctx.restore();
   }
 
   _drawEffect(ctx, e) {

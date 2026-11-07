@@ -1,5 +1,6 @@
 """Playwright smoke test: serve web/ locally, play level 1 with 5 real drag-and-release shots,
-check that nothing went to the network and nothing threw, and save screenshots to shots/.
+check that nothing went to the network and nothing threw, that the animation loops stop when
+they are not needed, and save screenshots to shots/ (also a sideways phone).
 
 Run: uv run --with playwright python tests/smoke.py
 """
@@ -46,7 +47,7 @@ def run(browser, base, name, context_args, problems):
     page.on("console", lambda m: m.type == "error" and errors.append(m.text))
     page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
 
-    page.goto(base + "/index.html")
+    page.goto(base + "/index.html?test=1")
     page.wait_for_selector("html[data-ready='1']")
     page.wait_for_timeout(600)
     page.screenshot(path=str(SHOTS / f"{name}-1-home.png"))
@@ -55,8 +56,12 @@ def run(browser, base, name, context_args, problems):
     page.wait_for_timeout(300)
     page.screenshot(path=str(SHOTS / f"{name}-2-levels.png"))
 
+    if page.evaluate("window.__bubbels.state().homeLoop"):
+        problems.append(f"{name}: start-screen animation still runs on the level screen")
+
     page.click("#levels-free .level-btn >> nth=0")
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(1300)
+    page.screenshot(path=str(SHOTS / f"{name}-3-hint.png"))  # level 1: the drag-and-let-go hand
     box = page.locator("#game").bounding_box()
     k = box["width"] / W
 
@@ -81,11 +86,13 @@ def run(browser, base, name, context_args, problems):
         page.mouse.move(tx, ty, steps=6)
         if i in (0, 4):
             page.wait_for_timeout(120)
-            page.screenshot(path=str(SHOTS / f"{name}-3-aim-shot{i + 1}.png"))
+            page.screenshot(path=str(SHOTS / f"{name}-4-aim-shot{i + 1}.png"))
         page.mouse.up()
         if i == 1:
             page.wait_for_timeout(380)
             page.screenshot(path=str(SHOTS / f"{name}-4-in-flight.png"))
+    if not page.evaluate("window.__bubbels.state().loop"):
+        problems.append(f"{name}: game loop not running while playing")
     wait_aim()
     page.wait_for_timeout(200)
     state = page.evaluate("window.__bubbels.state()")
@@ -95,7 +102,12 @@ def run(browser, base, name, context_args, problems):
     page.click("#btn-pause")
     page.wait_for_timeout(350)
     page.screenshot(path=str(SHOTS / f"{name}-6-pause.png"))
+    if page.evaluate("window.__bubbels.state().loop"):
+        problems.append(f"{name}: game loop still runs while paused")
     page.click("#ov-buttons button >> text=Levels")
+    page.wait_for_timeout(100)
+    if page.evaluate("window.__bubbels.state().loop"):
+        problems.append(f"{name}: game loop still runs on the level screen")
     page.click("#levels-full .level-btn >> nth=0")
     page.wait_for_timeout(350)
     page.screenshot(path=str(SHOTS / f"{name}-7-locked.png"))
@@ -123,6 +135,29 @@ def run(browser, base, name, context_args, problems):
     ctx.close()
 
 
+def run_sideways(browser, base, problems):
+    ctx = browser.new_context(
+        viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True
+    )
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.evaluate("typeof window.__bubbels") != "undefined":
+        problems.append("test hook is exposed without ?test")
+    page.click("#btn-play")
+    page.wait_for_timeout(900)
+    box = page.locator("#game").bounding_box()
+    print(f"[sideways] board {box['width']:.0f}x{box['height']:.0f}")
+    if box["height"] < 340:
+        problems.append(f"sideways: board only {box['height']:.0f} px tall")
+    page.screenshot(path=str(SHOTS / "sideways-game.png"))
+    if errors:
+        problems.append(f"sideways: page errors: {errors}")
+    ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -141,6 +176,7 @@ def main():
                 {"viewport": {"width": 390, "height": 844}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True},
                 problems,
             )
+            run_sideways(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

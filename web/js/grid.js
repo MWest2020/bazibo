@@ -246,6 +246,36 @@ export function traceGuide(grid, ox, oy, angle, opts) {
   return { points, end: { x, y }, hit: 'none' };
 }
 
+/**
+ * Plan a whole shot before it flies: the exact path (the same trace the aiming guide draws,
+ * with any number of wall bounces) and the cell the bubble will stick in. The game animates
+ * the bubble along `points` and puts it in `cell`, so it always lands where the ghost circle
+ * showed. Returns { points, cell: {r, c}, bounces, hit }.
+ */
+export function planShot(grid, ox, oy, angle, opts) {
+  const { R, gridTop = 0 } = opts;
+  const tr = traceGuide(grid, ox, oy, angle, { maxLen: 20000, ...opts, maxBounces: Infinity });
+  const cell = snapCell(grid, tr.end.x, tr.end.y - gridTop, R);
+  return { points: tr.points, cell, bounces: tr.points.length - 2, hit: tr.hit };
+}
+
+/** Walk `dist` pixels along a polyline. Returns {x, y, seg} (seg = index of the segment's end). */
+export function pointAlong(points, dist) {
+  let left = dist;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (left <= len) {
+      const f = len ? left / len : 0;
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, seg: i, done: false };
+    }
+    left -= len;
+  }
+  const end = points[points.length - 1];
+  return { x: end.x, y: end.y, seg: points.length - 1, done: true };
+}
+
 /** 3 stars at or under par, 2 stars up to 1.5x par, otherwise 1. */
 export function starsFor(shots, par) {
   if (shots <= par) return 3;

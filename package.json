@@ -8,6 +8,7 @@
   "scripts": {
     "test": "node --test tests/",
     "levels": "node tools/gen-levels.mjs",
-    "serve": "python3 -m http.server 8080 --directory web"
+    "serve": "python3 -m http.server 8080 --directory web",
+    "stamp": "node tools/stamp-sw.mjs"
   }
 }

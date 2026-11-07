@@ -15,9 +15,13 @@
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (unit tests for `web/js/grid.js` and the level data) and
-`uv run --with playwright python tests/smoke.py` (5 shots on desktop and 390x844, screenshots
-in `shots/`). Look at the screenshots before claiming something looks right.
+`uv run --with playwright python tests/smoke.py` (5 shots on desktop and 390x844, a sideways
+844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
+right. The test hook `window.__bubbels` only exists with `?test` in the address.
 
 **When you change things:** grid rules go in `grid.js` with a test. Level changes go through
-`tools/gen-levels.mjs`, not by hand-editing the JSON. Bump `VERSION` in `web/sw.js` when files
-under `web/` change.
+`tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run
+`npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
+`npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
+The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
+aiming guide), so it always lands in the ghost cell; keep it that way.
