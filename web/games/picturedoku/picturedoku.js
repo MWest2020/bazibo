@@ -1,11 +1,13 @@
 // Picturedoku: a sudoku with pictures. Every picture goes once in every row, column and box.
 // 4×4 for the youngest (pictures only), 6×6 and 9×9 for older children (who may switch to numbers).
 // Two ways to play: tap a square, then a picture in the palette; or (from 6×6) pick a picture
-// first and tap squares with it. On 4×4 only the first way, so a toddler cannot paint by accident. The rules live in rules.js, the pictures in art.js; the shell (web/js/main.js)
+// first and tap empty squares with it. On 4×4 only the first way. What a tap does is decided in
+// input.js; a picture tap never changes a filled square the child did not just choose. The rules live in rules.js, the pictures in art.js; the shell (web/js/main.js)
 // owns the overlay card, the sound settings and the purchase, and passes them in as `shell`.
 import { meta } from './meta.js';
 import { parse, conflicts, candidates, peers, isSolved, nextHint, starsFor, boxOf } from './rules.js';
 import { pictureSvg, numberSvg } from './art.js';
+import * as input from './input.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 
@@ -48,7 +50,6 @@ export function createPicturedoku(shell) {
   let hintsUsed = 0;
   let solved = false;
   let flash = -1; // the last hint's square, highlighted for a moment
-  let painted = -1; // the square the armed picture last went into (6×6 and up)
   let notice = ''; // a short line under the board until the next action (fixed picture, hint, ...)
   let plays = 0; // counts boards opened, so a late win card never lands on a newer board
   const boards = new Map(); // unfinished boards of this session, so leaving a puzzle loses nothing
@@ -161,7 +162,6 @@ export function createPicturedoku(shell) {
     brush = 0;
     pencil = false;
     flash = -1;
-    painted = -1;
     notice = '';
     buildBoard();
     renderHud();
@@ -288,128 +288,48 @@ export function createPicturedoku(shell) {
     return changed;
   }
 
-  /** Put picture v in square i (v = 0 clears it); with the pencil, toggle a small picture instead. */
-  function put(i, v) {
-    if (solved) return false;
-    if (given[i]) {
-      wiggle(cells[i]);
-      notice = t('pdoku.fixed');
-      updateBoard();
-      return false;
-    }
-    if (pencil && v > 0) {
-      if (board[i]) return false; // a picture is already there: notes only go in empty squares
-      apply([[i, 0, notes[i] ^ (1 << v)]]);
-      sfx.click();
-      afterChange();
-      return false;
-    }
-    if (v > 0 && board[i] === v) v = 0; // the same picture again takes it out
-    const changes = [[i, v, 0]];
-    if (v > 0) {
-      // a placed picture is no longer a possibility for its row, column and box
-      for (const j of peers(current.n)[i]) if (notes[j] & (1 << v)) changes.push([j, board[j], notes[j] & ~(1 << v)]);
-    }
-    if (!apply(changes)) return false;
-    if (v > 0) sfx.plink(v);
-    else sfx.click();
-    afterChange();
-    return v > 0;
-  }
-
   function afterChange() {
     flash = -1;
     updateBoard();
     if (board.every(Boolean) && isSolved(current, board)) win();
   }
 
+  /** Carry out what input.js decided for a tap. */
+  function run(r) {
+    selected = r.selected;
+    brush = r.brush;
+    notice = r.notice ? t(`pdoku.${r.notice}`) : '';
+    for (const i of r.wiggle) wiggle(cells[i]);
+    const changed = r.changes.length > 0 && apply(r.changes);
+    if (r.sound === 'click') sfx.click();
+    else if (Array.isArray(r.sound) && changed) sfx.plink(r.sound[1]);
+    if (changed) afterChange();
+    else updateBoard();
+  }
+
+  const inputState = () => ({ n: current.n, tier: current.tier, board, notes, given, selected, brush, pencil });
+
   function tapCell(i) {
     if (!current || solved) return;
     sfx.unlock();
-    notice = '';
-    if (brush !== 0) {
-      selected = i;
-      // the eraser (brush -1) clears the picture and the small ones
-      painted = put(i, brush > 0 ? brush : 0) && !pencil ? i : -1;
-      updateBoard();
-      return;
-    }
-    painted = -1;
-    selected = selected === i ? -1 : i;
-    sfx.click();
-    updateBoard();
-  }
-
-  /** Picture-first is for 6×6 and up; on 4×4 a picture always goes into a chosen square. */
-  const canArm = () => current.tier !== 'tiny';
-
-  /** No square chosen on 4×4: the empty squares wiggle, to show where to tap first. */
-  function askForSquare() {
-    for (let i = 0; i < cells.length; i++) if (!given[i] && !board[i]) wiggle(cells[i]);
-    notice = t('pdoku.pickSquare');
-    sfx.click();
-    updateBoard();
+    run(input.tapCell(inputState(), i));
   }
 
   function tapPalette(v) {
     if (!current || solved) return;
     sfx.unlock();
-    notice = '';
-    if (brush > 0 && v !== brush && painted >= 0 && !pencil) {
-      // a square was just painted and another picture is tapped: that square gets the new picture,
-      // and the new picture is the armed one
-      const i = painted;
-      brush = v;
-      selected = i;
-      painted = put(i, v) ? i : -1;
-      updateBoard();
-      return;
-    }
-    if (selected >= 0 && !given[selected] && brush === 0) {
-      put(selected, v);
-      // done with this square (with the pencil it stays chosen, for more small pictures); the next
-      // picture tapped without a square then starts the picture-first way
-      if (!pencil && !solved) {
-        selected = -1;
-        updateBoard();
-      }
-      return;
-    }
-    if (!canArm()) {
-      askForSquare();
-      return;
-    }
-    // no square chosen (or a fixed one): pick the picture first, then tap squares with it
-    brush = brush === v ? 0 : v;
-    selected = -1;
-    painted = -1;
-    sfx.click();
-    updateBoard();
+    run(input.tapPicture(inputState(), v));
   }
 
   function erase() {
     if (!current || solved) return;
-    notice = '';
-    painted = -1;
-    if (selected >= 0 && !given[selected] && brush === 0) {
-      if (apply([[selected, 0, 0]])) sfx.click();
-      afterChange();
-      return;
-    }
-    if (!canArm()) {
-      askForSquare();
-      return;
-    }
-    brush = brush === -1 ? 0 : -1;
-    selected = -1;
-    sfx.click();
-    updateBoard();
+    run(input.tapEraser(inputState()));
   }
 
   function undoLast() {
     if (!current || solved || !undo.length) return;
     notice = '';
-    painted = -1;
+    selected = -1;
     for (const { i, v, notes: m } of undo.pop()) {
       board[i] = v;
       notes[i] = m;
@@ -515,7 +435,6 @@ export function createPicturedoku(shell) {
     undo = undo.map((step) => step.filter((x) => !touched.has(x.i))).filter((step) => step.length);
     selected = -1; // the hinted square only flashes, so the next picture tap cannot overwrite it
     brush = 0;
-    painted = -1;
     flash = h.cell;
     notice = t(h.why === 'wrong' ? 'pdoku.hintWrong' : h.why === 'only' ? 'pdoku.hintOnly' : 'pdoku.hintFill');
     updateBoard();
@@ -597,7 +516,6 @@ export function createPicturedoku(shell) {
     refresh();
     selected = -1;
     brush = 0;
-    painted = -1;
     notice = '';
     updateBoard();
     $('#pdoku-board').classList.add('won');
