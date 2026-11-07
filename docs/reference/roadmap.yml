@@ -16,14 +16,14 @@ phases:
     # for the current phase only).
     done_means:
       - {item: "Picturedoku, a picture sudoku: 4x4 with animals for young children, up to 6x6 and 9x9", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
-      - {item: "Dogudoku: a Queens-style puzzle with puppies (one per row, column and colour, never touching). 4x4 with bushes for ages 3-5, 5x5 with colours for 5-7, 6x6 to 8x8 with all rules for 7-10; 60 puzzles, each with exactly one solution, 10 free", status: open, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
+      - {item: "Dogudoku: a Queens-style puzzle with puppies (one per row, column and colour, never touching). 4x4 with bushes for ages 3-5, 5x5 with colours for 5-7, 6x6 to 8x8 with all rules for 7-10; 60 puzzles, each with exactly one solution, 10 free", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
       - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
       - {item: "Letters with a voice: hear a sound, tap the letter (local Dutch voice, no cloud)", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
 done_means:
   - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Android and iOS projects, €1 unlock through the stores, parental gate, privacy policy", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/1"}
-  - {item: "Brand name Idaveld in the app, the native app names, the store texts and the privacy pages (issue #2 default)", status: open, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
+  - {item: "Brand name Idaveld in the app, the native app names, the store texts and the privacy pages (issue #2 default)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
   - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
   - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/4"}
   - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
