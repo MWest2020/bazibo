@@ -147,27 +147,69 @@ function defaultBackend() {
 // ---------- the live save ----------
 
 let save = emptySave();
-let backend = null;
+let backend = null; // set only once a read has succeeded: until then nothing is ever written
 let queue = Promise.resolve();
+let writeFailed = false;
 
 function persist() {
   if (!backend) return;
-  const text = JSON.stringify(save);
+  const text = JSON.stringify(save); // always the whole, latest save
   const b = backend;
-  queue = queue.then(() => b.set(SAVE_KEY, text)).catch(() => {});
+  queue = queue
+    .then(() => b.set(SAVE_KEY, text))
+    .then(() => {
+      writeFailed = false;
+    })
+    .catch((e) => {
+      // kept in memory; the next persist() or a visibilitychange writes the latest save again
+      writeFailed = true;
+      console.warn('storage: saving failed, will retry', e?.message || e);
+    });
 }
 
-/** Load (and if needed migrate) the save. Resolves to the migrate() note; never rejects. */
-export async function init({ backend: b = defaultBackend(), legacyStorage = globalThis.window?.localStorage, now = new Date().toISOString() } = {}) {
-  backend = b;
-  let raw = null;
-  try {
-    raw = await b.get(SAVE_KEY);
-  } catch {
-    raw = null;
+/** Write the latest save again after a failed write (also called on visibilitychange). */
+export function retryFailedWrite() {
+  if (writeFailed) persist();
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** get() with retries. Returns {ok, raw}: ok=false means the read failed, which is not "nothing stored". */
+async function readSave(b, tries, delayMs) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      return { ok: true, raw: await b.get(SAVE_KEY) };
+    } catch {
+      if (i < tries - 1) await sleep(delayMs);
+    }
   }
+  return { ok: false, raw: null };
+}
+
+/**
+ * Load (and if needed migrate) the save. Resolves to the migrate() note, or 'read-failed'; never rejects.
+ * A failed read never counts as an empty save: the session then runs in memory only and writes nothing,
+ * so a real save that could not be read this time is never overwritten.
+ */
+export async function init({
+  backend: b = defaultBackend(),
+  legacyStorage = globalThis.window?.localStorage,
+  now = new Date().toISOString(),
+  tries = 3,
+  retryDelayMs = 150,
+} = {}) {
+  backend = null;
+  writeFailed = false;
+  const read = await readSave(b, tries, retryDelayMs);
+  if (!read.ok) {
+    console.warn('storage: could not read the save; playing without saving this session');
+    save = migrate(null, readLegacy(legacyStorage), now).save; // shown, never written
+    return 'read-failed';
+  }
+  const raw = read.raw;
   const result = migrate(raw, raw == null || isCorrupt(raw) ? readLegacy(legacyStorage) : null, now);
   save = result.save;
+  backend = b;
   if (result.note === 'corrupt' || result.note === 'corrupt-legacy') {
     try {
       await b.set(`${SAVE_KEY}.corrupt`, String(raw)); // keep the broken copy for a look later
@@ -177,7 +219,16 @@ export async function init({ backend: b = defaultBackend(), legacyStorage = glob
   }
   if (result.write) persist();
   await queue;
+  watchVisibility();
   return result.note;
+}
+
+let watching = false;
+function watchVisibility() {
+  const doc = globalThis.document;
+  if (watching || !doc?.addEventListener) return;
+  watching = true;
+  doc.addEventListener('visibilitychange', retryFailedWrite);
 }
 
 function isCorrupt(raw) {

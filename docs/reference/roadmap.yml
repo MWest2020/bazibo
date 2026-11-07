@@ -16,6 +16,7 @@ phases:
     # for the current phase only).
     done_means:
       - {item: "Picture sudoku: 4x4 with animals for young children, up to 6x6 and 9x9", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
+      - {item: "Dogudoku (working name): a Queens-style logic puzzle with dogs, one per garden bed, row and column, never touching. 4x4 rows and columns only for ages 3-5, 5x5 with beds for 5-7, 6x6 to 8x8 with all rules for 7-10; every puzzle has exactly one solution", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
       - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
       - {item: "Letters with a voice: hear a sound, tap the letter (local Dutch voice, no cloud)", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
 done_means:

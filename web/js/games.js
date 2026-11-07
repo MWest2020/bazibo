@@ -6,4 +6,5 @@ import { meta as bubbels } from '../games/bubbels/meta.js';
 export const GAMES = [
   { ...bubbels, status: 'ready' },
   { id: 'sudoku', titleKey: 'games.sudoku', status: 'soon' },
+  { id: 'dogudoku', titleKey: 'games.dogudoku', status: 'soon' },
 ];

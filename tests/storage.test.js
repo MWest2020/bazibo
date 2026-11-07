@@ -156,7 +156,89 @@ test('web: blocked or throwing storage never breaks the game', async () => {
   assert.deepEqual(store.loadProgress('bubbels').stars, { 1: 1 }); // kept in memory for the session
 
   const failing = { name: 'x', get: async () => Promise.reject(new Error('io')), set: async () => Promise.reject(new Error('io')) };
-  assert.equal(await store.init({ backend: failing, legacyStorage: null }), 'new');
+  assert.equal(await store.init({ backend: failing, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
   store.saveProgress('bubbels', { stars: {} });
   await store.flushed();
+});
+
+// Review of PR #3, finding 1: a failed read must never be taken for "nothing stored".
+test('app: a Preferences read that fails never overwrites the real save', async () => {
+  const real = JSON.stringify({ version: 1, games: { bubbels: { stars: { 1: 3, 20: 2 } } }, settings: {}, purchase: { owned: true } });
+  const prefs = fakePreferences({ [store.SAVE_KEY]: real });
+  let sets = 0;
+  const flaky = {
+    name: 'flaky',
+    get: async () => Promise.reject(new Error('bridge')),
+    set: async (k, v) => {
+      sets++;
+      await prefs.set({ key: k, value: v });
+    },
+  };
+  assert.equal(await store.init({ backend: flaky, legacyStorage: fakeLocalStorage(LEGACY), retryDelayMs: 0 }), 'read-failed');
+  store.saveProgress('bubbels', { stars: { 1: 1 } });
+  store.saveSettings({ muted: false, lang: 'en' });
+  store.fullCache.set(false);
+  await store.flushed();
+  assert.equal(sets, 0);
+  assert.equal(prefs.dump()[store.SAVE_KEY], real); // untouched
+});
+
+test('app: a read that fails once and then works loads the save normally', async () => {
+  const real = JSON.stringify({ version: 1, games: { bubbels: { stars: { 5: 3 } } }, settings: {}, purchase: { owned: true } });
+  const prefs = fakePreferences({ [store.SAVE_KEY]: real });
+  let calls = 0;
+  const backend = store.preferencesBackend({
+    get: async (a) => (++calls === 1 ? Promise.reject(new Error('cold start')) : prefs.get(a)),
+    set: prefs.set,
+  });
+  assert.equal(await store.init({ backend, legacyStorage: fakeLocalStorage(LEGACY), retryDelayMs: 0 }), 'ok');
+  assert.deepEqual(store.loadProgress('bubbels').stars, { 5: 3 });
+  assert.equal(store.fullCache.get(), true);
+});
+
+// Finding 2: nothing is written while init() is still reading.
+test('app: changes made before init() finished are never written', async () => {
+  const real = JSON.stringify({ version: 1, games: { bubbels: { stars: { 1: 3 } } }, settings: {}, purchase: { owned: true } });
+  const prefs = fakePreferences({ [store.SAVE_KEY]: real });
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const slow = store.preferencesBackend({ get: async (a) => (await gate, prefs.get(a)), set: prefs.set });
+  const done = store.init({ backend: slow, legacyStorage: null });
+  store.saveSettings({ muted: true, lang: 'en' }); // a tap during the read
+  await store.flushed();
+  assert.equal(prefs.dump()[store.SAVE_KEY], real);
+  release();
+  assert.equal(await done, 'ok');
+  assert.deepEqual(store.loadProgress('bubbels').stars, { 1: 3 });
+});
+
+// Finding 5: a failed write is retried with the latest save.
+test('app: a failed write warns and the latest save is written on the next chance', async () => {
+  const prefs = fakePreferences();
+  let failNext = false;
+  const backend = store.preferencesBackend({
+    get: prefs.get,
+    set: async (a) => {
+      if (failNext) {
+        failNext = false;
+        throw new Error('disk full');
+      }
+      return prefs.set(a);
+    },
+  });
+  await store.init({ backend, legacyStorage: null });
+  const warn = console.warn;
+  const warnings = [];
+  console.warn = (...a) => warnings.push(a.join(' '));
+  try {
+    failNext = true;
+    store.saveProgress('bubbels', { stars: { 1: 2 } });
+    await store.flushed();
+    assert.equal(warnings.length, 1);
+    store.retryFailedWrite(); // what visibilitychange does
+    await store.flushed();
+    assert.deepEqual(JSON.parse(prefs.dump()[store.SAVE_KEY]).games.bubbels.stars, { 1: 2 });
+  } finally {
+    console.warn = warn;
+  }
 });

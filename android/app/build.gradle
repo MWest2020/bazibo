@@ -19,13 +19,25 @@ android {
     // Upload key for Play (see docs/release.md). The properties file (storeFile, storePassword,
     // keyAlias, keyPassword) is never in the repo: $BUBBELS_KEYSTORE_PROPERTIES, else
     // ~/.config/bubbels/keystore.properties. With neither, bundleRelease makes an unsigned AAB.
-    def keystorePath = System.getenv('BUBBELS_KEYSTORE_PROPERTIES') ?: "${System.getProperty('user.home')}/.config/bubbels/keystore.properties"
+    def keystoreEnv = System.getenv('BUBBELS_KEYSTORE_PROPERTIES')
+    def keystorePath = keystoreEnv ?: "${System.getProperty('user.home')}/.config/bubbels/keystore.properties"
     def keystoreFile = new File(keystorePath)
-    if (keystoreFile.exists()) {
+    if (keystoreEnv && !keystoreFile.exists()) {
+        // a misspelled path must not quietly give an unsigned release
+        throw new GradleException("BUBBELS_KEYSTORE_PROPERTIES points to a file that does not exist: ${keystoreEnv}")
+    }
+    if (rootProject.file('keystore.properties').exists()) {
+        logger.warn("android/keystore.properties is no longer read; move it to ~/.config/bubbels/ or set BUBBELS_KEYSTORE_PROPERTIES (docs/release.md)")
+    }
+    def signed = keystoreFile.exists()
+    if (signed) {
         def ks = new Properties()
         keystoreFile.withInputStream { ks.load(it) }
+        def missing = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].findAll { !ks[it] }
+        if (missing) throw new GradleException("${keystoreFile} lacks: ${missing.join(', ')} (docs/release.md)")
         def store = new File(ks['storeFile'])
         if (!store.isAbsolute()) store = new File(keystoreFile.parentFile, ks['storeFile'])
+        if (!store.exists()) throw new GradleException("the keystore named in ${keystoreFile} does not exist: ${store}")
         signingConfigs {
             upload {
                 storeFile store
@@ -37,7 +49,7 @@ android {
     }
     buildTypes {
         release {
-            if (keystoreFile.exists()) signingConfig signingConfigs.upload
+            if (signed) signingConfig signingConfigs.upload
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

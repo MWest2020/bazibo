@@ -23,7 +23,7 @@ Bubble Shooter: aim, shoot… pop! The first game in Bubbels, an app of games fo
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubbles,bubble shooter,kids,toddler,learning,puzzle,no ads,offline,games,sudoku
+bubbles,bubble shooter,kids,toddler,learning,no ads,offline,games,logic puzzle
 
 ## Description (4000)
 

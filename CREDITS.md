@@ -17,6 +17,8 @@ Apps only (`android/`, `ios/`, through npm; nothing of this is loaded on the web
 |---|---|---|
 | Capacitor (`@capacitor/core`, `/android`, `/ios`, `/cli`) | MIT | https://github.com/ionic-team/capacitor |
 | cordova-plugin-purchase (Google Play Billing and StoreKit bridge) | MIT | https://github.com/j3k0/cordova-plugin-purchase |
+| `@capacitor/preferences` (save data in SharedPreferences / UserDefaults) | MIT | https://github.com/ionic-team/capacitor-plugins |
+| `@capacitor/app` (the Android back button) | MIT | https://github.com/ionic-team/capacitor-plugins |
 | Cordova Android/iOS runtime, as bundled by Capacitor | Apache-2.0 | https://github.com/apache/cordova-android |
 | Google Play Billing Library (pulled in by the plugin on Android) | Android SDK licence (Google) | https://developer.android.com/google/play/billing |
 

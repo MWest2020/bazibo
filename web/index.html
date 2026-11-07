@@ -17,7 +17,7 @@
 <body>
   <main id="app">
     <!-- home: the brand and one tile per game -->
-    <section id="screen-home" class="screen active" aria-label="Start">
+    <section id="screen-home" class="screen active" data-i18n-aria="home.label" aria-label="Start">
       <canvas id="home-bg" aria-hidden="true"></canvas>
       <header class="home-top">
         <span class="bar-spacer"></span>
@@ -44,6 +44,27 @@
               <circle cx="39" cy="39" r="3.4" fill="#5b8def"/>
             </svg>
             <span class="tile-name" data-i18n="games.sudoku">Plaatjes&shy;sudoku</span>
+            <span class="badge" data-i18n="home.soon">binnenkort</span>
+          </button>
+          <button id="tile-dogudoku" class="tile soon" type="button" data-game="dogudoku">
+            <svg class="tile-art" viewBox="0 0 48 48" aria-hidden="true">
+              <rect x="3" y="3" width="42" height="42" rx="7" fill="#fff" stroke="#c9c1ff" stroke-width="2.5"/>
+              <path d="M4.5 4.5h19v14h-19z" fill="#d9f5c8"/>
+              <path d="M23.5 4.5h20v24h-10v-10h-10z" fill="#ffe2c2"/>
+              <path d="M4.5 18.5h19v25h-19z" fill="#e3ecff"/>
+              <path d="M23.5 18.5h10v10h10v15h-20z" fill="#ffd8e4"/>
+              <path d="M14 4v40M24 4v40M34 4v40M4 14h40M4 24h40M4 34h40" stroke="#ece8ff" stroke-width="1.2"/>
+              <circle cx="34" cy="36" r="5.6" fill="#d9a066"/>
+              <ellipse cx="29.2" cy="33.6" rx="2" ry="3.4" fill="#8a5a3c" transform="rotate(20 29.2 33.6)"/>
+              <ellipse cx="38.8" cy="33.6" rx="2" ry="3.4" fill="#8a5a3c" transform="rotate(-20 38.8 33.6)"/>
+              <circle cx="32" cy="35.4" r=".9" fill="#2a1a10"/>
+              <circle cx="36" cy="35.4" r=".9" fill="#2a1a10"/>
+              <ellipse cx="34" cy="38.2" rx="1.4" ry="1" fill="#2a1a10"/>
+              <circle cx="13.5" cy="10.5" r="4.2" fill="#d9a066"/>
+              <circle cx="12.2" cy="10" r=".7" fill="#2a1a10"/>
+              <circle cx="14.8" cy="10" r=".7" fill="#2a1a10"/>
+            </svg>
+            <span class="tile-name" data-i18n="games.dogudoku">Dogudoku</span>
             <span class="badge" data-i18n="home.soon">binnenkort</span>
           </button>
         </div>
@@ -85,7 +106,7 @@
     </section>
 
     <!-- Bubbels: level select -->
-    <section id="screen-levels" class="screen" aria-label="Levels">
+    <section id="screen-levels" class="screen" data-i18n-aria="bubbels.levels" aria-label="Levels">
       <header class="bar">
         <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -110,7 +131,7 @@
     </section>
 
     <!-- Bubbels: the board -->
-    <section id="screen-game" class="screen" aria-label="Bubbels">
+    <section id="screen-game" class="screen" data-i18n-aria="bubbels.title" aria-label="Bubbels schieten">
       <header class="bar hud">
         <button id="btn-pause" class="btn icon" type="button" data-i18n-aria="bubbels.pause" aria-label="Pauze">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>

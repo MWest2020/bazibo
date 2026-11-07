@@ -3,7 +3,7 @@
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The first game is the bubble shooter
-("Bubbels schieten" / "Bubble Shooter"); a picture sudoku and more learning games follow
+("Bubbels schieten" / "Bubble Shooter"); a picture sudoku, "Dogudoku" (a logic puzzle with dogs) and more learning games follow
 (`docs/reference/roadmap.yml`). The brand name lives in `web/js/brand.js` (issue #2).
 
 - Home screen with a tile per game (a "binnenkort" / "coming soon" tile for the next one) and a
