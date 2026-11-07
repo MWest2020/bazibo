@@ -81,16 +81,19 @@ function growRegions(n, solution, rand) {
   return grid.map((row) => row.map((v) => letters[v]).join(''));
 }
 
-/** Bushes for the youngest tier: block every other cell, then open as many as uniqueness allows. */
+/**
+ * Bushes for the youngest tier. With no-touch, a 4×4 board has only two solutions, so one well
+ * placed bush already makes it unique; a few more (never on the solution) give the boards
+ * variety. Keep a random 1-4 bushes, as long as the solution stays the only one.
+ */
 function placeBushes(n, solution, rand) {
   const cells = [];
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (solution[r] !== c) cells.push([r, c]);
-  let bushes = cells.slice();
-  for (const cell of shuffle(cells.slice(), rand)) {
-    const fewer = bushes.filter((b) => b !== cell);
-    if (solve({ n, tier: 'tiny', regions: null, bushes: fewer }).count === 1) bushes = fewer;
+  for (;;) {
+    const want = 1 + Math.floor(rand() * 4);
+    const bushes = shuffle(cells.slice(), rand).slice(0, want);
+    if (solve({ n, tier: 'tiny', regions: null, bushes }).count === 1) return bushes.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   }
-  return bushes.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 }
 
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -151,20 +154,20 @@ function refineRegions(puzzle, rand, steps = 3000) {
 
 function makePuzzle({ n, tier }, rand, seen) {
   for (let attempt = 0; attempt < 20000; attempt++) {
-    const touch = tier === 'full';
+    const touch = true; // every size: puppies never touch
     const solution = randomSolution(n, touch, rand);
     const puzzle = { n, tier, regions: null, bushes: [], solution };
     if (tier === 'tiny') puzzle.bushes = placeBushes(n, solution, rand);
     else {
       puzzle.regions = growRegions(n, solution, rand);
-      if (n >= 6) puzzle.regions = refineRegions(puzzle, rand);
+      puzzle.regions = refineRegions(puzzle, rand);
       if (!puzzle.regions) continue;
     }
     const key = JSON.stringify([puzzle.regions, puzzle.bushes]);
     if (seen.has(key)) continue;
     const { count, nodes } = solve(puzzle);
     if (count !== 1) continue;
-    // a region of one cell gives its dog away; allow at most one per puzzle above 4×4
+    // a region of one cell gives its dog away; allow at most one per puzzle
     if (puzzle.regions) {
       const sizes = {};
       for (const ch of puzzle.regions.join('')) sizes[ch] = (sizes[ch] || 0) + 1;

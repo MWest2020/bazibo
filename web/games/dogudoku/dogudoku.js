@@ -1,5 +1,5 @@
 // Dogudoku: hide the puppies. A Queens / Star Battle puzzle for children: one puppy per row, per
-// column and (from 5×5) per colour; from 6×6 puppies never touch, not even diagonally. The rules
+// column and (from 5×5) per colour, and puppies never touch, not even diagonally (every size). The rules
 // live in rules.js, the pictures in art.js; the shell (web/js/main.js) owns the overlay card, the
 // sound settings and the purchase, and passes them in as `shell`.
 import { meta } from './meta.js';
@@ -148,7 +148,7 @@ export function createDogudoku(shell) {
 
   function showHow() {
     store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [current.tier]: true });
-    const text = current.tier === 'tiny' ? t('dogudoku.howTiny') : current.tier === 'small' ? t('dogudoku.howSmall') : t('dogudoku.how');
+    const text = current.tier === 'tiny' ? t('dogudoku.howTiny') : t('dogudoku.how');
     shell.showOverlay({ art: dogSvg(3, { cls: 'ov-dog' }), title: t('dogudoku.howTitle'), text, buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
   }
 

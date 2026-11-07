@@ -22,8 +22,9 @@ Play it: https://mwest2020.github.io/bubbels/ (every merge to `main` runs the te
 A Queens / Star Battle puzzle with puppies, in `web/games/dogudoku/` (rules in `rules.js`,
 pictures drawn as SVG in `art.js`, the screen in `dogudoku.js`).
 
-- One puppy per row and per column; from 5×5 also one per colour; from 6×6 puppies never touch,
-  not even diagonally. 4×4 (ages 3-5) has bushes instead of colours and needs no reading.
+- On every size: one puppy per row and per column, and puppies never touch, not even
+  diagonally. 4×4 (ages 3-5) has bushes instead of colours and needs no reading; from 5×5 also
+  one puppy per colour; 6×6 to 8×8 (ages 7-10) are the same rules on bigger boards.
 - Tap a square: the youngest boards toggle a puppy; the others cycle empty, cross, puppy. Drag
   over empty squares to cross them. Auto-cross (optional, from 5×5) shows the squares a puppy
   rules out. A broken rule outlines the puppies in red and lights up the rule's picture.
