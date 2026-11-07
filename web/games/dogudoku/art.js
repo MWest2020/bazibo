@@ -57,15 +57,22 @@ const BREEDS = [
       eye(39, 50) + eye(61, 50) + cheeks() + snout() + tongue(),
   },
   {
-    id: 'corgi',
-    svg: () =>
-      // big rounded ears (not pointy: a corgi, never a fox or a cat), orange with a white blaze
-      `<path d="M26 47C17 34 18 17 28 13c8-3 17 9 20 19z" fill="#ee9a45" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>` +
-      `<path d="M74 47C83 34 82 17 72 13c-8-3-17 9-20 19z" fill="#ee9a45" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>` +
-      `<path d="M30 38c-4-7-4-15 0-18 4-1 9 5 11 11z" fill="#ffd2b0"/><path d="M70 38c4-7 4-15 0-18-4-1-9 5-11 11z" fill="#ffd2b0"/>` +
-      head('#ee9a45', 29, 26) +
-      `<path d="M45 31c2-3 8-3 10 0 1 8 2 14 9 20 4 4 5 8 4 12-3 7-10 10-18 10s-15-3-18-10c-1-4 0-8 4-12 7-6 8-12 9-20z" fill="#fffaf2"/>` +
-      eye(38, 50) + eye(62, 50) + cheeks() + snout() + tongue(),
+    id: 'spaniel',
+    svg: () => {
+      // long, curly, floppy ears (a cocker spaniel): ginger-brown with a cream face
+      const curls = (x, dir) =>
+        [[x, 44, 9], [x - 2 * dir, 56, 10], [x, 68, 9.5], [x + 3 * dir, 79, 8]]
+          .map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#a8582c" stroke="${INK}" stroke-width="2.4"/>`)
+          .join('');
+      return (
+        curls(22, 1) + curls(78, -1) +
+        `<path d="M24 50c0-9 2-14 6-18M76 50c0-9-2-14-6-18" fill="none" stroke="#a8582c" stroke-width="9" stroke-linecap="round"/>` +
+        head('#d98a4e', 26, 26) +
+        `<path d="M42 31c3-4 13-4 16 0-2 4-14 4-16 0z" fill="#e9a06a"/>` +
+        muzzle('#fbe3c7', 64, 14.5, 11) +
+        eye(39, 50) + eye(61, 50) + cheeks() + snout() + tongue()
+      );
+    },
   },
   {
     id: 'pug',

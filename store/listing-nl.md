@@ -29,7 +29,7 @@ bubble shooter,bubbels,hondjes,puzzel,logica,kinderen,kleuter,leren,zonder recla
 
 ## Beschrijving (4000)
 
-Idaveld is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu twee spellen in: Bubbels schieten en Dogudoku. Er komen meer spellen bij, ook spellen om van te leren.
+Idaveld is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu twee spellen in: Bubbels schieten en Dogudoku. Er komen meer spellen bij, ook spellen om van te leren; de volgende is Picturedoku, een plaatjessudoku.
 
 De naam komt uit de Noorse mythen: Idavöllr is het veld waar de jonge goden speelden met gouden spelstukken.
 
@@ -55,7 +55,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku 10 puzzels in alle groottes. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku 10 gratis puzzels, verdeeld over alle groottes. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://mwest2020.github.io/bubbels/privacy/index.html
 Broncode (MIT): https://github.com/MWest2020/bubbels

@@ -26,7 +26,9 @@ const RULE_ART = {
 
 export function createDogudoku(shell) {
   const { t, tap } = shell;
-  const progress = store.loadProgress(meta.id); // { stars: { id: 1-3 } }
+  // { stars: { id: 1-3 } }, read from the save each time (a kept copy could be older than the save)
+  let progress = store.loadProgress(meta.id);
+  const refresh = () => (progress = store.loadProgress(meta.id));
   let autoCross = store.loadGameOption(meta.id, 'autoCross', false) === true;
   let howSeen = store.loadGameOption(meta.id, 'howSeen', {});
   let puzzles = [];
@@ -70,6 +72,7 @@ export function createDogudoku(shell) {
   function renderLevels() {
     const box = $('#dogu-levels');
     box.textContent = '';
+    refresh();
     const sizes = [...new Set(puzzles.map((p) => p.n))];
     const nextOpen = puzzles.find((p) => !progress.stars[p.id] && !locked(p));
     for (const n of sizes) {
@@ -419,8 +422,8 @@ export function createDogudoku(shell) {
     solved = true;
     boards.delete(current.id);
     const stars = starsFor(hintsUsed);
-    progress.stars[current.id] = Math.max(stars, progress.stars[current.id] || 0);
-    store.saveProgress(meta.id, progress);
+    store.recordStars(meta.id, current.id, stars);
+    refresh();
     $('#dogu-status').textContent = '';
     board.classList.add('won');
     sfx.woof();

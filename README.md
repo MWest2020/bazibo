@@ -3,8 +3,8 @@
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
-("Bubbels schieten" / "Bubble Shooter") and Dogudoku (a logic puzzle with puppies); a picture
-sudoku and more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
+("Bubbels schieten" / "Bubble Shooter") and Dogudoku (a logic puzzle with puppies); Picturedoku (a picture
+sudoku) and more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Idaveld, after Iðavöllr, the plain where the young Norse gods
 played with golden game pieces. The repository, the package id (`work.westerweel.bubbels`) and
 the website path keep the old name `bubbels`.

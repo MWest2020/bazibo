@@ -27,7 +27,7 @@ bubble shooter,bubbles,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,of
 
 ## Description (4000)
 
-Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has two games now: Bubble Shooter and Dogudoku. More games will follow, including games to learn from.
+Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has two games now: Bubble Shooter and Dogudoku. More games will follow, including games to learn from; the next one is Picturedoku, a picture sudoku.
 
 The name comes from Norse myth: Idavöllr is the field where the young gods played with golden game pieces.
 
@@ -53,7 +53,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, 10 puzzles of every size in Dogudoku. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, and in Dogudoku 10 free puzzles, spread over every size. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://mwest2020.github.io/bubbels/privacy/en.html
 Source code (MIT): https://github.com/MWest2020/bubbels

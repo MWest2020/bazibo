@@ -38,7 +38,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Bubbels.xcarchive" \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Idaveld.xcarchive" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
@@ -61,7 +61,7 @@ jobs:
             <key>signingStyle</key><string>automatic</string>
           </dict></plist>
           PLIST
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Bubbels.xcarchive" \
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Idaveld.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
