@@ -4,10 +4,16 @@
 // rules.js, the pictures in art.js; the shell (web/js/main.js) owns the overlay card, the sound
 // settings and the purchase, and passes them in as `shell`.
 //
-// Saved (games.vier): wins per setup as non-decreasing counters in `stars` (the storage merge
-// keeps the highest of each, so a counter never goes down): 'cpu-<board>-<level>' for the child's
-// wins against the computer, 'duo-<board>-<1|2>' for each player's wins together; plus the last
-// menu choice ('setup') and the tokens ('tokens'). All read from the save when used.
+// Saved (games.vier): the child's wins against the computer per board and level, as
+// non-decreasing counters in `stars` ('cpu-<board>-<level>'; the storage merge keeps the highest
+// of each, so a counter never goes down); the last menu choice ('setup'), the tokens ('tokens')
+// and who starts the next game played together, per board ('duoStarter'). Games played together
+// are not counted. All read from the save when used.
+//
+// Who starts: against the computer the child starts the first game and then it alternates, except
+// on the kleuterbord, where the child always starts (three in a row on 5×4 is a forced win for
+// whoever begins, and the hard computer plays it perfectly). Together, the starter alternates per
+// board, also across visits to the menu.
 import { meta } from './meta.js';
 import { BOARDS, emptyBoard, drop, winAt, isFull, other, landingRow } from './rules.js';
 import { chooseMove } from './ai.js';
@@ -25,7 +31,9 @@ const CPU_DELAY = 520; // ms before the computer drops its token, so it feels li
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** The counter key for a result. */
-export const winKey = (setup, player) => (setup.mode === 'cpu' ? `cpu-${setup.board}-${setup.level}` : `duo-${setup.board}-${player}`);
+export const winKey = (setup) => `cpu-${setup.board}-${setup.level}`;
+/** Against the computer on the kleuterbord the child always starts (a forced win for the starter). */
+export const childAlwaysStarts = (setup) => setup.mode === 'cpu' && setup.board === 'small';
 
 export function createVier(shell) {
   const { t, tap } = shell;
@@ -46,8 +54,10 @@ export function createVier(shell) {
 
   let choice = null; // the menu's choice: { board, mode, level, tokens: [p1, p2] }
   let game = null; // { setup, cfg, tokens, board, turn, starter, history: [{ index, player }], over }
-  let busy = false; // a token is falling or the computer is thinking
-  let plays = 0; // counts games started, so a late timer never acts on a newer game
+  let dropping = false; // a token is falling
+  let cpuTimer = null; // the computer is thinking: the timer of its move (one at a time)
+  let cardTimer = null; // the end card, shown a moment after the last token lands
+  let plays = 0; // counts games started, so a falling token never lands on a newer game
   let cells = [];
   let colButtons = [];
 
@@ -56,6 +66,18 @@ export function createVier(shell) {
   const tokenName = (id) => t(`vier.tok.${id}`);
   const isCpu = () => game?.setup.mode === 'cpu';
   const humanTurn = () => game && !game.over && (!isCpu() || game.turn === 1);
+  const busy = () => dropping || !!cpuTimer;
+  const duoStarters = () => store.loadGameOption(meta.id, 'duoStarter', {}) || {};
+
+  /** Stop a pending computer move (leaving the board, a take-back, a new game). */
+  function cancelCpu() {
+    if (cpuTimer) clearTimeout(cpuTimer);
+    cpuTimer = null;
+  }
+  function cancelCard() {
+    if (cardTimer) clearTimeout(cardTimer);
+    cardTimer = null;
+  }
 
   shell.unlock.onChange(() => {
     if (onScreen('vier-menu')) renderMenu();
@@ -226,7 +248,7 @@ export function createVier(shell) {
     playBtn.querySelector('span').textContent = t('vier.play');
     playBtn.addEventListener('click', () => {
       tap();
-      start();
+      start(choice.mode === 'duo' ? duoStarters()[choice.board] || 1 : 1);
     });
     actions.appendChild(playBtn);
     box.appendChild(actions);
@@ -244,9 +266,13 @@ export function createVier(shell) {
     }
     store.saveGameOption(meta.id, 'setup', setup);
     store.saveGameOption(meta.id, 'tokens', choice.tokens.slice());
+    if (childAlwaysStarts(setup)) starter = 1;
+    if (setup.mode === 'duo') store.saveGameOption(meta.id, 'duoStarter', { ...duoStarters(), [setup.board]: other(starter) });
     const cfg = BOARDS[setup.board];
     plays++;
-    busy = false;
+    dropping = false;
+    cancelCpu();
+    cancelCard();
     game = { setup, cfg, tokens: choice.tokens.slice(), board: emptyBoard(cfg), turn: starter, starter, history: [], over: null };
     buildBoard();
     renderHud();
@@ -263,14 +289,14 @@ export function createVier(shell) {
     renderTurn();
     updateBoard();
     shell.show('vier');
-    if (isCpu() && game.turn === 2 && !game.over) cpuTurn();
+    if (isCpu() && game.turn === 2 && !game.over) cpuTurn(); // cpuTurn ignores a move already pending
   }
 
   function again() {
     shell.hideOverlay();
     if (!game) return;
     choice = { ...game.setup, tokens: game.tokens.slice() };
-    start(other(game.starter)); // take turns at starting
+    start(other(game.starter)); // take turns at starting (start() keeps the child first on the kleuterbord)
   }
 
   function buildBoard() {
@@ -345,7 +371,8 @@ export function createVier(shell) {
       else text = t('vier.turn', { name: tokenName(game.tokens[game.turn - 1]) });
     }
     $('#vier-status').textContent = text;
-    const canUndo = isCpu() && !busy && game.history.some((h) => h.player === 1) && (!game.over || game.over.winner === 2);
+    // a take-back also works while the computer is still thinking (it cancels that move)
+    const canUndo = isCpu() && !dropping && game.history.some((h) => h.player === 1) && (!game.over || game.over.winner === 2);
     $('#vier-undo').disabled = !canUndo;
   }
 
@@ -374,7 +401,7 @@ export function createVier(shell) {
 
   function tapColumn(c) {
     if (!game || game.over) return;
-    if (busy || !humanTurn()) {
+    if (busy() || !humanTurn()) {
       colButtons[c]?.classList.add('wiggle');
       setTimeout(() => colButtons[c]?.classList.remove('wiggle'), 400);
       return;
@@ -396,36 +423,47 @@ export function createVier(shell) {
     const d = drop(game.board, game.cfg, c, player);
     if (!d) return;
     const token = plays;
-    busy = true;
+    const g = game;
+    dropping = true;
     updateTurn();
-    animateDrop(d.row, c, game.tokens[player - 1], () => {
-      if (token !== plays || !game) return;
-      game.board = d.board;
-      game.history.push({ index: d.index, player });
-      sfx.thud(d.row / Math.max(1, game.cfg.rows - 1));
-      busy = false;
-      const line = winAt(game.board, game.cfg, d.index);
-      if (line) finish({ winner: player, cells: line });
-      else if (isFull(game.board)) finish({ draw: true, cells: [] });
-      else {
-        game.turn = other(player);
+    animateDrop(d.row, c, g.tokens[player - 1], () => {
+      if (token !== plays || game !== g) return;
+      dropping = false;
+      // never two moves for one turn (review of PR #11: a second computer move could land here)
+      if (g.over || g.turn !== player || g.board[d.index]) {
         updateBoard();
-        if (isCpu() && game.turn === 2) cpuTurn();
+        return;
+      }
+      g.board = d.board;
+      g.history.push({ index: d.index, player });
+      sfx.thud(d.row / Math.max(1, g.cfg.rows - 1));
+      const line = winAt(g.board, g.cfg, d.index);
+      if (line) finish({ winner: player, cells: line });
+      else if (isFull(g.board)) finish({ draw: true, cells: [] });
+      else {
+        g.turn = other(player);
+        updateBoard();
+        if (isCpu() && g.turn === 2 && onScreen('vier')) cpuTurn(); // off the board: resume() asks again
       }
     });
   }
 
+  /** The computer's move, after a short think. Only one can be pending; leaving the board cancels it. */
   function cpuTurn() {
-    const token = plays;
-    const at = game.history.length;
-    busy = true;
-    updateTurn();
-    setTimeout(() => {
-      if (token !== plays || !game || game.over || game.history.length !== at || game.turn !== 2) return;
-      busy = false;
-      const col = chooseMove(game.board, game.cfg, 2, game.setup.level);
+    if (cpuTimer || dropping || !game || game.over || game.turn !== 2) return;
+    const g = game;
+    cpuTimer = setTimeout(() => {
+      cpuTimer = null;
+      if (game !== g || g.over || g.turn !== 2 || dropping) return;
+      if (!onScreen('vier')) {
+        updateTurn();
+        return; // resume() asks again
+      }
+      const col = chooseMove(g.board, g.cfg, 2, g.setup.level);
       if (col >= 0) place(col);
+      else updateTurn();
     }, CPU_DELAY + Math.floor(Math.random() * 260));
+    updateTurn();
   }
 
   /** The falling token: from above the board down to its hole, with a little bounce. */
@@ -471,10 +509,10 @@ export function createVier(shell) {
 
   function finish(over) {
     game.over = over;
-    busy = false;
+    cancelCpu();
     const { setup } = game;
-    if (over.winner && (setup.mode === 'duo' || over.winner === 1)) {
-      const key = winKey(setup, over.winner);
+    if (over.winner === 1 && setup.mode === 'cpu') {
+      const key = winKey(setup);
       store.recordStars(meta.id, key, (wins()[key] || 0) + 1);
     }
     updateBoard();
@@ -482,9 +520,10 @@ export function createVier(shell) {
     else if (over.winner) sfx.lose();
     else sfx.lid();
     const done = game;
-    const token = plays;
-    setTimeout(() => {
-      if (token !== plays || game !== done || !onScreen('vier')) return;
+    cancelCard();
+    cardTimer = setTimeout(() => {
+      cardTimer = null;
+      if (game !== done || !done.over || !onScreen('vier')) return;
       showEndCard();
     }, over.winner ? 1300 : 700);
   }
@@ -515,9 +554,10 @@ export function createVier(shell) {
 
   /** Against the computer: take back the child's last move (and the computer's answer). */
   function undoMove() {
-    if (!isCpu() || busy || !game.history.some((h) => h.player === 1)) return;
+    if (!isCpu() || dropping || !game.history.some((h) => h.player === 1)) return;
     if (game.over && game.over.winner !== 2) return; // a win is a win
-    plays++; // cancel a pending computer move
+    cancelCpu(); // the computer was still thinking: its move is dropped
+    cancelCard(); // the computer had just won: no end card after the take-back
     while (game.history.length) {
       const h = game.history.pop();
       game.board[h.index] = 0;
@@ -525,7 +565,6 @@ export function createVier(shell) {
     }
     game.over = null;
     game.turn = 1;
-    busy = false;
     $('#vier-board').classList.remove('won');
     updateBoard();
   }
@@ -543,7 +582,8 @@ export function createVier(shell) {
   /** The board -> the menu (the game is kept for this session: "keep playing"). */
   function leave() {
     shell.hideOverlay();
-    if (game?.over) plays++; // a pending end card must not pop up over the menu
+    cancelCpu(); // the computer moves again when the child comes back ("keep playing")
+    cancelCard(); // a pending end card must not pop up over the menu
     shell.show('vier-menu');
   }
 
@@ -580,7 +620,7 @@ export function createVier(shell) {
         tap: (c) => tapColumn(c),
         state: () =>
           game
-            ? { board: game.board.slice(), turn: game.turn, busy, over: game.over, history: game.history.length, setup: { ...game.setup }, tokens: game.tokens.slice() }
+            ? { board: game.board.slice(), turn: game.turn, busy: busy(), thinking: !!cpuTimer, over: game.over, history: game.history.length, starter: game.starter, setup: { ...game.setup }, tokens: game.tokens.slice() }
             : null,
         undo: () => undoMove(),
         wins: () => wins(),

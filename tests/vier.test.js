@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BOARDS, emptyBoard, drop, landingRow, validCols, winAt, findWin, isFull, winningCols, other } from '../web/games/vier/rules.js';
 import { chooseMove, evaluate } from '../web/games/vier/ai.js';
 import { meta } from '../web/games/vier/meta.js';
+import { winKey, childAlwaysStarts } from '../web/games/vier/vier.js';
 
 const BIG = BOARDS.big;
 const SMALL = BOARDS.small;
@@ -214,7 +216,7 @@ test('save: win counters only go up, also after a failed read that a later read 
   const store = await import('../web/js/storage.js');
   let value = JSON.stringify({
     version: 1,
-    games: { vier: { stars: { 'cpu-big-1': 4, 'duo-small-2': 1 }, setup: { board: 'small', mode: 'duo', level: 1 } }, bubbels: { stars: { 1: 3 } } },
+    games: { vier: { stars: { 'cpu-big-1': 4, 'cpu-small-2': 1 }, setup: { board: 'small', mode: 'duo', level: 1 } }, bubbels: { stars: { 1: 3 } } },
     settings: {},
     purchase: { owned: false },
   });
@@ -239,7 +241,7 @@ test('save: win counters only go up, also after a failed read that a later read 
   await store.flushed();
   const saved = JSON.parse(value).games;
   assert.equal(saved.vier.stars[key], 5);
-  assert.equal(saved.vier.stars['duo-small-2'], 1);
+  assert.equal(saved.vier.stars['cpu-small-2'], 1);
   assert.deepEqual(saved.vier.setup, { board: 'small', mode: 'duo', level: 1 });
   assert.deepEqual(saved.bubbels.stars, { 1: 3 });
 });
@@ -250,4 +252,23 @@ test('the game reads its counters and options from the save each time (no kept c
   // a variable in the game's own scope (two spaces in) would outlive a save that a later read merged
   assert.doesNotMatch(src, /^ {0,2}(let|const|var)\s+\w+\s*=\s*store\.load(Progress|GameOption)\(/m, 'a counter or option kept in a variable can go stale');
   assert.match(src, /const wins = \(\) => store\.loadProgress\(meta\.id\)\.stars/);
+});
+
+test('counters: only the child\'s wins against the computer, per board and level', () => {
+  assert.equal(winKey({ mode: 'cpu', board: 'big', level: 3 }), 'cpu-big-3');
+  assert.equal(winKey({ mode: 'cpu', board: 'small', level: 1 }), 'cpu-small-1');
+  const src = readFileSync(new URL('../web/games/vier/vier.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /duo-\$\{/, 'games played together are not counted');
+});
+
+test('the kleuterbord is a forced win for whoever starts: against the computer the child starts', () => {
+  assert.equal(childAlwaysStarts({ mode: 'cpu', board: 'small', level: 3 }), true);
+  assert.equal(childAlwaysStarts({ mode: 'cpu', board: 'big', level: 3 }), false);
+  assert.equal(childAlwaysStarts({ mode: 'duo', board: 'small' }), false);
+  // and it really is: hard, starting, beats hard on the small board every time
+  for (let seed = 1; seed <= 6; seed++) {
+    const rand = mulberry32(seed);
+    const w = match(SMALL, (b) => chooseMove(b, SMALL, 1, 3, rand), (b) => chooseMove(b, SMALL, 2, 3, rand));
+    assert.equal(w, 1, `seed ${seed}: the starter did not win`);
+  }
 });

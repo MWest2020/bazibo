@@ -1,7 +1,8 @@
-// Vier op een rij's pictures, drawn in code (SVG). A token is a round disc with a picture on it;
-// every token differs by picture AND disc colour, so the two players are easy to tell apart, also
-// for children who see colours differently. The pictures come from the other games (a puppy from
-// Dogudoku, fruit and a fish from Picturedoku) plus a bubble drawn here.
+// Vier op een rij's pictures, drawn in code (SVG). A token is a round disc with a picture on it.
+// Every token has its own picture AND its own disc colour (apricot puppy, light-blue bubble, mint
+// apple, lilac flower, aqua fish, slate-grey pug), so the two players are easy to tell apart, also
+// for children who see colours differently. The pictures come from the other games (the puppy and
+// the pug from Dogudoku, the apple, flower and fish from Picturedoku) plus a bubble drawn here.
 // The look is our own: a lilac frame with round holes (no blue frame with red and yellow discs).
 import { dogSvg } from '../dogudoku/art.js';
 import { pictureSvg } from '../picturedoku/art.js';
@@ -25,7 +26,7 @@ export const TOKENS = Object.freeze([
   { id: 'apple', disc: '#d2f3dc', rim: '#4fae74', art: () => pictureSvg(1) },
   { id: 'flower', disc: '#f6dcff', rim: '#b46ad1', art: () => pictureSvg(7) },
   { id: 'fish', disc: '#cdf3ef', rim: '#3aa79a', art: () => pictureSvg(8) },
-  { id: 'pug', disc: '#ffe0d2', rim: '#cf7c5a', art: () => dogSvg(4) },
+  { id: 'pug', disc: '#dfe3ec', rim: '#5f6b86', art: () => dogSvg(4) }, // grey, unlike the apricot puppy
 ]);
 
 export const tokenById = (id) => TOKENS.find((k) => k.id === id) || TOKENS[0];

@@ -466,9 +466,9 @@ def play_vier(page, name, say, problems):
     page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
     if page.inner_text("#ov-title").strip() != say["pupWins"]:
         problems.append(f"{name}: two-player end card says {page.inner_text('#ov-title')!r}")
-    wins = page.evaluate("window.__bubbels.save().games.vier.stars")
-    if wins.get("duo-small-1") != 1:
-        problems.append(f"{name}: two-player win not counted: {wins}")
+    wins = page.evaluate("(window.__bubbels.save().games.vier || {}).stars || {}")
+    if any(k.startswith("duo-") for k in wins):
+        problems.append(f"{name}: a game played together was counted: {wins}")
     page.click(f"#ov-buttons button >> text={say['again']}")
     page.wait_for_timeout(200)
     if page.evaluate("window.__bubbels.vier.state().turn") != 2:
@@ -482,6 +482,40 @@ def play_vier(page, name, say, problems):
     page.click(".vier-opt.board-big")
     page.click(".vier-level[data-level='1']")
     page.click("#vier-play")
+    page.wait_for_timeout(300)
+
+    # review of PR #11: back + "keep playing" while the computer thinks must never give it two moves
+    for col in (3, 2, 4):
+        page.click(f".vcol[data-col='{col}']")
+        page.wait_for_function("window.__bubbels.vier.state().thinking", timeout=4000)
+        page.click("#vier-back")
+        page.wait_for_timeout(50)
+        page.click("#vier-continue")
+        page.wait_for_timeout(50)
+        page.click("#vier-back")
+        page.click("#vier-continue")
+        vier_wait(page)
+        page.wait_for_timeout(900)  # long enough for a second, stray computer move to land
+        st = page.evaluate("window.__bubbels.vier.state()")
+        ones, twos = st["board"].count(1), st["board"].count(2)
+        if st["over"]:
+            break
+        if ones != twos or ones + twos != st["history"] or st["turn"] != 1:
+            problems.append(f"{name}: back + keep playing during the think: {ones} child tokens, {twos} computer tokens, {st['history']} moves, turn {st['turn']}")
+            break
+    # a take-back while the computer is still thinking cancels its move
+    st = page.evaluate("window.__bubbels.vier.state()")
+    if not st["over"]:
+        before = st["history"]
+        free = [c for c in range(7) if st["board"][c] == 0]
+        page.click(f".vcol[data-col='{free[0]}']")
+        page.wait_for_function("window.__bubbels.vier.state().thinking", timeout=4000)
+        page.click("#vier-undo")
+        page.wait_for_timeout(1200)
+        st = page.evaluate("window.__bubbels.vier.state()")
+        if st["history"] != before or st["turn"] != 1 or st["thinking"]:
+            problems.append(f"{name}: take-back during the think left {st['history']} moves (expected {before}), turn {st['turn']}")
+    page.evaluate("window.__bubbels.vier.start(1)")  # a fresh game for the full play-through
     page.wait_for_timeout(300)
     took_back = False
     for move in range(30):
@@ -577,7 +611,29 @@ def run_sideways(browser, base, problems):
     page.screenshot(path=str(SHOTS / "sideways-vier.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
+        errors.clear()
     ctx.close()
+    # smaller sideways phones (review of PR #11): the board and the turn chips stay on screen
+    for w, h in ((640, 360), (568, 320)):
+        ctx = browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = ctx.new_page()
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html")
+        page.wait_for_selector("html[data-ready='1']")
+        page.click("#tile-vier")
+        page.wait_for_timeout(200)
+        page.click(".vier-opt.board-big")
+        page.click("#vier-play")
+        page.wait_for_timeout(400)
+        b = page.locator("#vier-board").bounding_box()
+        side = page.locator("#vier-turn").bounding_box()
+        print(f"[sideways {w}x{h}] vier board {b['width']:.0f}x{b['height']:.0f}")
+        if b["x"] < 0 or b["y"] < 0 or b["x"] + b["width"] > w or b["y"] + b["height"] > h or side["x"] + side["width"] > w or side["y"] + side["height"] > h:
+            problems.append(f"sideways {w}x{h}: Vier op een rij board {b} / turn chips {side}")
+        page.screenshot(path=str(SHOTS / f"sideways-vier-{w}x{h}.png"))
+        ctx.close()
+    if errors:
+        problems.append(f"sideways: page errors: {errors}")
 
 
 def run_returning(browser, base, problems):

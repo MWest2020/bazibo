@@ -5,8 +5,11 @@
 //   2 medium:           always takes a win and always blocks one; otherwise picks a move that does
 //                       not hand over a win, near the middle
 //   3 hard:             wins, blocks, and otherwise looks a few moves ahead (minimax with
-//                       alpha-beta, depth 4 on the big board); a child who thinks ahead and sets
-//                       up two threats at once still beats it
+//                       alpha-beta, depth 4 on the big board, 5 on the small one). On the big
+//                       board a child who thinks ahead and sets up two threats at once can beat
+//                       it. The kleuterbord (5×4, three in a row) is a forced win for whoever
+//                       starts and hard plays it perfectly, so there the child always starts
+//                       (vier.js) and wins only with exact play
 // `rand` is a function returning [0, 1); tests pass a seeded one.
 import { validCols, drop, winAt, winningCols, other, isFull } from './rules.js';
 

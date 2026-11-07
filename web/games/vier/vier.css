@@ -110,7 +110,9 @@
 .vier-token-pick .swap { position: absolute; top: 6px; right: 10px; font-size: 1.2rem; color: var(--primary); }
 .robot.tiny { width: 22px; height: 22px; }
 
-/* Play stays in reach at the bottom of the screen, also before the child scrolls */
+/* Play stays in reach at the bottom of the screen, also before the child scrolls. The scroll
+   area's own bottom padding is moved into the bar, so it sits flush on the bottom edge. */
+#screen-vier-menu .levels-scroll { padding-bottom: 0; }
 .vier-actions {
   position: sticky;
   bottom: 0;
@@ -119,8 +121,12 @@
   gap: 12px;
   justify-content: center;
   margin-top: 22px;
-  padding: 14px 0 6px;
+  padding: 14px 0 18px;
   background: linear-gradient(180deg, rgba(255, 230, 243, 0), var(--pink) 30%);
+}
+/* short screens: a pinned bar would cover the choices, so it scrolls with the menu */
+@media (max-height: 600px) {
+  .vier-actions { position: static; background: none; padding-bottom: 24px; }
 }
 .vier-actions .btn.big { min-width: 180px; }
 .vier-actions .btn.big svg { width: 30px; height: 30px; fill: currentColor; }
@@ -134,6 +140,7 @@
 #vier-stage {
   flex: 1;
   min-height: 0;
+  min-width: 0; /* sideways 360-dp phones: let the stage shrink next to the HUD column */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -252,10 +259,20 @@
   .vier-hud .hud-mid { flex: 0; }
   .vier-hud .btn.icon { width: 54px; height: 54px; }
 }
-/* narrow phones: the computer's levels and the tokens stay on one row */
+/* narrow phones: the computer's levels and the tokens stay on one row, the turn chips fit */
 @media (max-width: 360px) {
   .vier-level { font-size: 0.82rem; }
   .vier-token-pick .token { width: 58px; height: 58px; }
+  .vier-turn { gap: 8px; flex-wrap: wrap; }
+  .vier-chip { gap: 6px; padding: 4px 10px 4px 4px; font-size: 0.92rem; }
+  .vier-chip .token { width: 36px; height: 36px; }
+  .vier-chip.on, .vier-chip.winner { transform: none; }
+  .vier-chip.on .arrow { left: 14px; top: -14px; }
+}
+/* short screens: a smaller token on the end card, so its buttons stay on screen */
+@media (max-height: 600px) {
+  .ov-art .vier-ov svg { width: 60px; height: 60px; }
+  .ov-art .vier-ov.won svg { width: 72px; height: 72px; }
 }
 
 @keyframes vier-hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-16%) scale(1.06); } 70% { transform: translateY(2%) scale(0.98, 1.02); } }

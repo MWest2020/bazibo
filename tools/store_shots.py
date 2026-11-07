@@ -187,6 +187,7 @@ def shoot(browser, base, name, viewport, dpr, lang):
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
     page.click("#tile-vier")
     page.wait_for_timeout(300)
+    page.emulate_media(reduced_motion="reduce")  # tokens land at once and a won row holds still for the shot
     wait = "(() => { const s = window.__bubbels.vier.state(); return s && !s.busy && (s.over || s.setup.mode === 'duo' || s.turn === 1); })()"
     page.evaluate("window.__seed(5); window.__bubbels.vier.choose({board: 'big', mode: 'cpu', level: 1}); window.__bubbels.vier.start(1)")
     page.wait_for_timeout(300)

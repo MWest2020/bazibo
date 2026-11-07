@@ -293,6 +293,17 @@ html, body {
   .card, .ov-art .star.on { animation: none; }
 }
 
+/* short screens (small phones, sideways): a compact card, so every button stays on screen */
+@media (max-height: 600px) {
+  .card { padding: 18px 18px 18px; }
+  .card h2 { font-size: 1.8rem; }
+  .card p { margin-bottom: 12px; font-size: 1.05rem; }
+  .ov-buttons { gap: 10px; }
+  .ov-buttons .btn.big { min-height: 54px; font-size: 1.3rem; }
+  .ov-art .star { width: 48px; height: 48px; }
+  .ov-art .lock { width: 60px; height: 60px; }
+}
+
 /* short landscape screens: keep buttons reachable */
 @media (max-height: 520px) {
   .home-inner { gap: 12px; padding-top: 16px; } /* wide enough that the gear sits beside the name */
