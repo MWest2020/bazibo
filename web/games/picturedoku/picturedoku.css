@@ -38,6 +38,8 @@
 }
 #pdoku-hint .count:empty { display: none; }
 #pdoku-hint.empty { opacity: 0.55; }
+/* room for two lines, so the palette does not jump when a Dutch line wraps */
+#pdoku-status { min-height: 2.7em; line-height: 1.35; display: flex; align-items: center; justify-content: center; }
 
 /* ---------- board ---------- */
 #pdoku-stage {
@@ -155,10 +157,24 @@
 .pick svg { width: 100%; height: 100%; display: block; pointer-events: none; }
 .pick:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
 .pick:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
-.pick.armed { background: #ffe08a; box-shadow: 0 5px 0 #e0a800, 0 0 0 4px var(--gold); }
+.pick { position: relative; }
+.pick.armed { background: #ffe08a; box-shadow: 0 5px 0 #e0a800, 0 0 0 4px var(--gold); transform: translateY(-4px); }
+/* a soft ring pulses around the armed picture (on a pseudo-element, so the button itself stays put) */
+.pick.armed::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 22px;
+  border: 3px solid var(--gold);
+  animation: armed 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+/* picture-first: the board's edge turns gold while a picture is armed */
+.pdoku-board.brushing { --edge: #e0a800; box-shadow: 0 8px 0 #f2d27a, 0 14px 30px rgba(224, 168, 0, 0.3); }
 .pick.done { opacity: 0.4; }
 /* 6 pictures in one row of 6, 9 in two rows (5 + 4) */
-.pdoku-palette[data-n="6"] .pick { width: 54px; height: 54px; }
+.pdoku-palette[data-n="6"] { gap: 8px; }
+.pdoku-palette[data-n="6"] .pick { width: 52px; height: 52px; }
 .pdoku-palette[data-n="9"] { max-width: 340px; }
 .pdoku-palette[data-n="9"] .pick { width: 56px; height: 56px; border-radius: 16px; }
 .pdoku-tools { display: flex; gap: 14px; }
@@ -181,10 +197,11 @@
 /* the how-to card shows a picture */
 .ov-art .ov-pic { width: 96px; height: 96px; }
 
+@keyframes armed { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 0.2; transform: scale(1.08); } }
 @keyframes pic-in { from { transform: scale(0.4); } to { transform: scale(1); } }
 @keyframes pic-sad { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
 @keyframes pic-hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-16%) scale(1.08); } 70% { transform: translateY(2%) scale(0.98, 1.02); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pcell > svg.pic, .pdoku-board.won .pcell > svg.pic, .pcell.hinted::after, .pcell.wiggle { animation: none !important; }
+  .pcell > svg.pic, .pdoku-board.won .pcell > svg.pic, .pcell.hinted::after, .pcell.wiggle, .pick.armed::after { animation: none !important; }
 }

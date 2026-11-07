@@ -1,9 +1,11 @@
 // Generate Picturedoku's puzzles into web/games/picturedoku/puzzles.json. Deterministic (seeded),
 // so running it again gives the same file. Every puzzle has exactly one solution and can be solved
 // with singles only: a cell where just one picture fits, or a picture that fits in just one cell of
-// a row, column or box. No guessing, no advanced tricks; harder means fewer pictures to start with
-// and more of the "only one place for this picture" kind of step. Within a size the puzzles go
-// from easy to hard.
+// a row, column or box. No guessing, no advanced tricks.
+// Difficulty: each puzzle gets a target number of starting pictures, falling evenly from the size's
+// easiest to its hardest value (PLAN.givens); pictures are taken away while the puzzle stays unique
+// and singles-solvable. Within a size the puzzles are then sorted by starting pictures (most first),
+// ties broken by fewer "only one place for this picture" steps.
 //   npm run puzzles
 import { writeFileSync } from 'node:fs';
 import { solve, solveWithSingles, format, peers, validate, tierOf } from '../web/games/picturedoku/rules.js';

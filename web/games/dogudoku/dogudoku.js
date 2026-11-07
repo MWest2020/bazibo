@@ -29,8 +29,11 @@ export function createDogudoku(shell) {
   // { stars: { id: 1-3 } }, read from the save each time (a kept copy could be older than the save)
   let progress = store.loadProgress(meta.id);
   const refresh = () => (progress = store.loadProgress(meta.id));
-  let autoCross = store.loadGameOption(meta.id, 'autoCross', false) === true;
-  let howSeen = store.loadGameOption(meta.id, 'howSeen', {});
+  // options are read from the save when used (a kept copy could be older than the save, after a
+  // failed read that a later read recovered)
+  const autoOn = () => store.loadGameOption(meta.id, 'autoCross', false) === true;
+  const seenHow = () => store.loadGameOption(meta.id, 'howSeen', {}) || {};
+  let plays = 0; // counts boards opened, so a late win card never lands on a newer board
   let puzzles = [];
   let loadFailed = false;
   let current = null; // the puzzle on the board
@@ -128,6 +131,7 @@ export function createDogudoku(shell) {
       return;
     }
     if (current && !solved) boards.set(current.id, { marks, hintsUsed });
+    plays++;
     current = p;
     const kept = boards.get(p.id);
     marks = kept ? new Map(kept.marks) : new Map();
@@ -139,12 +143,11 @@ export function createDogudoku(shell) {
     renderRules();
     updateBoard();
     shell.show('dogudoku');
-    if (!howSeen[p.tier]) showHow();
+    if (!seenHow()[p.tier]) showHow();
   }
 
   function showHow() {
-    howSeen = { ...howSeen, [current.tier]: true };
-    store.saveGameOption(meta.id, 'howSeen', howSeen);
+    store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [current.tier]: true });
     const text = current.tier === 'tiny' ? t('dogudoku.howTiny') : current.tier === 'small' ? t('dogudoku.howSmall') : t('dogudoku.how');
     shell.showOverlay({ art: dogSvg(3, { cls: 'ov-dog' }), title: t('dogudoku.howTitle'), text, buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
   }
@@ -201,6 +204,7 @@ export function createDogudoku(shell) {
     const bad = conflicts(current, placed);
     const badCells = new Set(bad.flatMap((x) => x.cells.map(([r, c]) => key(r, c))));
     const sure = placed.filter(([r, c]) => !badCells.has(key(r, c)));
+    const autoCross = autoOn();
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
         const b = cells[r][c];
@@ -337,7 +341,7 @@ export function createDogudoku(shell) {
       wiggle($('#dogu-hint'));
       return;
     }
-    const h = nextHint(current, marks, { autoCross });
+    const h = nextHint(current, marks, { autoCross: autoOn() });
     if (!h) return;
     hintsUsed++;
     set(h.r, h.c, h.to === 'empty' ? null : h.to);
@@ -365,12 +369,11 @@ export function createDogudoku(shell) {
   function renderAuto() {
     const b = $('#dogu-auto');
     b.hidden = !current || current.tier === 'tiny';
-    b.setAttribute('aria-pressed', String(autoCross));
+    b.setAttribute('aria-pressed', String(autoOn()));
   }
   $('#dogu-auto').addEventListener('click', () => {
     tap();
-    autoCross = !autoCross;
-    store.saveGameOption(meta.id, 'autoCross', autoCross);
+    store.saveGameOption(meta.id, 'autoCross', !autoOn());
     renderAuto();
     updateBoard();
   });
@@ -428,26 +431,22 @@ export function createDogudoku(shell) {
     board.classList.add('won');
     sfx.woof();
     const done = current;
+    const token = plays;
     setTimeout(() => {
-      if (current !== done || !onScreen('dogudoku')) return;
+      if (token !== plays || !solved || current !== done || !onScreen('dogudoku')) return;
       showWinCard(done, stars);
     }, 1400);
   }
 
   function showWinCard(done, stars) {
-    const i = puzzles.indexOf(done);
-    const next = puzzles.slice(i + 1).find((p) => !locked(p));
-    const nextAny = puzzles[i + 1];
+    const nextAny = puzzles[puzzles.indexOf(done) + 1];
+    const sameSize = nextAny && nextAny.n === done.n; // "Next" never jumps to a bigger board
     const buttons = [];
     let text = t('dogudoku.winText');
-    if (nextAny && !locked(nextAny)) {
+    if (sameSize && !locked(nextAny)) {
       buttons.push([t('dogudoku.next'), 'big primary', () => play(nextAny.id)]);
-    } else if (next) {
-      // the next one of this size is in the full version: offer it, or jump to the next free size
-      text = `${t('dogudoku.winText')} ${t('dogudoku.lastFree')}`;
-      buttons.push([t('dogudoku.next'), 'big primary', () => play(next.id)]);
-      buttons.push([t('dogudoku.more'), 'big secondary', offer]);
-    } else if (nextAny) {
+    } else if (sameSize) {
+      // the next one of this size is in the full version
       text = `${t('dogudoku.winText')} ${t('dogudoku.lastFree')}`;
       buttons.push([t('dogudoku.more'), 'big primary', offer]);
     }
