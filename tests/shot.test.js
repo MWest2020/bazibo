@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import * as G from '../web/js/grid.js';
+import * as G from '../web/games/bubbels/grid.js';
 
-// The game's constants (web/js/game.js)
+// The game's constants (web/games/bubbels/game.js)
 const R = 25;
 const W = 400;
 const SHOOTER = { x: 200, y: 760 - 86 };
 const HIT = 2 * R * 0.84;
 const MIN = (9 * Math.PI) / 180;
-const data = JSON.parse(readFileSync(new URL('../web/levels/levels.json', import.meta.url), 'utf8'));
+const data = JSON.parse(readFileSync(new URL('../web/games/bubbels/levels.json', import.meta.url), 'utf8'));
 
 function ghost(grid, angle, gridTop) {
   const tr = G.traceGuide(grid, SHOOTER.x, SHOOTER.y, angle, { R, width: W, gridTop, maxBounces: 1, hitDist: HIT });

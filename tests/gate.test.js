@@ -61,3 +61,20 @@ test('tapping digits at random almost never gets through', () => {
   }
   assert.equal(passed, 0); // single digits can never be an answer
 });
+
+test('the English gate asks the same kind of sum in English words', () => {
+  for (let i = 0; i < 200; i++) {
+    const q = makeQuestion(undefined, 'en');
+    assert.match(q.text, /^What is [a-z]+ times [a-z]+\?$/);
+    assert.doesNotMatch(q.text, /\d/);
+    assert.equal(q.answer, q.a * q.b);
+  }
+  const gate = createGate({ rand: seq(0.15, 0.6), lang: 'en' }); // 7 times 7
+  assert.equal(gate.question, 'What is seven times seven?');
+  assert.equal(gate.check('48'), 'retry');
+  assert.match(gate.question, /^What is /);
+});
+
+test('an unknown language falls back to Dutch', () => {
+  assert.match(makeQuestion(undefined, 'de').text, /^Hoeveel is /);
+});

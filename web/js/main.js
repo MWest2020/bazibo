@@ -1,250 +1,218 @@
-// Screens, menus and wiring. The game logic itself lives in game.js.
-import { Game } from './game.js';
-import { loadLevels } from './levels.js';
-import { COLORS, getSprite } from './bubble-art.js';
+// The shell: home screen with a tile per game, settings, the overlay card, the parental gate and
+// the one purchase that opens every game. Each game lives in web/games/<id>/.
+import { BRAND } from './brand.js';
+import { GAMES } from './games.js';
+import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
+import { COLORS, getSprite, drawBubble } from './bubble-art.js';
 import * as store from './storage.js';
 import * as sfx from './audio.js';
-import { FREE_LEVELS, isLevelLocked, allFreeLevelsDone, createUnlock, noBilling } from './unlock.js';
+import { createUnlock, noBilling } from './unlock.js';
 import { isNativeApp, createNativeBilling } from './billing-native.js';
 import { createGate } from './parental-gate.js';
+import '../games/bubbels/strings.js';
+import { createBubbels } from '../games/bubbels/bubbels.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 
-const progress = store.load();
-let levels = [];
-let index = 0; // index into levels of the level being played
-let game = null;
-
-// The full version: bought in the Android/iOS app; on the web nothing can be bought.
-const unlock = createUnlock({ billing: isNativeApp() ? createNativeBilling() : noBilling, cache: store.fullCache });
-const locked = (id) => isLevelLocked(id, unlock.owned);
-unlock.onChange(() => {
-  if ($('#screen-levels').classList.contains('active')) renderLevels();
-});
-
-sfx.setMuted(progress.muted);
+// Filled in boot(), after the save data has loaded (storage.js: Preferences in the apps).
+let settings = { muted: false, lang: null };
+let unlock = null; // the full version: bought in the Android/iOS app; on the web nothing can be bought
 
 // ---------- screens ----------
+
+const showHooks = [];
 
 function show(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === `screen-${name}`));
   hideOverlay();
   homeAnim.running = name === 'home';
   if (homeAnim.running) homeAnim.start();
-  if (game) game.active = name === 'game';
-  if (name === 'game') requestAnimationFrame(() => game.resize());
-  if (name === 'levels') renderLevels();
+  if (name === 'settings') renderSettings();
+  for (const fn of showHooks) fn(name);
 }
+
+const tap = () => {
+  sfx.unlock();
+  sfx.click();
+};
 
 document.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
   if (go) {
-    sfx.unlock();
-    sfx.click();
+    tap();
     show(go.dataset.go);
   }
 });
 
-$('#btn-play').addEventListener('click', () => {
-  sfx.unlock();
-  sfx.click();
-  const firstOpen = levels.findIndex((l) => !progress.stars[l.id] && !locked(l.id));
-  play(firstOpen >= 0 ? firstOpen : 0);
-});
-$('#btn-levels').addEventListener('click', () => {
-  sfx.unlock();
-  sfx.click();
-  show('levels');
-});
+// ---------- language ----------
 
-// ---------- level select ----------
+function renderLanguage() {
+  const lang = getLang();
+  document.documentElement.lang = lang;
+  document.title = BRAND.name;
+  $('#brand-name').textContent = BRAND.name;
+  $('#brand-tagline').textContent = BRAND.tagline[lang];
+  translateDom(document);
+  $('#privacy-link').href = lang === 'en' ? 'privacy/en.html' : 'privacy/index.html';
+  for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+}
+onLangChange(renderLanguage);
 
-function starsText(n) {
-  return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
+document.querySelectorAll('[data-lang]').forEach((b) =>
+  b.addEventListener('click', () => {
+    tap();
+    settings.lang = b.dataset.lang;
+    store.saveSettings(settings);
+    setLang(settings.lang);
+    renderSettings();
+  }),
+);
+
+// ---------- sound ----------
+
+const soundListeners = new Set();
+
+function setMuted(muted) {
+  settings.muted = !!muted;
+  sfx.setMuted(settings.muted);
+  store.saveSettings(settings);
+  for (const fn of soundListeners) fn(settings.muted);
 }
 
-function renderLevels() {
-  const free = $('#levels-free');
-  const full = $('#levels-full');
-  free.textContent = '';
-  full.textContent = '';
-  $('.full-divider').hidden = unlock.owned;
-  const nextOpen = levels.find((l) => !progress.stars[l.id] && !locked(l.id));
-  levels.forEach((l, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'level-btn';
-    if (locked(l.id)) {
-      b.innerHTML = `<span class="num">${l.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
-      b.setAttribute('aria-label', `Level ${l.id}, volledige versie`);
-      b.addEventListener('click', () => {
-        sfx.unlock();
-        sfx.click();
-        showLocked();
-      });
-      full.appendChild(b);
-    } else {
-      const stars = progress.stars[l.id] || 0;
-      if (nextOpen && nextOpen.id === l.id) b.classList.add('next');
-      b.innerHTML = `<span class="num">${l.id}</span><span class="stars" aria-hidden="true">${starsText(stars)}</span>`;
-      b.setAttribute('aria-label', `Level ${l.id}, ${stars} van 3 sterren`);
-      b.addEventListener('click', () => {
-        sfx.unlock();
-        sfx.click();
-        play(i);
-      });
-      free.appendChild(b);
-    }
-  });
+document.querySelectorAll('[data-sound]').forEach((b) =>
+  b.addEventListener('click', () => {
+    sfx.unlock();
+    setMuted(b.dataset.sound === 'off');
+    renderSettings();
+    sfx.click();
+  }),
+);
+
+// ---------- settings ----------
+
+function renderSettings() {
+  if (!unlock) return; // still loading the save data
+  for (const b of document.querySelectorAll('[data-sound]')) b.setAttribute('aria-pressed', String((b.dataset.sound === 'off') === settings.muted));
+  $('#full-status').textContent = unlock.owned ? t('settings.fullOwned') : unlock.available ? t('settings.fullApp') : t('settings.fullWeb');
+  $('#btn-full').hidden = unlock.owned;
+}
+$('#btn-full').addEventListener('click', () => {
+  tap();
+  offerUnlock();
+});
+
+// ---------- home tiles ----------
+
+function drawTileArt() {
+  const c = $('#tile-bubbels .tile-art');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  for (const [x, y, r, col] of [
+    [54, 58, 32, 0],
+    [110, 50, 27, 3],
+    [82, 110, 36, 1],
+  ]) {
+    drawBubble(ctx, x, y, r, COLORS[col % COLORS.length]);
+  }
 }
 
-// ---------- playing ----------
+const games = {};
 
-function play(i) {
-  const level = levels[i];
-  if (!level) return;
-  if (locked(level.id)) {
-    showLocked();
+document.querySelectorAll('[data-game]').forEach((tile) =>
+  tile.addEventListener('click', () => {
+    if (!document.documentElement.dataset.ready) return; // still starting up
+    tap();
+    const game = GAMES.find((g) => g.id === tile.dataset.game);
+    if (game?.status === 'ready' && games[game.id]) games[game.id].open();
+    else showOverlay({ title: t('soon.title'), text: t('soon.text'), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
+  }),
+);
+
+// ---------- the full version ----------
+
+/** The offer card: shown at the end of a game's free part, or from the settings. `lead` says why. */
+function offerUnlock(lead = '') {
+  const art = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+  const join = (...parts) => parts.filter(Boolean).join(' ');
+  if (unlock.owned) {
+    showOverlay({ art, title: t('offer.title'), text: t('offer.owned'), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
     return;
   }
-  index = i;
-  $('#hud-level').textContent = `Level ${level.id}`;
-  show('game');
-  game.start(level);
-}
-
-function onWin({ stars, score }) {
-  const level = levels[index];
-  progress.stars[level.id] = Math.max(stars, progress.stars[level.id] || 0);
-  store.save(progress);
-  const next = levels[index + 1];
-  const nextLocked = !next || locked(next.id);
-  const words = ['', 'Goed gedaan!', 'Heel goed!', 'Super!'];
-  const buttons = [];
-  if (!nextLocked) buttons.push(['Volgende', 'big primary', () => play(index + 1)]);
-  else buttons.push(['Levels', 'big primary', () => show('levels')]);
-  buttons.push(['Nog een keer', 'big secondary', () => play(index)]);
-  showOverlay({
-    art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
-    title: words[stars],
-    text: !nextLocked ? `${score} punten` : allFreeLevelsDone(levels, progress.stars) ? `${score} punten. Je hebt alle gratis levels gehaald!` : `${score} punten. Dit was het laatste gratis level.`,
-    buttons,
-  });
-}
-
-function onLose() {
-  showOverlay({
-    title: 'Bijna!',
-    text: 'De bubbels kwamen te laag. Probeer het nog een keer!',
-    buttons: [
-      ['Nog een keer', 'big primary', () => play(index)],
-      ['Levels', 'big secondary', () => show('levels')],
-    ],
-  });
-}
-
-function pause() {
-  if (!game || !game.active || game.phase === 'won' || game.phase === 'lost' || game.paused) return;
-  game.paused = true;
-  showOverlay({
-    title: 'Pauze',
-    buttons: [
-      ['Verder', 'big primary', resume],
-      ['Opnieuw', 'big secondary', () => play(index)],
-      ['Levels', 'big secondary', () => show('levels')],
-    ],
-  });
-}
-
-function resume() {
-  hideOverlay();
-  if (game) game.paused = false;
-}
-
-function showLocked() {
-  const art = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
-  const last = levels.length || 30;
   if (!unlock.available) {
-    showOverlay({
-      art,
-      title: 'Volledige versie',
-      text: `Level ${FREE_LEVELS + 1} tot en met ${last} komen in de volledige versie van de Bubbels-app. Op deze website kun je level 1 tot en met ${FREE_LEVELS} zo vaak spelen als je wilt!`,
-      buttons: [['Oké', 'big primary', hideOverlay]],
-    });
+    showOverlay({ art, title: t('offer.title'), text: join(lead, t('offer.web')), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
     return;
   }
   const price = unlock.price();
   showOverlay({
     art,
-    title: 'Volledige versie',
-    text: `Level ${FREE_LEVELS + 1} tot en met ${last} zitten in de volledige versie. Eén keer betalen${price ? ` (${price})` : ''}, dan zijn alle levels open. Geen reclame, geen abonnement. Vraag het aan je papa of mama!`,
+    title: t('offer.title'),
+    text: join(lead, t('offer.app', { price: price ? ` (${price})` : '' })),
     buttons: [
-      ['Voor ouders: kopen', 'big primary', () => askParent(buyFullVersion)],
-      ['Aankoop herstellen', 'big secondary', () => askParent(restoreFullVersion)],
-      ['Later', 'big secondary', hideOverlay],
+      [t('offer.buy'), 'big primary', () => askParent(buyFullVersion)],
+      [t('offer.restore'), 'big secondary', () => askParent(restoreFullVersion)],
+      [t('common.later'), 'big secondary', hideOverlay],
     ],
   });
 }
 
 function showBusy() {
-  showOverlay({ title: 'Even geduld…', text: 'De winkel van je telefoon is bezig.', buttons: [] });
+  showOverlay({ title: t('busy.title'), text: t('busy.text'), buttons: [] });
 }
 
 function showUnlocked(title) {
   showOverlay({
     art: `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`,
     title,
-    text: 'Alle levels zijn open. Veel plezier!',
-    buttons: [['Naar de levels', 'big primary', () => show('levels')]],
+    text: t('unlocked.text'),
+    buttons: [[t('unlocked.go'), 'big primary', hideOverlay]],
   });
 }
 
 function showStoreProblem(text) {
-  showOverlay({ title: 'Dat lukte niet', text, buttons: [['Oké', 'big primary', hideOverlay]] });
+  showOverlay({ title: t('problem.title'), text, buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
 }
 
 async function buyFullVersion() {
   showBusy();
   const r = await unlock.buy();
-  if (r.ok && (r.owned || unlock.owned)) showUnlocked('Gelukt!');
-  else if (r.ok && r.pending) {
-    showOverlay({ title: 'Bijna klaar', text: 'De betaling wordt nog verwerkt. Daarna gaan de levels vanzelf open.', buttons: [['Oké', 'big primary', hideOverlay]] });
-  } else if (r.reason === 'cancelled') hideOverlay();
-  else showStoreProblem('De winkel gaf geen antwoord. Probeer het later nog eens.');
+  if (r.ok && (r.owned || unlock.owned)) showUnlocked(t('unlocked.bought'));
+  else if (r.ok && r.pending) showOverlay({ title: t('pending.title'), text: t('pending.text'), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
+  else if (r.reason === 'cancelled') hideOverlay();
+  else showStoreProblem(t('problem.noAnswer'));
 }
 
 async function restoreFullVersion() {
   showBusy();
   const r = await unlock.restore();
-  if (r.ok && r.owned) showUnlocked('Hersteld!');
-  else if (r.ok) showStoreProblem('Er is geen aankoop gevonden bij dit account.');
-  else showStoreProblem('De winkel gaf geen antwoord. Probeer het later nog eens.');
+  if (r.ok && r.owned) showUnlocked(t('unlocked.restored'));
+  else if (r.ok) showStoreProblem(t('problem.noPurchase'));
+  else showStoreProblem(t('problem.noAnswer'));
 }
 
 // Parental gate (parental-gate.js): an adult question before buying or restoring.
 function askParent(onPass) {
-  const gate = createGate();
+  const gate = createGate({ lang: getLang() });
   let input = null;
   const submit = () => {
     const result = gate.check(input.value);
     if (result === 'pass') onPass();
     else if (result === 'closed') hideOverlay();
-    else ask('Dat klopt niet. Nieuwe vraag:');
+    else ask(t('gate.wrong'));
   };
   const ask = (lead) => {
     input = showOverlay({
-      title: 'Vraag voor ouders',
+      title: t('gate.title'),
       text: `${lead} ${gate.question}`,
-      field: { label: 'Antwoord (in cijfers)', onEnter: submit },
+      field: { label: t('gate.label'), onEnter: submit },
       buttons: [
-        ['OK', 'big primary', submit],
-        ['Annuleren', 'big secondary', hideOverlay],
+        [t('gate.ok'), 'big primary', submit],
+        [t('common.cancel'), 'big secondary', hideOverlay],
       ],
     });
   };
-  ask('Typ het antwoord in cijfers.');
+  ask(t('gate.lead'));
 }
 
 // ---------- overlay ----------
@@ -275,8 +243,7 @@ function showOverlay({ art = '', title = '', text = '', buttons = [], field = nu
     b.className = `btn ${cls}`;
     b.textContent = label;
     b.addEventListener('click', () => {
-      sfx.unlock();
-      sfx.click();
+      tap();
       fn();
     });
     box.appendChild(b);
@@ -290,40 +257,7 @@ function hideOverlay() {
   $('#overlay').hidden = true;
 }
 
-// ---------- HUD ----------
-
-$('#btn-pause').addEventListener('click', () => {
-  sfx.unlock();
-  sfx.click();
-  pause();
-});
-
-function renderMute() {
-  const b = $('#btn-mute');
-  b.setAttribute('aria-pressed', String(progress.muted));
-  b.setAttribute('aria-label', progress.muted ? 'Geluid aan' : 'Geluid uit');
-}
-$('#btn-mute').addEventListener('click', () => {
-  sfx.unlock();
-  progress.muted = !progress.muted;
-  sfx.setMuted(progress.muted);
-  store.save(progress);
-  renderMute();
-  sfx.click();
-});
-renderMute();
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pause();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' || e.key === 'p') {
-    if (game?.paused) resume();
-    else pause();
-  }
-});
-
-// ---------- floating bubbles on the start screen ----------
+// ---------- floating bubbles on the home screen ----------
 
 const homeAnim = {
   running: true,
@@ -342,7 +276,7 @@ const homeAnim = {
     let w = 0;
     let h = 0;
     let dpr = 1;
-    let keepOut = []; // the logo and tagline: bubbles fade while they pass behind the text
+    let keepOut = []; // the logo, tagline and tiles: bubbles fade while they pass behind them
     const size = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = canvas.clientWidth;
@@ -350,7 +284,7 @@ const homeAnim = {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       const base = canvas.getBoundingClientRect();
-      keepOut = ['.logo', '.tagline'].map((sel) => {
+      keepOut = ['.logo', '.tagline', '.tiles'].map((sel) => {
         const r = $(sel).getBoundingClientRect();
         return { x0: r.left - base.left, x1: r.right - base.left, y0: r.top - base.top, y1: r.bottom - base.top };
       });
@@ -373,7 +307,7 @@ const homeAnim = {
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       if (!this.running) {
-        this.looping = false; // stops until the start screen is shown again
+        this.looping = false; // stops until the home screen is shown again
         return;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -409,24 +343,43 @@ const homeAnim = {
 // ---------- boot ----------
 
 async function boot() {
-  game = new Game($('#game'), { onWin, onLose, onScore: (s) => ($('#hud-score').textContent = String(s)) });
+  await store.init();
+  settings = store.loadSettings();
+  setLang(pickLang(settings.lang, navigator.languages || [navigator.language]));
+  sfx.setMuted(settings.muted);
+  unlock = createUnlock({ billing: isNativeApp() ? createNativeBilling() : noBilling, cache: store.fullCache });
+  unlock.onChange(() => {
+    if ($('#screen-settings').classList.contains('active')) renderSettings();
+  });
+  games.bubbels = createBubbels({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    isMuted: () => settings.muted,
+    setMuted,
+    onMutedChange: (fn) => soundListeners.add(fn),
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
+  renderLanguage();
+  drawTileArt();
   homeAnim.start();
-  try {
-    levels = await loadLevels();
-  } catch (err) {
-    console.error(err);
-    showOverlay({ title: 'Oeps', text: 'De levels konden niet geladen worden.', buttons: [['Opnieuw', 'big primary', () => location.reload()]] });
-    return;
-  }
-  // test and debug hook (only with ?test in the address): read-only state, fire at an angle
+  const ok = await games.bubbels.init();
+  if (!ok) return;
+  // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
     window.__bubbels = {
-      state: () => ({ ...game.snapshot(), loop: game.running, homeLoop: homeAnim.looping }),
-      fire: (deg) => game.fire((deg * Math.PI) / 180),
-      play: (i) => play(i),
-      locked: () => showLocked(),
+      ...games.bubbels.testHook(),
+      homeLoop: () => homeAnim.looping,
+      offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
       full: () => unlock.owned,
+      lang: () => getLang(),
+      save: () => store.snapshot(),
     };
   }
   document.documentElement.dataset.ready = '1';

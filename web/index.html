@@ -6,57 +6,113 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#5B4BDB">
-  <meta name="description" content="Bubbels: een bubbelschieter voor kinderen. Zonder reclame.">
+  <meta name="description" content="Bubbels: spelletjes voor kinderen van 3 tot 10. Spelen en leren, zonder reclame.">
   <title>Bubbels</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="games/bubbels/bubbels.css">
 </head>
 <body>
   <main id="app">
-    <!-- start screen -->
+    <!-- home: the brand and one tile per game -->
     <section id="screen-home" class="screen active" aria-label="Start">
       <canvas id="home-bg" aria-hidden="true"></canvas>
+      <header class="home-top">
+        <span class="bar-spacer"></span>
+        <button id="btn-settings" class="btn icon" type="button" data-go="settings" data-i18n-aria="home.settings" aria-label="Instellingen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.3 7.3 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.7 8.8a.5.5 0 0 0 .1.6l2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3a.5.5 0 0 0 .6.2l2.4-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.3.4.5.4h3.8c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.4 1c.2.1.5 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+        </button>
+      </header>
       <div class="home-inner">
-        <h1 class="logo">Bubbels</h1>
-        <p class="tagline">Mikken, schieten&hellip; plop!</p>
-        <button id="btn-play" class="btn big primary" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
-          <span>Spelen</span>
-        </button>
-        <button id="btn-levels" class="btn big secondary" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
-          <span>Levels</span>
-        </button>
-        <p class="promise">Geen reclame. Nooit.</p>
+        <h1 class="logo" id="brand-name">Bubbels</h1>
+        <p class="tagline" id="brand-tagline">Spelen en leren, zonder reclame</p>
+        <div class="tiles" role="group" data-i18n-aria="home.games" aria-label="Spellen">
+          <button id="tile-bubbels" class="tile" type="button" data-game="bubbels">
+            <canvas class="tile-art" width="160" height="160" aria-hidden="true"></canvas>
+            <span class="tile-name" data-i18n="bubbels.title">Bubbels schieten</span>
+          </button>
+          <button id="tile-sudoku" class="tile soon" type="button" data-game="sudoku">
+            <svg class="tile-art" viewBox="0 0 48 48" aria-hidden="true">
+              <rect x="3" y="3" width="42" height="42" rx="7" fill="#fff" stroke="#c9c1ff" stroke-width="2.5"/>
+              <path d="M24 4v40M4 24h40" stroke="#c9c1ff" stroke-width="2.5"/>
+              <path d="M14 4v40M34 4v40M4 14h40M4 34h40" stroke="#ece8ff" stroke-width="1.5"/>
+              <circle cx="9" cy="9" r="3.4" fill="#ff6b8b"/>
+              <path d="M26.5 12.5 29 6l2.5 6.5z" fill="#ffc531"/>
+              <rect x="16" y="26" width="6" height="6" rx="1.5" fill="#4cc38a"/>
+              <circle cx="39" cy="39" r="3.4" fill="#5b8def"/>
+            </svg>
+            <span class="tile-name" data-i18n="games.sudoku">Plaatjes&shy;sudoku</span>
+            <span class="badge" data-i18n="home.soon">binnenkort</span>
+          </button>
+        </div>
+        <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
       </div>
     </section>
 
-    <!-- level select -->
-    <section id="screen-levels" class="screen" aria-label="Levels">
+    <!-- settings: language, sound, the full version, privacy -->
+    <section id="screen-settings" class="screen" aria-label="Instellingen" data-i18n-aria="settings.title">
       <header class="bar">
-        <button class="btn icon" type="button" data-go="home" aria-label="Terug">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <h2>Kies een level</h2>
+        <h2 data-i18n="settings.title">Instellingen</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="settings-scroll">
+        <div class="setting">
+          <h3 data-i18n="settings.language">Taal</h3>
+          <div class="seg" role="group" data-i18n-aria="settings.language" aria-label="Taal">
+            <button type="button" class="seg-btn" data-lang="nl" lang="nl">Nederlands</button>
+            <button type="button" class="seg-btn" data-lang="en" lang="en">English</button>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 data-i18n="settings.sound">Geluid</h3>
+          <div class="seg" role="group" data-i18n-aria="settings.sound" aria-label="Geluid">
+            <button type="button" class="seg-btn" data-sound="on" data-i18n="settings.on">Aan</button>
+            <button type="button" class="seg-btn" data-sound="off" data-i18n="settings.off">Uit</button>
+          </div>
+        </div>
+        <div class="setting">
+          <h3 data-i18n="settings.full">Volledige versie</h3>
+          <p id="full-status" class="setting-text"></p>
+          <button id="btn-full" class="btn secondary wide" type="button" data-i18n="settings.more">Meer over de volledige versie</button>
+        </div>
+        <p class="small-links"><a id="privacy-link" href="privacy/index.html" data-i18n="settings.privacy">Privacy</a></p>
+      </div>
+    </section>
+
+    <!-- Bubbels: level select -->
+    <section id="screen-levels" class="screen" aria-label="Levels">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="bubbels.choose">Kies een level</h2>
         <span class="bar-spacer"></span>
       </header>
       <div class="levels-scroll">
+        <div class="play-row">
+          <button id="btn-play" class="btn big primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            <span data-i18n="bubbels.play">Spelen</span>
+          </button>
+        </div>
         <div id="levels-free" class="level-grid"></div>
         <div class="full-divider">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/></svg>
-          <span>Volledige versie</span>
+          <span data-i18n="bubbels.fullDivider">Volledige versie</span>
         </div>
         <div id="levels-full" class="level-grid locked-grid"></div>
-        <p class="small-links"><a href="privacy/index.html">Privacy</a></p>
       </div>
     </section>
 
-    <!-- game -->
-    <section id="screen-game" class="screen" aria-label="Spel">
+    <!-- Bubbels: the board -->
+    <section id="screen-game" class="screen" aria-label="Bubbels">
       <header class="bar hud">
-        <button id="btn-pause" class="btn icon" type="button" aria-label="Pauze">
+        <button id="btn-pause" class="btn icon" type="button" data-i18n-aria="bubbels.pause" aria-label="Pauze">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
         </button>
         <div class="hud-mid">
@@ -68,7 +124,7 @@
           <svg class="ico-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="m16.5 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </header>
-      <div id="stage"><canvas id="game" aria-label="Speelveld: sleep om te mikken, laat los om te schieten"></canvas></div>
+      <div id="stage"><canvas id="game" data-i18n-aria="bubbels.board" aria-label="Speelveld: sleep om te mikken, laat los om te schieten"></canvas></div>
     </section>
 
     <!-- one overlay card, filled per situation -->

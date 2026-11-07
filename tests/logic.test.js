@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { allFreeLevelsDone, FREE_LEVELS } from '../web/js/unlock.js';
+import { allFreeDone } from '../web/js/unlock.js';
+import { meta } from '../web/games/bubbels/meta.js';
+
+const FREE_LEVELS = meta.free;
+const allFreeLevelsDone = (levels, stars) => allFreeDone(levels, stars, FREE_LEVELS);
 import { makeLimiter } from '../web/js/audio.js';
 
 const levels = Array.from({ length: 30 }, (_, i) => ({ id: i + 1 }));

@@ -1,8 +1,8 @@
 // The game itself: state, input, physics and drawing on one canvas.
 // The board uses fixed logical coordinates (W x H) that are scaled to fit the screen.
 import * as G from './grid.js';
-import { COLORS, getSprite, clearSprites, drawBubble } from './bubble-art.js';
-import * as sfx from './audio.js';
+import { COLORS, getSprite, clearSprites, drawBubble } from '../../js/bubble-art.js';
+import * as sfx from '../../js/audio.js';
 
 export const R = 25;
 export const COLS = 8;
@@ -516,7 +516,7 @@ export class Game {
     ctx.font = '800 22px ui-rounded, "Nunito", system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const text = 'Sleep omhoog en laat los!';
+    const text = this.hooks.hintText?.() || 'Sleep omhoog en laat los!';
     const tw = ctx.measureText(text).width + 36;
     const ty = DEADLINE - 44;
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
