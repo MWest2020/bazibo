@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#5B4BDB">
+  <meta name="description" content="Bubbels: een bubbelschieter voor kinderen. Zonder reclame.">
+  <title>Bubbels</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+    <!-- start screen -->
+    <section id="screen-home" class="screen active" aria-label="Start">
+      <canvas id="home-bg" aria-hidden="true"></canvas>
+      <div class="home-inner">
+        <h1 class="logo">Bubbels</h1>
+        <p class="tagline">Mikken, schieten&hellip; plop!</p>
+        <button id="btn-play" class="btn big primary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+          <span>Spelen</span>
+        </button>
+        <button id="btn-levels" class="btn big secondary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+          <span>Levels</span>
+        </button>
+        <p class="promise">Geen reclame. Nooit.</p>
+      </div>
+    </section>
+
+    <!-- level select -->
+    <section id="screen-levels" class="screen" aria-label="Levels">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2>Kies een level</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll">
+        <div id="levels-free" class="level-grid"></div>
+        <div class="full-divider">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/></svg>
+          <span>Volledige versie</span>
+        </div>
+        <div id="levels-full" class="level-grid locked-grid"></div>
+      </div>
+    </section>
+
+    <!-- game -->
+    <section id="screen-game" class="screen" aria-label="Spel">
+      <header class="bar hud">
+        <button id="btn-pause" class="btn icon" type="button" aria-label="Pauze">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="hud-level" class="hud-level">Level 1</div>
+          <div id="hud-score" class="hud-score">0</div>
+        </div>
+        <button id="btn-mute" class="btn icon" type="button" aria-label="Geluid uit" aria-pressed="false">
+          <svg class="ico-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="ico-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="m16.5 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div id="stage"><canvas id="game" aria-label="Speelveld: sleep om te mikken, laat los om te schieten"></canvas></div>
+    </section>
+
+    <!-- one overlay card, filled per situation -->
+    <div id="overlay" class="overlay" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+        <div id="ov-art" class="ov-art"></div>
+        <h2 id="ov-title"></h2>
+        <p id="ov-text"></p>
+        <div id="ov-buttons" class="ov-buttons"></div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
