@@ -28,6 +28,7 @@ Development only (not shipped in `web/`):
 |---|---|---|
 | Playwright (smoke test, icon rendering) | Apache-2.0 | https://github.com/microsoft/playwright-python |
 | Node.js test runner (`node --test`) | MIT | https://nodejs.org |
+| fastlane (release automation, `fastlane/Fastfile`; usage reporting switched off) | MIT | https://github.com/fastlane/fastlane |
 
 Any asset added later must be CC0, MIT, BSD or Apache-2.0 and must get a row here. The one
 exception is the store's own billing library, which the stores require.

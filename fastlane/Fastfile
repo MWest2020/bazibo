@@ -8,6 +8,7 @@
 #   fastlane android metadata   listing texts, screenshots, feature graphic and icon, NL and EN
 #   fastlane ios beta           (Mac with Xcode) build and upload to TestFlight
 #   fastlane ios metadata       App Store texts and screenshots
+opt_out_usage # no usage data to fastlane's servers
 default_platform(:android)
 
 ROOT = File.expand_path("..", __dir__)
@@ -67,8 +68,10 @@ platform :android do
     need_play_key!
     codes = %w[internal alpha beta production].flat_map do |track|
       google_play_track_version_codes(track: track)
-    rescue StandardError
-      [] # a track with no release yet
+    rescue StandardError => e
+      # a track with no release yet is fine; anything else (rights, network, a wrong key) is not
+      raise unless e.message =~ /track not found|trackempty|no releases/i
+      []
     end
     code = (codes.map(&:to_i).max || 0) + 1
     aab = build(version_code: code)
@@ -78,15 +81,17 @@ platform :android do
     UI.success("version code #{code} is on the internal track")
   end
 
-  desc "Promote the internal release to production. Options: rollout (0.2 = 20%, 1 = everyone)"
+  desc "Promote the internal release to production. Options: rollout (0.2 = 20%, 1 = everyone), version_code"
   lane :promote do |options|
     need_play_key!
+    # supply sets the release status itself: a rollout fraction makes it inProgress, none completed
     rollout = (options[:rollout] || "0.2").to_s
-    upload_to_play_store(track: "internal", track_promote_to: "production",
-                         rollout: rollout == "1" ? nil : rollout,
-                         release_status: rollout == "1" ? "completed" : "inProgress",
-                         skip_upload_aab: true, skip_upload_apk: true, skip_upload_metadata: true,
-                         skip_upload_images: true, skip_upload_screenshots: true, skip_upload_changelogs: true)
+    promote = { track: "internal", track_promote_to: "production" }
+    promote[:rollout] = rollout unless rollout == "1"
+    promote[:version_code] = options[:version_code].to_i if options[:version_code]
+    upload_to_play_store(promote.merge(skip_upload_aab: true, skip_upload_apk: true, skip_upload_metadata: true,
+                                       skip_upload_images: true, skip_upload_screenshots: true,
+                                       skip_upload_changelogs: true))
   end
 
   desc "Push the listing (texts, screenshots, feature graphic, icon) from store/, NL and EN. Option: validate_only"

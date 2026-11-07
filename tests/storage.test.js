@@ -242,3 +242,77 @@ test('app: a failed write warns and the latest save is written on the next chanc
     console.warn = warn;
   }
 });
+
+// Review of PR #4, I3: a read that failed at startup is tried again; a good read merges the session in.
+test('app: after a failed startup read, a later good read merges the session and starts saving', async () => {
+  const real = JSON.stringify({ version: 1, games: { bubbels: { stars: { 1: 3, 2: 1, 20: 2 } }, other: { x: 1 } }, settings: { muted: true, lang: 'nl' }, purchase: { owned: true }, extra: 'kept' });
+  const prefs = fakePreferences({ [store.SAVE_KEY]: real });
+  let broken = true;
+  const backend = store.preferencesBackend({ get: async (a) => (broken ? Promise.reject(new Error('bridge')) : prefs.get(a)), set: prefs.set });
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    assert.equal(await store.init({ backend, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
+    store.saveProgress('bubbels', { stars: { 1: 1, 2: 3, 3: 2 } }); // played in memory
+    await store.adopted();
+    assert.equal(prefs.dump()[store.SAVE_KEY], real); // still failing: nothing written
+    broken = false;
+    store.retryFailedWrite(); // what visibilitychange does
+    assert.equal(await store.adopted(), true);
+    await store.flushed();
+    const saved = JSON.parse(prefs.dump()[store.SAVE_KEY]);
+    assert.deepEqual(saved.games.bubbels.stars, { 1: 3, 2: 3, 3: 2, 20: 2 }); // best per level
+    assert.deepEqual(saved.games.other, { x: 1 });
+    assert.equal(saved.purchase.owned, true);
+    assert.deepEqual(saved.settings, { muted: true, lang: 'nl' }); // not touched in the session
+    assert.equal(saved.extra, 'kept');
+  } finally {
+    console.warn = warn;
+  }
+});
+
+test('mergeSaves: settings from the session only when the child changed them; owned is OR-ed', () => {
+  const stored = { version: 1, games: {}, settings: { muted: false, lang: 'nl' }, purchase: { owned: false } };
+  const session = { games: { bubbels: { stars: { 4: 2 } } }, settings: { muted: true, lang: 'en' }, purchase: { owned: true } };
+  assert.deepEqual(store.mergeSaves(stored, session, false).settings, { muted: false, lang: 'nl' });
+  assert.deepEqual(store.mergeSaves(stored, session, true).settings, { muted: true, lang: 'en' });
+  assert.equal(store.mergeSaves(stored, session, false).purchase.owned, true);
+  assert.deepEqual(store.mergeSaves(stored, session, false).games.bubbels.stars, { 4: 2 });
+});
+
+// M2: a broken save whose copy cannot be kept is not overwritten.
+test('app: a corrupt save is not overwritten when its backup copy cannot be written', async () => {
+  const prefs = fakePreferences({ [store.SAVE_KEY]: '{not json' });
+  const backend = store.preferencesBackend({
+    get: prefs.get,
+    set: async (a) => (a.key.endsWith('.corrupt') ? Promise.reject(new Error('disk full')) : prefs.set(a)),
+  });
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    assert.equal(await store.init({ backend, legacyStorage: null }), 'read-failed');
+    store.saveProgress('bubbels', { stars: { 1: 1 } });
+    await store.adopted();
+    await store.flushed();
+    assert.equal(prefs.dump()[store.SAVE_KEY], '{not json');
+  } finally {
+    console.warn = warn;
+  }
+});
+
+// M3: a read that never answers counts as failed, not as "nothing stored".
+test('app: a hanging read times out and nothing is written', async () => {
+  const prefs = fakePreferences({ [store.SAVE_KEY]: JSON.stringify({ version: 1, games: {}, settings: {}, purchase: { owned: true } }) });
+  let sets = 0;
+  const backend = { name: 'hang', get: () => new Promise(() => {}), set: async () => void sets++ };
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    assert.equal(await store.init({ backend, legacyStorage: null, tries: 2, retryDelayMs: 0, timeoutMs: 20 }), 'read-failed');
+    store.saveSettings({ muted: true });
+    await store.flushed();
+    assert.equal(sets, 0);
+  } finally {
+    console.warn = warn;
+  }
+});

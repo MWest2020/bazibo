@@ -349,6 +349,7 @@ const homeAnim = {
 // ---------- boot ----------
 
 async function boot() {
+  listenForBack(); // first, so the button works even if loading fails below
   await store.init();
   settings = store.loadSettings();
   setLang(pickLang(settings.lang, navigator.languages || [navigator.language]));
@@ -390,7 +391,6 @@ async function boot() {
     };
   }
   document.documentElement.dataset.ready = '1';
-  listenForBack();
   unlock.start(); // asks the store in the app; a no-op on the web
 }
 

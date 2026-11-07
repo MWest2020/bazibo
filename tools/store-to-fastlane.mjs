@@ -56,13 +56,14 @@ function write(dir, files) {
   for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text.trim() + '\n');
 }
 
-function copyShots(from, to) {
+/** Copy the .png files of `from` into `to`, each name prefixed (deliver tells devices apart by
+ * image size, but a shared folder needs distinct names or one set overwrites the other). */
+export function copyShots(from, to, prefix = '') {
   mkdirSync(to, { recursive: true });
-  for (const f of readdirSync(from).filter((n) => n.endsWith('.png')).sort()) copyFileSync(join(from, f), join(to, f));
+  for (const f of readdirSync(from).filter((n) => n.endsWith('.png')).sort()) copyFileSync(join(from, f), join(to, prefix + f));
 }
 
-function main() {
-  const out = join(ROOT, 'fastlane', 'metadata');
+export function main(out = join(ROOT, 'fastlane', 'metadata')) {
   rmSync(out, { recursive: true, force: true });
   const problems = [];
   for (const [lang, loc] of Object.entries(LOCALES)) {
@@ -79,14 +80,16 @@ function main() {
     // App Store (fastlane deliver)
     const ios = join(out, 'ios', loc.apple);
     write(ios, { 'name.txt': f.name, 'subtitle.txt': f.subtitle, 'promotional_text.txt': f.promo, 'keywords.txt': f.keywords, 'description.txt': f.full });
-    copyShots(join(shots, 'appstore-iphone-6.9-1290x2796'), join(out, 'ios-screenshots', loc.apple));
-    copyShots(join(shots, 'appstore-ipad-13-2064x2752'), join(out, 'ios-screenshots', loc.apple));
+    copyShots(join(shots, 'appstore-iphone-6.9-1290x2796'), join(out, 'ios-screenshots', loc.apple), 'iphone-');
+    copyShots(join(shots, 'appstore-ipad-13-2064x2752'), join(out, 'ios-screenshots', loc.apple), 'ipad-');
   }
   if (problems.length) {
     console.error('store texts over the limit:\n  ' + problems.join('\n  '));
-    process.exit(1);
+    process.exitCode = 1;
+    return false;
   }
   console.log(`fastlane metadata written to ${out}`);
+  return true;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();

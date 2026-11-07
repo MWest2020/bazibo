@@ -189,7 +189,13 @@ regenerate the app icons and launch screens, run
   `migrated: {from, at}`, and the old keys are left alone.
 - A document from a newer app version is never wiped: this version reads what it knows and
   writes back only its own fields. A corrupt value is kept aside as `bubbels.save.corrupt` and
-  the app starts from the old keys or from scratch.
+  the app starts from the old keys or from scratch. If that copy cannot be written, nothing is
+  written at all.
+- A read that fails or hangs (3 tries, 3 s each) never counts as "nothing stored": the session
+  plays from memory and writes nothing. The read is tried again on the next save and when the app
+  comes back to the front; once it works, the session is merged in (best stars per level, the
+  full version if either side has it, settings only if the child changed them) and saving starts.
+- A failed write is retried with the latest save on the next save or when the app comes back.
 - It stays on the device and nothing goes to us. It is part of the phone's own backup: Android
   Auto Backup (`android:allowBackup="true"`, no rules that leave out `shared_prefs`;
   `tests/native.test.js` checks this) and the iPhone's iCloud or computer backup. So progress
@@ -198,8 +204,9 @@ regenerate the app icons and launch screens, run
 
 ## 6. Release automation (fastlane)
 
-`fastlane/Fastfile` holds the lanes; `Gemfile` pins fastlane. Install once with Ruby 3.3:
-`bundle install`. CI (`.github/workflows/ci.yml`) installs it on every push and checks that the
+`fastlane/Fastfile` holds the lanes; `Gemfile` pins fastlane to an exact version (2.241.2), because
+there is no `Gemfile.lock` yet (no Ruby on the agent host); bump it on purpose. Install once with
+Ruby 3.3: `bundle install`. Usage reporting to fastlane is off (`opt_out_usage`). CI (`.github/workflows/ci.yml`) installs it on every push and checks that the
 lanes load, that the store texts fit the limits, and that an upload lane without a Play key
 stops with "No Play key yet".
 
@@ -208,7 +215,7 @@ stops with "No Play key yet".
 | `fastlane android check` | writes `fastlane/metadata/` from `store/` (`tools/store-to-fastlane.mjs`), checks the store limits, says which keys are present | nothing |
 | `fastlane android build` | `npx cap sync android`, signed release AAB, stops the Gradle daemon | the upload key (section 2.3) |
 | `fastlane android internal` | asks Play for the highest version code, builds the next one, uploads it to *Internal testing* (`status:draft` until the app is published) | upload key + Play key (2.9) |
-| `fastlane android promote` | internal → production, staged: `rollout:0.2` is 20 %, `rollout:1` everyone | Play key |
+| `fastlane android promote` | internal → production, staged: `rollout:0.2` is 20 %, `rollout:1` everyone; `version_code:` to pick one | Play key |
 | `fastlane android metadata` | texts, screenshots, feature graphic and icon, NL and EN, from `store/` (`validate_only:true` to try) | Play key |
 | `fastlane ios beta` | (Mac with Xcode) sync, next build number, archive, upload to TestFlight | App Store Connect API key: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_B64` |
 | `fastlane ios metadata` | App Store texts and screenshots from `store/` | the same key |
