@@ -10,7 +10,7 @@
     "levels": "node tools/gen-levels.mjs",
     "serve": "python3 -m http.server 8080 --directory web",
     "stamp": "node tools/stamp-sw.mjs",
-    "puzzles": "node tools/gen-dogudoku.mjs"
+    "puzzles": "node tools/gen-dogudoku.mjs && node tools/gen-picturedoku.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

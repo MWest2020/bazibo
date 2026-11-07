@@ -3,13 +3,14 @@
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
-("Bubbels schieten" / "Bubble Shooter") and Dogudoku (a logic puzzle with puppies); Picturedoku (a picture
-sudoku) and more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
+("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies) and Picturedoku (a
+sudoku with pictures); more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Idaveld, after Iðavöllr, the plain where the young Norse gods
 played with golden game pieces. The repository, the package id (`work.westerweel.bubbels`) and
 the website path keep the old name `bubbels`.
 
-- Home screen with a tile per game (a "binnenkort" / "coming soon" tile for the next one) and a
+- Home screen with a tile per game (a game that is not ready yet can show a "binnenkort" /
+  "coming soon" tile) and a
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
   sound, the full version, privacy.
 
@@ -30,6 +31,25 @@ pictures drawn as SVG in `art.js`, the screen in `dogudoku.js`).
 - 60 puzzles in `puzzles.json`, made by `npm run puzzles` (`tools/gen-dogudoku.mjs`, seeded);
   every puzzle has exactly one solution and `npm test` solves them all again. 10 are free, the
   easiest of every size.
+
+### Picturedoku
+
+A sudoku with pictures, in `web/games/picturedoku/` (rules in `rules.js`, pictures drawn as SVG
+in `art.js`, the screen in `picturedoku.js`).
+
+- Every picture once in every row, column and box. 4×4 with 2×2 boxes (ages 3-6, pictures only:
+  apple, banana, grapes, carrot), 6×6 with 2×3 boxes (6-8), 9×9 with 3×3 boxes (8-10). The nine
+  pictures differ by shape and colour; on 6×6 and 9×9 a button switches to numbers.
+- Tap a square, then a picture in the palette; or pick a picture first and tap squares with it.
+  Fixed pictures sit on a lilac plate. Pencil notes (from 6×6), an eraser and undo. A clash
+  outlines both pictures in red, tints the row, column or box and lights up the rule's picture.
+- A hint takes out a wrong picture, or fills a square (one where only one picture fits, when
+  there is one): unlimited on 4×4, 3 on 6×6 and 9×9. Stars: 3 without hints, 2 with one, 1
+  with more. A solved board hops and chimes; every picture has its own soft note.
+- 60 puzzles in `puzzles.json`, made by `npm run puzzles` (`tools/gen-picturedoku.mjs`,
+  seeded): each has exactly one solution and can be solved with singles only (no guessing);
+  within a size they go from easy to hard (fewer pictures to start with). `npm test` solves them
+  all again. 10 are free, the easiest of every size (4 / 4 / 2).
 
 ### Bubbels schieten
 

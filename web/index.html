@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="games/bubbels/bubbels.css">
   <link rel="stylesheet" href="games/dogudoku/dogudoku.css">
+  <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
 </head>
 <body>
   <main id="app">
@@ -38,18 +39,9 @@
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.dogudoku">Dogudoku</span>
           </button>
-          <button id="tile-sudoku" class="tile soon" type="button" data-game="sudoku">
-            <svg class="tile-art" viewBox="0 0 48 48" aria-hidden="true">
-              <rect x="3" y="3" width="42" height="42" rx="7" fill="#fff" stroke="#c9c1ff" stroke-width="2.5"/>
-              <path d="M24 4v40M4 24h40" stroke="#c9c1ff" stroke-width="2.5"/>
-              <path d="M14 4v40M34 4v40M4 14h40M4 34h40" stroke="#ece8ff" stroke-width="1.5"/>
-              <circle cx="9" cy="9" r="3.4" fill="#ff6b8b"/>
-              <path d="M26.5 12.5 29 6l2.5 6.5z" fill="#ffc531"/>
-              <rect x="16" y="26" width="6" height="6" rx="1.5" fill="#4cc38a"/>
-              <circle cx="39" cy="39" r="3.4" fill="#5b8def"/>
-            </svg>
-            <span class="tile-name" data-i18n="games.sudoku">Picture&shy;doku</span>
-            <span class="badge" data-i18n="home.soon">binnenkort</span>
+          <button id="tile-picturedoku" class="tile" type="button" data-game="picturedoku">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.picturedoku">Picture&shy;doku</span>
           </button>
         </div>
         <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
@@ -168,6 +160,51 @@
         <div class="dogu-side">
           <p id="dogu-status" class="dogu-status" aria-live="polite"></p>
           <ul id="dogu-rules" class="dogu-rules" data-i18n-aria="dogudoku.rules" aria-label="De regels"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Picturedoku: puzzle list -->
+    <section id="screen-picturedoku-levels" class="screen" data-i18n-aria="games.picturedoku" aria-label="Picturedoku">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="pdoku.choose">Kies een puzzel</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="pdoku-levels"></div></div>
+    </section>
+
+    <!-- Picturedoku: the board -->
+    <section id="screen-picturedoku" class="screen" data-i18n-aria="games.picturedoku" aria-label="Picturedoku">
+      <header class="bar dogu-hud pdoku-hud">
+        <button id="pdoku-back" class="btn icon" type="button" data-i18n-aria="pdoku.puzzles" aria-label="Puzzels">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="pdoku-sub" class="hud-level"></div>
+          <div id="pdoku-title" class="dogu-title"></div>
+        </div>
+        <button id="pdoku-numbers" class="btn icon" type="button" data-i18n-aria="pdoku.numbers" aria-label="Cijfers in plaats van plaatjes" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="13" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="900" fill="currentColor">123</text></svg>
+        </button>
+        <button id="pdoku-hint" class="btn icon" type="button" aria-label="Hint">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8v.5h6v-.5c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5zM9 18h6v1.5a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 19.5z"/></svg>
+          <span class="count"></span>
+        </button>
+      </header>
+      <div id="pdoku-stage">
+        <div id="pdoku-board" class="pdoku-board" role="group" data-i18n-aria="pdoku.board" aria-label="Puzzel: kies een vakje en dan een plaatje"></div>
+        <div class="pdoku-side">
+          <p id="pdoku-status" class="dogu-status" aria-live="polite"></p>
+          <div id="pdoku-palette" class="pdoku-palette" role="group" data-i18n-aria="pdoku.palette" aria-label="Plaatjes"></div>
+          <div class="pdoku-tools" role="group" data-i18n-aria="pdoku.tools" aria-label="Gereedschap">
+            <button id="pdoku-pencil" class="btn icon tool" type="button" data-i18n-aria="pdoku.pencil" aria-label="Potlood: kleine plaatjes als geheugensteun" aria-pressed="false"></button>
+            <button id="pdoku-erase" class="btn icon tool" type="button" data-i18n-aria="pdoku.erase" aria-label="Gum" aria-pressed="false"></button>
+            <button id="pdoku-undo" class="btn icon tool" type="button" data-i18n-aria="pdoku.undo" aria-label="Ongedaan maken"></button>
+          </div>
+          <ul id="pdoku-rules" class="dogu-rules" data-i18n-aria="pdoku.rules" aria-label="De regels"></ul>
         </div>
       </div>
     </section>

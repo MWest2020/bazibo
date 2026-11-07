@@ -95,7 +95,7 @@ regenerate the app icons and launch screens, run
 6. **Test purchases.** Add your Google account under Settings › License testing, and as a tester
    on the internal track. Install the app from the testing link. Buy and restore with test cards;
    no money moves. Check that:
-   - Bubbels level 11 and Dogudoku's locked puzzles open after buying (and the offer after level 10 leads to the purchase);
+   - Bubbels level 11 and the locked Dogudoku and Picturedoku puzzles open after buying (and the offer after level 10 leads to the purchase);
    - the app restarts unlocked, also with the phone offline;
    - "Aankoop herstellen" works after reinstalling;
    - progress survives an app update (section 5).
@@ -158,7 +158,7 @@ regenerate the app icons and launch screens, run
 ## 4. How the purchase works (for reviewers and future changes)
 
 - One purchase opens every game. Each game declares its free part in `web/games/<id>/meta.js`
-  (Bubbels: `free: 10` levels; Dogudoku: the 10 puzzles marked `free: true` in `puzzles.json`, a few of every size); the offer appears at the end of a free part and in Settings.
+  (Bubbels: `free: 10` levels; Dogudoku and Picturedoku: the 10 puzzles marked `free: true` in their `puzzles.json`, a few of every size); the offer appears at the end of a free part and in Settings.
 - `web/js/unlock.js` holds the purchase state:
   - it only becomes "owned" when the store says so;
   - the last answer is cached for offline play;

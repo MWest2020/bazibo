@@ -86,7 +86,7 @@ https://mwest2020.github.io/bubbels/privacy/index.html
 
 - Type: **Non-Consumable**. Product ID: `unlock_all`. Price tier: € 1 (Tier 1 in the EU
   storefronts; check the current tier table).
-- One purchase opens every game in the app. Each game has a free part (Bubbels: levels 1-10; Dogudoku: 10 of its 60 puzzles).
+- One purchase opens every game in the app. Each game has a free part (Bubbels: levels 1-10; Dogudoku: 10 of its 60 puzzles; Picturedoku: 10 of its 60 puzzles).
 - The review screenshot for the purchase: `store/screenshots/en/appstore-iphone-6.9-1290x2796/2-levels.png`
   shows where the full version sits. Review notes: "Open Bubble Shooter, tap a locked level (11+),
   then 'For parents: buy'. The parental gate asks a multiplication written in words, for example
