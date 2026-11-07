@@ -163,6 +163,32 @@ def shoot(browser, base, name, viewport, dpr, lang):
         page.wait_for_timeout(500)
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
+
+    # Picturedoku: a 4×4 with pictures for the youngest, and a 9×9 with pencil notes for the older ones
+    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.click("#tile-picturedoku")
+    page.wait_for_timeout(300)
+    for pid, file, fill in ((1, "7-picturedoku-4x4.png", 3), (43, "8-picturedoku-9x9.png", 14)):
+        page.evaluate(f"window.__bubbels.pdoku.play({pid})")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+        pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+        empties = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
+        for i in empties[:fill]:
+            page.evaluate(f"window.__bubbels.pdoku.tapCell({i}); window.__bubbels.pdoku.tapPalette({pz['solution'][i]})")
+        if pz["n"] > 4:  # a few pencil notes, then a chosen square
+            page.click("#pdoku-pencil")
+            for i in empties[fill:fill + 3]:
+                page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
+                for v in page.evaluate(f"window.__bubbels.pdoku.candidates({i})")[:3]:
+                    page.evaluate(f"window.__bubbels.pdoku.tapPalette({v})")
+                page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
+            page.click("#pdoku-pencil")
+        page.evaluate(f"window.__bubbels.pdoku.tapCell({empties[-1]})")
+        page.wait_for_timeout(500)
+        shots.append(out / file)
+        page.screenshot(path=str(shots[-1]))
     ctx.close()
     for s in shots:
         flatten(s)

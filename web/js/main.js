@@ -15,6 +15,9 @@ import { createBubbels } from '../games/bubbels/bubbels.js';
 import '../games/dogudoku/strings.js';
 import { createDogudoku } from '../games/dogudoku/dogudoku.js';
 import { dogSvg } from '../games/dogudoku/art.js';
+import '../games/picturedoku/strings.js';
+import { createPicturedoku } from '../games/picturedoku/picturedoku.js';
+import { pictureSvg } from '../games/picturedoku/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -136,6 +139,12 @@ function drawDoguTile() {
   spots[2].innerHTML = dogSvg(0);
   spots[3].innerHTML = dogSvg(3);
   spots[7].innerHTML = dogSvg(4);
+}
+
+function drawPicturedokuTile() {
+  // a little 2×2 sudoku with four of the game's pictures
+  const box = $('#tile-picturedoku .tile-art');
+  box.innerHTML = `<span class="mini-sudoku">${[1, 2, 3, 4].map((v) => `<span>${pictureSvg(v)}</span>`).join('')}</span>`;
 }
 
 const games = {};
@@ -397,17 +406,31 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.picturedoku = createPicturedoku({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   renderLanguage();
   drawTileArt();
   drawDoguTile();
+  drawPicturedokuTile();
   homeAnim.start();
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init()]); // a Dogudoku load error shows on its tile
+  // a Dogudoku or Picturedoku load error shows on its tile
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
     window.__bubbels = {
       ...games.bubbels.testHook(),
       dogu: games.dogudoku.testHook(),
+      pdoku: games.picturedoku.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -438,6 +461,7 @@ function onBack() {
   if (action === 'close') hideOverlay();
   else if (action === 'levels') show('levels');
   else if (action === 'dogudoku-levels') games.dogudoku.leave();
+  else if (action === 'picturedoku-levels') games.picturedoku.leave();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

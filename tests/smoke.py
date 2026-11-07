@@ -1,6 +1,7 @@
 """Playwright smoke test: serve web/ locally, open Bubbels from the home screen, play level 1 with
 5 real drag-and-release shots, solve the first Dogudoku puzzle by tapping (with one wrong puppy
-first, which must light up), check that nothing went to the network and nothing threw, that the
+first, which must light up), solve the first Picturedoku puzzle (one wrong picture first, then
+square-then-picture and picture-first), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -80,13 +81,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
             problems.append(f"{name}: {sel} says {page.inner_text(sel)!r}, expected {want!r}")
 
     play_dogudoku(page, name, say, problems)
-
-    # the coming-soon tile only shows a friendly card
-    page.click("#tile-sudoku")
-    page.wait_for_timeout(300)
-    if page.inner_text("#ov-title") != say["soon"]:
-        problems.append(f"{name}: coming-soon tile shows {page.inner_text('#ov-title')!r}")
-    page.click(f"#ov-buttons button >> text={say['ok']}")
+    play_picturedoku(page, name, say, problems)
 
     page.click("#tile-bubbels")
     page.wait_for_timeout(300)
@@ -292,6 +287,69 @@ def play_dogudoku(page, name, say, problems):
     page.wait_for_timeout(200)
 
 
+def play_picturedoku(page, name, say, problems):
+    """Open Picturedoku, put one picture wrong (it must light up), then solve puzzle 1 by tapping:
+    first square-then-picture, then picture-first (the brush), and check the win and the stars."""
+    page.click("#tile-picturedoku")
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-p1-puzzles.png"))
+    page.click("#pdoku-levels .level-btn.locked >> nth=0")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]]:
+        problems.append(f"{name}: locked Picturedoku puzzle offers {labels}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+    page.click("#pdoku-levels .level-btn[data-puzzle='1']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):  # the how-to card, first time per size
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+    n, givens, sol = pz["n"], pz["givens"], pz["solution"]
+    cell = lambda i: f"#pdoku-board .pcell[data-i='{i}']"
+    pick = lambda v: f"#pdoku-palette .pick[data-v='{v}']"
+    empties = [i for i, ch in enumerate(givens) if ch == "."]
+    first = empties[0]
+    # one wrong picture: a picture that is already fixed in the same row
+    clash = next(givens[j] for j in range(first // n * n, first // n * n + n) if givens[j] != ".")
+    page.click(cell(first))
+    page.click(pick(clash))
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-p2-oops.png"))
+    st = page.evaluate("window.__bubbels.pdoku.state()")
+    if not st["status"] or page.locator("#pdoku-board .pcell.bad").count() < 2:
+        problems.append(f"{name}: a wrong picture did not light up ({st['status']!r})")
+    page.click(cell(first))  # choose the square again: the right picture replaces the wrong one
+    page.click(pick(sol[first]))
+    half = len(empties) // 2
+    for i in empties[1:half]:  # square first, then the picture
+        page.click(cell(i))
+        page.click(pick(sol[i]))
+    rest = empties[half:]
+    for v in sorted({sol[i] for i in rest}):  # picture first, then its squares
+        page.click(pick(v))
+        for i in [i for i in rest if sol[i] == v]:
+            page.click(cell(i))
+        if not page.evaluate("window.__bubbels.pdoku.state().solved"):
+            page.click(pick(v))
+    page.wait_for_timeout(500)
+    page.screenshot(path=str(SHOTS / f"{name}-p3-solved.png"))
+    if not page.evaluate("window.__bubbels.pdoku.state().solved"):
+        problems.append(f"{name}: Picturedoku puzzle 1 not solved by tapping the solution")
+    page.wait_for_timeout(1300)
+    if page.inner_text("#ov-title") != say["dogWin"]:
+        problems.append(f"{name}: Picturedoku win card says {page.inner_text('#ov-title')!r}")
+    page.click(f"#ov-buttons button >> text={say['puzzles']}")
+    page.wait_for_timeout(200)
+    label = page.locator("#pdoku-levels .level-btn[data-puzzle='1']").get_attribute("aria-label") or ""
+    if say["stars3"] not in label:
+        problems.append(f"{name}: Picturedoku puzzle 1 not saved with 3 stars ({label!r})")
+    saved = page.evaluate("window.__bubbels.save().games.picturedoku")
+    if not saved or saved.get("stars", {}).get("1") != 3:
+        problems.append(f"{name}: Picturedoku save section wrong: {saved}")
+    page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+
 def run_sideways(browser, base, problems):
     ctx = browser.new_context(
         viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True
@@ -325,6 +383,20 @@ def run_sideways(browser, base, problems):
     if b["height"] < 260 or b["y"] < 0 or b["y"] + b["height"] > 390:
         problems.append(f"sideways: Dogudoku board {b['width']:.0f}x{b['height']:.0f} at y={b['y']:.0f}")
     page.screenshot(path=str(SHOTS / "sideways-dogudoku.png"))
+    page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.click("#tile-picturedoku")
+    page.wait_for_timeout(200)
+    page.click("#pdoku-levels .level-btn[data-puzzle='43']")  # a free 9×9
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.wait_for_timeout(300)
+    b = page.locator("#pdoku-board").bounding_box()
+    pal = page.locator("#pdoku-palette").bounding_box()
+    print(f"[sideways] picturedoku board {b['width']:.0f}x{b['height']:.0f}")
+    if b["height"] < 300 or b["y"] < 0 or b["y"] + b["height"] > 390 or pal["y"] + pal["height"] > 390 or pal["x"] < b["x"] + b["width"]:
+        problems.append(f"sideways: Picturedoku board {b} / palette {pal}")
+    page.screenshot(path=str(SHOTS / "sideways-picturedoku.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
     ctx.close()

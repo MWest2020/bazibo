@@ -27,3 +27,9 @@ test('back: a Dogudoku puzzle goes to its list, the list to home, a card there c
   assert.equal(backAction({ screen: 'dogudoku', overlay: 'card' }), 'close');
   assert.equal(backAction({ screen: 'dogudoku', overlay: 'busy' }), 'ignore');
 });
+
+test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
+  assert.equal(backAction({ screen: 'picturedoku' }), 'picturedoku-levels');
+  assert.equal(backAction({ screen: 'picturedoku-levels' }), 'home');
+  assert.equal(backAction({ screen: 'picturedoku', overlay: 'card' }), 'close');
+});

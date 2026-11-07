@@ -3,9 +3,10 @@
 // free tier), strings.js and a controller, then an entry here and a tile in index.html.
 import { meta as bubbels } from '../games/bubbels/meta.js';
 import { meta as dogudoku } from '../games/dogudoku/meta.js';
+import { meta as picturedoku } from '../games/picturedoku/meta.js';
 
 export const GAMES = [
   { ...bubbels, status: 'ready' },
   { ...dogudoku, status: 'ready' },
-  { id: 'sudoku', titleKey: 'games.sudoku', status: 'soon' },
+  { ...picturedoku, status: 'ready' },
 ];

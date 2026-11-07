@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter and Dogudoku, the puzzle with puppies: games for children aged 3 to 10, without a single ad. More games are on their way.
+Bubble Shooter, Dogudoku with puppies and Picturedoku, sudoku with pictures: games for children aged 3 to 10, without a single ad.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,bubbles,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,offline
+bubble shooter,sudoku,puppies,dogs,puzzle,logic,kids,toddler,learning,no ads,offline
 
 ## Description (4000)
 
-Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has two games now: Bubble Shooter and Dogudoku. More games will follow, including games to learn from; the next one is Picturedoku, a picture sudoku.
+Idaveld is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has three games now: Bubble Shooter, Dogudoku and Picturedoku. More games will follow, including games to learn from.
 
 The name comes from Norse myth: Idavöllr is the field where the young gods played with golden game pieces.
 
@@ -45,6 +45,13 @@ DOGUDOKU: HIDE THE PUPPIES
 • 60 puzzles, each with exactly one solution. A mistake lights up gently, with a picture that explains it; a hint helps one step further.
 • Six different puppies, and a happy "woof" when you solve it.
 
+PICTUREDOKU: SUDOKU WITH PICTURES
+• Every picture goes once in every row, every column and every box.
+• For the youngest (age 3 and up): 4 by 4 with an apple, a banana, grapes and a carrot, no numbers and no reading.
+• From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
+• Tap a square and then a picture, or pick a picture first and tap the squares. With a pencil, an eraser and undo.
+• 60 puzzles, each with exactly one solution and solvable without guessing. A mistake lights up gently; a hint helps one step further.
+
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.
 • Big buttons, short texts, in English or Dutch.
@@ -53,7 +60,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, and in Dogudoku 10 free puzzles, spread over every size. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, and in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://mwest2020.github.io/bubbels/privacy/en.html
 Source code (MIT): https://github.com/MWest2020/bubbels

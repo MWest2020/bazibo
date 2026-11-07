@@ -319,7 +319,7 @@ test('app: a hanging read times out and nothing is written', async () => {
 
 // Review of PR #5: after a failed read that a later read merges in, the games' own copy of their
 // stars is older than the save; saving it must never lower or drop stars.
-for (const game of ['bubbels', 'dogudoku']) {
+for (const game of ['bubbels', 'dogudoku', 'picturedoku']) {
   test(`stars survive a failed read, the merge, and two later wins (${game})`, async () => {
     let value = JSON.stringify({ version: 1, games: { [game]: { stars: { 1: 3, 2: 3, 3: 3 } } }, settings: {}, purchase: { owned: false } });
     let fails = 3;

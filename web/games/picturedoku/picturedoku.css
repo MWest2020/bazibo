@@ -1,0 +1,190 @@
+/* Picturedoku: board, palette and tools. The puzzle list, HUD, status line and rule chips reuse
+   Dogudoku's classes (games/dogudoku/dogudoku.css); shared look lives in css/style.css. */
+
+/* ---------- home tile: a little 2×2 sudoku with four pictures ---------- */
+#tile-picturedoku .tile-art { display: flex; align-items: center; justify-content: center; }
+.mini-sudoku {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border-radius: 14px;
+  background: #c9c1ff;
+}
+.mini-sudoku span { border-radius: 8px; background: #fffaf0; display: block; padding: 3px; }
+.mini-sudoku span:nth-child(2), .mini-sudoku span:nth-child(3) { background: #eef3ff; }
+.mini-sudoku svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- HUD ---------- */
+#pdoku-numbers[hidden], #pdoku-pencil[hidden] { display: none; }
+#pdoku-numbers[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }
+#pdoku-hint { position: relative; }
+#pdoku-hint .count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 24px;
+  box-shadow: 0 2px 0 #c95f17;
+}
+#pdoku-hint .count:empty { display: none; }
+#pdoku-hint.empty { opacity: 0.55; }
+
+/* ---------- board ---------- */
+#pdoku-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px 14px;
+}
+#pdoku-stage.side { flex-direction: row; }
+.pdoku-board {
+  --n: 4;
+  --edge: #4b3fb3;
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  grid-template-rows: repeat(var(--n), 1fr);
+  border: 4px solid var(--edge);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--edge);
+  box-shadow: 0 8px 0 #c9c1ff, 0 14px 30px rgba(59, 47, 168, 0.22);
+  touch-action: manipulation;
+  flex: none;
+}
+.pcell {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(75, 63, 179, 0.2);
+  border-bottom: 1px solid rgba(75, 63, 179, 0.2);
+  background: #fffdf7;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font: inherit;
+  min-width: 0;
+  min-height: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+/* thick lines between the boxes */
+.pcell.er { border-right: 3px solid var(--edge); }
+.pcell.eb { border-bottom: 3px solid var(--edge); }
+/* fixed pictures sit on a lilac plate, the child's own on cream; highlights tint on top of both */
+.pcell.given { background: #e6e0ff; }
+.pcell.peer { box-shadow: inset 0 0 0 999px rgba(255, 205, 70, 0.2); }
+.pcell.zone { box-shadow: inset 0 0 0 999px rgba(229, 72, 77, 0.14); }
+.pcell.sel { box-shadow: inset 0 0 0 999px rgba(255, 197, 49, 0.42), inset 0 0 0 3px #f0a500; z-index: 1; }
+.pcell.same::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 10px;
+  border: 3px solid rgba(91, 75, 219, 0.45);
+  pointer-events: none;
+}
+.pcell:focus-visible { outline: 4px solid var(--gold); outline-offset: -4px; z-index: 2; }
+.pcell > svg.pic { position: absolute; inset: 9%; width: 82%; height: 82%; pointer-events: none; }
+.pcell:not(.given) > svg.pic { animation: pic-in 0.2s cubic-bezier(0.2, 1.6, 0.4, 1); }
+/* fixed pictures sit on a little plate, so a child sees they belong to the puzzle */
+.pcell.given > svg.pic { filter: drop-shadow(0 2px 0 rgba(59, 47, 168, 0.25)); }
+.pcell > svg.pic.num { color: var(--primary-dark); }
+.pcell:not(.given) > svg.pic.num { color: var(--accent); }
+.pcell.bad::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 3px solid #e5484d;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18);
+  pointer-events: none;
+}
+.pcell.bad > svg.pic { animation: pic-sad 0.5s ease; }
+.pcell.hinted::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 10px;
+  border: 4px solid var(--gold);
+  animation: hint-pulse 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+.pcell.wiggle, #pdoku-hint.wiggle { animation: wiggle 0.4s ease; }
+
+/* pencil notes: small pictures in a little grid inside the square */
+.notes { position: absolute; inset: 4%; display: grid; pointer-events: none; }
+.notes.n6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+.notes.n9 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+.notes .note { display: block; min-width: 0; min-height: 0; }
+.notes .note svg { width: 100%; height: 100%; display: block; opacity: 0.85; }
+.pdoku-board.pencil { --edge: #6a5ad6; }
+
+/* solved: every picture hops, one after the other */
+.pdoku-board.won .pcell > svg.pic { animation: pic-hop 0.6s ease calc(var(--i) * 45ms) 2; }
+
+/* ---------- palette and tools ---------- */
+.pdoku-side { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 560px; width: 100%; }
+#pdoku-stage.side .pdoku-side { width: 300px; flex: none; }
+.pdoku-palette { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.pick {
+  width: 64px;
+  height: 64px;
+  padding: 6px;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.15);
+  cursor: pointer;
+  color: var(--primary-dark);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.pick svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.pick:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
+.pick:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pick.armed { background: #ffe08a; box-shadow: 0 5px 0 #e0a800, 0 0 0 4px var(--gold); }
+.pick.done { opacity: 0.4; }
+/* 6 pictures in one row of 6, 9 in two rows (5 + 4) */
+.pdoku-palette[data-n="6"] .pick { width: 54px; height: 54px; }
+.pdoku-palette[data-n="9"] { max-width: 340px; }
+.pdoku-palette[data-n="9"] .pick { width: 56px; height: 56px; border-radius: 16px; }
+.pdoku-tools { display: flex; gap: 14px; }
+.pdoku-tools .tool { width: 54px; height: 54px; border-radius: 18px; }
+.pdoku-tools .tool svg { width: 28px; height: 28px; }
+.pdoku-tools .tool[aria-pressed="true"], .pdoku-tools .tool.armed { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }
+.pdoku-tools .tool:disabled { opacity: 0.45; }
+#pdoku-rules .rule svg { color: var(--primary); }
+
+/* short sideways phones: the HUD becomes a column on the left, the palette sits beside the board */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-picturedoku { flex-direction: row; }
+  #pdoku-stage { padding: 6px 8px; }
+  #pdoku-stage .pdoku-rules, #pdoku-stage #pdoku-rules { display: none; }
+  .pdoku-palette .pick, .pdoku-palette[data-n="6"] .pick, .pdoku-palette[data-n="9"] .pick { width: 50px; height: 50px; }
+  .pdoku-palette[data-n="9"] { max-width: 290px; }
+  .pdoku-tools .tool { width: 50px; height: 50px; }
+}
+
+/* the how-to card shows a picture */
+.ov-art .ov-pic { width: 96px; height: 96px; }
+
+@keyframes pic-in { from { transform: scale(0.4); } to { transform: scale(1); } }
+@keyframes pic-sad { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes pic-hop { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-16%) scale(1.08); } 70% { transform: translateY(2%) scale(0.98, 1.02); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pcell > svg.pic, .pdoku-board.won .pcell > svg.pic, .pcell.hinted::after, .pcell.wiggle { animation: none !important; }
+}

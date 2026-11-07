@@ -198,3 +198,25 @@ export function woof() {
   bark(t + 0.24, 600, 330, 0.13, 0.26);
   [784, 988, 1175].forEach((f, i) => tone('triangle', f, f, t + 0.5 + i * 0.09, 0.25, 0.1));
 }
+
+// Picturedoku: every picture has its own soft note (a pentatonic scale, so any mix sounds friendly).
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98];
+
+/** A picture placed: a short, soft bell note for picture v (1..9). */
+export function plink(v = 1) {
+  if (!on()) return;
+  const f = PENTA[(Math.max(1, v) - 1) % PENTA.length];
+  const t = ac.currentTime + 0.004;
+  tone('sine', f, f, t, 0.22, 0.16);
+  tone('triangle', f * 2, f * 2, t, 0.12, 0.04);
+}
+
+/** A puzzle solved: a gentle rising chime. */
+export function chime() {
+  if (!on()) return;
+  const t = ac.currentTime + 0.02;
+  [659.25, 783.99, 1046.5, 1318.51, 1567.98].forEach((f, i) => {
+    tone('sine', f, f, t + i * 0.11, 0.5, 0.14);
+    tone('triangle', f * 2, f * 2, t + i * 0.11, 0.25, 0.035);
+  });
+}
