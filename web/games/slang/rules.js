@@ -79,15 +79,34 @@ export function colorTargets(level, rng = Math.random) {
   return out;
 }
 
-/** Columns and rows for this round: upright on an upright screen, lying down on a sideways one. */
-export function gridSize(level, landscape = false) {
+/**
+ * On a small screen the biggest boards get two rows and two columns fewer, so the numbers and
+ * letters stay readable (review of PR #12). Only boards of 13 wide or more shrink.
+ */
+export const COMPACT_SHRINK = 2;
+export const canCompact = (level) => level.size[0] >= 13;
+/** The level's [short, long] size, compact or not. */
+export function sizeOf(level, compact = false) {
   const [short, long] = level.size;
+  return compact && canCompact(level) ? [short - COMPACT_SHRINK, long - COMPACT_SHRINK] : [short, long];
+}
+
+/** Columns and rows for this round: upright on an upright screen, lying down on a sideways one. */
+export function gridSize(level, landscape = false, compact = false) {
+  const [short, long] = sizeOf(level, compact);
   return landscape ? { cols: long, rows: short } : { cols: short, rows: long };
 }
 
-/** The level's walls on this round's board (given for the upright board). */
-export function wallCells(level, landscape = false) {
-  return (level.walls || []).map(([r, c]) => (landscape ? [c, r] : [r, c]));
+/**
+ * The level's walls on this round's board (given for the upright board). On a compact board the
+ * walls in the far half move in with the edge, so a corner stays a corner.
+ */
+export function wallCells(level, landscape = false, compact = false) {
+  const [short, long] = level.size;
+  const shrink = compact && canCompact(level) ? COMPACT_SHRINK : 0;
+  return (level.walls || [])
+    .map(([r, c]) => [r >= long / 2 ? r - shrink : r, c >= short / 2 ? c - shrink : c])
+    .map(([r, c]) => (landscape ? [c, r] : [r, c]));
 }
 
 /** Where the snake starts: in the middle, three long, facing up (upright) or right (sideways). */
@@ -103,8 +122,8 @@ export function startSnake(cols, rows, landscape = false) {
 }
 
 /** A new round. `rng` decides where things appear (and the colours); tests pass a seeded one. */
-export function createRound(level, { lang = 'nl', rng = Math.random, landscape = false } = {}) {
-  const { cols, rows } = gridSize(level, landscape);
+export function createRound(level, { lang = 'nl', rng = Math.random, landscape = false, compact = false } = {}) {
+  const { cols, rows } = gridSize(level, landscape, compact);
   const { dir, snake } = startSnake(cols, rows, landscape);
   const state = {
     level,
@@ -114,7 +133,8 @@ export function createRound(level, { lang = 'nl', rng = Math.random, landscape =
     rows,
     wrap: wrapOf(level),
     selfHit: selfHitOf(level),
-    walls: new Set(wallCells(level, landscape).map(([r, c]) => key(r, c))),
+    walls: new Set(wallCells(level, landscape, compact).map(([r, c]) => key(r, c))),
+    compact: compact && canCompact(level),
     snake,
     dir,
     queue: [],
@@ -173,26 +193,38 @@ export function wanted(state) {
 /** The cells right in front of the head (where something must not pop up out of nowhere). */
 function aheadCells(state, n = 2) {
   const out = [];
-  let [r, c] = state.snake[0];
-  const [dr, dc] = DIRS[state.dir];
-  for (let i = 0; i < n; i++) {
-    r += dr;
-    c += dc;
-    if (state.wrap) {
-      r = (r + state.rows) % state.rows;
-      c = (c + state.cols) % state.cols;
+  // the way it goes now, and the way it will go after the turns typed ahead (review of PR #12)
+  const paths = [Array(n).fill(state.dir)];
+  if (state.queue.length) paths.push([...state.queue, ...Array(n).fill(state.queue[state.queue.length - 1])].slice(0, n));
+  for (const path of paths) {
+    let [r, c] = state.snake[0];
+    for (const d of path) {
+      const [dr, dc] = DIRS[d];
+      r += dr;
+      c += dc;
+      if (state.wrap) {
+        r = (r + state.rows) % state.rows;
+        c = (c + state.cols) % state.cols;
+      }
+      out.push(key(r, c));
     }
-    out.push(key(r, c));
   }
   return out;
 }
 
-/** A free cell for a new thing: not on a wall, the snake or another thing, not right in front of the head. */
+/**
+ * A free cell for a new thing: not on a wall, the snake or another thing, and not right in front of
+ * the head (also after a turn typed ahead). Preferably a roomy spot: not next to another thing and
+ * not in a pocket, so a needed thing is never fenced in by wrong ones (the snake would have to eat
+ * a wrong one to get there).
+ */
 export function spawnCell(state, rng = Math.random) {
-  const taken = new Set(state.walls);
+  const walls = state.walls;
+  const items = new Set(state.items.map((it) => key(it.r, it.c)));
+  const taken = new Set([...walls, ...items]);
   for (const [r, c] of state.snake) taken.add(key(r, c));
-  for (const it of state.items) taken.add(key(it.r, it.c));
   const ahead = new Set(aheadCells(state));
+  const roomy = [];
   const free = [];
   const loose = [];
   for (let r = 0; r < state.rows; r++) {
@@ -200,10 +232,21 @@ export function spawnCell(state, rng = Math.random) {
       const k = key(r, c);
       if (taken.has(k)) continue;
       loose.push([r, c]);
-      if (!ahead.has(k)) free.push([r, c]);
+      if (ahead.has(k)) continue;
+      free.push([r, c]);
+      let open = 0;
+      let nearItem = false;
+      for (const d of Object.keys(DIRS)) {
+        const n = nextCell(state, [r, c], d);
+        if (!n) continue;
+        const nk = key(n[0], n[1]);
+        if (items.has(nk)) nearItem = true;
+        else if (!walls.has(nk)) open++;
+      }
+      if (!nearItem && open >= 3) roomy.push([r, c]);
     }
   }
-  const pool = free.length ? free : loose;
+  const pool = roomy.length ? roomy : free.length ? free : loose;
   if (!pool.length) return null;
   return pool[Math.floor(rng() * pool.length)];
 }
@@ -348,6 +391,8 @@ export function pathDirection(state) {
   const goal = new Set(state.items.filter((it) => isCorrect(state, it)).map((it) => key(it.r, it.c)));
   const facing = state.queue.length ? state.queue[state.queue.length - 1] : state.dir;
   const headKey = key(head[0], head[1]);
+  const tail = state.snake[state.snake.length - 1];
+  const tailKey = key(tail[0], tail[1]);
   // from a first cell: the distance to the nearest right thing, and how much room there is
   const explore = (start) => {
     const seen = new Set([headKey, key(start[0], start[1])]);
@@ -355,6 +400,7 @@ export function pathDirection(state) {
     let dist = goal.has(key(start[0], start[1])) ? 0 : Infinity;
     let depth = 0;
     let room = 1;
+    let toTail = key(start[0], start[1]) === tailKey; // the tail moves away: a way out
     while (frontier.length) {
       depth++;
       const nextFrontier = [];
@@ -366,13 +412,14 @@ export function pathDirection(state) {
           if (blocked.has(k) || seen.has(k)) continue;
           seen.add(k);
           room++;
+          if (k === tailKey) toTail = true;
           if (goal.has(k) && depth < dist) dist = depth;
           if (!wrong.has(k)) nextFrontier.push(n);
         }
       }
       frontier = nextFrontier;
     }
-    return { dist, room };
+    return { dist, room, toTail };
   };
   const options = [];
   for (const d of Object.keys(DIRS)) {
@@ -383,10 +430,18 @@ export function pathDirection(state) {
     if (blocked.has(k) || wrong.has(k)) continue;
     options.push({ d, ...explore(n) });
   }
-  if (!options.length) return null;
+  if (!options.length) {
+    // boxed in by wrong things (and the fence): a wrong bite is only an oops, so take the roomiest
+    for (const d of Object.keys(DIRS)) {
+      if (d === OPPOSITE[facing]) continue;
+      const n = nextCell(state, head, d);
+      if (n && !blocked.has(key(n[0], n[1]))) options.push({ d, ...explore(n) });
+    }
+    if (!options.length) return null;
+  }
   const need = state.selfHit ? state.snake.length + 2 : 0;
-  const safe = options.filter((o) => o.room >= need);
+  const safe = options.filter((o) => o.room >= need || (state.selfHit && o.toTail));
   const pool = safe.length ? safe : options;
-  pool.sort((a, b) => a.dist - b.dist || b.room - a.room);
+  pool.sort((a, b) => a.dist - b.dist || b.toTail - a.toTail || b.room - a.room);
   return pool[0].d;
 }

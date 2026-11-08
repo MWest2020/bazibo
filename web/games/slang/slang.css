@@ -63,8 +63,8 @@
 .slang-target-art svg { width: 100%; height: 100%; display: block; }
 .slang-target-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .slang-target-what { font-size: 1.3rem; font-weight: 900; color: var(--primary); line-height: 1.15; }
-.slang-status { min-height: 1.2em; font-size: 0.95rem; font-weight: 800; color: #b8540f; line-height: 1.2; }
-.slang-status:empty::before { content: "\00a0"; }
+.slang-target { flex-wrap: wrap; row-gap: 2px; }
+.slang-status { flex: 1 1 100%; order: 4; min-height: 2.4em; font-size: 0.95rem; font-weight: 800; color: #b8540f; line-height: 1.2; } /* two lines kept free, so the board never shifts */
 .slang-target-progress {
   flex: none;
   padding: 4px 10px;
@@ -76,9 +76,10 @@
   font-variant-numeric: tabular-nums;
 }
 .slang-target-progress:empty { display: none; }
-.slang-word { display: flex; flex-wrap: wrap; gap: 4px; }
+.slang-word { display: flex; flex-wrap: nowrap; gap: 4px; min-width: 0; } /* one line: the board keeps its rows */
 .slang-letter {
-  min-width: 30px;
+  flex: 0 1 30px;
+  min-width: 0;
   height: 34px;
   padding: 0 4px;
   display: inline-flex;
@@ -152,7 +153,7 @@
 }
 #slang-stage.side .slang-board { grid-area: board; height: 100%; }
 #slang-stage.side .slang-target { grid-area: target; width: 100%; flex-wrap: wrap; row-gap: 4px; }
-#slang-stage.side .slang-target-main { flex: 1 1 140px; }
+#slang-stage.side .slang-target-main { flex: 1 1 100%; order: 3; } /* the word gets the panel's whole width */
 #slang-stage.side .slang-pad { grid-area: pad; align-self: center; justify-self: center; }
 
 /* overlay pictures */
@@ -165,7 +166,7 @@
   .slang-target { min-height: 56px; }
   .slang-target-art { width: 44px; height: 44px; }
   .slang-target-what { font-size: 1.15rem; }
-  .slang-letter { min-width: 26px; height: 30px; font-size: 1.1rem; }
+  .slang-letter { height: 30px; font-size: 1.1rem; }
 }
 /* short upright phones: the four arrows in one row */
 @media (max-height: 640px) and (orientation: portrait) {
@@ -179,12 +180,22 @@
   .slang-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; }
   .slang-hud .hud-mid { flex: 0; }
   .slang-hud .btn.icon { width: 54px; height: 54px; }
-  #slang-stage.side { grid-template-columns: minmax(0, 1fr) 196px; column-gap: 10px; padding: 8px 10px 8px 4px; }
+  /* a narrow column ("Level" above the number), so the board gets the width */
+  .slang-hud .hud-mid { width: 60px; }
+  .slang-hud .hud-level { font-size: 0.85rem; }
+  .slang-hud .dogu-title { white-space: normal; font-size: 1.05rem; overflow-wrap: anywhere; }
+  #slang-stage.side { grid-template-columns: minmax(0, 1fr) 168px; column-gap: 10px; padding: 8px 10px 8px 4px; }
   #slang-stage.side .slang-target { padding: 6px 8px; gap: 6px; }
   .slang-target-art { width: 40px; height: 40px; }
   .slang-target-what { font-size: 1.05rem; }
-  .slang-letter { min-width: 24px; height: 28px; font-size: 1rem; border-width: 2px; }
-  .slang-pad { grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 48px); gap: 6px; }
+  .slang-letter { height: 28px; font-size: 1rem; border-width: 2px; }
+  .slang-pad { grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(2, 46px); gap: 6px; }
+}
+
+/* narrow phones: the status text stays within its two lines */
+@media (max-width: 360px) {
+  .slang-status { font-size: 0.85rem; }
+  .slang-target { gap: 8px; padding: 6px 10px; }
 }
 
 @keyframes slang-bob { 50% { transform: translateY(-3px); } }

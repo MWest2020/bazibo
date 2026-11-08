@@ -7,6 +7,22 @@ import { pictureSvg } from '../picturedoku/art.js';
 import { dogSvg } from '../dogudoku/art.js';
 
 const TAU = Math.PI * 2;
+
+// The colours to eat: the bubble palette, but with purple (and its own square) instead of light
+// blue, so no round ever asks a child to tell blue from light blue (review of PR #12).
+export const FRUIT_COLORS = Object.freeze([
+  ...COLORS.slice(0, 5),
+  Object.freeze({ name: 'paars', base: '#8E5BD6', light: '#E6D8FF', dark: '#4A2A85', symbol: 'square' }),
+]);
+
+// How big things are drawn, as a part of a board square (review of PR #12: two-digit numbers were
+// 5-7 px tall on small phones). `glyphSizes` says what that comes to in pixels.
+export const ITEM_R = 0.47; // the radius of a fruit or a letter tile
+export const LETTER_PX = 0.7; // the letter's font size
+export const NUMBER_PX = { one: 0.72, two: 0.6 }; // a one- or two-digit number's font size
+export function glyphSizes(cell) {
+  return { letter: cell * LETTER_PX, number: cell * NUMBER_PX.one, number2: cell * NUMBER_PX.two };
+}
 export const SNAKE = Object.freeze({ body: '#58c27d', dark: '#2a7f50', light: '#b7f0c8', cheek: '#ff9fb8', tongue: '#e5484d' });
 const INK = '#2b2370';
 
@@ -59,7 +75,7 @@ export function symbolD(kind, x, y, s) {
 
 /** A fruit of colour i (with its shape), as an SVG: the "eat only this colour" picture. */
 export function colorFruitSvg(i, { cls = '' } = {}) {
-  const col = COLORS[i % COLORS.length];
+  const col = FRUIT_COLORS[i % FRUIT_COLORS.length];
   return `<svg class="fruit-pic ${cls}" viewBox="0 0 48 48" aria-hidden="true">
     <path d="M24 12c1-4 3.5-6.5 7-7.5" fill="none" stroke="#7a4a26" stroke-width="2.6" stroke-linecap="round"/>
     <path d="M25 10c3-4 9-5 12-2.6-2.6 4.2-8.4 5.2-12 2.6z" fill="#4cc38a" stroke="#2a7f50" stroke-width="1.6" stroke-linejoin="round"/>
@@ -185,8 +201,8 @@ function leaf(ctx, x, y, r) {
   ctx.stroke();
 }
 
-/** A numbered fruit (an orange) on the board. */
-export function drawNumberFruit(ctx, x, y, r, n) {
+/** A numbered fruit (an orange) on the board; `cell` sets the size of the number. */
+export function drawNumberFruit(ctx, x, y, r, n, cell = r / ITEM_R) {
   leaf(ctx, x, y, r);
   const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
   g.addColorStop(0, '#ffd2a1');
@@ -199,11 +215,12 @@ export function drawNumberFruit(ctx, x, y, r, n) {
   ctx.arc(x, y, r, 0, TAU);
   ctx.fill();
   ctx.stroke();
-  label(ctx, x, y + r * 0.04, String(n), r * (String(n).length > 1 ? 0.95 : 1.15), '#fff', '#8f3f06');
+  const two = String(n).length > 1;
+  label(ctx, x, y + r * 0.04, String(n), cell * (two ? NUMBER_PX.two : NUMBER_PX.one), '#fff', '#8f3f06', two ? 0.09 : 0.13);
 }
 
-/** A letter tile on the board. */
-export function drawLetterTile(ctx, x, y, r, letter) {
+/** A letter tile on the board; `cell` sets the size of the letter. */
+export function drawLetterTile(ctx, x, y, r, letter, cell = r / ITEM_R) {
   ctx.fillStyle = '#fff8e1';
   ctx.strokeStyle = '#c9a14a';
   ctx.lineWidth = Math.max(1.4, r * 0.12);
@@ -211,21 +228,21 @@ export function drawLetterTile(ctx, x, y, r, letter) {
   rrect(ctx, x - r, y - r, 2 * r, 2 * r, r * 0.35);
   ctx.fill();
   ctx.stroke();
-  label(ctx, x, y + r * 0.06, letter, r * 1.35, INK, null);
+  label(ctx, x, y + r * 0.06, letter, cell * LETTER_PX, INK, null);
 }
 
 /** A fruit of colour i (a glossy berry with the colour's own shape and a leaf). */
 export function drawColorFruit(ctx, x, y, r, i) {
   leaf(ctx, x, y, r);
-  drawBubble(ctx, x, y, r, COLORS[i % COLORS.length], { shadow: false });
+  drawBubble(ctx, x, y, r, FRUIT_COLORS[i % FRUIT_COLORS.length], { shadow: false });
 }
 
-function label(ctx, x, y, text, size, fill, outline) {
+function label(ctx, x, y, text, size, fill, outline, weight = 0.16) {
   ctx.font = `900 ${Math.round(size)}px ui-rounded, "Nunito", "Varela Round", system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   if (outline) {
-    ctx.lineWidth = Math.max(2, size * 0.16);
+    ctx.lineWidth = Math.max(1.5, size * weight);
     ctx.strokeStyle = outline;
     ctx.lineJoin = 'round';
     ctx.strokeText(text, x, y);

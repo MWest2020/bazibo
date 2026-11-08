@@ -27,13 +27,13 @@ bubble shooter,sudoku,four in a row,snake,counting,puppies,puzzle,kids,toddler,n
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has five games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row and Snake. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has five games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row and Snake. More games will follow, including games to learn from.
 
 The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
 BUBBLE SHOOTER
 • Drag to aim and let go to shoot.
-• A dotted line shows where the bubble will go, also off the wall. The bubble always lands exactly where the line points.
+• A dotted line shows where the bubble lands, also off the wall.
 • Three or more of the same colour pop, with a real pop sound.
 • 30 levels. Level 1 shows how it works with a little hand.
 
@@ -42,22 +42,20 @@ DOGUDOKU: HIDE THE PUPPIES
 • For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
 • From age 5, coloured beds join in: one puppy per colour.
 • From age 7, bigger gardens, up to 8 by 8.
-• 60 puzzles, each with exactly one solution. A mistake lights up gently, with a picture that explains it; a hint helps one step further.
-• Six different puppies, and a happy "woof" when you solve it.
+• 60 puzzles, each with exactly one solution. A mistake lights up gently; a hint helps one step further.
 
 PICTUREDOKU: SUDOKU WITH PICTURES
 • Every picture goes once in every row, every column and every box.
 • For the youngest (age 3 and up): 4 by 4 with an apple, a banana, grapes and a carrot, no numbers and no reading.
 • From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
-• Tap a square and then a picture, or pick a picture first and tap the squares. With a pencil, an eraser and undo.
+• With a pencil, an eraser and undo.
 • 60 puzzles, each with exactly one solution and solvable without guessing. A mistake lights up gently; a hint helps one step further.
 
 FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Take turns dropping a token into a column. The first to get four in a row (straight or slanting) wins.
 • Play together on one screen, with a brother, sister or parent. Or against the computer: Easy, Medium or Hard. On Easy the computer makes mistakes on purpose, so young children win too.
 • For the youngest (age 3 and up): the little board, 5 by 4, where three in a row already wins. No reading needed.
-• Pick your own token: a puppy, a bubble, an apple, a flower, a fish or a pug.
-• Against the computer you can take back a move. Your wins are counted.
+• Pick your own token. Against the computer you can take back a move.
 
 SNAKE: COUNTING, LETTERS AND COLOURS
 • Steer a happy snake by swiping or with big arrows, and eat the right things.

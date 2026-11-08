@@ -11,8 +11,8 @@
 // The snake waits for the child: a round, and a round coming back from the pause or the menu,
 // starts with the first swipe or arrow.
 import { meta } from './meta.js';
-import { MODES, TIERS, tierOf, createRound, turn, step, expected, total, currentWord, starsFor, parSeconds, pathDirection, isCorrect } from './rules.js';
-import { snakeSvg, modeSvg, wordPictureSvg, numberFruitSvg, colorFruitSvg, drawBoard, drawNumberFruit, drawLetterTile, drawColorFruit, drawHelpRing, drawSnake } from './art.js';
+import { MODES, TIERS, OPPOSITE, tierOf, createRound, turn, step, expected, total, currentWord, starsFor, parSeconds, pathDirection, isCorrect, canCompact, countSequence } from './rules.js';
+import { snakeSvg, modeSvg, wordPictureSvg, numberFruitSvg, colorFruitSvg, drawBoard, drawNumberFruit, drawLetterTile, drawColorFruit, drawHelpRing, drawSnake, ITEM_R, glyphSizes, FRUIT_COLORS } from './art.js';
 import { getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -22,7 +22,9 @@ const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const ARROW = '<path d="M12 4 4.5 13H9v7h6v-7h4.5z"/>';
 const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
-const SWIPE = 22; // px of finger movement that count as a swipe
+const SWIPE = 22; // px of finger movement that turn the snake while the finger is still down
+const FLICK = 8; // px: a shorter movement is a tap (steer towards it), a longer one a swipe (review of PR #12)
+const MIN_CELL = 20; // px: below this a big board is shrunk, so numbers and letters stay readable
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export function createSlang(shell) {
@@ -62,6 +64,11 @@ export function createSlang(shell) {
     else stopLoop();
   });
   shell.onLangChange(() => {
+    // a kept letters round spells the word of the new language (review of PR #12)
+    if (game && game.state.mode === 'letters' && !game.state.over && getLang() !== game.state.lang) {
+      game = { ...game, state: createRound(game.level, { lang: getLang(), landscape: game.landscape, compact: game.state.compact }), prev: null };
+      setStatus(t('slang.goOn'));
+    }
     if (onScreen('slang-menu')) renderMenu();
     if (game) {
       renderHud();
@@ -171,31 +178,55 @@ export function createSlang(shell) {
     fx.flash = fx.squash = fx.shake = 0;
     fx.parts = [];
     const landscape = window.innerWidth > window.innerHeight * 1.2;
-    game = { level, state: createRound(level, { lang: getLang(), landscape }), prev: null };
+    const make = (compact) => ({ level, landscape, state: createRound(level, { lang: getLang(), landscape, compact }), prev: null });
+    game = make(false);
     shell.show('slang');
     renderHud();
-    renderTarget();
     setStatus(t('slang.start'));
+    renderTarget();
     fit();
+    if (cell < MIN_CELL && canCompact(level)) {
+      // a small screen: the same level on a board two squares smaller, so everything stays readable
+      game = make(true);
+      renderTarget();
+      fit();
+    }
     draw();
-    if (!seenHow()[level.mode]) {
+    const how = howKeys(level).filter((k) => !seenHow()[k]);
+    if (how.length) {
       shell.showOverlay({
         art: `<span class="slang-ov">${modeSvg(level.mode)}</span>`,
         title: t('slang.howTitle'),
-        text: t(`slang.how.${level.mode}`),
+        text: howText(level),
         buttons: [
           [
             t('common.ok'),
             'big primary',
             () => {
-              store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [level.mode]: true });
+              store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), ...Object.fromEntries(how.map((k) => [k, true])) });
               shell.hideOverlay();
+              startLoop(); // the help ring may move again
             },
           ],
         ],
       });
     }
     startLoop();
+  }
+
+  /** Which how-to cards this level needs: the kind of round, a new way of counting, and bumps. */
+  function howKeys(level) {
+    const keys = [level.mode];
+    if (level.mode === 'count' && (level.step || 1) !== 1) keys.push(level.step < 0 ? 'count-down' : 'count-twos');
+    if (tierOf(level).selfHit) keys.push('bump');
+    return keys;
+  }
+
+  /** The how-to text, with this level's own numbers (1, 2, 3 … or 2, 4, 6 … or 10, 9, 8 …). */
+  function howText(level) {
+    let text = t(`slang.how.${level.mode}`, level.mode === 'count' ? { seq: countSequence(level).slice(0, 3).join(', ') } : {});
+    if (tierOf(level).selfHit) text = `${text} ${t('slang.how.bump')}`;
+    return text;
   }
 
   function renderHud() {
@@ -246,8 +277,7 @@ export function createSlang(shell) {
     status.className = 'slang-status';
     status.setAttribute('aria-live', 'polite');
     status.textContent = statusText;
-    main.appendChild(status);
-    box.append(art, main, prog);
+    box.append(art, main, prog, status); // the status gets a row of its own, the panel's full width
   }
 
   let statusText = '';
@@ -264,6 +294,7 @@ export function createSlang(shell) {
     const s = game.state;
     const wasStarted = s.started;
     if (turn(s, dir) && !wasStarted) {
+      game.prev = null; // no slide back to where it was before the hold (review of PR #12)
       setStatus('');
       acc = 0;
       startLoop();
@@ -324,7 +355,8 @@ export function createSlang(shell) {
     if (next && !locked(next)) buttons.push([t('slang.next'), 'big primary', () => (shell.hideOverlay(), start(next.id))]);
     else if (next) {
       text = `${text} ${t('slang.lastFree')}`;
-      buttons.push([t('slang.more'), 'big primary', offer]);
+      // the offer over the level list, so "Later" lands there and not on the finished board
+      buttons.push([t('slang.more'), 'big primary', () => (shell.show('slang-menu'), offer())]);
     }
     buttons.push([t('slang.levels'), buttons.length ? 'big secondary' : 'big primary', () => shell.show('slang-menu')]);
     shell.showOverlay({
@@ -452,15 +484,25 @@ export function createSlang(shell) {
       p.vy += 300 * dt;
     }
     draw();
-    const busy = fx.flash || fx.squash || fx.shake || fx.parts.length;
-    if ((!s.over && !paused) || busy) raf = requestAnimationFrame(frame);
+    // Only keep drawing while something moves (review of PR #12: a waiting snake ran 60 fps):
+    // the snake, an effect, or the youngest tier's pulsing help ring.
+    if (needsFrames()) raf = requestAnimationFrame(frame);
+  }
+
+  function needsFrames() {
+    if (!game) return false;
+    const s = game.state;
+    if (fx.flash || fx.squash || fx.shake || fx.parts.length) return true;
+    if (s.over || paused || overlayUp()) return false;
+    if (s.started && !manual) return true;
+    return tierOf(s.level).help && !reducedMotion();
   }
 
   function burst([r, c], value) {
     if (reducedMotion()) return;
     const x = (c + 0.5) * cell;
     const y = (r + 0.5) * cell;
-    const color = game.state.mode === 'count' ? '#ff9f43' : game.state.mode === 'letters' ? '#c9a14a' : ['#1E80D6', '#F29A0E', '#12AE7E', '#F5DF2E', '#D877B3', '#5CC2F2'][value % 6];
+    const color = game.state.mode === 'count' ? '#ff9f43' : game.state.mode === 'letters' ? '#c9a14a' : FRUIT_COLORS[value % FRUIT_COLORS.length].base;
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
       fx.parts.push({ x, y, vx: Math.cos(a) * cell * 4, vy: Math.sin(a) * cell * 4 - cell * 2, life: 0.35, color });
@@ -514,10 +556,10 @@ export function createSlang(shell) {
     for (const it of s.items) {
       const x = (it.c + 0.5) * cell;
       const y = (it.r + 0.5) * cell;
-      const r = cell * 0.4;
+      const r = cell * ITEM_R;
       if (help && isCorrect(s, it)) drawHelpRing(ctx, x, y, r, reduced ? 0 : clock);
-      if (s.mode === 'count') drawNumberFruit(ctx, x, y, r, it.value);
-      else if (s.mode === 'letters') drawLetterTile(ctx, x, y, r * 0.92, it.value);
+      if (s.mode === 'count') drawNumberFruit(ctx, x, y, r, it.value, cell);
+      else if (s.mode === 'letters') drawLetterTile(ctx, x, y, r * 0.92, it.value, cell);
       else drawColorFruit(ctx, x, y, r, it.value);
     }
     const tongue = !reduced && s.started && !s.over && clock % 2.6 < 0.3;
@@ -548,7 +590,7 @@ export function createSlang(shell) {
   let swipe = null; // { x, y, moved }
   const board = $('#slang-board');
   board.addEventListener('pointerdown', (e) => {
-    swipe = { x: e.clientX, y: e.clientY, moved: false };
+    swipe = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, moved: false };
     board.setPointerCapture?.(e.pointerId);
   });
   board.addEventListener('pointermove', (e) => {
@@ -557,26 +599,44 @@ export function createSlang(shell) {
     const dy = e.clientY - swipe.y;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE) return;
     steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
-    swipe = { x: e.clientX, y: e.clientY, moved: true }; // a longer swipe can turn again
+    swipe = { ...swipe, x: e.clientX, y: e.clientY, moved: true }; // a longer swipe can turn again
   });
+  const dirOf = (dx, dy) => (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
   const endSwipe = (e) => {
     if (!swipe) return;
-    const tapped = !swipe.moved;
+    const sw = swipe;
     swipe = null;
-    if (!tapped || !game) return;
+    if (sw.moved || !game) return;
+    // a short swipe (8 px or more, under the turning distance) still goes the way the finger went
+    const mx = e.clientX - sw.x0;
+    const my = e.clientY - sw.y0;
+    if (Math.max(Math.abs(mx), Math.abs(my)) >= FLICK) {
+      steer(dirOf(mx, my));
+      return;
+    }
     // a tap: steer towards where the child tapped, seen from the head
     const rect = canvas.getBoundingClientRect();
     const [hr, hc] = game.state.snake[0];
     const dx = e.clientX - (rect.left + (hc + 0.5) * cell);
     const dy = e.clientY - (rect.top + (hr + 0.5) * cell);
     if (Math.max(Math.abs(dx), Math.abs(dy)) < cell * 0.6) return;
-    steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
+    let dir = dirOf(dx, dy);
+    const s = game.state;
+    const facing = s.queue.length ? s.queue[s.queue.length - 1] : s.dir;
+    if (dir === OPPOSITE[facing] && s.started) {
+      // behind the snake: turn along the other axis, towards the tap (or to one side when it is
+      // straight behind), instead of doing nothing
+      dir = facing === 'up' || facing === 'down' ? (dx >= 0 ? 'right' : 'left') : dy >= 0 ? 'down' : 'up';
+    }
+    steer(dir);
   };
   board.addEventListener('pointerup', endSwipe);
   board.addEventListener('pointercancel', () => (swipe = null));
 
   document.addEventListener('keydown', (e) => {
     if (!onScreen('slang') || !game) return;
+    // Space or Enter on a focused arrow button presses that button (its click steers)
+    if ((e.key === ' ' || e.key === 'Enter') && e.target?.closest?.('#slang-pad')) return;
     if (KEYS[e.key]) {
       e.preventDefault();
       steer(KEYS[e.key]);
@@ -637,6 +697,9 @@ export function createSlang(shell) {
           over: s.over,
           paused,
           cell,
+          compact: !!s.compact,
+          glyphs: glyphSizes(cell),
+          looping: !!raf,
         };
       };
       return {

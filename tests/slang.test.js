@@ -24,7 +24,10 @@ import {
   starsFor,
   parSeconds,
   pathDirection,
+  canCompact,
+  sizeOf,
 } from '../web/games/slang/rules.js';
+import { FRUIT_COLORS, glyphSizes } from '../web/games/slang/art.js';
 import { meta } from '../web/games/slang/meta.js';
 
 const LEVELS = JSON.parse(readFileSync(new URL('../web/games/slang/levels.json', import.meta.url), 'utf8'));
@@ -144,11 +147,11 @@ function connected(cols, rows, walls, wrap) {
   return seen.size === free.length;
 }
 
-test('levels: walls stay on the board, off the start and its first moves, and never wall off a pocket (both orientations)', () => {
+test('levels: walls stay on the board, off the start and its first moves, and never wall off a pocket (both orientations, full and compact)', () => {
   for (const l of LEVELS) {
-    for (const landscape of [false, true]) {
-      const { cols, rows } = gridSize(l, landscape);
-      const walls = new Set(wallCells(l, landscape).map(([r, c]) => key(r, c)));
+    for (const [landscape, compact] of [[false, false], [true, false], [false, true], [true, true]]) {
+      const { cols, rows } = gridSize(l, landscape, compact);
+      const walls = new Set(wallCells(l, landscape, compact).map(([r, c]) => key(r, c)));
       for (const k of walls) {
         const [r, c] = k.split(',').map(Number);
         assert.ok(r >= 0 && c >= 0 && r < rows && c < cols, `level ${l.id}: wall ${k} is off the board`);
@@ -159,6 +162,7 @@ test('levels: walls stay on the board, off the start and its first moves, and ne
       const cells = [...snake, ...[1, 2, 3, 4].map((k) => [head[0] + dr * k, head[1] + dc * k])];
       for (const [r, c] of cells) assert.ok(!walls.has(key(r, c)), `level ${l.id}: a wall on the start (${r},${c}), ${landscape ? 'sideways' : 'upright'}`);
       assert.ok(connected(cols, rows, walls, createRound(l).wrap), `level ${l.id}: walls close off part of the board`);
+      if (compact && canCompact(l)) assert.equal(walls.size, new Set(wallCells(l)).size, `level ${l.id}: compact walls fell on top of each other`);
       // room for the longest snake, all the things on the board and some space to move
       const longest = START_LENGTH + (l.mode === 'colors' ? l.eat : Math.max(...LANGS.map((lang) => createRound(l, { lang }).seq.length)));
       assert.ok(cols * rows - walls.size - longest - 8 > 20, `level ${l.id}: too crowded`);
@@ -393,14 +397,15 @@ test('stars: the youngest only count mistakes; older children also want it insid
 
 // ---------- every level can be played to the end ----------
 
-test('every level, in both languages and both orientations, can be eaten up without a single mistake or bump', () => {
+test('every level, in both languages, both orientations, full and compact, can be eaten up without a single mistake or bump', () => {
   for (const l of LEVELS) {
     for (const lang of LANGS) {
-      for (const landscape of [false, true]) {
+      for (const [landscape, compact] of [[false, false], [true, false], [false, true], [true, true]]) {
+        if (compact && !canCompact(l)) continue;
         for (const seed of [1, 2, 3]) {
           const rng = mulberry32(l.id * 100 + seed);
-          const s = createRound(l, { lang, rng, landscape });
-          const where = `level ${l.id} ${lang} ${landscape ? 'sideways' : 'upright'} seed ${seed}`;
+          const s = createRound(l, { lang, rng, landscape, compact });
+          const where = `level ${l.id} ${lang} ${landscape ? 'sideways' : 'upright'}${compact ? ' compact' : ''} seed ${seed}`;
           assert.equal(s.items.length > 0, true, `${where}: nothing on the board`);
           let steps = 0;
           while (!s.over && steps < 3000) {
@@ -417,4 +422,48 @@ test('every level, in both languages and both orientations, can be eaten up with
       }
     }
   }
+});
+
+test('compact boards: only the biggest boards shrink, by two squares each way, with corner walls kept in the corners', () => {
+  for (const l of LEVELS) {
+    if (canCompact(l)) assert.deepEqual(sizeOf(l, true), [l.size[0] - 2, l.size[1] - 2]);
+    else assert.deepEqual(sizeOf(l, true), l.size);
+  }
+  const l = LEVELS.find((x) => x.id === 8); // walls in the four corners
+  const full = wallCells(l).map(([r, c]) => [r, c]);
+  const small = wallCells(l, false, true);
+  const [cols, rows] = sizeOf(l, true);
+  for (let i = 0; i < full.length; i++) {
+    const [r, c] = full[i];
+    const [r2, c2] = small[i];
+    // the distance to the nearest edge stays the same
+    assert.equal(Math.min(r, l.size[1] - 1 - r), Math.min(r2, rows - 1 - r2));
+    assert.equal(Math.min(c, l.size[0] - 1 - c), Math.min(c2, cols - 1 - c2));
+  }
+});
+
+test('spawning: never on the cell of a turn typed ahead', () => {
+  const level = { id: 93, mode: 'count', tier: 'small', size: [7, 9], speed: 3, from: 1, to: 3 };
+  const rng = mulberry32(11);
+  for (let k = 0; k < 300; k++) {
+    const s = createRound(level, { rng });
+    s.items = [];
+    turn(s, 'up');
+    turn(s, 'left'); // queued: the next step goes left
+    const [hr, hc] = s.snake[0];
+    const [r, c] = spawnCell(s, rng);
+    assert.ok(!(r === hr && (c === hc - 1 || c === hc - 2)), `spawned on the queued turn (${r},${c})`);
+  }
+});
+
+test('colours: no round pairs blue with light blue; purple has its own shape', () => {
+  assert.equal(FRUIT_COLORS.length, 6);
+  assert.ok(!FRUIT_COLORS.some((c) => c.name === 'lucht'));
+  assert.equal(new Set(FRUIT_COLORS.map((c) => c.symbol)).size, 6, 'every colour has its own shape');
+  assert.equal(new Set(FRUIT_COLORS.map((c) => c.base)).size, 6);
+});
+
+test('glyphs: at a 20 px square letters and two-digit numbers are at least 11 px', () => {
+  const g = glyphSizes(20);
+  assert.ok(g.letter >= 11 && g.number2 >= 11 && g.number >= 11, JSON.stringify(g));
 });

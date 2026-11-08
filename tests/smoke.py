@@ -62,6 +62,18 @@ TEXT = {
 }
 
 
+# A stand-in for the app's store plugin that says the full version is owned, so the smoke test can
+# open locked levels (the website itself sells nothing).
+OWNED_APP = """
+window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };
+window.CdvPurchase = { LogLevel: {WARNING: 1}, Platform: {GOOGLE_PLAY: 'gp', APPLE_APPSTORE: 'as'},
+  ProductType: {NON_CONSUMABLE: 'nc'}, ErrorCode: {PAYMENT_CANCELLED: 1},
+  store: { verbosity: 0, register() {}, when() { const o = { approved: () => o, finished: () => o, receiptUpdated: () => o }; return o; },
+    initialize: async () => [], owned: () => true, get: () => ({ pricing: { price: '1' }, getOffer: () => ({}) }),
+    order: async () => null, restorePurchases: async () => null } };
+"""
+
+
 def free_port():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -639,6 +651,33 @@ def play_slang(page, name, say, problems):
     page.click(f"#ov-buttons button >> text={say['levels']}")
     page.wait_for_timeout(200)
 
+    # waiting for the first swipe: no animation frames (review of PR #12), and a short swipe goes
+    # the way the finger went
+    page.click(".slang-grid .level-btn[data-level='4']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.wait_for_timeout(400)
+    page.evaluate("""(() => { window.__raf = 0; const o = window.requestAnimationFrame.bind(window);
+        window.requestAnimationFrame = (f) => { window.__raf++; return o(f); }; })()""")
+    page.wait_for_timeout(1000)
+    frames = page.evaluate("window.__raf")
+    if frames > 3:
+        problems.append(f"{name}: {frames} animation frames in 1 s while the snake waits for a swipe")
+    page.evaluate("window.__bubbels.slang.manual(true)")
+    b = page.locator("#slang-board").bounding_box()
+    x, y = b["x"] + b["width"] * 0.3, b["y"] + b["height"] * 0.3
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 12, y, steps=3)
+    page.mouse.up()
+    st = page.evaluate("window.__bubbels.slang.advance(1)")
+    if st["dir"] != "right":
+        problems.append(f"{name}: a 12 px swipe to the right turned the snake {st['dir']}")
+    page.evaluate("window.__bubbels.slang.manual(false)")
+    page.click("#slang-back")
+    page.wait_for_timeout(200)
+
     # pause, the menu, "keep playing": the snake waits for a new swipe
     page.click(".slang-grid .level-btn[data-level='2']")
     page.wait_for_timeout(300)
@@ -664,6 +703,41 @@ def play_slang(page, name, say, problems):
     page.wait_for_timeout(200)
     page.evaluate("document.querySelector('#screen-slang-menu [data-go=home]').click()")
     page.wait_for_timeout(200)
+
+
+def slang_glyphs(browser, base, w, h, problems):
+    """With the full version (a stand-in store), the biggest boards on a small screen: every number
+    and letter at least 11 px (review of PR #12), board and pad on screen."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(OWNED_APP)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-slang")
+    page.wait_for_timeout(200)
+    for level, what in ((12, "number2"), (9, "number2"), (22, "letter"), (30, "letter")):
+        page.evaluate(f"window.__bubbels.slang.start({level})")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+            page.wait_for_timeout(150)
+        st = page.evaluate("window.__bubbels.slang.state()")
+        g = st["glyphs"][what]
+        print(f"[{w}x{h}] level {level}: {st['cols']}x{st['rows']}{' compact' if st['compact'] else ''}, square {st['cell']} px, {what} {g:.1f} px")
+        if g < 11:
+            problems.append(f"{w}x{h}: Slangetje level {level} draws {what} at {g:.1f} px")
+        for sel in ("#slang-canvas", "#slang-pad", "#slang-target"):
+            r = page.locator(sel).bounding_box()
+            if r["x"] < 0 or r["y"] < 0 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"{w}x{h}: Slangetje level {level}: {sel} off screen {r}")
+        page.screenshot(path=str(SHOTS / f"glyphs-{w}x{h}-{level}.png"))
+        page.click("#slang-back")
+        page.wait_for_timeout(150)
+    if errors:
+        problems.append(f"{w}x{h}: page errors: {errors}")
+    ctx.close()
 
 
 def slang_fits(page, w, h, label, problems):
@@ -855,6 +929,8 @@ def main():
             )
             run_sideways(browser, base, problems)
             run_small_phone(browser, base, problems)
+            for w, h in ((320, 568), (568, 320), (640, 360)):
+                slang_glyphs(browser, base, w, h, problems)
             run_returning(browser, base, problems)
             browser.close()
     finally:

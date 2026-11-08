@@ -21,7 +21,7 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku met hondjes, Picturedoku, Vier op een rij en Slangetje, dat leert tellen en lezen: spelletjes voor 3 tot 10 jaar, zonder reclame.
+Bubbels schieten, Dogudoku met hondjes, Picturedoku, Vier op een rij en Slangetje, dat tellen en letters oefent: spelletjes voor 3 tot 10 jaar, zonder reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,13 +29,13 @@ bubble shooter,sudoku,vier op een rij,slang,tellen,hondjes,puzzel,kinderen,kleut
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu vijf spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij en Slangetje. Er komen meer spellen bij, ook spellen om van te leren.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu vijf spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij en Slangetje. Er komen meer spellen bij, ook spellen om van te leren.
 
 De naam komt van "bāzi", het Perzische woord voor spel. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
 
 BUBBELS SCHIETEN
 • Sleep om te mikken en laat los om te schieten.
-• Een stippellijn laat zien waar de bubbel heen gaat, ook via de muur. De bubbel landt altijd precies waar de lijn het aanwijst.
+• Een stippellijn laat zien waar de bubbel landt, ook via de muur.
 • Drie of meer van dezelfde kleur knallen kapot, met een echt plopgeluid.
 • 30 levels. Level 1 laat met een handje zien hoe het moet.
 
@@ -44,26 +44,24 @@ DOGUDOKU: VERSTOP DE HONDJES
 • Voor de kleinsten (vanaf 3 jaar): een tuintje van 4 bij 4 met struiken, zonder lezen.
 • Vanaf 5 jaar komen er kleurvakken bij: één hondje per kleur.
 • Vanaf 7 jaar grotere tuinen, tot 8 bij 8.
-• 60 puzzels, elk met precies één oplossing. Een fout licht vriendelijk op, met uitleg in beeld; een hint helpt een stapje verder.
-• Zes verschillende hondjes, en een blij "woef" als het gelukt is.
+• 60 puzzels, elk met precies één oplossing. Een fout licht vriendelijk op; een hint helpt een stapje verder.
 
 PICTUREDOKU: SUDOKU MET PLAATJES
 • Elk plaatje komt één keer in elke rij, elke kolom en elk vak.
 • Voor de kleinsten (vanaf 3 jaar): 4 bij 4 met appel, banaan, druiven en wortel, zonder cijfers en zonder lezen.
 • Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9; oudere kinderen kunnen cijfers kiezen in plaats van plaatjes.
-• Tik een vakje en dan een plaatje, of kies eerst een plaatje en tik dan de vakjes. Met potlood, gum en ongedaan maken.
+• Met potlood, gum en ongedaan maken.
 • 60 puzzels, elk met precies één oplossing en op te lossen zonder gokken. Een fout licht vriendelijk op; een hint helpt een stapje verder.
 
 VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Laat om de beurt een fiche in een kolom vallen. Wie als eerste vier op een rij heeft (recht of schuin), wint.
 • Samen spelen op één scherm, met broertje, zusje of ouder. Of tegen de computer: Makkelijk, Gemiddeld of Moeilijk. Op Makkelijk maakt de computer expres foutjes, zodat jonge kinderen ook winnen.
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
-• Kies je eigen fiche: een puppy, een bubbel, een appel, een bloem, een vis of een mopshond.
-• Tegen de computer kun je een zet terugnemen. Je overwinningen worden bijgehouden.
+• Kies je eigen fiche. Tegen de computer kun je een zet terugnemen.
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
 • Stuur een vrolijke slang met vegen of grote pijlen.
-• Tellen: eet de cijfers op volgorde, tot 20, ook in sprongen van twee of terugtellend.
+• Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
 • Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
 • Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
 • Een fout is nooit game over. Voor de kleinsten gaat de slang langzaam en kan hij nergens tegenaan botsen.
