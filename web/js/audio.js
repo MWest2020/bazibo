@@ -231,3 +231,20 @@ export function thud(depth = 1) {
   tone('triangle', f * 2.2, f * 1.4, t, 0.05, 0.12, 0.002); // a bit of click for small speakers
   tone('sine', f * 0.9, f * 0.6, t + 0.09, 0.07, 0.12, 0.003); // the little bounce
 }
+
+// Slangetje: a soft double "munch" for a right bite (two little chomps), and a gentle "boop" for a
+// wrong one (never a harsh buzzer).
+export function munch() {
+  if (!on()) return;
+  const t = ac.currentTime + 0.005;
+  for (const k of [0, 0.09]) {
+    tone('triangle', 280, 170, t + k, 0.06, 0.32, 0.002);
+    hiss(t + k, 0.045, 0.22, 'bandpass', 1900, 1200, 1.2);
+  }
+}
+
+export function boop() {
+  if (!on()) return;
+  const t = ac.currentTime + 0.005;
+  tone('sine', 380, 250, t, 0.22, 0.26, 0.012);
+}

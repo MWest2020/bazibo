@@ -37,3 +37,11 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'vier-menu' }), 'home');
   assert.equal(backAction({ screen: 'vier', overlay: 'card' }), 'close');
 });
+
+test('back: a Slangetje round goes to its menu (kept), a card on the board too, the menu goes home', () => {
+  assert.equal(backAction({ screen: 'slang' }), 'slang-menu');
+  assert.equal(backAction({ screen: 'slang', overlay: 'card' }), 'slang-menu');
+  assert.equal(backAction({ screen: 'slang', overlay: 'busy' }), 'ignore');
+  assert.equal(backAction({ screen: 'slang-menu' }), 'home');
+  assert.equal(backAction({ screen: 'slang-menu', overlay: 'card' }), 'close');
+});
