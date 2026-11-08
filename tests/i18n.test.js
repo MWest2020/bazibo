@@ -7,6 +7,7 @@ import '../web/games/bubbels/strings.js';
 import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
 import '../web/games/vier/strings.js';
+import '../web/games/slang/strings.js';
 import { GAMES } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';
 
@@ -50,6 +51,9 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);
   for (const id of ['pup', 'bubble', 'apple', 'flower', 'fish', 'pug']) used.add(`vier.tok.${id}`);
+  for (const m of ['count', 'letters', 'colors']) used.add(`slang.mode.${m}`).add(`slang.mode.${m}Sub`).add(`slang.how.${m}`);
+  for (const n of [1, 2, 3]) used.add(`slang.win${n}`);
+  for (let c = 0; c < 6; c++) used.add(`slang.color.${c}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 

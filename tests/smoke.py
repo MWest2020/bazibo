@@ -3,7 +3,9 @@
 first, which must light up), solve the first Picturedoku puzzle (one wrong picture first, then
 square-then-picture) and check on 4×4, 6×6 and 9×9 that tapping another picture after a placement
 never changes the placed square, play Vier op een rij (a two-player game to a win on the
-kleuterbord, and a game against the easy computer with one take-back), check that nothing went to the network and nothing threw, that the
+kleuterbord, and a game against the easy computer with one take-back), play Slangetje (a counting
+round and a letters round to the end with the arrow pad and a swipe, the pause card and "keep
+playing"; also on a 320×568 phone and sideways), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -49,12 +51,14 @@ TEXT = {
            "more": "Meer levels", "wrong": "Dat klopt niet", "ask": r"Hoeveel is (\w+) keer (\w+)\?",
            "settings": "Instellingen", "puzzles": "Puzzels", "stars3": "3 van 3", "dogWin": "Super!",
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel", "vierTile": "Vier op een rij",
-           "pupWins": "Puppy wint!", "again": "Nog een keer", "keep": "Verder spelen"},
+           "pupWins": "Puppy wint!", "again": "Nog een keer", "keep": "Verder spelen",
+           "slangTile": "Slangetje", "egg": "EI", "levels": "Levels"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
            "settings": "Settings", "puzzles": "Puzzles", "stars3": "3 of 3", "dogWin": "Super!",
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play", "vierTile": "Four in a Row",
-           "pupWins": "Puppy wins!", "again": "Play again", "keep": "Keep playing"},
+           "pupWins": "Puppy wins!", "again": "Play again", "keep": "Keep playing",
+           "slangTile": "Snake", "egg": "EGG", "levels": "Levels"},
 }
 
 
@@ -87,6 +91,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     play_dogudoku(page, name, say, problems)
     play_picturedoku(page, name, say, problems)
     play_vier(page, name, say, problems)
+    play_slang(page, name, say, problems)
 
     page.click("#tile-bubbels")
     page.wait_for_timeout(300)
@@ -550,6 +555,138 @@ def play_vier(page, name, say, problems):
     page.wait_for_timeout(200)
 
 
+def slang_round(page, name, problems, shot=None, swipe=False):
+    """Play the Slangetje round on the board to its end: the test hook's path finder says which
+    way to go, the arrow pad (or one real swipe) steers, and the hook moves the snake one step at
+    a time, so the result does not depend on timing."""
+    page.evaluate("window.__bubbels.slang.manual(true)")
+    if swipe:
+        b = page.locator("#slang-board").bounding_box()
+        x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        start = page.evaluate("window.__bubbels.slang.state()")
+        d = page.evaluate("window.__bubbels.slang.autopilot()") or start["dir"]
+        dx, dy = {"up": (0, -60), "down": (0, 60), "left": (-60, 0), "right": (60, 0)}[d]
+        page.mouse.move(x, y)
+        page.mouse.down()
+        page.mouse.move(x + dx, y + dy, steps=5)
+        page.mouse.up()
+        if not page.evaluate("window.__bubbels.slang.state().started"):
+            problems.append(f"{name}: a swipe on the board did not start the snake")
+    for i in range(1500):
+        st = page.evaluate("window.__bubbels.slang.state()")
+        if st["over"]:
+            break
+        d = page.evaluate("window.__bubbels.slang.autopilot()")
+        if d and (d != st["dir"] or not st["started"]):
+            page.click(f"#slang-pad [data-dir={d}]")
+        page.evaluate("window.__bubbels.slang.advance(1)")
+        if shot and i == 5:
+            page.screenshot(path=str(SHOTS / shot))
+    st = page.evaluate("window.__bubbels.slang.state()")
+    page.evaluate("window.__bubbels.slang.manual(false)")
+    if st["over"] != "done" or st["mistakes"]:
+        problems.append(f"{name}: Slangetje round {st['id']} ended {st['over']} with {st['mistakes']} mistakes ({st['idx']}/{st['total']})")
+    return st
+
+
+def play_slang(page, name, say, problems):
+    """Slangetje: a locked level offers only OK on the web; counting level 1 played to the end (how-to
+    card first, one swipe, then the arrow pad), 3 stars saved; the letters level 13 spells the word of
+    this language; the pause card, "keep playing" from the menu, and the snake waiting for a swipe."""
+    if page.inner_text("#tile-slang .tile-name").strip() != say["slangTile"]:
+        problems.append(f"{name}: Slangetje tile says {page.inner_text('#tile-slang .tile-name')!r}")
+    page.click("#tile-slang")
+    page.wait_for_timeout(250)
+    page.click(".slang-grid .level-btn[data-level='5']")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]]:
+        problems.append(f"{name}: locked Slangetje level offers {labels}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+    page.screenshot(path=str(SHOTS / f"{name}-s1-menu.png"), full_page=True)
+
+    page.click(".slang-grid .level-btn[data-level='1']")
+    page.wait_for_timeout(300)
+    if not page.is_visible("#overlay"):
+        problems.append(f"{name}: no how-to card the first time")
+    else:
+        page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    st = page.evaluate("window.__bubbels.slang.state()")
+    if st["started"] or len(st["items"]) != 3:
+        problems.append(f"{name}: counting level 1 should wait for the child with 1, 2, 3 on the board: {st}")
+    slang_round(page, name, problems, shot=f"{name}-s2-count.png", swipe=True)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / f"{name}-s3-win.png"))
+    if page.inner_text("#ov-title").strip() != "Super!":
+        problems.append(f"{name}: Slangetje win card says {page.inner_text('#ov-title')!r}")
+    got = page.evaluate("window.__bubbels.slang.stars()")
+    if got.get("1") != 3:
+        problems.append(f"{name}: Slangetje stars not saved: {got}")
+    page.click(f"#ov-buttons button >> text={say['levels']}")
+    page.wait_for_timeout(200)
+
+    # letters: the word in this language
+    page.click(".slang-grid .level-btn[data-level='13']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    word = "".join(page.locator("#slang-target .slang-letter").all_inner_texts())
+    if word != say["egg"]:
+        problems.append(f"{name}: the letters round spells {word!r}, expected {say['egg']!r}")
+    slang_round(page, name, problems, shot=f"{name}-s4-letters.png")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.click(f"#ov-buttons button >> text={say['levels']}")
+    page.wait_for_timeout(200)
+
+    # pause, the menu, "keep playing": the snake waits for a new swipe
+    page.click(".slang-grid .level-btn[data-level='2']")
+    page.wait_for_timeout(300)
+    page.click("#slang-pad [data-dir=up]")
+    page.wait_for_timeout(700)
+    page.click("#slang-pause")
+    page.wait_for_timeout(200)
+    st = page.evaluate("window.__bubbels.slang.state()")
+    if not st["paused"] or st["started"]:
+        problems.append(f"{name}: the pause card did not stop the snake: {st}")
+    page.click("#ov-buttons button >> nth=-1")  # Menu
+    page.wait_for_timeout(200)
+    if not page.is_visible("#slang-continue") or page.inner_text("#slang-continue").strip() != say["keep"]:
+        problems.append(f"{name}: no 'keep playing' for an unfinished Slangetje round")
+    page.click("#slang-continue")
+    page.wait_for_timeout(500)
+    before = page.evaluate("window.__bubbels.slang.state()")
+    page.wait_for_timeout(600)
+    after = page.evaluate("window.__bubbels.slang.state()")
+    if after["snake"] != before["snake"] or after["started"]:
+        problems.append(f"{name}: after 'keep playing' the snake moved before a swipe")
+    page.click("#slang-back")
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#screen-slang-menu [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+
+def slang_fits(page, w, h, label, problems):
+    """Open Slangetje level 1 and check that the board and the arrow pad are fully on screen."""
+    page.click("#tile-slang")
+    page.wait_for_timeout(200)
+    page.click(".slang-grid .level-btn[data-level='1']")
+    page.wait_for_timeout(400)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(200)
+    b = page.locator("#slang-canvas").bounding_box()
+    pad = page.locator("#slang-pad").bounding_box()
+    cell = page.evaluate("window.__bubbels && window.__bubbels.slang ? window.__bubbels.slang.state().cell : 0")
+    print(f"[{label}] slang board {b['width']:.0f}x{b['height']:.0f}, pad at y={pad['y']:.0f}")
+    for what, r in (("board", b), ("arrow pad", pad)):
+        if r["x"] < 0 or r["y"] < 0 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"{label}: Slangetje {what} off screen: {r}")
+    if b["height"] < 180:
+        problems.append(f"{label}: Slangetje board only {b['height']:.0f} px tall")
+    return cell
+
+
 def run_sideways(browser, base, problems):
     ctx = browser.new_context(
         viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True
@@ -609,6 +746,12 @@ def run_sideways(browser, base, problems):
     if b["height"] < 280 or b["y"] < 0 or b["y"] + b["height"] > 390 or side["x"] < b["x"] + b["width"]:
         problems.append(f"sideways: Vier op een rij board {b} / turn chips {side}")
     page.screenshot(path=str(SHOTS / "sideways-vier.png"))
+    page.click("#vier-back")
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#screen-vier-menu [data-go=home]').click()")
+    page.wait_for_timeout(200)
+    slang_fits(page, 844, 390, "sideways", problems)
+    page.screenshot(path=str(SHOTS / "sideways-slang.png"))
     if errors:
         problems.append(f"sideways: page errors: {errors}")
         errors.clear()
@@ -631,9 +774,28 @@ def run_sideways(browser, base, problems):
         if b["x"] < 0 or b["y"] < 0 or b["x"] + b["width"] > w or b["y"] + b["height"] > h or side["x"] + side["width"] > w or side["y"] + side["height"] > h:
             problems.append(f"sideways {w}x{h}: Vier op een rij board {b} / turn chips {side}")
         page.screenshot(path=str(SHOTS / f"sideways-vier-{w}x{h}.png"))
+        page.goto(base + "/index.html")
+        page.wait_for_selector("html[data-ready='1']")
+        slang_fits(page, w, h, f"sideways {w}x{h}", problems)
+        page.screenshot(path=str(SHOTS / f"sideways-slang-{w}x{h}.png"))
         ctx.close()
     if errors:
         problems.append(f"sideways: page errors: {errors}")
+
+
+def run_small_phone(browser, base, problems):
+    """A 320×568 phone: Slangetje's board and arrows fit, and a round can be played to the end."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 320, "height": 568}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    slang_fits(page, 320, 568, "320x568", problems)
+    slang_round(page, "320x568", problems, shot="small-slang.png")
+    if errors:
+        problems.append(f"320x568: page errors: {errors}")
+    ctx.close()
 
 
 def run_returning(browser, base, problems):
@@ -692,6 +854,7 @@ def main():
                 lang="en",
             )
             run_sideways(browser, base, problems)
+            run_small_phone(browser, base, problems)
             run_returning(browser, base, problems)
             browser.close()
     finally:

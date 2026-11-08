@@ -5,10 +5,12 @@ import { meta as bubbels } from '../games/bubbels/meta.js';
 import { meta as dogudoku } from '../games/dogudoku/meta.js';
 import { meta as picturedoku } from '../games/picturedoku/meta.js';
 import { meta as vier } from '../games/vier/meta.js';
+import { meta as slang } from '../games/slang/meta.js';
 
 export const GAMES = [
   { ...bubbels, status: 'ready' },
   { ...dogudoku, status: 'ready' },
   { ...picturedoku, status: 'ready' },
   { ...vier, status: 'ready' },
+  { ...slang, status: 'ready' },
 ];

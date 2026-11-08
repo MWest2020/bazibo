@@ -134,11 +134,11 @@ def shoot(browser, base, name, viewport, dpr, lang):
         print(f"[{name}] no popping shot caught; 3-pop.png shows the board")
     shots.append(tmp)
 
-    # Dogudoku: a 4×4 garden for the youngest, and a 6×6 with crosses for the older ones
+    # Dogudoku: a 4×4 garden for the youngest (the stores take 8 shots; the 6×6 made way for Slangetje)
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('[data-go=home]').click()")
     page.click("#tile-dogudoku")
     page.wait_for_timeout(300)
-    for pid, file, place, auto in ((1, "4-dogudoku-4x4.png", 2, False), (27, "5-dogudoku-6x6.png", 3, True)):
+    for pid, file, place, auto in ((1, "4-dogudoku-4x4.png", 2, False),):
         page.evaluate(f"window.__bubbels.dogu.play({pid})")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
@@ -161,7 +161,7 @@ def shoot(browser, base, name, viewport, dpr, lang):
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
     page.click("#tile-picturedoku")
     page.wait_for_timeout(300)
-    for pid, file, fill in ((43, "6-picturedoku-9x9.png", 14),):
+    for pid, file, fill in ((43, "5-picturedoku-9x9.png", 14),):
         page.evaluate(f"window.__bubbels.pdoku.play({pid})")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
@@ -183,11 +183,11 @@ def shoot(browser, base, name, viewport, dpr, lang):
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
 
-    # Vier op een rij: the big board against the easy computer, and the kleuterbord with a won row
+    # Vier op een rij: the big board against the easy computer (the kleuterbord made way for Slangetje)
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
     page.click("#tile-vier")
     page.wait_for_timeout(300)
-    page.emulate_media(reduced_motion="reduce")  # tokens land at once and a won row holds still for the shot
+    page.emulate_media(reduced_motion="reduce")  # tokens land at once for the shot
     wait = "(() => { const s = window.__bubbels.vier.state(); return s && !s.busy && (s.over || s.setup.mode === 'duo' || s.turn === 1); })()"
     page.evaluate("window.__seed(5); window.__bubbels.vier.choose({board: 'big', mode: 'cpu', level: 1}); window.__bubbels.vier.start(1)")
     page.wait_for_timeout(300)
@@ -195,16 +195,40 @@ def shoot(browser, base, name, viewport, dpr, lang):
         page.click(f".vcol[data-col='{col}']")
         page.wait_for_function(wait, timeout=8000)
     page.wait_for_timeout(300)
-    shots.append(out / "7-vier-7x6.png")
+    shots.append(out / "6-vier-7x6.png")
     page.screenshot(path=str(shots[-1]))
-    page.evaluate("window.__bubbels.vier.choose({board: 'small', mode: 'duo', tokens: ['pup', 'apple']}); window.__bubbels.vier.start(1)")
+
+    # Slangetje: a counting round (two numbers eaten) and a letters round (the first letter eaten),
+    # both free levels; the snake is stepped by the test hook so the shot is the same every time
+    page.click("#vier-back")
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-vier-menu [data-go=home]').click()")
+    page.click("#tile-slang")
     page.wait_for_timeout(300)
-    for col in (1, 1, 2, 2, 3):
-        page.click(f".vcol[data-col='{col}']")
-        page.wait_for_function(wait, timeout=8000)
-    page.wait_for_timeout(450)
-    shots.append(out / "8-vier-5x4.png")
-    page.screenshot(path=str(shots[-1]))
+    for level, file, eaten, extra in ((4, "7-slang-count.png", 2, 2), (15, "8-slang-letters.png", 1, 1)):
+        page.evaluate(f"window.__seed({level}); window.__bubbels.slang.start({level})")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+        page.evaluate("window.__bubbels.slang.manual(true)")
+        moved = 0
+        for _ in range(400):
+            st = page.evaluate("window.__bubbels.slang.state()")
+            whole = all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(st["snake"], st["snake"][1:]))
+            if st["over"] or (st["idx"] >= eaten and moved >= extra and whole):  # not split over an edge
+                break
+            if st["idx"] >= eaten:
+                moved += 1
+            d = page.evaluate("window.__bubbels.slang.autopilot()")
+            if d:
+                page.evaluate(f"window.__bubbels.slang.steer('{d}')")
+            page.evaluate("window.__bubbels.slang.advance(1)")
+        page.wait_for_timeout(300)
+        shots.append(out / file)
+        page.screenshot(path=str(shots[-1]))
+        page.evaluate("window.__bubbels.slang.manual(false)")
+        page.click("#slang-back")
+        page.wait_for_timeout(200)
     ctx.close()
     for s in shots:
         flatten(s)

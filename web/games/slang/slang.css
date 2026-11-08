@@ -1,0 +1,193 @@
+/* Slangetje: home tile, level menu, HUD, the "eat this" panel, the board and the arrow pad.
+   Shared look lives in css/style.css. */
+
+/* ---------- home tile ---------- */
+#tile-slang .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-slang .snake-pic { width: 92px; height: 92px; display: block; }
+
+/* ---------- menu ---------- */
+.slang-menu { max-width: 560px; margin: 0 auto; padding-bottom: 18px; }
+.slang-continue { display: flex; margin: 4px auto 20px; min-width: 220px; }
+.slang-mode {
+  margin: 26px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 5px 0 #d6cff7;
+}
+.slang-mode:first-child, .slang-continue + .slang-mode { margin-top: 6px; }
+.slang-mode-art { flex: none; width: 70px; height: 52px; }
+.slang-mode-art svg { width: 100%; height: 100%; display: block; }
+.slang-mode-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.slang-mode-title { font-size: 1.35rem; font-weight: 900; color: var(--primary); }
+.slang-mode-sub { font-size: 0.95rem; font-weight: 700; color: var(--ink-soft); }
+.slang-age {
+  max-width: 560px;
+  margin: 14px auto 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.slang-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: #a59fd0; box-shadow: 0 4px 0 #ddd8f7; }
+.slang-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* ---------- the board screen ---------- */
+.slang-hud { gap: 10px; }
+#slang-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 12px;
+}
+
+/* what to eat now */
+.slang-target {
+  width: min(100%, 520px);
+  min-height: 66px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 0 #d6cff7;
+}
+.slang-target-art { flex: none; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; }
+.slang-target-art svg { width: 100%; height: 100%; display: block; }
+.slang-target-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.slang-target-what { font-size: 1.3rem; font-weight: 900; color: var(--primary); line-height: 1.15; }
+.slang-status { min-height: 1.2em; font-size: 0.95rem; font-weight: 800; color: #b8540f; line-height: 1.2; }
+.slang-status:empty::before { content: "\00a0"; }
+.slang-target-progress {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 900;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+.slang-target-progress:empty { display: none; }
+.slang-word { display: flex; flex-wrap: wrap; gap: 4px; }
+.slang-letter {
+  min-width: 30px;
+  height: 34px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #e8d9a8;
+  border-radius: 10px;
+  background: #fff8e1;
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.slang-letter.done { background: #58c27d; border-color: #2a7f50; color: #fff; }
+.slang-letter.next { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 197, 49, 0.45); animation: slang-bob 1s ease-in-out infinite; }
+
+/* the board itself: the canvas is centred and never pushes the layout */
+.slang-board { flex: 1; min-height: 0; min-width: 0; width: 100%; position: relative; touch-action: none; }
+#slang-canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  box-shadow: 0 6px 0 #b9e2a8, 0 12px 26px rgba(42, 127, 80, 0.22);
+}
+
+/* the arrow pad: up on top, left - down - right below (like keyboard arrows) */
+.slang-pad {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 70px);
+  grid-template-rows: repeat(2, 60px);
+  grid-template-areas: ". up ." "left down right";
+  gap: 8px;
+}
+.pad-btn {
+  font: inherit;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 5px 0 #c9c1ff, 0 8px 14px rgba(59, 47, 168, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+.pad-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
+.pad-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pad-btn svg { width: 34px; height: 34px; fill: currentColor; }
+.pad-btn[data-dir="up"] { grid-area: up; }
+.pad-btn[data-dir="left"] { grid-area: left; }
+.pad-btn[data-dir="left"] svg { transform: rotate(-90deg); }
+.pad-btn[data-dir="right"] { grid-area: right; }
+.pad-btn[data-dir="right"] svg { transform: rotate(90deg); }
+.pad-btn[data-dir="down"] { grid-area: down; }
+.pad-btn[data-dir="down"] svg { transform: rotate(180deg); }
+
+/* sideways phone: the board on the left, the panel and the pad beside it */
+#slang-stage.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 264px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "board target" "board pad";
+  align-items: start;
+  column-gap: 14px;
+  row-gap: 10px;
+  padding: 10px 12px;
+}
+#slang-stage.side .slang-board { grid-area: board; height: 100%; }
+#slang-stage.side .slang-target { grid-area: target; width: 100%; flex-wrap: wrap; row-gap: 4px; }
+#slang-stage.side .slang-target-main { flex: 1 1 140px; }
+#slang-stage.side .slang-pad { grid-area: pad; align-self: center; justify-self: center; }
+
+/* overlay pictures */
+.slang-ov svg { width: 110px; height: 86px; display: block; }
+
+/* shorter phones: a smaller pad, so the board keeps its room */
+@media (max-height: 740px) {
+  .slang-pad { grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(2, 50px); gap: 6px; }
+  .pad-btn svg { width: 28px; height: 28px; }
+  .slang-target { min-height: 56px; }
+  .slang-target-art { width: 44px; height: 44px; }
+  .slang-target-what { font-size: 1.15rem; }
+  .slang-letter { min-width: 26px; height: 30px; font-size: 1.1rem; }
+}
+/* short upright phones: the four arrows in one row */
+@media (max-height: 640px) and (orientation: portrait) {
+  .slang-pad { grid-template-columns: repeat(4, 62px); grid-template-rows: 50px; grid-template-areas: "left up down right"; }
+  #slang-stage { gap: 6px; padding-bottom: 8px; }
+  .slang-target { min-height: 50px; padding: 4px 10px; }
+}
+/* short sideways phones: the HUD becomes a column on the left, the panel and the pad beside the board */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-slang { flex-direction: row; }
+  .slang-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; }
+  .slang-hud .hud-mid { flex: 0; }
+  .slang-hud .btn.icon { width: 54px; height: 54px; }
+  #slang-stage.side { grid-template-columns: minmax(0, 1fr) 196px; column-gap: 10px; padding: 8px 10px 8px 4px; }
+  #slang-stage.side .slang-target { padding: 6px 8px; gap: 6px; }
+  .slang-target-art { width: 40px; height: 40px; }
+  .slang-target-what { font-size: 1.05rem; }
+  .slang-letter { min-width: 24px; height: 28px; font-size: 1rem; border-width: 2px; }
+  .slang-pad { grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 48px); gap: 6px; }
+}
+
+@keyframes slang-bob { 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .slang-letter.next { animation: none; }
+}

@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku with puppies, Picturedoku and Four in a Row, together or against the computer: games for ages 3 to 10, without a single ad.
+Bubble Shooter, Dogudoku with puppies, Picturedoku, Four in a Row and Snake, which helps with counting and letters: games for ages 3 to 10, without a single ad.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,four in a row,puppies,puzzle,logic,kids,toddler,no ads,offline
+bubble shooter,sudoku,four in a row,snake,counting,puppies,puzzle,kids,toddler,no ads,offline
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has four games now: Bubble Shooter, Dogudoku, Picturedoku and Four in a Row. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no buttons that jump to another app, no account. It has five games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row and Snake. More games will follow, including games to learn from.
 
 The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
@@ -59,6 +59,15 @@ FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Pick your own token: a puppy, a bubble, an apple, a flower, a fish or a pug.
 • Against the computer you can take back a move. Your wins are counted.
 
+SNAKE: COUNTING, LETTERS AND COLOURS
+• Steer a happy snake by swiping or with big arrows, and eat the right things.
+• Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
+• Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
+• Colours: eat only the fruit of the right colour; every colour also has its own shape.
+• A mistake is never game over: the snake gets a little shorter and the fruit hops somewhere else.
+• For the youngest (age 3 and up) the snake is slow and comes back on the other side at the edge. From age 7 it is faster, with fences and stones.
+• 30 levels.
+
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.
 • Big buttons, short texts, in English or Dutch.
@@ -67,7 +76,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, and in Four in a Row playing together and the Easy and Medium computer. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://mwest2020.github.io/bubbels/privacy/en.html
 Source code (MIT): https://github.com/MWest2020/bubbels

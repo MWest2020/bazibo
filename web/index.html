@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="games/dogudoku/dogudoku.css">
   <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
   <link rel="stylesheet" href="games/vier/vier.css">
+  <link rel="stylesheet" href="games/slang/slang.css">
 </head>
 <body>
   <main id="app">
@@ -50,6 +51,10 @@
           <button id="tile-vier" class="tile" type="button" data-game="vier">
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.vier">Vier op een rij</span>
+          </button>
+          <button id="tile-slang" class="tile" type="button" data-game="slang">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.slang">Slangetje</span>
           </button>
         </div>
         <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
@@ -246,6 +251,44 @@
         <div class="vier-side">
           <div id="vier-turn" class="vier-turn" role="group" data-i18n-aria="vier.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="vier-status" class="vier-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slangetje: choose a level (counting, letters, colours) -->
+    <section id="screen-slang-menu" class="screen" data-i18n-aria="games.slang" aria-label="Slangetje">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="slang.menu">Slangetje</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="slang-menu" class="slang-menu"></div></div>
+    </section>
+
+    <!-- Slangetje: the board -->
+    <section id="screen-slang" class="screen" data-i18n-aria="games.slang" aria-label="Slangetje">
+      <header class="bar dogu-hud slang-hud">
+        <button id="slang-back" class="btn icon" type="button" data-i18n-aria="slang.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="slang-sub" class="hud-level"></div>
+          <div id="slang-title" class="dogu-title"></div>
+        </div>
+        <button id="slang-pause" class="btn icon" type="button" data-i18n-aria="slang.pause" aria-label="Pauze">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+        </button>
+      </header>
+      <div id="slang-stage">
+        <div id="slang-target" class="slang-target" role="group" data-i18n-aria="slang.target" aria-label="Wat de slang moet eten"></div>
+        <div id="slang-board" class="slang-board"><canvas id="slang-canvas" data-i18n-aria="slang.board" aria-label="Speelveld: veeg of tik op een pijl om de slang te sturen"></canvas></div>
+        <div id="slang-pad" class="slang-pad" role="group" data-i18n-aria="slang.pad" aria-label="Pijlen om de slang te sturen">
+          <button class="pad-btn" type="button" data-dir="up" data-i18n-aria="slang.up" aria-label="Omhoog"></button>
+          <button class="pad-btn" type="button" data-dir="left" data-i18n-aria="slang.left" aria-label="Naar links"></button>
+          <button class="pad-btn" type="button" data-dir="right" data-i18n-aria="slang.right" aria-label="Naar rechts"></button>
+          <button class="pad-btn" type="button" data-dir="down" data-i18n-aria="slang.down" aria-label="Omlaag"></button>
         </div>
       </div>
     </section>

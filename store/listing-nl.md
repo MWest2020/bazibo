@@ -21,15 +21,15 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku met hondjes, Picturedoku en Vier op een rij, samen of tegen de computer: spelletjes voor 3 tot 10 jaar, zonder reclame.
+Bubbels schieten, Dogudoku met hondjes, Picturedoku, Vier op een rij en Slangetje, dat leert tellen en lezen: spelletjes voor 3 tot 10 jaar, zonder reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
-bubble shooter,sudoku,vier op een rij,hondjes,puzzel,logica,kinderen,kleuter,zonder reclame,offline
+bubble shooter,sudoku,vier op een rij,slang,tellen,hondjes,puzzel,kinderen,kleuter,zonder reclame
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu vier spellen in: Bubbels schieten, Dogudoku, Picturedoku en Vier op een rij. Er komen meer spellen bij, ook spellen om van te leren.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen knoppen die naar een andere app springen, geen account. Er zitten nu vijf spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij en Slangetje. Er komen meer spellen bij, ook spellen om van te leren.
 
 De naam komt van "bāzi", het Perzische woord voor spel. Het logo is een prieeltje in de tuin: een plek om samen te spelen.
 
@@ -61,6 +61,14 @@ VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Kies je eigen fiche: een puppy, een bubbel, een appel, een bloem, een vis of een mopshond.
 • Tegen de computer kun je een zet terugnemen. Je overwinningen worden bijgehouden.
 
+SLANGETJE: TELLEN, LETTERS EN KLEUREN
+• Stuur een vrolijke slang met vegen of grote pijlen.
+• Tellen: eet de cijfers op volgorde, tot 20, ook in sprongen van twee of terugtellend.
+• Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
+• Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
+• Een fout is nooit game over. Voor de kleinsten gaat de slang langzaam en kan hij nergens tegenaan botsen.
+• 30 levels.
+
 GEMAAKT VOOR KINDEREN
 • Kleuren met elk een eigen symbool of patroon, zodat ook kleurenblinde kinderen kunnen meespelen.
 • Grote knoppen, korte teksten, in het Nederlands of het Engels.
@@ -69,7 +77,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, en bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, en bij Slangetje 10 van de 30 levels, van elke soort een paar. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://mwest2020.github.io/bubbels/privacy/index.html
 Broncode (MIT): https://github.com/MWest2020/bubbels
