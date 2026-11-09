@@ -1,4 +1,4 @@
 # The Play service-account key never lives in the repo (docs/release.md, "Release automation").
 json_key_file(ENV.fetch("PLAY_JSON_KEY", File.expand_path("~/.config/bubbels/play-service-account.json")))
-package_name("work.westerweel.bubbels")
-app_identifier("work.westerweel.bubbels")
+package_name("work.westerweel.bazibo")
+app_identifier("work.westerweel.bazibo")
