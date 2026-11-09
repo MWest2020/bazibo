@@ -39,6 +39,14 @@ to map onto them.
   only leaves the device through the user's own Android backup as not collected; check the
   current wording when filling the form in.
 
+- About the camera (permission `android.permission.CAMERA`, not required): used only by
+  Settings › Move progress, to read a progress QR code shown by another device. No image is kept
+  or sent, nothing leaves the device. Play's Data safety form asks about data the app *collects
+  or shares*; reading a QR code on the device is neither. Photos and videos: **not collected**.
+  If Play asks why the app needs the camera (sensitive-permission declaration or the Families
+  checklist): "To scan a QR code with the child's game progress from another device, moving it
+  without an account or internet. Optional; pasting the code works too."
+
 ### App access, ads, government apps, financial features, health
 
 - App access: **All functionality is available without special access.**
@@ -70,6 +78,8 @@ https://bazibo.nl/en/terms/ (Dutch: https://bazibo.nl/nl/voorwaarden/)
 - The label then reads **Data Not Collected**. Purchases are handled by Apple and do not count
   as collection by the developer. Save data sits in UserDefaults on the device and is part of the
   user's own iCloud or computer backup, which the developer never sees.
+- The camera (`NSCameraUsageDescription` in `ios/App/App/Info.plist`) only reads a progress QR
+  code on the device; nothing is kept or sent, so it adds nothing to the label.
 - Privacy policy URL: https://bazibo.nl/en/privacy/
 - Terms of service: Apple's standard EULA applies unless a custom one is set; our terms page is
   https://bazibo.nl/en/terms/ (can go in the app description or as a custom EULA).

@@ -21,6 +21,8 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | UI icons (inline SVG paths in `web/index.html` and `web/js/main.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Bubble colours | based on the Okabe-Ito colour-blind-safe palette (Masataka Okabe and Kei Ito, "Color Universal Design", 2002), brightened | colour values, not copyrightable | https://jfly.uni-koeln.de/color/ |
 | Font | none bundled; the device's own system font is used | n/a | n/a |
+| qrcode-generator 1.4.4 (`web/vendor/qrcode-generator/`, draws the QR codes of "Voortgang overzetten"; bundled as an ES module, see `web/vendor/README.md`) | Kazuhiko Arase | MIT | https://github.com/kazuhikoarase/qrcode-generator |
+| jsQR 1.4.0 (`web/vendor/jsqr/`, reads a QR code from the camera when the browser has no `BarcodeDetector`) | Cosmo Wolfe | Apache-2.0 | https://github.com/cozmo/jsQR |
 
 Apps only (`android/`, `ios/`, through npm; nothing of this is loaded on the website):
 
