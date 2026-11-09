@@ -183,25 +183,26 @@ def shoot(browser, base, name, viewport, dpr, lang):
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
 
-    # Vier op een rij: the big board against the easy computer (the kleuterbord made way for Slangetje)
+    # Klok kijken: "set the clock" with half hours (Vier op een rij made way for it; the stores take 8 shots)
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
-    page.click("#tile-vier")
+    page.click("#tile-klok")
     page.wait_for_timeout(300)
-    page.emulate_media(reduced_motion="reduce")  # tokens land at once for the shot
-    wait = "(() => { const s = window.__bubbels.vier.state(); return s && !s.busy && (s.over || s.setup.mode === 'duo' || s.turn === 1); })()"
-    page.evaluate("window.__seed(5); window.__bubbels.vier.choose({board: 'big', mode: 'cpu', level: 1}); window.__bubbels.vier.start(1)")
+    page.evaluate("window.__bubbels.klok.start('set-t2-1')")
     page.wait_for_timeout(300)
-    for col in (3, 3, 2, 4):
-        page.click(f".vcol[data-col='{col}']")
-        page.wait_for_function(wait, timeout=8000)
-    page.wait_for_timeout(300)
-    shots.append(out / "6-vier-7x6.png")
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.click("#klok-hint")  # the hand to look at glows
+    page.wait_for_timeout(500)
+    shots.append(out / "6-klok.png")
     page.screenshot(path=str(shots[-1]))
+    page.click("#klok-back")
+    page.wait_for_timeout(200)
+    page.click("#klok-menu-back")
+    page.wait_for_timeout(150)
+    page.click("#klok-menu-back")
+    page.wait_for_timeout(200)
 
     # Slangetje: a counting round (two numbers eaten), a free level; the snake is stepped by the test hook so the shot is the same every time
-    page.click("#vier-back")
-    page.wait_for_timeout(200)
-    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-vier-menu [data-go=home]').click()")
     page.click("#tile-slang")
     page.wait_for_timeout(300)
     for level, file, eaten, extra in ((4, "7-slang-count.png", 2, 2),):

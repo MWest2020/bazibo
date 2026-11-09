@@ -34,7 +34,8 @@ function numbers(size = 17) {
     const r = 60;
     const x = 100 + r * Math.sin(a);
     const y = 100 - r * Math.cos(a);
-    s += `<text x="${x.toFixed(1)}" y="${(y + size * 0.36).toFixed(1)}" text-anchor="middle" font-size="${size}" font-weight="900" fill="${INK}" font-family="ui-rounded, Nunito, system-ui, sans-serif">${n}</text>`;
+    // drawn over the hands, with a halo in the face colour, so a hand never hides a number
+    s += `<text x="${x.toFixed(1)}" y="${(y + size * 0.36).toFixed(1)}" text-anchor="middle" font-size="${size}" font-weight="900" fill="${INK}" stroke="${FACE}" stroke-width="4" stroke-linejoin="round" paint-order="stroke" font-family="ui-rounded, Nunito, system-ui, sans-serif">${n}</text>`;
   }
   return s;
 }
@@ -50,17 +51,22 @@ function bells() {
   return part(-38, 96, bell) + part(38, 96, bell) + part(-148, 96, foot) + part(148, 96, foot);
 }
 
-/** A small sun (day) or moon (night) inside the face, under the centre. */
-export function dayPartSvg(day, cx = 100, cy = 132, r = 9) {
+/**
+ * A sun (day) or a moon (night) on a little white badge on top of the clock, between the bells,
+ * where the hands never come.
+ */
+export function dayPartSvg(day, cx = 100, cy = -5, r = 12) {
+  const badge = `<circle cx="${cx}" cy="${cy}" r="${r + 7}" fill="#fff" stroke="${INK}" stroke-width="3"/>`;
   if (day) {
     let rays = '';
     for (let i = 0; i < 8; i++) {
       const a = (i * 45 * Math.PI) / 180;
-      rays += `<line x1="${(cx + (r + 3) * Math.sin(a)).toFixed(1)}" y1="${(cy - (r + 3) * Math.cos(a)).toFixed(1)}" x2="${(cx + (r + 7) * Math.sin(a)).toFixed(1)}" y2="${(cy - (r + 7) * Math.cos(a)).toFixed(1)}" stroke="${HOUR}" stroke-width="2.4" stroke-linecap="round"/>`;
+      rays += `<line x1="${(cx + (r - 1) * Math.sin(a)).toFixed(1)}" y1="${(cy - (r - 1) * Math.cos(a)).toFixed(1)}" x2="${(cx + (r + 3) * Math.sin(a)).toFixed(1)}" y2="${(cy - (r + 3) * Math.cos(a)).toFixed(1)}" stroke="${HOUR}" stroke-width="2.6" stroke-linecap="round"/>`;
     }
-    return `<g class="klok-daypart" data-day="1">${rays}<circle cx="${cx}" cy="${cy}" r="${r}" fill="${GOLD}" stroke="${HOUR}" stroke-width="2"/></g>`;
+    return `<g class="klok-daypart" data-day="1">${badge}${rays}<circle cx="${cx}" cy="${cy}" r="${r - 3}" fill="${GOLD}" stroke="${HOUR}" stroke-width="2"/></g>`;
   }
-  return `<g class="klok-daypart" data-day="0"><path d="M${cx + 3} ${cy - r - 1} a${r + 1} ${r + 1} 0 1 0 ${r - 2} ${2 * r - 2} a${r - 1} ${r - 1} 0 1 1 ${-r + 2} ${-2 * r + 2} z" fill="#8f86e8" stroke="${RIM}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${cx + r + 3}" cy="${cy - r + 1}" r="1.6" fill="${GOLD}"/><circle cx="${cx + r - 1}" cy="${cy + 3}" r="1.2" fill="${GOLD}"/></g>`;
+  const k = r - 1;
+  return `<g class="klok-daypart" data-day="0">${badge}<path d="M${cx + 2} ${cy - k} a${k} ${k} 0 1 0 ${k - 1} ${2 * k - 3} a${k - 2} ${k - 2} 0 1 1 ${-k + 1} ${-2 * k + 3} z" fill="#8f86e8" stroke="${RIM}" stroke-width="2" stroke-linejoin="round"/><circle cx="${cx + k}" cy="${cy - 4}" r="1.8" fill="${GOLD}"/></g>`;
 }
 
 function hands(t, id = '') {
@@ -68,14 +74,16 @@ function hands(t, id = '') {
   const mid = id ? ` id="${id}-minute"` : '';
   return (
     `<g class="klok-hand hour"${hid} transform="rotate(${hourAngle(t).toFixed(2)} 100 100)">` +
+    `<path class="hit" d="M100 100 L100 46" stroke="transparent" stroke-width="30" stroke-linecap="round"/>` + // a wider grip
     `<path d="M100 100 L100 52" stroke="${INK}" stroke-width="12" stroke-linecap="round"/>` +
     `<path d="M100 100 L100 52" stroke="${HOUR}" stroke-width="8" stroke-linecap="round"/></g>` +
     `<g class="klok-hand minute"${mid} transform="rotate(${minuteAngle(t).toFixed(2)} 100 100)">` +
     `<path d="M100 104 L100 26" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>` +
     `<path d="M100 104 L100 26" stroke="${MINUTE}" stroke-width="4.6" stroke-linecap="round"/></g>` +
-    `<circle cx="100" cy="100" r="8" fill="${GOLD}" stroke="${INK}" stroke-width="3"/>`
+    ''
   );
 }
+const CAP = `<circle cx="100" cy="100" r="8" fill="${GOLD}" stroke="${INK}" stroke-width="3"/>`;
 
 /**
  * The whole clock as an SVG string. `id` names the hand groups (for the interactive clock),
@@ -83,15 +91,16 @@ function hands(t, id = '') {
  */
 export function clockSvg(t, { id = '', dayPart = false, small = false, cls = '' } = {}) {
   return (
-    `<svg class="klok-svg ${cls}" viewBox="-10 -12 220 226" aria-hidden="true">` +
+    `<svg class="klok-svg ${cls}" viewBox="-10 -24 220 238" aria-hidden="true">` +
     bells() +
     `<circle cx="100" cy="100" r="97" fill="${RIM}" stroke="${INK}" stroke-width="3"/>` +
     `<circle cx="100" cy="100" r="86" fill="${FACE}"/>` +
     `<circle cx="100" cy="100" r="86" fill="none" stroke="#e7e0ff" stroke-width="5"/>` +
     ticks() +
-    numbers(small ? 19 : 17) +
-    `<g class="klok-daypart-slot">${dayPart ? dayPartSvg(isDay(t)) : ''}</g>` +
     hands(t, id) +
+    numbers(small ? 19 : 17) +
+    CAP +
+    `<g class="klok-daypart-slot">${dayPart ? dayPartSvg(isDay(t)) : ''}</g>` +
     `</svg>`
   );
 }

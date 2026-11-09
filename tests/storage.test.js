@@ -368,3 +368,11 @@ test('mergeSaves: random counts of a session that could not read the save are ad
   const session = { games: { dogudoku: { random: { s8: 3, s6: 1 } } }, settings: {}, purchase: { owned: false } };
   assert.deepEqual(store.mergeSaves(stored, session, false).games.dogudoku.random, { s4: 5, s8: 4, s6: 1 });
 });
+
+test('mergeSaves: how-to cards seen in the stored save or the session stay seen', () => {
+  const stored = { version: 1, games: { klok: { howSeen: { set: true } } }, settings: { muted: false, lang: null }, purchase: { owned: false } };
+  const session = { version: 1, games: { klok: { howSeen: { read: true } }, slang: { howSeen: { count: true } } }, settings: { muted: false, lang: null }, purchase: { owned: false } };
+  const out = store.mergeSaves(stored, session, false);
+  assert.deepEqual(out.games.klok.howSeen, { set: true, read: true });
+  assert.deepEqual(out.games.slang.howSeen, { count: true });
+});

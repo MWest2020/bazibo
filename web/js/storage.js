@@ -229,6 +229,10 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
       for (const [pic, entry] of Object.entries(g.art)) art[pic] = mergeArtPage(art[pic], entry);
       boundArt(art);
     }
+    if (isObj(g?.howSeen)) {
+      // how-to cards seen in either: a card the child already closed is not shown again
+      mine.howSeen = { ...(isObj(mine.howSeen) ? mine.howSeen : {}), ...g.howSeen };
+    }
     if (isObj(g?.random)) {
       const random = isObj(mine.random) ? mine.random : (mine.random = {});
       // the session could not read the save, so its counts started at 0: they are added, not compared

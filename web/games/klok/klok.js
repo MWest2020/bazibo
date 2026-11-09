@@ -26,8 +26,8 @@ import {
   minuteOf,
   hour12,
   pointAngle,
-  nearestHand,
-  dragMinute,
+  pickHand,
+  minuteDrag,
   dragHour,
   nudge,
   hintHand,
@@ -87,9 +87,16 @@ export function createKlok(shell) {
     return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
   }
 
+  // The menu has two levels: first the three kinds of round (the daily rhythm first, for the
+  // youngest), then the rounds of one kind by age. `menuMode` is the kind being shown, or null.
+  let menuMode = null;
+  const MENU_ORDER = ['day', 'set', 'read'];
+  const lastTier = () => store.loadGameOption(meta.id, 'lastTier', {}) || {};
+
   function renderMenu() {
     const box = $('#klok-menu');
     box.textContent = '';
+    $('#klok-menu-title').textContent = menuMode ? t(`klok.mode.${menuMode}`) : t('klok.menu');
     if (game && !game.done) {
       const cont = document.createElement('button');
       cont.type = 'button';
@@ -102,64 +109,94 @@ export function createKlok(shell) {
       });
       box.appendChild(cont);
     }
+    if (!menuMode) {
+      for (const mode of MENU_ORDER) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'klok-modecard';
+        b.dataset.mode = mode;
+        b.innerHTML = `<span class="klok-mode-art">${modeSvg(mode)}</span><span class="klok-mode-text"><span class="klok-mode-title"></span><span class="klok-mode-sub"></span><span class="klok-mode-age"></span></span>`;
+        b.querySelector('.klok-mode-title').textContent = t(`klok.mode.${mode}`);
+        b.querySelector('.klok-mode-sub').textContent = t(`klok.mode.${mode}Sub`);
+        b.querySelector('.klok-mode-age').textContent = t('klok.ages', { age: mode === 'day' ? '4-6' : '5-10' });
+        b.addEventListener('click', () => {
+          tap();
+          menuMode = mode;
+          renderMenu();
+          $('#screen-klok-menu .levels-scroll').scrollTop = 0;
+        });
+        box.appendChild(b);
+      }
+      return;
+    }
+    const mode = menuMode;
     const got = stars();
     const done = randomDone();
-    for (const mode of MODES) {
-      const head = document.createElement('h3');
-      head.className = 'klok-mode';
-      head.dataset.mode = mode;
-      head.innerHTML = `<span class="klok-mode-art">${modeSvg(mode)}</span><span class="klok-mode-text"><span class="klok-mode-title"></span><span class="klok-mode-sub"></span></span>`;
-      head.querySelector('.klok-mode-title').textContent = t(`klok.mode.${mode}`);
-      head.querySelector('.klok-mode-sub').textContent = t(`klok.mode.${mode}Sub`);
-      box.appendChild(head);
-      for (const tier of tiersOf(mode)) {
-        const line = document.createElement('p');
-        line.className = 'klok-age';
-        line.textContent = t('klok.tierLine', { age: mode === 'day' ? '4-6' : TIERS[tier].age, what: t(mode === 'day' ? 'klok.tier.day' : `klok.tier.${tier}`) });
-        box.appendChild(line);
-        const grid = document.createElement('div');
-        grid.className = 'level-grid klok-grid';
-        grid.dataset.tier = `${mode}-${tier}`;
-        grid.appendChild(
-          randomCard({
-            t,
-            tap,
-            locked: !shell.unlock.owned,
-            solved: done[`${mode}-${tier}`] || 0,
-            done: true,
-            onPlay: () => playRandom(mode, tier),
-            onLocked: () => shell.offerUnlock(t('klok.randomLead')),
-          }),
-        );
-        for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
-          const id = `${mode}-${tier}-${r}`;
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'level-btn';
-          b.dataset.round = id;
-          if (locked(mode, tier)) {
-            b.classList.add('locked');
-            b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
-            b.setAttribute('aria-label', t('klok.roundLocked', { n: r }));
-            b.addEventListener('click', () => {
-              tap();
-              offer();
-            });
-          } else {
-            const n = got[id] || 0;
-            b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
-            b.setAttribute('aria-label', n ? t('klok.roundStars', { n: r, stars: n }) : t('klok.roundOpen', { n: r }));
-            b.addEventListener('click', () => {
-              tap();
-              startRound(id);
-            });
-          }
-          grid.appendChild(b);
+    const tiers = tiersOf(mode);
+    const rtier = tiers.includes(lastTier()[mode]) ? lastTier()[mode] : tiers[0];
+    const rgrid = document.createElement('div');
+    rgrid.className = 'level-grid klok-grid klok-random';
+    rgrid.appendChild(
+      randomCard({
+        t,
+        tap,
+        title: tiers.length > 1 ? `${t('random.play')} · ${t(`klok.tier.${rtier}`)}` : null,
+        locked: !shell.unlock.owned,
+        solved: done[`${mode}-${rtier}`] || 0,
+        done: true,
+        onPlay: () => playRandom(mode, rtier),
+        onLocked: () => shell.offerUnlock(t('klok.randomLead')),
+      }),
+    );
+    box.appendChild(rgrid);
+    for (const tier of tiers) {
+      const line = document.createElement('p');
+      line.className = 'klok-age';
+      line.textContent = t('klok.tierLine', { age: mode === 'day' ? '4-6' : TIERS[tier].age, what: t(mode === 'day' ? 'klok.tier.day' : `klok.tier.${tier}`) });
+      box.appendChild(line);
+      const grid = document.createElement('div');
+      grid.className = 'level-grid klok-grid';
+      grid.dataset.tier = `${mode}-${tier}`;
+      for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
+        const id = `${mode}-${tier}-${r}`;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'level-btn';
+        b.dataset.round = id;
+        if (locked(mode, tier)) {
+          b.classList.add('locked');
+          b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+          b.setAttribute('aria-label', t('klok.roundLocked', { n: r }));
+          b.addEventListener('click', () => {
+            tap();
+            offer();
+          });
+        } else {
+          const n = got[id] || 0;
+          b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
+          b.setAttribute('aria-label', n ? t('klok.roundStars', { n: r, stars: n }) : t('klok.roundOpen', { n: r }));
+          b.addEventListener('click', () => {
+            tap();
+            startRound(id);
+          });
         }
-        box.appendChild(grid);
+        grid.appendChild(b);
       }
+      box.appendChild(grid);
     }
   }
+
+  /** The menu's back: from one kind of round to the three kinds, from there to the home screen. */
+  function menuBack() {
+    if (menuMode) {
+      menuMode = null;
+      renderMenu();
+    } else shell.show('home');
+  }
+  $('#klok-menu-back').addEventListener('click', () => {
+    tap();
+    menuBack();
+  });
 
   function offer() {
     shell.offerUnlock(t('klok.lockedLead'));
@@ -187,8 +224,10 @@ export function createKlok(shell) {
 
   function begin({ mode, tier, roundId, seed }) {
     plays++;
+    menuMode = mode; // "Rounds" and the back button land on this kind of round
+    if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     clearTimer();
-    const qs = makeRound({ mode, tier, seed, lang: getLang() });
+    const qs = makeRound({ mode, tier, seed, lang: getLang(), round: roundId ? Number(roundId.split('-')[2]) : 0 });
     game = { mode, tier, roundId, seed, qs, i: 0, cur: qs[0].start ?? 0, mistakes: 0, results: [], waiting: false, done: false, hint: false };
     shell.show('klok');
     render();
@@ -429,12 +468,13 @@ export function createKlok(shell) {
     e.preventDefault();
     sfx.unlock();
     const a = pointAngle(p.x, p.y, 100, 100);
-    let hand = nearestHand(a, game.cur);
+    let hand = pickHand(a, r, game.cur);
     if (hand === 'minute' && tierInfo().step >= 60) hand = 'hour'; // whole hours: the long hand stays on 12
-    drag = { hand, id: e.pointerId };
+    // the long hand follows the finger the shortest way round, also from where it lands
+    drag = { hand, id: e.pointerId, md: hand === 'minute' ? minuteDrag(game.cur, a, tierInfo().step) : null };
     face.setPointerCapture?.(e.pointerId);
     face.querySelector(`#kc-${hand}`)?.classList.add('grabbed');
-    moveTo(a, true);
+    setTime(drag.md ? drag.md.first : dragHour(game.cur, a));
   });
   face.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
@@ -448,9 +488,9 @@ export function createKlok(shell) {
   };
   face.addEventListener('pointerup', endDrag);
   face.addEventListener('pointercancel', endDrag);
-  function moveTo(a, jump = false) {
+  function moveTo(a) {
     if (!drag || !game) return;
-    setTime(drag.hand === 'minute' ? dragMinute(game.cur, a, tierInfo().step, { jump }) : dragHour(game.cur, a));
+    setTime(drag.md ? drag.md.move(a) : dragHour(game.cur, a));
   }
 
   // ---------- answering ----------
@@ -512,7 +552,7 @@ export function createKlok(shell) {
     }, 700);
   }
 
-  /** Why: where the hands are, and for the 24-hour clock how the hours count on. */
+  /** Why: where the hands are, and for the 24-hour clock which half of the day it is. */
   function explain(target) {
     const h = hour12(target);
     const next = h === 12 ? 1 : h + 1;
@@ -520,15 +560,24 @@ export function createKlok(shell) {
     let why;
     if (m === 0) why = t('klok.whyWhole', { h });
     else if (minutePosition(target) !== null) why = t('klok.whyNumber', { pos: minutePosition(target), h, next });
-    else why = t('klok.whyMinute', { m, h, next });
-    const h24 = Math.floor((((target % 1440) + 1440) % 1440) / 60);
-    if (tierInfo().digital24 && h24 >= 13) why = `${why} ${t('klok.why24', { h12: h24 - 12, h24, part: dayPartWord(target) })}`;
+    else {
+      // between two numbers: count the little marks after the number before it
+      const before = Math.floor(m / 5) || 12;
+      const n = m % 5;
+      why = t(n === 1 ? 'klok.whyMark1' : 'klok.whyMarks', { n, pos: before, h, next });
+    }
+    if (tierInfo().digital24) {
+      const day = (((target % 1440) + 1440) % 1440);
+      const am = day % 720;
+      const pm = am + 720;
+      why = `${why} ${t('klok.why24', { a: digital(am, { h24: true }), aPart: dayPartWord(am), b: digital(pm, { h24: true }), bPart: dayPartWord(pm) })}`;
+    }
     return why;
   }
 
   function dayPartWord(time) {
     const h = Math.floor((((time % 1440) + 1440) % 1440) / 60);
-    return h < 12 ? t('klok.morning') : h < 18 ? t('klok.afternoon') : t('klok.evening');
+    return h < 6 ? t('klok.night') : h < 12 ? t('klok.morning') : h < 18 ? t('klok.afternoon') : t('klok.evening');
   }
 
   function nextQuestion() {
@@ -617,6 +666,7 @@ export function createKlok(shell) {
   });
   document.addEventListener('keydown', (e) => {
     if (!game || !onScreen('klok') || overlayUp() || game.waiting) return;
+    if (e.target?.closest?.('button') && (e.key === 'Enter' || e.key === ' ')) return; // the button itself does it
     if (game.mode === 'set') {
       const step = Math.min(tierInfo().step, 60);
       if (e.key === 'ArrowUp' || e.key === 'ArrowRight') setTime(nudge(game.cur, step));
@@ -633,9 +683,11 @@ export function createKlok(shell) {
       return true; // everything is made in code; nothing to load
     },
     open() {
+      menuMode = null;
       shell.show('klok-menu');
     },
     leave,
+    menuBack,
     testHook() {
       return {
         state: () =>
@@ -652,6 +704,7 @@ export function createKlok(shell) {
             waiting: game.waiting,
           },
         start: (id) => startRound(id),
+        menu: (mode) => ((menuMode = mode || null), renderMenu()),
         random: (mode, tier) => playRandom(mode, tier),
         setTime: (x) => setTime(x),
         check: () => check_(),

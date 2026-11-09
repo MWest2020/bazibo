@@ -171,13 +171,20 @@ clock and pictures in `art.js`; the screens in `klok.js`). A friendly alarm cloc
 purple rim with two gold bells, numbers 1-12, minute marks, a short orange hour hand and a long
 blue minute hand that are easy to tell apart.
 
+- The menu first shows the three kinds of round (the daily rhythm first, for the youngest), then
+  the rounds of one kind by age, with one "Random" card per kind (at the tier last played).
 - Three kinds of round:
   - **Zet de klok / Set the clock:** turn the hands to a time shown in words and digits ("half
-    drie", 2:30). Drag a hand (the nearer hand follows the finger; passing 12 with the long hand
-    moves the hour on, as on a real clock) or tap + and - per hand, then Klaar / Done.
+    drie", 2:30). Drag a hand (beyond the short hand's reach a finger always takes the long
+    hand; near the centre the short hand wins when it is within 20 degrees, as at 12:00; the long
+    hand follows the finger the shortest way round, so passing 12 moves the hour on, also with
+    big steps or a fast flick) or tap + and - per hand, then Klaar / Done.
   - **Hoe laat is het? / What time is it?:** pick the time the clock shows from 3 or 4 answers.
     The wrong answers are the mistakes children really make: an hour off ("half drie" is 2:30, not
     3:30), the hands swapped, a step off, and for the oldest the twelve-hour flip (3:47 vs 15:47).
+    Each comes from a different kind, never an hour too early and too late together, and the right
+    answer is as often the earliest as a middle or the latest time (`npm test` checks no simple rule
+    wins more than about 40%).
   - **Dagritme / Daily rhythm** (youngest, whole hours): a picture (breakfast, school, lunch,
     playing outside, dinner, bath, bed) and three clocks with a sun (day) or a moon (evening).
 - Five tiers: whole hours (5-6), half hours (6-7), quarters (7-8), five minutes (8-9), single minutes
@@ -253,7 +260,8 @@ checks that a returning player keeps their progress, and opens the privacy and t
 | `web/games/bubbels/` | the bubble shooter: `meta.js` (free tier), `strings.js`, `bubbels.js` (levels, HUD), `game.js` (state, input, physics, drawing), `grid.js` (pure hex-grid logic), `levels.json`, `bubbels.css` |
 | `web/nl/privacy/`, `web/en/privacy/` | privacy policy, Dutch and English |
 | `web/nl/voorwaarden/`, `web/en/terms/` | terms of service, Dutch and English; linked from Settings and the privacy pages |
-| `web/privacy/`, `web/terms/`, `web/voorwaarden/` | old and language-neutral URLs: they forward to the page in the reader's language (`js/legal-redirect.js`) |
+| `web/nl/plannen/`, `web/en/roadmap/` | for parents: what is in Bazibo now and what comes next (in order, no dates); linked from Settings, the privacy and terms pages |
+| `web/privacy/`, `web/terms/`, `web/voorwaarden/`, `web/roadmap/`, `web/plannen/` | old and language-neutral URLs: they forward to the page in the reader's language (`js/legal-redirect.js`) |
 | `web/css/legal.css` | style of the legal pages |
 | `web/sw.js`, `web/manifest.webmanifest`, `web/icons/` | PWA basics |
 | `tools/` | level generator, icon renderer (`make_icons.py --native` also does the app icons and launch screens), store screenshots (`store_shots.py`), service-worker cache stamp (`stamp-sw.mjs`) |

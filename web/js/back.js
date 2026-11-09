@@ -10,6 +10,7 @@
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
 //   a colouring page                   -> the list of pages (the page is saved)
 //   a Klok kijken round (or its card)  -> its menu (the round is kept: "keep playing")
+//   the Klok kijken menu               -> from one kind of round to the kinds, then home
 //   a level or puzzle list, settings   -> the home screen
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
@@ -22,6 +23,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'slang') return 'slang-menu';
   if (screen === 'kleuren') return 'kleuren-list';
   if (screen === 'klok') return 'klok-menu';
+  if (screen === 'klok-menu') return 'klok-menu-back';
   if (screen === 'home') return 'exit';
   return 'home';
 }

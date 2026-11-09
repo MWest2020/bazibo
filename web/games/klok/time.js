@@ -59,7 +59,7 @@ function phraseEn(h, m) {
   const H = EN_NUM[h];
   const N = EN_NUM[next12(h)];
   const mins = (n) => (n % 5 === 0 ? EN_NUM[n] : `${EN_NUM[n]} ${n === 1 ? 'minute' : 'minutes'}`);
-  if (m === 0) return `${H} o'clock`;
+  if (m === 0) return `${H} o’clock`;
   if (m === 15) return `quarter past ${H}`;
   if (m === 30) return `half past ${H}`;
   if (m === 45) return `quarter to ${N}`;
@@ -75,10 +75,10 @@ export function digital(t, { h24 = false } = {}) {
   return `${hour12(t)}:${mm}`;
 }
 
-/** Day or night on the clock face (oldest tier and the daily rhythm): 06:00-17:59 is day. */
+/** Day or night on the clock face (oldest tier and the daily rhythm): 06:00 to 18:00 is day. */
 export function isDay(t) {
-  const h = Math.floor(mod(t, DAY) / 60);
-  return h >= 6 && h < 18;
+  const x = mod(t, DAY);
+  return x >= 6 * 60 && x <= 18 * 60;
 }
 
 // ---------- the hands ----------
@@ -96,32 +96,49 @@ export function pointAngle(x, y, cx, cy) {
   return mod((Math.atan2(x - cx, cy - y) * 180) / Math.PI, 360);
 }
 
-/** Which hand is nearer (by angle) to a finger at angle `a`: 'minute' or 'hour'. */
-export function nearestHand(a, t) {
-  const d = (b) => {
-    const x = mod(a - b, 360);
-    return Math.min(x, 360 - x);
-  };
-  return d(hourAngle(t)) < d(minuteAngle(t)) ? 'hour' : 'minute';
+const angleGap = (a, b) => {
+  const x = mod(a - b, 360);
+  return Math.min(x, 360 - x);
+};
+/** The signed shortest turn from angle `from` to angle `to`, -180..180 (clockwise positive). */
+export function turnBetween(from, to) {
+  return mod(to - from + 180, 360) - 180;
+}
+
+/** Hand lengths in the clock drawing (art.js): the hour hand reaches 48, the minute hand 74. */
+export const HOUR_REACH = 55;
+
+/**
+ * Which hand a finger at angle `a` and distance `r` from the centre grabs. Beyond the hour hand's
+ * reach it is always the long hand; inside it, the hour hand when it is within 20 degrees (so the
+ * hands lying on top of each other, as at 12:00, still give the short hand), else the nearer hand.
+ */
+export function pickHand(a, r, t) {
+  if (r > HOUR_REACH) return 'minute';
+  if (angleGap(a, hourAngle(t)) <= 20) return 'hour';
+  return angleGap(a, hourAngle(t)) < angleGap(a, minuteAngle(t)) ? 'hour' : 'minute';
 }
 
 /**
- * Drag the minute hand to angle `a`, snapped to `step` minutes. While the finger moves, passing 12
- * forwards moves the hour on and passing it backwards moves the hour back, as on a real clock (the
- * shorter way round from the old minute decides). `jump` (the finger just landed somewhere) only
- * sets the minutes. Returns the new time.
+ * Turning the long hand with a finger. The raw angle is followed with the signed shortest turn
+ * between pointer events (also from the hand to where the finger first lands), so passing 12
+ * forwards moves the hour on and backwards moves it back, also with a big step size or a fast
+ * flick. The time is snapped to `step` minutes only for what the clock shows.
+ *   const drag = minuteDrag(time, angle, step); time = drag.move(newAngle);
  */
-export function dragMinute(t, a, step = 5, { jump = false } = {}) {
-  const snapStep = Math.min(step, 60);
-  let m = Math.round(mod(a, 360) / 6 / snapStep) * snapStep;
-  if (m >= 60) m = 0;
-  const old = minuteOf(t);
-  let base = t - old;
-  if (!jump) {
-    if (m - old < -30) base += 60; // over the top, forwards
-    else if (m - old > 30) base -= 60; // over the top, backwards
-  }
-  return mod(base + m, DAY);
+export function minuteDrag(t, a, step = 5) {
+  const snap = Math.min(step, 60);
+  const start = t;
+  let raw = 0; // minutes turned since the start, unsnapped
+  let last = minuteAngle(t);
+  const move = (b) => {
+    raw += turnBetween(last, b) / 6;
+    last = b;
+    const total = start + raw;
+    return mod(Math.round(total / snap) * snap, DAY);
+  };
+  const first = move(a);
+  return { first, move };
 }
 
 /** Drag the hour hand to angle `a`: the nearest whole hour, the minutes stay. */
@@ -189,33 +206,76 @@ export function label(t, tierId, lang) {
 
 /**
  * The answer options for a time: the right one plus plausible mistakes, all on the tier's grid,
- * all written differently, shuffled. The mistakes children really make: an hour off ("half drie"
- * is not 3:30), the hands swapped, a step off, and for the oldest the twelve-hour flip (3:47 vs 15:47).
+ * all written differently, shuffled. The mistakes are the ones children really make: an hour off
+ * ("half drie" is 2:30, not 3:30), a step off, the hands swapped, half an hour off, and for the
+ * oldest the twelve-hour flip (3:47 vs 15:47). Each mistake comes from a different kind where it
+ * can, and the right answer is as often the earliest, a middle or the latest time of the row (its
+ * place is drawn first), so no simple rule finds it. Never an hour too early and an hour too late
+ * together.
  */
 export function answerOptions(t, tierId, rng, lang = 'nl') {
   const tier = TIERS[tierId];
   const step = tier.step;
+  const span = tier.digital24 ? DAY : FACE;
+  const n = tier.options;
   const onGrid = (x) => minuteOf(x) % step === 0;
+  const rel = (x) => mod(x - t + span / 2, span) - span / 2; // minutes before (-) or after (+) the answer
   const h = hour12(t);
   const m = minuteOf(t);
-  const swapped = ((m === 0 ? 12 : Math.round(m / 5)) % 12) * 60 + ((h % 12) * 5) % 60; // hands swapped
-  const ideas = [t + 60, t - 60, t + step, t - step, swapped, t + 2 * step, t - 2 * step, t + 120, t - 120];
-  if (step <= 15) ideas.push(t + 30, t - 30); // "half" around the wrong hour
-  if (tier.digital24) ideas.unshift(t + 720, t - 720); // morning or afternoon
+  const swapped = ((m === 0 ? 12 : Math.round(m / 5)) % 12) * 60 + ((h % 12) * 5) % 60;
+  const bigStep = step >= 60 ? 120 : step;
+  const kinds = {
+    hour: [60, 120],
+    step: step >= 60 ? [120, 180] : [step, 2 * step],
+    other: [...(step <= 30 ? [30] : []), step >= 60 ? 240 : 3 * bigStep],
+  };
   const right = label(t, tierId, lang);
   const out = [{ t: mod(t, DAY), text: right, correct: true }];
   const seen = new Set([right]);
+  const offs = new Set();
   const sameAsRight = (x) => (tier.digital24 ? mod(x, DAY) === mod(t, DAY) : sameFace(x, t));
   const add = (x) => {
     x = mod(x, DAY);
-    if (out.length >= tier.options || !onGrid(x) || sameAsRight(x)) return;
+    if (out.length >= n || !onGrid(x) || sameAsRight(x)) return false;
+    const off = rel(x);
+    if (Math.abs(off) === 60 && offs.has(-off)) return false; // never an hour on both sides
     const text = label(x, tierId, lang);
-    if (seen.has(text)) return;
+    if (seen.has(text)) return false;
     seen.add(text);
+    offs.add(off);
     out.push({ t: x, text, correct: false });
+    return true;
   };
-  for (const x of shuffle(rng, ideas.slice(0, 3)).concat(ideas.slice(3))) add(x);
-  for (let guard = 0; out.length < tier.options && guard < 200; guard++) add(randomTime(tierId, rng));
+  // where the right answer sits in the row of times: drawn first, evenly
+  const before = Math.floor(rng() * n);
+  const need = { [-1]: before, [1]: n - 1 - before };
+  const extras = () => {
+    const xs = [swapped];
+    if (tier.digital24) xs.push(t + 720, t - 720);
+    for (let k = 0; k < 6; k++) xs.push(randomTime(tierId, rng));
+    return shuffle(rng, xs);
+  };
+  for (const side of shuffle(rng, [-1, 1])) {
+    let got = 0;
+    // one mistake per kind first, then anything on this side
+    for (const kind of shuffle(rng, Object.keys(kinds))) {
+      if (got >= need[side]) break;
+      const ds = kind === 'other' && tier.digital24 && side < 0 ? [720, ...kinds.other] : kinds[kind]; // the twelve-hour flip
+      for (const d of ds) {
+        if (Math.sign(rel(t + side * d)) !== side) continue;
+        if (add(t + side * d)) {
+          got++;
+          break;
+        }
+      }
+    }
+    for (const x of extras()) {
+      if (got >= need[side]) break;
+      if (Math.sign(rel(x)) === side && add(x)) got++;
+    }
+    for (let d = step; got < need[side] && d < span / 2; d += step) if (add(t + side * d)) got++;
+  }
+  for (let guard = 0; out.length < n && guard < 200; guard++) add(randomTime(tierId, rng));
   return shuffle(rng, out);
 }
 
@@ -231,11 +291,20 @@ export const ACTIVITIES = Object.freeze([
   Object.freeze({ id: 'bed', t: 20 * 60 }),
 ]);
 
-/** Three clocks to choose from for an activity: its own time and two others that are far enough away. */
-export function dayOptions(activityId, rng) {
+/**
+ * Three clocks to choose from for an activity: its own time and two others that are far enough
+ * away. `easy` (the first rounds) also leaves out clocks that look the same apart from the sun or
+ * the moon (7:00 and 19:00).
+ */
+export function dayOptions(activityId, rng, { easy = false } = {}) {
   const act = ACTIVITIES.find((a) => a.id === activityId);
-  const far = ACTIVITIES.filter((a) => a.id !== act.id && Math.abs(a.t - act.t) >= 180);
-  const picks = shuffle(rng, far).slice(0, 2);
+  const far = ACTIVITIES.filter((a) => a.id !== act.id && Math.abs(a.t - act.t) >= 180 && !(easy && sameFace(a.t, act.t)));
+  const picks = [];
+  for (const a of shuffle(rng, far)) {
+    if (picks.length === 2) break;
+    if (easy && picks.some((p) => sameFace(p.t, a.t))) continue; // two clocks that look alike
+    picks.push(a);
+  }
   return shuffle(rng, [{ t: act.t, correct: true }, ...picks.map((a) => ({ t: a.t, correct: false }))]);
 }
 
@@ -262,7 +331,7 @@ export function parseRoundId(id) {
  * The questions of a round. Fixed rounds use a seed from their id, random practice a fresh seed.
  * set:  { target, start }   read: { target, options }   day: { activity, target, options }
  */
-export function makeRound({ mode, tier, seed, lang = 'nl' }) {
+export function makeRound({ mode, tier, seed, lang = 'nl', round = 0 }) {
   const rng = mulberry32(seed);
   const qs = [];
   if (mode === 'day') {
@@ -271,7 +340,7 @@ export function makeRound({ mode, tier, seed, lang = 'nl' }) {
       let act = pick(rng, ACTIVITIES);
       for (let g = 0; g < 10 && act.id === prev; g++) act = pick(rng, ACTIVITIES);
       prev = act.id;
-      qs.push({ activity: act.id, target: act.t, options: dayOptions(act.id, rng) });
+      qs.push({ activity: act.id, target: act.t, options: dayOptions(act.id, rng, { easy: round > 0 && round <= 2 }) });
     }
     return qs;
   }

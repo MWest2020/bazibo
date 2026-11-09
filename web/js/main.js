@@ -81,6 +81,7 @@ function renderLanguage() {
   translateDom(document);
   $('#privacy-link').href = lang === 'en' ? 'en/privacy/index.html' : 'nl/privacy/index.html';
   $('#terms-link').href = lang === 'en' ? 'en/terms/index.html' : 'nl/voorwaarden/index.html';
+  $('#roadmap-link').href = lang === 'en' ? 'en/roadmap/index.html' : 'nl/plannen/index.html';
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);
@@ -559,6 +560,7 @@ function onBack() {
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'klok-menu') games.klok.leave();
+  else if (action === 'klok-menu-back') games.klok.menuBack();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

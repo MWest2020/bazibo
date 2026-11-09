@@ -50,6 +50,6 @@ test('back: a Klok kijken round goes to its menu (kept), a card on it too, the m
   assert.equal(backAction({ screen: 'klok' }), 'klok-menu');
   assert.equal(backAction({ screen: 'klok', overlay: 'card' }), 'klok-menu');
   assert.equal(backAction({ screen: 'klok', overlay: 'busy' }), 'ignore');
-  assert.equal(backAction({ screen: 'klok-menu' }), 'home');
+  assert.equal(backAction({ screen: 'klok-menu' }), 'klok-menu-back'); // to the kinds of round, then home
   assert.equal(backAction({ screen: 'klok-menu', overlay: 'card' }), 'close');
 });

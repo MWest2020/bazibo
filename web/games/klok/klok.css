@@ -24,6 +24,27 @@
 .klok-mode-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .klok-mode-title { font-size: 1.35rem; font-weight: 900; color: var(--primary); }
 .klok-mode-sub { font-size: 0.95rem; font-weight: 700; color: var(--ink-soft); }
+.klok-modecard {
+  width: 100%;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 24px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #d6cff7, 0 8px 16px rgba(59, 47, 168, 0.12);
+}
+.klok-modecard:active { transform: translateY(4px); box-shadow: 0 2px 0 #d6cff7; }
+.klok-modecard:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.klok-modecard .klok-mode-art { width: 84px; height: 62px; }
+.klok-mode-age { font-size: 0.85rem; font-weight: 800; color: var(--primary); }
+.klok-random { margin: 4px 0 6px; }
 .klok-age { margin: 14px 0 10px; font-size: 0.95rem; font-weight: 800; color: var(--ink-soft); }
 .klok-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: #a59fd0; box-shadow: 0 4px 0 #ddd8f7; }
 .klok-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
@@ -58,7 +79,7 @@
   text-align: center;
 }
 .klok-lead { width: 100%; font-size: 0.95rem; font-weight: 800; color: var(--ink-soft); }
-.klok-target { font-size: clamp(1.3rem, 6vw, 1.75rem); font-weight: 900; color: var(--primary); line-height: 1.15; overflow-wrap: anywhere; }
+.klok-target { font-size: clamp(1.3rem, 6vw, 1.75rem); font-weight: 900; color: var(--primary); line-height: 1.15; overflow-wrap: break-word; hyphens: auto; }
 .klok-target.digits, .klok-option.digits { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .klok-target.digits { font-size: clamp(1.8rem, 9vw, 2.4rem); }
 .klok-digital {
@@ -83,7 +104,7 @@
 }
 .klok-face.activity .klok-activity { width: auto; height: 100%; max-height: 230px; max-width: 100%; aspect-ratio: 80 / 72; display: block; padding: 14px; border-radius: 28px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 5px 0 #d6cff7; }
 .klok-target.small { font-size: clamp(1.05rem, 4.6vw, 1.3rem); }
-.klok-face .klok-svg { height: 100%; max-height: 380px; width: auto; max-width: 100%; aspect-ratio: 220 / 226; display: block; overflow: visible; }
+.klok-face .klok-svg { height: 100%; max-height: 380px; width: auto; max-width: 100%; aspect-ratio: 220 / 238; display: block; overflow: visible; }
 .klok-face.interactive { touch-action: none; cursor: grab; }
 .klok-face.interactive:active { cursor: grabbing; }
 .klok-hand.grabbed path:last-child { filter: drop-shadow(0 0 4px rgba(255, 197, 49, 0.95)); }
@@ -104,7 +125,7 @@
 .klok-controls { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .klok-nudges { width: 100%; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 18px; }
 .klok-nudge { display: flex; align-items: center; gap: 8px; }
-.klok-nudge-name { min-width: 92px; text-align: center; font-size: 0.95rem; font-weight: 900; line-height: 1.1; }
+.klok-nudge-name { min-width: 0; flex: 0 1 auto; white-space: nowrap; text-align: center; font-size: 0.95rem; font-weight: 900; line-height: 1.1; }
 .klok-nudge.hour .klok-nudge-name { color: #e2581f; }
 .klok-nudge.minute .klok-nudge-name { color: #2563eb; }
 .klok-btn.round {
@@ -121,7 +142,7 @@
 .klok-btn.round.minute { background: #3b82f6; }
 .klok-btn.round:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(43, 35, 112, 0.35); }
 .klok-btn.round:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
-.klok-check { min-width: 200px; }
+.btn.big.klok-check { min-width: 0; width: 100%; max-width: 240px; }
 
 .klok-options { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .klok-options.n3 { grid-template-columns: minmax(0, 1fr); max-width: 360px; }
@@ -136,7 +157,9 @@
   font: 800 1.05rem/1.15 var(--font);
   cursor: pointer;
   box-shadow: 0 5px 0 #d6cff7;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  min-width: 0;
 }
 .klok-option.digits { font-size: 1.4rem; font-weight: 900; }
 .klok-option.clock { padding: 6px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
@@ -189,7 +212,7 @@
     padding: 8px 12px;
   }
   .klok-prompt { grid-area: prompt; width: 100%; min-height: 0; }
-  .klok-face { grid-area: face; height: min(calc(100vh - 16px), 44vw); width: auto; max-width: 44vw; aspect-ratio: 220 / 226; }
+  .klok-face { grid-area: face; height: min(calc(100vh - 16px), 44vw); width: auto; max-width: 44vw; aspect-ratio: 220 / 238; }
   .klok-face.activity { aspect-ratio: auto; width: 40vw; }
   .klok-face.activity .klok-activity { max-height: min(calc(100vh - 40px), 230px); }
   .klok-dots { gap: 4px; }
@@ -198,6 +221,12 @@
   .klok-side { grid-area: side; width: 100%; }
   .klok-options.clocks { max-width: 380px; }
   .klok-option.clock { max-height: 34vh; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .klok-option { font-size: 0.95rem; padding: 6px 8px; }
+  .klok-nudges { gap: 8px 10px; }
+  .klok-nudge { gap: 6px; }
+  .klok-nudge-name { font-size: 0.85rem; white-space: normal; text-align: center; }
 }
 @media (orientation: landscape) and (max-height: 400px) {
   .klok-lead { font-size: 0.85rem; }
