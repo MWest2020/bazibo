@@ -25,7 +25,7 @@ Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje dat tellen o
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
-bubble shooter,sudoku,vier op een rij,slang,tellen,kleurplaat,mandala,puzzel,kinderen,zonder reclame
+bubble shooter,sudoku,vier op een rij,slang,tellen,kleurplaat,mandala,kinderen,zonder reclame
 
 ## Beschrijving (4000)
 
@@ -57,7 +57,7 @@ VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Laat om de beurt een fiche in een kolom vallen. Wie als eerste vier op een rij heeft (recht of schuin), wint.
 • Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk. Op Makkelijk maakt de computer expres foutjes.
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
-• Kies je eigen fiche. Tegen de computer kun je een zet terugnemen.
+• Kies je eigen fiche.
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
 • Stuur een vrolijke slang met vegen of grote pijlen.

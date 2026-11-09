@@ -93,7 +93,7 @@ export function createKleuren(shell) {
     // my pictures: everything coloured so far, newest first (new mandalas can only be found here)
     const mine = Object.entries(art)
       .filter(([key]) => pageFor(key))
-      .sort((a, b) => (b[1].t || 0) - (a[1].t || 0));
+      .sort((a, b) => (b[1]?.t || 0) - (a[1]?.t || 0));
     if (mine.length) {
       const grid = section(t('kleur.mine'), '', 'kleur-mine');
       for (const [key, saved] of mine) {
@@ -143,10 +143,11 @@ export function createKleuren(shell) {
     flush();
     plays++;
     page = p;
-    const saved = store.loadArt(meta.id)[key];
+    const saved = store.loadArtPage(meta.id, key);
     fills = { ...(saved?.f || {}) };
     done = !!saved?.done;
     undo = [];
+    dirty = false;
     mirror = p.kind === 'mandala' && p.symmetry;
     zoomed = false;
     renderHud();
@@ -187,8 +188,8 @@ export function createKleuren(shell) {
     const next = colour === WHITE ? undefined : colour;
     const changes = ids.map((r) => [r, fills[r], next]).filter(([, before, after]) => before !== after);
     if (!changes.length) return false;
+    undo.push(changes); // first, so the undo button is lit when apply() redraws the tools
     apply(changes, 2);
-    undo.push(changes);
     sfx.plink((colour % 9) + 1);
     return true;
   }
@@ -201,6 +202,7 @@ export function createKleuren(shell) {
       else fills[ch[0]] = c;
       paintRegion(ch[0], c);
     }
+    if (!hasColour()) done = false; // a page made blank again is not done any more
     renderTools();
     scheduleSave();
   }
@@ -222,12 +224,11 @@ export function createKleuren(shell) {
           () => {
             shell.hideOverlay();
             const changes = Object.entries(fills).map(([r, c]) => [r, c, undefined]);
-            if (changes.length) {
-              apply(changes, 2);
-              undo.push(changes);
-            }
             done = false;
-            scheduleSave();
+            if (changes.length) {
+              undo.push(changes); // undo brings the colours back
+              apply(changes, 2);
+            }
           },
         ],
         [t('common.cancel'), 'big secondary', shell.hideOverlay],
@@ -236,25 +237,36 @@ export function createKleuren(shell) {
   }
 
   function scheduleSave() {
+    dirty = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, SAVE_DELAY);
   }
 
-  /** Write the page now (after a pause in tapping, when leaving, when the app goes to the background). */
+  /**
+   * Write the page now (after a pause in tapping, when leaving, when the app goes to the
+   * background). Only if something changed; a page without colour is never stored (saveArt).
+   */
+  let dirty = false;
   function flush() {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (!page) return;
-    const before = store.loadArt(meta.id)[page.key];
-    if (!before && !Object.keys(fills).length && !done) return; // an untouched page is not saved
+    if (!page || !dirty) return;
+    dirty = false;
     store.saveArt(meta.id, page.key, { f: fills, done });
   }
 
+  const hasColour = () => Object.keys(fills).length > 0;
+
   function finish() {
-    const first = !done;
+    if (!hasColour()) return; // a blank page is not "done" (the button is off then too)
     done = true;
+    dirty = true;
     flush();
-    if (first && page.random) store.recordRandomSolved(meta.id, page.tier);
+    if (page.random && !store.artCounted(meta.id, page.key)) {
+      // a new mandala counts once, however often it is finished again
+      store.recordRandomSolved(meta.id, page.tier);
+      store.saveArt(meta.id, page.key, { f: fills, done, counted: true });
+    }
     sfx.chime();
     const stage = $('#kleur-page');
     stage.classList.remove('sparkle');
@@ -311,9 +323,9 @@ export function createKleuren(shell) {
   function renderTools() {
     for (const b of document.querySelectorAll('#kleur-palette .swatch')) b.setAttribute('aria-pressed', String(Number(b.dataset.c) === colour));
     $('#kleur-undo').disabled = !undo.length;
+    $('#kleur-done').disabled = !page || !hasColour();
     const isMandala = page?.kind === 'mandala';
     $('#kleur-mirror').hidden = !isMandala;
-    $('#kleur-zoom').hidden = !isMandala;
     $('#kleur-mirror').setAttribute('aria-pressed', String(mirror));
     $('#kleur-zoom').setAttribute('aria-pressed', String(zoomed));
   }
@@ -358,7 +370,13 @@ export function createKleuren(shell) {
   $('#kleur-zoom').addEventListener('click', () => {
     tap();
     zoomed = !zoomed;
-    $('#kleur-page').classList.toggle('zoom', zoomed);
+    const box = $('#kleur-page');
+    box.classList.toggle('zoom', zoomed);
+    if (zoomed) {
+      // open on the middle of the page
+      box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2;
+      box.scrollTop = (box.scrollHeight - box.clientHeight) / 2;
+    }
     renderTools();
   });
   $('#kleur-done').addEventListener('click', () => {

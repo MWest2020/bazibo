@@ -4,6 +4,7 @@ import { makeMandala, groupOf, MANDALA_TIERS, FREE_MANDALAS, rng } from '../web/
 import { PICTURES, FREE_PICTURES } from '../web/games/kleuren/pictures.js';
 import { pageFor, parseKey, pictureKey, mandalaKey, targets, LIST_KEYS, FREE_MANDALA_KEYS } from '../web/games/kleuren/pages.js';
 import { PALETTE, WHITE, pageSvg } from '../web/games/kleuren/art.js';
+import { visibleAreas, maskOf } from '../web/games/kleuren/raster.js';
 import { meta } from '../web/games/kleuren/meta.js';
 import { backAction } from '../web/js/back.js';
 import * as store from '../web/js/storage.js';
@@ -47,6 +48,29 @@ test('every mandala region is a closed path with a unique id; counts stay inside
   }
 });
 
+test('the rasteriser measures areas right (a circle, a ring sector)', () => {
+  const area = (d) => maskOf(d, { res: 0.25 }).reduce((a, b) => a + b, 0) * 0.0625;
+  assert.ok(Math.abs(area('M-10 0A10 10 0 1 0 10 0A10 10 0 1 0 -10 0Z') - Math.PI * 100) < 3);
+  assert.ok(Math.abs(area('M20 0L40 0A40 40 0 0 1 0 40L0 20A20 20 0 0 0 20 0Z') - (Math.PI / 4) * 1200) < 4);
+});
+
+// What a child sees: m1 is coloured at phone size (a 390 px phone shows the page about 366 px wide),
+// m2 zoomed in 2.2×. No part that shows may be smaller than 12×12 px there (review of PR #17).
+test('mandalas: every part that shows is at least 12×12 px where it is coloured', () => {
+  const pxPerUnit = { m1: 366 / 200, m2: (366 / 200) * 2.2 };
+  for (const tier of Object.keys(MANDALA_TIERS)) {
+    for (let s = 1; s <= 200; s++) {
+      const seed = (s * 2654435761) % 1e9;
+      const m = makeMandala(tier, seed);
+      const vis = visibleAreas(m.regions, { res: 0.25 });
+      vis.forEach((a, i) => {
+        const px = a * pxPerUnit[tier] ** 2;
+        assert.ok(px >= 144 * 0.95, `${tier}/${seed}: ${m.regions[i].id} shows ${px.toFixed(0)} px²`);
+      });
+    }
+  }
+});
+
 test('mandala symmetry groups: every copy of a shape is in its group, one per fold (or two)', () => {
   for (const tier of Object.keys(MANDALA_TIERS)) {
     for (let seed = 1; seed <= 60; seed++) {
@@ -55,6 +79,7 @@ test('mandala symmetry groups: every copy of a shape is in its group, one per fo
       for (const r of m.regions) groups.set(r.g, [...(groups.get(r.g) || []), r.id]);
       for (const [g, ids] of groups) {
         if (g === 'c0' || g === 'c1') assert.equal(ids.length, 1, `${tier}/${seed}: centre ${g}`);
+        else if (g === 'cp') assert.ok(ids.length === m.folds || ids.length * 2 === m.folds, `${tier}/${seed}: centre petals ${ids.length}`);
         else assert.equal(ids.length, m.folds, `${tier}/${seed}: group ${g} has ${ids.length} copies, folds ${m.folds}`);
         for (const id of ids) assert.deepEqual(groupOf(m, id).sort(), [...ids].sort());
       }
@@ -103,7 +128,7 @@ test('a tap colours one region, or all copies of a mandala shape when mirroring'
   assert.deepEqual(targets(pic, 'face', true), ['face']); // pictures never mirror
   assert.deepEqual(targets(pic, 'nope', false), []);
   const m = pageFor(FREE_MANDALA_KEYS[0]);
-  const shape = m.regions.find((r) => r.g !== 'c0' && r.g !== 'c1');
+  const shape = m.regions.find((r) => r.g.startsWith('b'));
   assert.deepEqual(targets(m, shape.id, false), [shape.id]);
   assert.equal(targets(m, shape.id, true).length, m.mandala.folds);
 });
@@ -126,33 +151,40 @@ test('back: a colouring page goes to the list, the list goes home', () => {
   assert.equal(backAction({ screen: 'kleuren', overlay: 'card' }), 'close');
 });
 
-test('save: pages are kept per key, an empty page is dropped, at most 30 generated mandalas', async () => {
+test('save: pages are kept per key, a page without colour is never stored, at most 30 generated mandalas', async () => {
   const prefs = fakePreferences();
   await store.init({ backend: store.preferencesBackend(prefs), legacyStorage: null });
+  store.saveArt(meta.id, 'p:huis', { f: {}, done: true, t: 5 });
+  assert.equal(store.loadArtPage(meta.id, 'p:huis'), null, 'a blank page is never stored, done or not');
+  assert.equal(store.snapshot().games.kleuren, undefined);
   store.saveArt(meta.id, 'p:zon', { f: { face: 2, ray0: 1, bad: -1, worse: 'x' }, t: 10 });
   assert.deepEqual(store.loadArt(meta.id)['p:zon'], { f: { face: 2, ray0: 1 }, t: 10, done: false });
   store.saveArt(meta.id, 'p:zon', { f: {}, t: 11 });
-  assert.equal(store.loadArt(meta.id)['p:zon'], undefined, 'an empty, unfinished page is removed');
-  store.saveArt(meta.id, 'p:vis', { f: {}, done: true, t: 12 });
-  assert.equal(store.loadArt(meta.id)['p:vis'].done, true, 'a finished page stays, even blank');
+  assert.equal(store.loadArt(meta.id)['p:zon'], undefined, 'a page made blank is cleared');
+  assert.deepEqual(store.snapshot().games.kleuren.art['p:zon'], { t: 11, gone: true }, 'kept as a marker for a later merge');
   store.saveArt(meta.id, 'f:m1:1101', { f: { c0: 1 }, t: 1 });
   for (let i = 0; i < 40; i++) store.saveArt(meta.id, `m:m1:${i}`, { f: { c0: 3 }, t: 100 + i });
   const art = store.loadArt(meta.id);
   const generated = Object.keys(art).filter((k) => k.startsWith('m:'));
   assert.equal(generated.length, store.ART_KEEP);
   assert.ok(!art['m:m1:0'] && art['m:m1:39'], 'the oldest generated ones go first');
-  assert.ok(art['f:m1:1101'] && art['p:vis'], 'pictures and the free mandalas are always kept');
+  assert.ok(art['f:m1:1101'], 'the free mandalas are always kept');
   assert.throws(() => store.saveGameOption(meta.id, 'art', {}));
   assert.equal(store.loadGameOption(meta.id, 'art', 'none'), 'none');
+  // counted once: the mark survives finishing again and clearing
+  assert.equal(store.artCounted(meta.id, 'm:m1:39'), false);
+  store.saveArt(meta.id, 'm:m1:39', { f: { c0: 3 }, done: true, counted: true, t: 200 });
+  store.saveArt(meta.id, 'm:m1:39', { f: { c0: 4 }, done: true, t: 201 });
+  store.saveArt(meta.id, 'm:m1:39', { f: {}, t: 202 });
+  assert.equal(store.artCounted(meta.id, 'm:m1:39'), true);
   await store.flushed();
-  const saved = JSON.parse(prefs.dump()[store.SAVE_KEY]);
-  assert.equal(Object.keys(saved.games.kleuren.art).length, store.ART_KEEP + 2);
+  assert.ok(JSON.parse(prefs.dump()[store.SAVE_KEY]).games.kleuren.art['f:m1:1101']);
 });
 
 test('save: after a failed read, the newer version of each page wins when the save is read again', async () => {
   const real = JSON.stringify({
     version: 1,
-    games: { kleuren: { art: { 'p:zon': { f: { face: 1 }, t: 50, done: true }, 'p:vis': { f: { body: 4 }, t: 500, done: false } } }, bubbels: { stars: { 1: 3 } } },
+    games: { kleuren: { art: { 'p:zon': { f: { face: 1, ray0: 2 }, t: 50, done: true }, 'p:vis': { f: { body: 4 }, t: 500, done: false }, 'p:bloem': { f: { pot: 1 }, t: 650 } } }, bubbels: { stars: { 1: 3 } } },
     settings: { muted: false, lang: null },
     purchase: { owned: false },
   });
@@ -164,17 +196,23 @@ test('save: after a failed read, the newer version of each page wins when the sa
   try {
     assert.equal(await store.init({ backend, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
     store.saveArt(meta.id, 'p:zon', { f: { face: 7 }, t: 100 }); // newer than the stored one
-    store.saveArt(meta.id, 'p:vis', { f: { body: 9 }, t: 200 }); // older than the stored one
+    store.saveArt(meta.id, 'p:vis', { f: { body: 9, tail: 3 }, t: 200 }); // older than the stored one
     store.saveArt(meta.id, 'p:huis', { f: { roof: 0 }, t: 300 }); // only in the session
+    store.saveArt(meta.id, 'p:bloem', { f: { stem: 4 }, t: 600 });
+    store.saveArt(meta.id, 'p:bloem', { f: {}, t: 700 }); // cleared in the session, after the stored one
     broken = false;
     store.retryFailedWrite();
     assert.equal(await store.adopted(), true);
     await store.flushed();
-    const art = JSON.parse(prefs.dump()[store.SAVE_KEY]).games.kleuren.art;
-    assert.deepEqual(art['p:zon'].f, { face: 7 });
-    assert.deepEqual(art['p:vis'].f, { body: 4 });
+    const saved = JSON.parse(prefs.dump()[store.SAVE_KEY]);
+    const art = saved.games.kleuren.art;
+    assert.deepEqual(art['p:zon'].f, { face: 7, ray0: 2 }, 'newer per region, the other regions kept');
+    assert.equal(art['p:zon'].done, false, 'done follows the newer version');
+    assert.deepEqual(art['p:vis'].f, { body: 4, tail: 3 }, 'the stored (newer) colour wins for its region');
     assert.deepEqual(art['p:huis'].f, { roof: 0 });
-    assert.deepEqual(JSON.parse(prefs.dump()[store.SAVE_KEY]).games.bubbels.stars, { 1: 3 });
+    assert.equal(art['p:bloem'].gone, true, 'a page cleared later stays cleared');
+    assert.deepEqual(saved.games.bubbels.stars, { 1: 3 });
+    assert.equal(saved.games.kleuren.stars, undefined, 'no empty stars section');
   } finally {
     console.warn = warn;
   }

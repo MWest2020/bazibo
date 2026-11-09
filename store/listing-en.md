@@ -42,27 +42,27 @@ DOGUDOKU: HIDE THE PUPPIES
 • For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
 • From age 5, coloured beds join in: one puppy per colour.
 • From age 7, bigger gardens, up to 8 by 8.
-• 60 puzzles, each with exactly one solution. A mistake lights up gently; a hint helps one step further.
+• 60 puzzles, each with exactly one solution. A mistake lights up gently; a hint helps.
 
 PICTUREDOKU: SUDOKU WITH PICTURES
 • Every picture goes once in every row, every column and every box.
 • For the youngest (age 3 and up): 4 by 4 with an apple, a banana, grapes and a carrot, no numbers and no reading.
 • From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
 • With a pencil, an eraser and undo.
-• 60 puzzles, each with exactly one solution and solvable without guessing. A mistake lights up gently; a hint helps one step further.
+• 60 puzzles, each with one solution, solvable without guessing.
 
 FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Take turns dropping a token into a column. The first to get four in a row (straight or slanting) wins.
-• Play together on one screen, with a brother, sister or parent. Or against the computer: Easy, Medium or Hard. On Easy the computer makes mistakes on purpose, so young children win too.
+• Play together on one screen, or against the computer: Easy, Medium or Hard. On Easy it makes mistakes on purpose.
 • For the youngest (age 3 and up): the little board, 5 by 4, where three in a row already wins. No reading needed.
-• Pick your own token. Against the computer you can take back a move.
+• Pick your own token.
 
 SNAKE: COUNTING, LETTERS AND COLOURS
 • Steer a happy snake by swiping or with big arrows, and eat the right things.
 • Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
 • Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
 • Colours: eat only the fruit of the right colour; every colour also has its own shape.
-• A mistake is never game over: the snake gets a little shorter and the fruit hops somewhere else.
+• A mistake is never game over: the snake just gets a little shorter.
 • For the youngest (age 3 and up) the snake is slow and comes back on the other side at the edge. From age 7 it is faster, with fences and stones.
 • 30 levels.
 

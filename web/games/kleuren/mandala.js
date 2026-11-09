@@ -6,11 +6,20 @@
 //
 // A region: { id, d, g } where g is its symmetry group: the same shape in every one of the k copies
 // shares a group, so "colour all copies" fills the whole group at once.
+//
+// Every part that shows must be big enough to tap and to see: after building, the mandala is
+// rasterised (raster.js) and a group of shapes that shows less than MIN_AREA is taken out (a shape
+// that is small itself), or the shapes that cover it are (a background left as a sliver). Taking
+// out whole groups keeps the symmetry.
+import { visibleAreas, maskOf, rasterize } from './raster.js';
 
 /** Mandala tiers: m1 for ages 7-8 (fewer, larger shapes), m2 for ages 9-10. */
 export const MANDALA_TIERS = Object.freeze({
-  m1: Object.freeze({ age: 7, folds: [6, 8], bands: [3, 4], regions: [30, 160], symmetry: true }),
-  m2: Object.freeze({ age: 9, folds: [8, 10, 12], bands: [5, 6], regions: [80, 340], symmetry: false }),
+  // minArea: the least a part may show, in square units of the 200-unit drawing. m1 is tapped at
+  // phone size (a 390 px phone shows the page about 366 px wide: 12 px is 6.6 units); m2 is
+  // meant to be zoomed in on (2.2×: 12 px is 3 units). minDot: the smallest dot radius.
+  m1: Object.freeze({ age: 7, folds: [6, 8], bands: [3, 4], regions: [24, 160], symmetry: true, minArea: 43, minDot: 3.8 }),
+  m2: Object.freeze({ age: 9, folds: [8, 10, 12], bands: [5, 6], regions: [50, 340], symmetry: false, minArea: 9, minDot: 2 }),
 });
 
 /** The free mandalas: fixed seeds, the same for everyone. */
@@ -78,6 +87,12 @@ export function scallop(r1, r2, a1, a2) {
   return `M${pt(r1, a1)}L${pt(base, a1)}A${br} ${br} 0 0 1 ${pt(base, a2)}L${pt(r1, a2)}A${f(r1)} ${f(r1)} 0 0 0 ${pt(r1, a1)}Z`;
 }
 
+/** A dot's radius: what the design wants, at least minDot, and 0 (no dots) when that does not fit in `room`. */
+const dotSize = (want, room, minDot) => {
+  const r = Math.max(want, minDot);
+  return r <= room ? r : 0;
+};
+
 /** Pick one element of a list. */
 const pick = (rand, list) => list[Math.floor(rand() * list.length)];
 
@@ -97,22 +112,22 @@ const BANDS = {
     for (let j = 0; j < k; j++) push('q', j, petal(r1 + (r2 - r1) * 0.25, r2 - 1, off + (j + 0.5) * step, w * 0.62));
   },
   // scalloped edge with a dot in every scallop
-  scallops(push, k, r1, r2, step, off, rand) {
+  scallops(push, k, r1, r2, step, off, rand, minDot) {
     const n = rand() < 0.5 ? k : 2 * k; // one or two scallops per copy
     const s = (2 * Math.PI) / n;
     // the band's own background first, so the corners between the bumps can be coloured too
     for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
     for (let j = 0; j < n; j++) push(n === k ? 's' : j % 2 ? 't' : 's', n === k ? j : Math.floor(j / 2), scallop(r1, r2, off + j * s, off + (j + 1) * s));
-    const size = Math.min((r2 - r1) * 0.2, ((r1 + r2) / 2) * s * 0.22);
-    for (let j = 0; j < n; j++) push(n === k ? 'd' : j % 2 ? 'e' : 'd', n === k ? j : Math.floor(j / 2), dot(r1 + (r2 - r1) * 0.42, off + (j + 0.5) * s, size));
+    const size = dotSize(Math.min((r2 - r1) * 0.2, ((r1 + r2) / 2) * s * 0.22), Math.min((r2 - r1) * 0.3, ((r1 + r2) / 2) * s * 0.3), minDot);
+    if (size) for (let j = 0; j < n; j++) push(n === k ? 'd' : j % 2 ? 'e' : 'd', n === k ? j : Math.floor(j / 2), dot(r1 + (r2 - r1) * 0.42, off + (j + 0.5) * s, size));
   },
   // drops pointing outwards, with dots between them
-  drops(push, k, r1, r2, step, off, rand) {
+  drops(push, k, r1, r2, step, off, rand, minDot) {
     const w = step * (0.26 + rand() * 0.05);
     for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
     for (let j = 0; j < k; j++) push('p', j, drop(r1 + 1.5, r2 - 1.5, off + (j + 0.5) * step, w));
-    const size = Math.min((r2 - r1) * 0.13, r2 * step * 0.09);
-    for (let j = 0; j < k; j++) push('d', j, dot(r2 - (r2 - r1) * 0.28, off + j * step, size));
+    const size = dotSize(Math.min((r2 - r1) * 0.13, r2 * step * 0.09), Math.min((r2 - r1) * 0.2, r2 * step * 0.16), minDot);
+    if (size) for (let j = 0; j < k; j++) push('d', j, dot(r2 - (r2 - r1) * 0.28, off + j * step, size));
   },
   // a band of small wedges, two per copy, like a chequered ribbon
   checks(push, k, r1, r2, step, off) {
@@ -148,20 +163,57 @@ export function makeMandala(tier, seed) {
   edges[edges.length - 1] = R;
   const regions = [];
   const push = (prefix) => (part, j, d) => regions.push({ id: `${prefix}${part}${j}`, d, g: `${prefix}${part}` });
-  // the centre: a disc with a small flower on top
+  // the centre: a disc with a small flower on top (few petals, so they stay big enough to tap)
   regions.push({ id: 'c0', d: dot(0, 0, r0), g: 'c0' });
-  const cw = step * 0.38;
-  for (let j = 0; j < k; j++) push('c')('p', j, petal(r0 * 0.18, r0 * 0.92, j * step - Math.PI / 2, Math.min(cw, 0.5)));
-  regions.push({ id: 'c1', d: dot(0, 0, r0 * 0.24), g: 'c1' });
+  const cp = k > (tier === 'm1' ? 6 : 8) ? k / 2 : k;
+  const cstep = (2 * Math.PI) / cp;
+  for (let j = 0; j < cp; j++) push('c')('p', j, petal(r0 * 0.18, r0 * 0.92, j * cstep - Math.PI / 2, Math.min(cstep * 0.4, 0.55)));
+  regions.push({ id: 'c1', d: dot(0, 0, Math.max(r0 * 0.24, spec.minDot)), g: 'c1' });
   let last = '';
   for (let b = 0; b < nb; b++) {
     let kind = pick(rand, BAND_KINDS);
     if (kind === last) kind = BAND_KINDS[(BAND_KINDS.indexOf(kind) + 1) % BAND_KINDS.length]; // no two alike in a row
     last = kind;
     const off = -Math.PI / 2 + (b % 2 ? step / 2 : 0); // every other ring turned half a step
-    BANDS[kind](push(`b${b}`), k, edges[b], edges[b + 1], step, off, rand);
+    BANDS[kind](push(`b${b}`), k, edges[b], edges[b + 1], step, off, rand, spec.minDot);
   }
-  return { tier, seed, folds: k, regions };
+  return { tier, seed, folds: k, regions: prune(regions, spec.minArea) };
+}
+
+/**
+ * Take out groups until every part that shows shows at least `minArea` (and nothing is fully
+ * hidden). A group that is small itself goes; a group that is big but mostly covered keeps its
+ * place and the group covering it most goes instead, so no uncolourable sliver is left behind.
+ */
+export function prune(regions, minArea, res = 0.5) {
+  let list = regions;
+  for (let pass = 0; pass < 40; pass++) {
+    const vis = visibleAreas(list, { res });
+    const groups = new Map();
+    list.forEach((r, i) => groups.set(r.g, [...(groups.get(r.g) || []), i]));
+    let worst = null;
+    for (const [g, idx] of groups) {
+      const v = Math.min(...idx.map((i) => vis[i]));
+      if (v < minArea && (!worst || v < worst.v)) worst = { g, idx, v };
+    }
+    if (!worst) return list;
+    let drop = worst.g;
+    const first = worst.idx[0];
+    const own = maskOf(list[first].d, { res });
+    const ownArea = own.reduce((a, b) => a + b, 0) * res * res;
+    if (worst.v > 0 && ownArea >= minArea * 1.5) {
+      // a big shape shown as a sliver: take out what covers it most
+      const { top } = rasterize(list, { res });
+      const cover = new Map();
+      for (let c = 0; c < own.length; c++) {
+        if (own[c] && top[c] !== first && top[c] >= 0 && list[top[c]].g !== worst.g) cover.set(list[top[c]].g, (cover.get(list[top[c]].g) || 0) + 1);
+      }
+      let best = 0;
+      for (const [g, n] of cover) if (n > best) [best, drop] = [n, g];
+    }
+    list = list.filter((r) => r.g !== drop);
+  }
+  return list;
 }
 
 /** The regions of the same group as `id` (its copies around the circle), for "colour all copies". */

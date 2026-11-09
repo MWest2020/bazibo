@@ -581,6 +581,17 @@ def play_vier(page, name, say, problems):
     page.wait_for_timeout(200)
 
 
+def close_card_if_any(page, timeout=1200):
+    """Close the how-to card if one comes up (it shows once per kind), and wait until it is gone."""
+    try:
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=timeout)
+    except Exception:
+        return False
+    page.click("#ov-buttons button")
+    page.wait_for_selector("#overlay", state="hidden", timeout=3000)
+    return True
+
+
 def slang_round(page, name, problems, shot=None, swipe=False):
     """Play the Slangetje round on the board to its end: the test hook's path finder says which
     way to go, the arrow pad (or one real swipe) steers, and the hook moves the snake one step at
@@ -632,12 +643,12 @@ def play_slang(page, name, say, problems):
     page.screenshot(path=str(SHOTS / f"{name}-s1-menu.png"), full_page=True)
 
     page.click(".slang-grid .level-btn[data-level='1']")
-    page.wait_for_timeout(300)
-    if not page.is_visible("#overlay"):
-        problems.append(f"{name}: no how-to card the first time")
-    else:
+    try:
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=3000)
         page.click("#ov-buttons button")
-    page.wait_for_timeout(200)
+        page.wait_for_selector("#overlay", state="hidden", timeout=3000)
+    except Exception:
+        problems.append(f"{name}: no how-to card the first time")
     st = page.evaluate("window.__bubbels.slang.state()")
     if st["started"] or len(st["items"]) != 3:
         problems.append(f"{name}: counting level 1 should wait for the child with 1, 2, 3 on the board: {st}")
@@ -654,9 +665,8 @@ def play_slang(page, name, say, problems):
 
     # letters: the word in this language
     page.click(".slang-grid .level-btn[data-level='13']")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
+    page.wait_for_selector("#screen-slang.active")
+    close_card_if_any(page)
     word = "".join(page.locator("#slang-target .slang-letter").all_inner_texts())
     if word != say["egg"]:
         problems.append(f"{name}: the letters round spells {word!r}, expected {say['egg']!r}")
@@ -668,9 +678,8 @@ def play_slang(page, name, say, problems):
     # waiting for the first swipe: no animation frames (review of PR #12), and a short swipe goes
     # the way the finger went
     page.click(".slang-grid .level-btn[data-level='4']")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
+    page.wait_for_selector("#screen-slang.active")
+    close_card_if_any(page)
     page.wait_for_timeout(400)
     page.evaluate("""(() => { window.__raf = 0; const o = window.requestAnimationFrame.bind(window);
         window.requestAnimationFrame = (f) => { window.__raf++; return o(f); }; })()""")
@@ -923,6 +932,8 @@ def play_kleuren(page, name, say, problems):
     page.click(f"#ov-buttons button >> text={say['ok']}")
     page.click("#kleur-list .kleur-card[data-page='p:zon']")
     page.wait_for_timeout(300)
+    if not page.is_disabled("#kleur-done") or not page.is_disabled("#kleur-undo"):
+        problems.append(f"{name}: on a blank page Done and Undo should be off")
     page.click("#kleur-palette .swatch[data-c='2']")
     face = page.locator("#kleur-page path[data-r='face']").bounding_box()
     page.mouse.click(face["x"] + face["width"] / 2, face["y"] + face["height"] * 0.8)  # below the smile
@@ -930,6 +941,12 @@ def play_kleuren(page, name, say, problems):
     st = page.evaluate("window.__bubbels.kleur.state()")
     if st["fills"].get("face") != 2:
         problems.append(f"{name}: tapping the sun's face did not colour it ({st['fills']})")
+    if page.is_disabled("#kleur-undo") or page.is_disabled("#kleur-done"):
+        problems.append(f"{name}: after one tap Undo and Done should be on")
+    page.click("#kleur-undo")
+    if page.evaluate("Object.keys(window.__bubbels.kleur.state().fills).length") != 0 or not page.is_disabled("#kleur-done"):
+        problems.append(f"{name}: undo after one tap did not take it back")
+    page.mouse.click(face["x"] + face["width"] / 2, face["y"] + face["height"] * 0.8)
     page.click("#kleur-palette .swatch[data-c='1']")
     for i in range(8):
         page.evaluate(f"document.querySelector(\"#kleur-page path[data-r='ray{i}']\").dispatchEvent(new MouseEvent('click', {{bubbles: true}}))")
@@ -939,6 +956,16 @@ def play_kleuren(page, name, say, problems):
     st = page.evaluate("window.__bubbels.kleur.state()")
     if st["fills"].get("ray0") != 1 or len(st["fills"]) != 9:
         problems.append(f"{name}: colouring or undo went wrong: {st['fills']}")
+    # start over (it asks first), then undo brings every colour back
+    page.click("#kleur-restart")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_selector("#overlay", state="hidden")
+    if page.evaluate("Object.keys(window.__bubbels.kleur.state().fills).length") != 0 or page.is_disabled("#kleur-undo"):
+        problems.append(f"{name}: start over left colours or Undo off")
+    page.click("#kleur-undo")
+    if page.evaluate("window.__bubbels.kleur.state().fills") != st["fills"]:
+        problems.append(f"{name}: undo after start over did not bring the colours back")
     if page.get_attribute("#kleur-page path[data-r='ray3']", "fill").lower() != "#ff8a3d":
         problems.append(f"{name}: a coloured ray is not drawn in its colour")
     page.screenshot(path=str(SHOTS / f"{name}-k1-sun.png"))
