@@ -5,8 +5,8 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
 sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer) and
-Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour); more
-learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
+Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
+Klok kijken ("Telling Time", read and set an analogue clock); more learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
 the source of every app icon). The repository (`MWest2020/bazibo`, renamed from `bubbels` on 2026-11-09), the package id
@@ -133,6 +133,36 @@ snake on a grass board, everything drawn in code.
   10, 9, 8 …), and the oldest tier says that bumping into a fence, a stone or yourself counts.
 - Leaving a round for the menu keeps it while the app stays open ("keep playing"); it is not saved.
   A kept letters round spells the new language's word after a language switch.
+
+### Klok kijken
+
+Learn to tell the time, in `web/games/klok/` (the time logic in `time.js`, pure and tested; the
+clock and pictures in `art.js`; the screens in `klok.js`). A friendly alarm clock drawn in code: a
+purple rim with two gold bells, numbers 1-12, minute marks, a short orange hour hand and a long
+blue minute hand that are easy to tell apart.
+
+- Three kinds of round:
+  - **Zet de klok / Set the clock:** turn the hands to a time shown in words and digits ("half
+    drie", 2:30). Drag a hand (the nearer hand follows the finger; passing 12 with the long hand
+    moves the hour on, as on a real clock) or tap + and - per hand, then Klaar / Done.
+  - **Hoe laat is het? / What time is it?:** pick the time the clock shows from 3 or 4 answers.
+    The wrong answers are the mistakes children really make: an hour off ("half drie" is 2:30, not
+    3:30), the hands swapped, a step off, and for the oldest the twelve-hour flip (3:47 vs 15:47).
+  - **Dagritme / Daily rhythm** (youngest, whole hours): a picture (breakfast, school, lunch,
+    playing outside, dinner, bath, bed) and three clocks with a sun (day) or a moon (evening).
+- Five tiers: whole hours (5-6), half hours (6-7), quarters (7-8), five minutes (8-9), single minutes
+  and the 24-hour clock with a sun or moon on the face (9-10).
+- Dutch phrasing follows the half hour: "vijf voor half drie" (2:25), "tien over half drie"
+  (2:40), "kwart voor drie" (2:45); single minutes "acht minuten voor half vier" (3:22). English
+  counts past and to the hour. `npm test` checks every 5-minute step of every hour in both
+  languages, and that all 720 positions read differently.
+- A round is 10 questions; stars by mistakes (none 3, one or two 2, more 1). A mistake shows the
+  right time on the clock and explains it ("De grote wijzer staat op de 6 en de kleine wijzer
+  staat tussen de 2 en de 3"). The hint lights up the hand to look at.
+- Free: every round of whole and half hours, and the daily rhythm. Quarters, minutes and the
+  24-hour clock, and random practice per tier, are in the full version (`meta.js`).
+- Saved under `games.klok`: stars per round, random rounds done per mode and tier, and which
+  how-to cards were seen. A round in progress is kept while the app stays open ("keep playing").
 
 ### Bubbels schieten
 
