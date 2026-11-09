@@ -37,7 +37,7 @@ jobs:
           if bundle exec fastlane android internal > out.txt 2>&1; then echo "expected a failure"; exit 1; fi
           grep -q "No Play key yet" out.txt
   pages:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: [test, fastlane]
     runs-on: ubuntu-latest
     permissions:
