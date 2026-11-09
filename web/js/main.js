@@ -73,7 +73,8 @@ function renderLanguage() {
   $('#brand-tagline').textContent = BRAND.tagline[lang];
   $('#brand-lore').textContent = BRAND.lore[lang];
   translateDom(document);
-  $('#privacy-link').href = lang === 'en' ? 'privacy/en.html' : 'privacy/index.html';
+  $('#privacy-link').href = lang === 'en' ? 'en/privacy/index.html' : 'nl/privacy/index.html';
+  $('#terms-link').href = lang === 'en' ? 'en/terms/index.html' : 'nl/voorwaarden/index.html';
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);

@@ -224,14 +224,24 @@ def run(browser, base, name, context_args, problems, lang="nl"):
         problems.append(f"{name}: language choice not kept after a reload")
     page.click("#btn-settings")
     page.click(f"[data-lang={lang}]")
-    if page.get_attribute("#privacy-link", "href") != ("privacy/en.html" if lang == "en" else "privacy/index.html"):
+    if page.get_attribute("#privacy-link", "href") != ("en/privacy/index.html" if lang == "en" else "nl/privacy/index.html"):
         problems.append(f"{name}: privacy link does not follow the language")
+    if page.get_attribute("#terms-link", "href") != ("en/terms/index.html" if lang == "en" else "nl/voorwaarden/index.html"):
+        problems.append(f"{name}: terms link does not follow the language")
 
     # privacy pages: served next to the game, no scripts, no outside requests
-    for path in ("privacy/index.html", "privacy/en.html"):
+    for path in ("nl/privacy/index.html", "en/privacy/index.html", "nl/voorwaarden/index.html", "en/terms/index.html"):
         r = page.goto(f"{base}/{path}")
         if not r or r.status != 200 or "hallo@bazibo.nl" not in page.content():
             problems.append(f"{name}: {path} missing or incomplete")
+    # old and language-neutral URLs land on the page in the right language
+    for path, want in (("privacy/", "nl/privacy/" if lang == "nl" else "en/privacy/"), ("privacy/en.html", "en/privacy/"),
+                       ("terms/", "en/terms/"), ("voorwaarden/", "nl/voorwaarden/")):
+        page.goto(f"{base}/{path}")
+        try:
+            page.wait_for_url(f"**/{want}index.html", timeout=6000)
+        except Exception:
+            problems.append(f"{name}: {path} does not lead to {want} (at {page.url})")
     page.screenshot(path=str(SHOTS / f"{name}-9-privacy.png"))
     page.goto(f"{base}/index.html?test")
     page.wait_for_selector("html[data-ready='1']")
