@@ -11,6 +11,7 @@ import { createUnlock, noBilling } from './unlock.js';
 import { isNativeApp, createNativeBilling } from './billing-native.js';
 import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
+import { createTransfer } from './transfer-ui.js';
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
 import '../games/dogudoku/strings.js';
@@ -130,6 +131,12 @@ function renderSettings() {
 $('#btn-full').addEventListener('click', () => {
   tap();
   offerUnlock();
+});
+// Voortgang overzetten changes the save, so a parent opens it (the same gate as buying)
+$('#btn-transfer').addEventListener('click', () => {
+  if (starting()) return;
+  tap();
+  askParent(() => show('transfer'));
 });
 
 // ---------- home tiles ----------
@@ -502,6 +509,7 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.transfer = createTransfer({ t, show, showOverlay, hideOverlay, onShow: (fn) => showHooks.push(fn), tap });
   renderLanguage();
   drawTileArt();
   drawDoguTile();
@@ -525,6 +533,7 @@ async function boot() {
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
       klok: games.klok.testHook(),
+      transfer: games.transfer.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -561,6 +570,8 @@ function onBack() {
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'klok-menu') games.klok.leave();
   else if (action === 'klok-menu-back') games.klok.menuBack();
+  else if (action === 'transfer-card') games.transfer.onBackCard();
+  else if (action === 'settings') show('settings');
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

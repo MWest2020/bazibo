@@ -341,6 +341,29 @@ export function snapshot() {
   return clone(save);
 }
 
+/**
+ * Use a whole new save (Voortgang overzetten: merged or replaced, transfer.js). Only once a read
+ * has worked: false when this session runs without saving (a failed read), so nothing is lost.
+ * Resolves true only when the new save reached the backend; on a failed write the old save is
+ * back in memory. The purchase is never taken from the new save: it stays this device's.
+ */
+export async function applyTransfer(next) {
+  if (!backend || !isObj(next) || !isObj(next.games)) return false;
+  const before = save;
+  const doc = { ...clone(next), version: Math.max(VERSION, Number(next.version) || VERSION), purchase: clone(save.purchase) };
+  const { save: clean } = migrate(JSON.stringify(doc));
+  save = clean;
+  persist();
+  await queue;
+  if (writeFailed) {
+    save = before;
+    persist(); // the old save again, so the device stays as it was
+    await queue;
+    return false;
+  }
+  return true;
+}
+
 /** Resolves when every queued write has reached the backend. */
 export function flushed() {
   return queue;

@@ -29,6 +29,10 @@ evidence, in the same PR).
   localStorage on the web). A new game adds a section under `games`; a format change raises
   `version` and adds a step to `migrate()`. Never drop fields you do not know (a newer app
   version may have written them), never delete the old keys.
+- Voortgang overzetten (`web/js/transfer.js`): anything that comes in through a QR code or pasted
+  text is untrusted. It is checked (size, checksum, the shape of every value; `sanitizePayload`)
+  before it reaches the save, and the purchase never travels. A new game section with new kinds
+  of values needs a rule in `sanitizePayload`, or that part is dropped on transfer.
 
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 

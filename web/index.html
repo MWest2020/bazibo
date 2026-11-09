@@ -101,7 +101,51 @@
           <p id="full-status" class="setting-text"></p>
           <button id="btn-full" class="btn secondary wide" type="button" data-i18n="settings.more">Meer over de volledige versie</button>
         </div>
+        <div class="setting">
+          <h3 data-i18n="settings.transfer">Voortgang overzetten</h3>
+          <p class="setting-text" data-i18n="settings.transferText">Zet sterren en kleurplaten over naar een ander toestel. Met QR-codes, zonder internet.</p>
+          <button id="btn-transfer" class="btn secondary wide" type="button" data-i18n="settings.transferBtn">Overzetten</button>
+        </div>
         <p class="small-links"><a id="privacy-link" href="nl/privacy/index.html" data-i18n="settings.privacy">Privacy</a> · <a id="terms-link" href="nl/voorwaarden/index.html" data-i18n="settings.terms">Voorwaarden</a> · <a id="roadmap-link" href="nl/plannen/index.html" data-i18n="settings.roadmap">Plannen</a></p>
+      </div>
+    </section>
+
+    <!-- Voortgang overzetten (transfer.js, transfer-ui.js): behind the parental gate -->
+    <section id="screen-transfer" class="screen" aria-label="Voortgang overzetten" data-i18n-aria="transfer.title">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="settings" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="transfer.title">Voortgang overzetten</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="transfer-scroll">
+        <div class="seg transfer-tabs" role="group" data-i18n-aria="transfer.title" aria-label="Voortgang overzetten">
+          <button type="button" class="seg-btn" data-transfer="send" data-i18n="transfer.send">Versturen</button>
+          <button type="button" class="seg-btn" data-transfer="receive" data-i18n="transfer.receive">Ontvangen</button>
+        </div>
+        <div id="transfer-send" class="transfer-pane" hidden>
+          <canvas id="transfer-qr" class="transfer-qr" width="320" height="320" role="img" data-i18n-aria="transfer.qrLabel" aria-label="QR-code met voortgang"></canvas>
+          <p id="transfer-part" class="transfer-part" aria-live="polite"></p>
+          <p class="setting-text" data-i18n="transfer.sendHint">Scan deze code met het andere toestel: Instellingen › Voortgang overzetten › Ontvangen.</p>
+          <p id="transfer-send-msg" class="transfer-msg" aria-live="polite"></p>
+          <div class="transfer-actions">
+            <button id="transfer-noart" class="btn secondary" type="button" hidden data-i18n="transfer.noArt">Zonder kleurplaten</button>
+            <button id="transfer-copy" class="btn secondary" type="button" data-i18n="transfer.copy">Kopieer als tekst</button>
+          </div>
+          <textarea id="transfer-code" class="transfer-code" readonly hidden rows="4" data-i18n-aria="transfer.codeLabel" aria-label="De code als tekst"></textarea>
+        </div>
+        <div id="transfer-receive" class="transfer-pane" hidden>
+          <div class="transfer-cam">
+            <video id="transfer-video" playsinline muted></video>
+            <span class="transfer-frame" aria-hidden="true"></span>
+          </div>
+          <p id="transfer-status" class="transfer-msg" aria-live="polite"></p>
+          <button id="transfer-again" class="btn secondary" type="button" hidden data-i18n="transfer.restart">Opnieuw</button>
+          <h3 class="transfer-paste-head" data-i18n="transfer.paste">Of plak de code</h3>
+          <textarea id="transfer-input" class="transfer-code" rows="4" autocomplete="off" spellcheck="false" data-i18n-aria="transfer.codeLabel" aria-label="De code als tekst"></textarea>
+          <button id="transfer-use" class="btn primary" type="button" data-i18n="transfer.use">Code gebruiken</button>
+        </div>
       </div>
     </section>
 

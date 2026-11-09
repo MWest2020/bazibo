@@ -41,7 +41,7 @@ export function createVier(shell) {
   const savedSetup = () => {
     const s = store.loadGameOption(meta.id, 'setup', null) || {};
     return {
-      board: BOARDS[s.board] ? s.board : DEFAULT_SETUP.board,
+      board: typeof s.board === 'string' && Object.hasOwn(BOARDS, s.board) ? s.board : DEFAULT_SETUP.board, // never 'constructor' and the like
       mode: s.mode === 'duo' ? 'duo' : 'cpu',
       level: [1, 2, 3].includes(s.level) ? s.level : DEFAULT_SETUP.level,
     };

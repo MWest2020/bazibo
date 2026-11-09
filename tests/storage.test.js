@@ -376,3 +376,30 @@ test('mergeSaves: how-to cards seen in the stored save or the session stay seen'
   assert.deepEqual(out.games.klok.howSeen, { set: true, read: true });
   assert.deepEqual(out.games.slang.howSeen, { count: true });
 });
+
+// Voortgang overzetten: a whole new save, only when saving works, never the purchase.
+test('applyTransfer stores the new save but keeps this device\'s purchase; refused without a good read', async () => {
+  const prefs = fakePreferences({ [store.SAVE_KEY]: JSON.stringify({ version: 1, games: { bubbels: { stars: { 1: 1 } } }, settings: {}, purchase: { owned: true } }) });
+  assert.equal(await store.init({ backend: store.preferencesBackend(prefs), legacyStorage: null }), 'ok');
+  const next = { version: 1, games: { klok: { stars: { 'set-t1-1': 3 } } }, settings: { muted: true, lang: 'en' }, purchase: { owned: false } };
+  assert.equal(await store.applyTransfer(next), true);
+  const saved = JSON.parse(prefs.dump()[store.SAVE_KEY]);
+  assert.deepEqual(saved.games, { klok: { stars: { 'set-t1-1': 3 } } });
+  assert.equal(saved.purchase.owned, true);
+  assert.deepEqual(store.loadSettings(), { muted: true, lang: 'en' });
+  assert.equal(await store.applyTransfer(null), false);
+
+  const failing = { name: 'x', get: async () => Promise.reject(new Error('io')), set: async () => Promise.reject(new Error('io')) };
+  assert.equal(await store.init({ backend: failing, legacyStorage: null, retryDelayMs: 0 }), 'read-failed');
+  assert.equal(await store.applyTransfer(next), false);
+
+  // a write that fails: false, and the old save is back in memory
+  let failWrites = false;
+  const base = fakePreferences({ [store.SAVE_KEY]: JSON.stringify({ version: 1, games: { bubbels: { stars: { 1: 2 } } }, settings: {}, purchase: { owned: false } }) });
+  const flaky = { name: 'flaky', get: (k) => store.preferencesBackend(base).get(k), set: (k, v) => (failWrites ? Promise.reject(new Error('full')) : store.preferencesBackend(base).set(k, v)) };
+  assert.equal(await store.init({ backend: flaky, legacyStorage: null }), 'ok');
+  failWrites = true;
+  assert.equal(await store.applyTransfer(next), false);
+  assert.deepEqual(store.loadProgress('bubbels').stars, { 1: 2 });
+  failWrites = false;
+});

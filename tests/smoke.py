@@ -15,7 +15,10 @@ progress, and save screenshots to shots/ (also a sideways phone).
 
 Run: uv run --with playwright python tests/smoke.py
 """
+import base64
 import functools
+import json
+import time
 import http.server
 import math
 import os
@@ -1513,6 +1516,211 @@ def run_returning(browser, base, problems):
     ctx.close()
 
 
+def solve_gate(page, lang):
+    """Answer the parental gate that is on screen (the sum is written in words)."""
+    page.wait_for_selector(".gate-input")
+    m = re.search(TEXT[lang]["ask"], page.inner_text("#ov-text"))
+    words = WORDS[lang]
+    page.fill(".gate-input", str(words.index(m.group(1)) * words.index(m.group(2))))
+    page.keyboard.press("Enter")
+
+
+def seeded(save):
+    return "if (!localStorage.getItem('bubbels.save')) localStorage.setItem('bubbels.save', %s);" % json.dumps(json.dumps(save))
+
+
+def open_transfer(browser, base, lang, save, viewport=(390, 844)):
+    w, h = viewport
+    ctx = browser.new_context(bypass_csp=True, locale={"nl": "nl-NL", "en": "en-GB"}[lang], viewport={"width": w, "height": h},
+                              device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(seeded(save))
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    outside = []
+    page.on("request", lambda r: outside.append(r.url) if not r.url.startswith(base) and not r.url.startswith("data:") else None)
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#btn-settings")
+    page.click("#btn-transfer")
+    solve_gate(page, lang)
+    page.wait_for_selector("#screen-transfer.active")
+    page.wait_for_timeout(300)
+    return ctx, page, errors, outside
+
+
+SLOW_CAMERA = """
+window.__tracks = [];
+const fake = () => new Promise((resolve) => setTimeout(() => {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  c.getContext('2d').fillRect(0, 0, 64, 64);
+  const s = c.captureStream(5);
+  window.__tracks.push(...s.getTracks());
+  resolve(s);
+}, 600));
+Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia: fake }, configurable: true });
+"""
+
+
+def transfer_camera_race(browser, base, problems):
+    """Review of PR #20, B1: a camera that starts slowly, tapped twice, the tab switched and the
+    screen left meanwhile, must leave no camera running. On the receive tab exactly one runs."""
+    small = {"version": 1, "games": {"bubbels": {"stars": {"1": 3}}}, "settings": {"muted": False, "lang": "nl"}, "purchase": {"owned": False}}
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(seeded(small))
+    ctx.add_init_script(SLOW_CAMERA)
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#btn-settings")
+    page.click("#btn-transfer")
+    solve_gate(page, "nl")
+    page.wait_for_selector("#screen-transfer.active")
+    live = "window.__tracks.filter((t) => t.readyState === 'live').length"
+    page.click("[data-transfer='receive']")
+    page.click("[data-transfer='receive']")
+    page.click("[data-transfer='send']")
+    page.click("[data-transfer='receive']")
+    page.wait_for_timeout(1500)
+    n = page.evaluate(live)
+    if n != 1:
+        problems.append(f"transfer camera: {n} cameras run on the receive tab after quick taps (expected 1)")
+    page.click("[data-transfer='send']")
+    page.click("[data-transfer='receive']")
+    page.click("#screen-transfer [data-go='settings']")  # leave while the camera is still starting
+    page.wait_for_timeout(1500)
+    n = page.evaluate(live)
+    if n != 0:
+        problems.append(f"transfer camera: {n} cameras still run after leaving the screen")
+    ctx.close()
+
+
+def transfer_flow(browser, base, problems):
+    """Voortgang overzetten: the QR codes on one device, read from screenshots by another device
+    (jsQR, as on a phone without BarcodeDetector), merged; and the paste fallback with replace.
+    The purchase never travels. The screens fit at 320 px and sideways."""
+    for lang in ("nl", "en"):
+        name = f"transfer-{lang}"
+        art = {"p:zon": {"f": {"face": 7, "ray0": 2, "ray1": 3}, "t": 1000, "done": True}}
+        for i in range(12):  # enough to need more than one code
+            art[f"m:m1:{1000 + i}"] = {"f": {f"b{r % 5}w{r}": (r + i) % 16 for r in range(60)}, "t": 2000 + i, "done": False}
+        sender = {"version": 1, "games": {"bubbels": {"stars": {"1": 3, "2": 3, "3": 2}}, "klok": {"stars": {"set-t1-1": 3}}, "kleuren": {"art": art}},
+                  "settings": {"muted": False, "lang": lang}, "purchase": {"owned": True}}
+        receiver = {"version": 1, "games": {"bubbels": {"stars": {"1": 1, "5": 2}}}, "settings": {"muted": False, "lang": lang}, "purchase": {"owned": False}}
+        ca, a, err_a, out_a = open_transfer(browser, base, lang, sender)
+        cb, b, err_b, out_b = open_transfer(browser, base, lang, receiver)
+        parts = a.evaluate("window.__bubbels.transfer.parts()")
+        if len(parts) < 2:
+            problems.append(f"{name}: expected several QR codes for 12 pages, got {len(parts)}")
+        a.screenshot(path=str(SHOTS / f"{name}-send.png"))
+        b.click("[data-transfer='receive']")
+        b.wait_for_timeout(600)
+        status = b.inner_text("#transfer-status")
+        b.screenshot(path=str(SHOTS / f"{name}-scan.png"))
+        if not status:
+            problems.append(f"{name}: the receive tab shows no status")
+        # read the sender's screen, code by code, as a camera would
+        seen = set()
+        deadline = time.time() + 1.6 * len(parts) + 6
+        while time.time() < deadline and b.locator("#overlay").is_hidden():
+            png = a.locator("#transfer-qr").screenshot()
+            url = "data:image/png;base64," + base64.b64encode(png).decode()
+            for text in b.evaluate("(u) => window.__bubbels.transfer.readImage(u)", url):
+                seen.add(text)
+                b.evaluate("(t) => window.__bubbels.transfer.take(t)", text)
+            a.wait_for_timeout(400)
+        if len(seen) != len(parts) or b.locator("#overlay").is_hidden():
+            problems.append(f"{name}: read {len(seen)} of {len(parts)} codes from the screen; no summary card")
+        else:
+            b.screenshot(path=str(SHOTS / f"{name}-summary.png"))
+            summary = b.inner_text("#ov-text")
+            if "12" not in summary and "13" not in summary:
+                problems.append(f"{name}: the summary does not count the pages: {summary!r}")
+            b.click("#ov-buttons button >> nth=0")  # merge
+            b.wait_for_selector("#ov-buttons button")
+            b.wait_for_timeout(300)
+            with b.expect_navigation():
+                b.click("#ov-buttons button >> nth=0")  # done -> reload
+            b.wait_for_selector("html[data-ready='1']")
+            got = b.evaluate("window.__bubbels.save()")
+            if got["games"]["bubbels"]["stars"] != {"1": 3, "2": 3, "3": 2, "5": 2}:
+                problems.append(f"{name}: merge gave {got['games']['bubbels']['stars']}")
+            if len(got["games"].get("kleuren", {}).get("art", {})) != 13:
+                problems.append(f"{name}: merged pages: {len(got['games'].get('kleuren', {}).get('art', {}))}")
+            if got["purchase"]["owned"]:
+                problems.append(f"{name}: the purchase travelled with the progress")
+        # paste fallback, then replace (with its second question)
+        a.click("#transfer-copy")
+        a.wait_for_timeout(300)
+        code = a.input_value("#transfer-code")
+        b.click("#btn-settings")
+        b.click("#btn-transfer")
+        solve_gate(b, lang)
+        b.wait_for_selector("#screen-transfer.active")
+        b.click("[data-transfer='receive']")
+        b.fill("#transfer-input", code)
+        b.click("#transfer-use")
+        b.wait_for_selector("#overlay:not([hidden])")
+        b.click("#ov-buttons button >> nth=1")  # replace
+        b.wait_for_timeout(200)
+        b.click("#ov-buttons button >> nth=0")  # yes, replace
+        b.wait_for_selector("#ov-buttons button")
+        b.wait_for_timeout(300)
+        with b.expect_navigation():
+            b.click("#ov-buttons button >> nth=0")
+        b.wait_for_selector("html[data-ready='1']")
+        got = b.evaluate("window.__bubbels.save()")
+        if got["games"]["bubbels"]["stars"] != {"1": 3, "2": 3, "3": 2} or got["purchase"]["owned"]:
+            problems.append(f"{name}: replace gave {got['games'].get('bubbels')} owned={got['purchase']['owned']}")
+        # a broken paste is refused with a message, nothing changes
+        b.click("#btn-settings")
+        b.click("#btn-transfer")
+        solve_gate(b, lang)
+        b.wait_for_selector("#screen-transfer.active")
+        b.click("[data-transfer='receive']")
+        b.fill("#transfer-input", code.splitlines()[0][:-6] + "ZZZZZZ")
+        b.click("#transfer-use")
+        b.wait_for_timeout(300)
+        if b.locator("#overlay").is_visible() or not b.inner_text("#transfer-status"):
+            problems.append(f"{name}: a broken code was not refused with a message")
+        for label, errs, outs in (("sender", err_a, out_a), ("receiver", err_b, out_b)):
+            if errs:
+                problems.append(f"{name} {label}: page errors: {errs}")
+            if outs:
+                problems.append(f"{name} {label}: requests outside the site: {outs[:3]}")
+        ca.close()
+        cb.close()
+    small = {"version": 1, "games": {"bubbels": {"stars": {"1": 3}}}, "settings": {"muted": False, "lang": "nl"}, "purchase": {"owned": False}}
+    for w, h in ((320, 568), (640, 360)):
+        ctx, page, errs, _ = open_transfer(browser, base, "nl", small, (w, h))
+        for tab in ("send", "receive"):
+            page.click(f"[data-transfer='{tab}']")
+            page.wait_for_timeout(300)
+            if page.evaluate("document.documentElement.scrollWidth") > w + 1:
+                problems.append(f"transfer {w}x{h} {tab}: the page scrolls sideways")
+            # no camera in the test browser: the receive tab hides the camera box and shows the paste box
+            for sel in (("#transfer-qr", "#transfer-copy") if tab == "send" else ("#transfer-input", "#transfer-use")):
+                r = page.locator(sel).bounding_box()
+                if r is None or r["x"] < -0.5 or r["x"] + r["width"] > w + 0.5:
+                    problems.append(f"transfer {w}x{h}: {sel} off screen: {r}")
+            t = page.locator(".transfer-tabs").bounding_box()
+            if t is None or t["height"] > 80:
+                problems.append(f"transfer {w}x{h}: Versturen/Ontvangen are not on one line: {t}")
+            if tab == "send" and h < 500:  # sideways: the hint and the buttons are in view too
+                for sel in ("#transfer-copy", ".transfer-pane:not([hidden]) .setting-text"):
+                    r = page.locator(sel).bounding_box()
+                    if r is None or r["y"] + r["height"] > h + 0.5:
+                        problems.append(f"transfer {w}x{h}: {sel} is below the screen: {r}")
+            if tab == "send":  # the whole QR code must be on screen without scrolling, or it cannot be scanned
+                r = page.locator("#transfer-qr").bounding_box()
+                if r is None or r["y"] < -0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"transfer {w}x{h}: the QR code does not fit on the screen: {r}")
+            page.screenshot(path=str(SHOTS / f"transfer-{tab}-{w}x{h}.png"))
+        if errs:
+            problems.append(f"transfer {w}x{h}: page errors: {errs}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -1549,6 +1757,8 @@ def main():
             kleuren_fits(browser, base, problems)
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
+            transfer_flow(browser, base, problems)
+            transfer_camera_race(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

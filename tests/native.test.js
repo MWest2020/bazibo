@@ -31,3 +31,14 @@ test('both apps ship the Preferences plugin the save data uses', () => {
   assert.match(read('android/capacitor.settings.gradle'), /:capacitor-preferences/);
   assert.match(read('ios/App/CapApp-SPM/Package.swift'), /CapacitorPreferences/);
 });
+
+// Voortgang overzetten: the camera, declared honestly and not required
+test('the camera permission for scanning a progress code is declared, optional, and explained on iOS', async () => {
+  const { readFileSync } = await import('node:fs');
+  const manifest = readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
+  assert.match(manifest, /android\.permission\.CAMERA/);
+  assert.match(manifest, /android\.hardware\.camera" android:required="false"/);
+  assert.match(manifest, /android\.hardware\.camera\.autofocus" android:required="false"/);
+  const plist = readFileSync(new URL('../ios/App/App/Info.plist', import.meta.url), 'utf8');
+  assert.match(plist, /<key>NSCameraUsageDescription<\/key>\s*<string>[^<]*QR[^<]*<\/string>/);
+});

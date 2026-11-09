@@ -66,6 +66,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Om een QR-code met voortgang van een ander toestel te scannen. To scan a progress QR code from another device. Nothing is stored or sent.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
