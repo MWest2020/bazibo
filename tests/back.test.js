@@ -6,7 +6,7 @@ test('back: leaves the app only from the home screen', () => {
   assert.equal(backAction({ screen: 'home' }), 'exit');
   assert.equal(backAction({ screen: 'settings' }), 'home');
   assert.equal(backAction({ screen: 'transfer' }), 'settings'); // Voortgang overzetten -> settings
-  assert.equal(backAction({ screen: 'transfer', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'transfer', overlay: 'card' }), 'transfer-card');
   assert.equal(backAction({ screen: 'levels' }), 'home');
 });
 

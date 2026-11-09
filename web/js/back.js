@@ -11,12 +11,12 @@
 //   a colouring page                   -> the list of pages (the page is saved)
 //   a Klok kijken round (or its card)  -> its menu (the round is kept: "keep playing")
 //   the Klok kijken menu               -> from one kind of round to the kinds, then home
-//   Voortgang overzetten               -> the settings
+//   Voortgang overzetten               -> the settings (a card there: cancel, or reload after "Klaar")
 //   a level or puzzle list, settings   -> the home screen
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
   if (overlay === 'busy') return 'ignore';
-  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'klok' ? 'klok-menu' : 'close';
+  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'klok' ? 'klok-menu' : screen === 'transfer' ? 'transfer-card' : 'close';
   if (screen === 'game') return 'pause';
   if (screen === 'dogudoku') return 'dogudoku-levels';
   if (screen === 'picturedoku') return 'picturedoku-levels';

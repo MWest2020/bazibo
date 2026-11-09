@@ -23,6 +23,7 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | Font | none bundled; the device's own system font is used | n/a | n/a |
 | qrcode-generator 1.4.4 (`web/vendor/qrcode-generator/`, draws the QR codes of "Voortgang overzetten"; bundled as an ES module, see `web/vendor/README.md`) | Kazuhiko Arase | MIT | https://github.com/kazuhikoarase/qrcode-generator |
 | jsQR 1.4.0 (`web/vendor/jsqr/`, reads a QR code from the camera when the browser has no `BarcodeDetector`) | Cosmo Wolfe | Apache-2.0 | https://github.com/cozmo/jsQR |
+| fflate 0.8.2, `unzlibSync` only (`web/vendor/fflate/`, unpacks a progress code when the browser has no `DecompressionStream`) | Arjun Barrett | MIT | https://github.com/101arrowz/fflate |
 
 Apps only (`android/`, `ios/`, through npm; nothing of this is loaded on the website):
 

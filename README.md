@@ -330,8 +330,9 @@ games' sections and the settings, never the purchase) as QR codes; the other sca
 camera or takes the code as pasted text. No server and no internet.
 
 - `web/js/transfer.js` (pure, tested in `tests/transfer.test.js`): the save as JSON, deflated
-  (`CompressionStream` where there is one), with a format byte and a CRC-32, in base45 (so the QR
-  codes use alphanumeric mode), split into parts of 300 characters `BZ1<set><i><n>:…`, at most
+  (`CompressionStream` where there is one; unpacked with `DecompressionStream` or, on iOS before
+  16.4, the vendored fflate), with a format byte and a CRC-32, in base45 (so the QR
+  codes use alphanumeric mode), split into parts of 600 characters `BZ1<set><i><n>:…` (QR version 13, level L), at most
   30. The receiver collects the parts of one set in any order, checks size (at most 512 kB
   unpacked), checksum and the shape of every value before anything touches the save. Merge keeps
   the best of both (stars and counts the higher value, colouring pages per region, how-to cards

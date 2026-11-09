@@ -4,6 +4,7 @@
 import qrcode from '../vendor/qrcode-generator/qrcode.min.js';
 import * as store from './storage.js';
 import { GAMES } from './games.js';
+import { ART_KEEP } from './storage.js';
 import { saveToParts, hasArt, createCollector, partsFromText, decodeText, summarize, mergeTransfer, replaceTransfer } from './transfer.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -12,7 +13,7 @@ const SCAN_MS = 180;
 
 /** Draw one QR code (alphanumeric text) on a canvas, with a white quiet zone. */
 export function drawQr(canvas, text) {
-  const qr = qrcode(0, 'M');
+  const qr = qrcode(0, 'L'); // L: the screen-to-camera path is clean, smaller codes scan better
   qr.addData(text, 'Alphanumeric');
   qr.make();
   const n = qr.getModuleCount();
@@ -77,6 +78,13 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   let scanning = false;
   let busy = false;
   const collector = createCollector();
+  let card = null; // the card on screen: 'ask' (merge or replace), 'done' (reloads), 'error'
+
+  /** The Android back button on one of this screen's cards. */
+  function onBackCard() {
+    if (card === 'done') location.reload(); // the new save is stored: start every game from it
+    else cancelReceive();
+  }
 
   const gameTitle = (id) => {
     const g = GAMES.find((x) => x.id === id);
@@ -159,7 +167,10 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     return collector.total ? t('transfer.progress', { have: collector.have, n: collector.total }) : t('transfer.scanHint');
   }
 
+  let camGen = 0; // every start and stop gets a new number: a start that finishes late sees it
+
   function stopCamera() {
+    camGen++;
     scanning = false;
     clearTimeout(scanTimer);
     if (stream) for (const track of stream.getTracks()) track.stop();
@@ -174,24 +185,28 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     setStatus(t('transfer.noCamera'));
   }
 
+  const receiving = () => tab === 'receive' && $('#screen-transfer').classList.contains('active') && !document.hidden;
+
   async function startCamera() {
     stopCamera();
+    const gen = ++camGen;
     $('.transfer-cam').hidden = false;
     if (!navigator.mediaDevices?.getUserMedia) {
       noCamera();
       return;
     }
+    let got;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      got = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
     } catch {
-      stream = null;
-      noCamera();
+      if (gen === camGen) noCamera();
       return;
     }
-    if (tab !== 'receive' || !$('#screen-transfer').classList.contains('active')) {
-      stopCamera(); // the child left while the camera was starting
+    if (gen !== camGen || !receiving()) {
+      for (const track of got.getTracks()) track.stop(); // started too late: the child left or tapped again
       return;
     }
+    stream = got;
     const v = $('#transfer-video');
     v.srcObject = stream;
     try {
@@ -199,9 +214,11 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     } catch {
       /* some WebViews need no play() for a muted inline video */
     }
+    if (gen !== camGen) return; // stopped meanwhile (stopCamera already ended the tracks)
     $('.transfer-cam').classList.add('on');
     setStatus(progressText());
     const read = await makeReader();
+    if (gen !== camGen) return;
     scanning = true;
     const loop = async () => {
       if (!scanning) return;
@@ -234,9 +251,12 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     try {
       payload = await decodeText(text);
     } catch (e) {
+      // stop here: scanning on would read the same broken set again and wipe this message
+      stopCamera();
       busy = false;
       const code = e?.message || 'format';
-      setStatus(t(`transfer.err.${{ 'too-big': 'tooBig', 'no-inflate': 'noInflate' }[code] || code}`));
+      setStatus(t(`transfer.err.${{ 'too-big': 'tooBig' }[code] || code}`));
+      $('#transfer-again').hidden = false;
       return;
     }
     stopCamera();
@@ -248,10 +268,20 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     return list.length ? t('transfer.summary', { list: list.join(' · ') }) : t('transfer.empty');
   }
 
+  /** Merging can take the gallery over its cap of generated mandalas: then say so first. */
+  function capNote(payload) {
+    const ids = new Set();
+    for (const g of [store.snapshot().games?.kleuren, payload.games?.kleuren]) {
+      for (const [id, e] of Object.entries(g?.art || {})) if (id.startsWith('m:') && !e?.gone) ids.add(id);
+    }
+    return ids.size > ART_KEEP ? ` ${t('transfer.capNote', { n: ART_KEEP })}` : '';
+  }
+
   function askWhatToDo(payload) {
+    card = 'ask';
     showOverlay({
       title: t('transfer.got'),
-      text: `${summaryText(payload)} ${t('transfer.choose')}`,
+      text: `${summaryText(payload)} ${t('transfer.choose')}${capNote(payload)}`,
       buttons: [
         [t('transfer.merge'), 'big primary', () => apply(mergeTransfer(store.snapshot(), payload))],
         [t('transfer.replace'), 'big secondary', () => confirmReplace(payload)],
@@ -263,7 +293,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   function confirmReplace(payload) {
     showOverlay({
       title: t('transfer.sure'),
-      text: t('transfer.sureText'),
+      text: payload.noArt ? `${t('transfer.sureText')} ${t('transfer.sureKeepArt')}` : t('transfer.sureText'),
       buttons: [
         [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload))],
         [t('common.cancel'), 'big secondary', () => askWhatToDo(payload)],
@@ -272,17 +302,20 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   }
 
   function cancelReceive() {
+    card = null;
     hideOverlay();
     busy = false;
     if (tab === 'receive') startCamera();
   }
 
   async function apply(next) {
-    if (!store.applyTransfer(next)) {
+    showOverlay({ title: t('busy.title'), text: '', buttons: [] });
+    if (!(await store.applyTransfer(next))) {
+      card = 'error';
       showOverlay({ title: t('problem.title'), text: t('transfer.cantSave'), buttons: [[t('common.ok'), 'big primary', cancelReceive]] });
       return;
     }
-    await store.flushed();
+    card = 'done';
     showOverlay({
       title: t('transfer.done'),
       text: t('transfer.doneText'),
@@ -294,8 +327,10 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   $('#transfer-again').addEventListener('click', () => {
     tap();
     collector.reset();
+    busy = false;
     $('#transfer-again').hidden = true;
     setStatus(progressText());
+    if (tab === 'receive' && !scanning) startCamera();
   });
 
   $('#transfer-use').addEventListener('click', async () => {
@@ -362,6 +397,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   });
 
   return {
+    onBackCard,
     testHook: () => ({
       parts: () => parts.slice(),
       take: (text) => take(text),

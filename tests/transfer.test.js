@@ -18,6 +18,7 @@ import {
   payloadOf,
   MAX_PARTS,
   PART_CHARS,
+  MAX_CHUNK,
 } from '../web/js/transfer.js';
 import { emptySave } from '../web/js/storage.js';
 
@@ -217,4 +218,67 @@ test('the summary counts levels, pages and random rounds per game', () => {
     { id: 'kleuren', n: 1 },
     { id: 'klok', n: 1 },
   ]);
+});
+
+test('without DecompressionStream (iOS before 16.4) the vendored fflate unpacks, with the same cap', async () => {
+  const text = await encodeSave(typical());
+  const saved = globalThis.DecompressionStream;
+  globalThis.DecompressionStream = undefined;
+  try {
+    const back = await decodeText(text);
+    assert.deepEqual(back.games.bubbels.stars, { 1: 3, 2: 2, 3: 1 });
+    const json = new TextEncoder().encode(JSON.stringify({ v: 1, games: {}, pad: 'x'.repeat(2_000_000) }));
+    const packed = new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+    const crc = crc32(json);
+    const blob = new Uint8Array(6 + packed.length);
+    blob.set([1, 1, crc >>> 24, (crc >>> 16) & 255, (crc >>> 8) & 255, crc & 255]);
+    blob.set(packed, 6);
+    await assert.rejects(decodeText(base45Encode(blob)), /too-big/);
+  } finally {
+    globalThis.DecompressionStream = saved;
+  }
+});
+
+test('a part is a whole number of base45 groups, and fits a version-13 QR code at level L', () => {
+  assert.equal(PART_CHARS % 3, 0);
+  const [p] = splitParts('A'.repeat(PART_CHARS), 'ABCD');
+  assert.ok(p.length <= 619, `part is ${p.length} characters`); // alphanumeric capacity of 13-L
+  assert.ok(MAX_CHUNK >= PART_CHARS);
+  assert.equal(parsePart(`BZ1ABCD0101:${'A'.repeat(MAX_CHUNK + 1)}`), null);
+});
+
+test('replace with a code made without colouring pages keeps the receiver\'s pages', async () => {
+  const mine = { version: 1, games: { kleuren: { art: { 'p:zon': { f: { face: 2 }, t: 5, done: true } } }, bubbels: { stars: { 1: 1 } } }, settings: {}, purchase: { owned: false } };
+  const back = await decodeText(await encodeSave(typical(), { withArt: false }));
+  assert.equal(back.noArt, true);
+  const out = replaceTransfer(mine, back);
+  assert.deepEqual(out.games.kleuren.art, mine.games.kleuren.art);
+  assert.deepEqual(out.games.bubbels.stars, { 1: 3, 2: 2, 3: 1 });
+  const full = await decodeText(await encodeSave(typical()));
+  assert.equal(full.noArt, false);
+  assert.equal('p:zon' in replaceTransfer(mine, full).games.kleuren.art, true); // the code's own page
+});
+
+test('paste parsing is linear on long blanks and splits at an embedded header only', () => {
+  const t0 = Date.now();
+  assert.deepEqual(partsFromText(' '.repeat(60000)), []);
+  assert.deepEqual(partsFromText('x' + ' '.repeat(60000) + 'y'), ['x' + ' '.repeat(60000) + 'y'].map((s) => s.trim()));
+  assert.ok(Date.now() - t0 < 500, 'too slow');
+  const [a, b] = splitParts('Q'.repeat(PART_CHARS + 3), 'C0DE');
+  assert.deepEqual(partsFromText(`${a} ${b}`), [a, b]);
+  assert.deepEqual(partsFromText(`${a}  hello BZ1 not a header`), [`${a}  hello BZ1 not a header`]);
+});
+
+test('sanitizing: names that Object.prototype has are dropped, flags keep only true, far-future times are clamped', () => {
+  const clean = sanitizePayload({
+    v: 1,
+    games: {
+      dogudoku: { howSeen: { tiny: true, small: false, toString: true }, stars: { constructor: 3, valueOf: 2, hasOwnProperty: 1, 7: 2 } },
+      vier: { setup: { board: 'constructor' } },
+      kleuren: { art: { 'p:zon': { f: { face: 1 }, t: 9e15 } } },
+    },
+  });
+  assert.deepEqual(clean.games.dogudoku.howSeen, { tiny: true });
+  assert.deepEqual(clean.games.dogudoku.stars, { 7: 2 });
+  assert.ok(clean.games.kleuren.art['p:zon'].t <= Date.now() + 864e5);
 });

@@ -13,7 +13,11 @@
 import { mergeSaves, VERSION } from './storage.js';
 
 export const FORMAT = 1;
-export const PART_CHARS = 300; // per QR code: version 10 at error correction M, easy to scan
+// Characters per QR code. A multiple of 3 (a base45 group), so no part ends inside one. With the
+// 12-character header that is 612 alphanumeric characters: QR version 13 (69x69) at error
+// correction L, which a phone camera reads easily from another screen.
+export const PART_CHARS = 600;
+export const MAX_CHUNK = 1200; // what a receiver accepts per part (room for other senders' sizes)
 export const MAX_PARTS = 30;
 export const MAX_JSON = 512 * 1024; // the most a code may unpack to (a "zip bomb" stops here)
 const PREFIX = 'BZ1';
@@ -93,8 +97,17 @@ async function deflate(bytes) {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-/** Unpack, but never more than `limit` bytes: a hostile code cannot fill the memory. */
+/**
+ * Unpack, but never more than `limit` bytes: a hostile code cannot fill the memory. Browsers
+ * without DecompressionStream (iOS before 16.4) use the vendored fflate, into a fixed buffer.
+ */
 async function inflate(bytes, limit) {
+  if (!canDecompress()) {
+    const { unzlibSync } = await import('../vendor/fflate/fflate.min.js');
+    const out = unzlibSync(bytes, { out: new Uint8Array(limit + 1) }); // stops at the end of the buffer
+    if (out.length > limit) throw new Error('too-big');
+    return out;
+  }
   const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
   const chunks = [];
   let size = 0;
@@ -124,7 +137,9 @@ export function payloadOf(save, { withArt = true } = {}) {
   const games = clone(isObj(save?.games) ? save.games : {});
   if (!withArt) for (const g of Object.values(games)) if (isObj(g)) delete g.art;
   const s = isObj(save?.settings) ? save.settings : {};
-  return { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
+  const out = { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
+  if (!withArt) out.noArt = true; // replace then keeps the receiver's own colouring pages
+  return out;
 }
 
 /** Whether a save has colouring pages (then a smaller code without them can be offered). */
@@ -182,7 +197,7 @@ export function parsePart(text) {
   if (!m) return null;
   const i = Number(m[2]);
   const n = Number(m[3]);
-  if (n < 1 || n > MAX_PARTS || i < 1 || i > n || m[4].length > PART_CHARS * 2) return null;
+  if (n < 1 || n > MAX_PARTS || i < 1 || i > n || m[4].length > MAX_CHUNK) return null;
   return { id: m[1], i, n, chunk: m[4] };
 }
 
@@ -233,15 +248,20 @@ export function createCollector() {
 
 /** Read pasted text: one or more parts, one per line (or separated by spaces between parts). */
 export function partsFromText(text) {
-  return String(text || '')
-    .split(/[\r\n]+|\s+(?=BZ1)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const out = [];
+  for (const line of String(text || '').split(/[\r\n]+/)) {
+    // a part header starts a new part, also mid-line; split with a fixed-width lookahead only
+    for (const piece of line.split(/(?=BZ1[0-9A-F]{4}\d{4}:)/)) {
+      const p = piece.trim();
+      if (p) out.push(p);
+    }
+  }
+  return out;
 }
 
 /**
  * The code text back to a checked payload { games, settings }. Throws an Error whose message is
- * one of: 'format', 'version', 'checksum', 'too-big', 'no-inflate', 'content'.
+ * one of: 'format', 'version', 'checksum', 'too-big', 'content'.
  */
 export async function decodeText(text) {
   let blob;
@@ -257,7 +277,6 @@ export async function decodeText(text) {
   const want = ((blob[2] << 24) | (blob[3] << 16) | (blob[4] << 8) | blob[5]) >>> 0;
   let json = blob.subarray(6);
   if (flags & 1) {
-    if (!canDecompress()) throw new Error('no-inflate');
     try {
       json = await inflate(json, MAX_JSON);
     } catch (e) {
@@ -280,7 +299,8 @@ export async function decodeText(text) {
 
 const ID_RE = /^[a-z][a-z0-9_-]{0,31}$/; // game ids
 const KEY_SHAPE = /^[A-Za-z0-9:_.\-]{1,64}$/; // level, puzzle, page, region and option keys
-const NOT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// never a name that Object.prototype already has (__proto__, constructor, toString, hasOwnProperty…)
+const NOT_KEYS = new Set([...Object.getOwnPropertyNames(Object.prototype), 'prototype']);
 const KEY_RE = { test: (k) => KEY_SHAPE.test(k) && !NOT_KEYS.has(k) };
 const MAX_KEYS = 2000;
 
@@ -299,7 +319,7 @@ function cleanCounts(obj) {
 function cleanFlags(obj) {
   const out = {};
   if (!isObj(obj)) return out;
-  for (const [k, v] of Object.entries(obj).slice(0, 100)) if (KEY_RE.test(k) && typeof v === 'boolean') out[k] = v;
+  for (const [k, v] of Object.entries(obj).slice(0, 100)) if (KEY_RE.test(k) && v === true) out[k] = true; // only 'seen'
   return out;
 }
 
@@ -308,7 +328,7 @@ function cleanArt(obj) {
   if (!isObj(obj)) return out;
   for (const [page, e] of Object.entries(obj).slice(0, 200)) {
     if (!KEY_RE.test(page) || !isObj(e)) continue;
-    const t = Number.isFinite(e.t) && e.t >= 0 ? e.t : 0;
+    const t = Number.isFinite(e.t) && e.t >= 0 ? Math.min(e.t, Date.now() + 864e5) : 0; // a time in the far future would win every later merge
     const c = e.c ? { c: 1 } : {};
     if (e.gone === true) {
       out[page] = { t, gone: true, ...c };
@@ -361,7 +381,7 @@ export function sanitizePayload(doc) {
   }
   const s = isObj(doc.settings) ? doc.settings : {};
   const lang = s.lang === 'nl' || s.lang === 'en' ? s.lang : null;
-  return { games, settings: { muted: s.muted === true, lang } };
+  return { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true };
 }
 
 // ---------- what the other device does with it ----------
@@ -406,10 +426,20 @@ export function mergeTransfer(stored, payload) {
   return out;
 }
 
-/** Replace: the progress and settings that came in; this device keeps only its purchase. */
+/**
+ * Replace: the progress and settings that came in; this device keeps its purchase. A code made
+ * "without colouring pages" leaves this device's colouring pages as they are.
+ */
 export function replaceTransfer(stored, payload) {
   const out = clone(stored);
   out.games = clone(payload.games || {});
+  if (payload.noArt) {
+    for (const [id, g] of Object.entries(isObj(stored.games) ? stored.games : {})) {
+      if (!isObj(g?.art)) continue;
+      const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
+      mine.art = clone(g.art);
+    }
+  }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };
   return out;
 }

@@ -199,7 +199,8 @@ html, body {
   gap: 12px;
   text-align: center;
 }
-.transfer-tabs { margin-bottom: 4px; }
+.transfer-tabs { margin-bottom: 4px; flex-wrap: nowrap; width: 100%; max-width: 420px; }
+.transfer-tabs .seg-btn { flex: 1 1 0; min-width: 0; padding: 0 10px; white-space: nowrap; }
 .transfer-pane { width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .transfer-pane[hidden] { display: none; }
 .transfer-qr {
@@ -248,8 +249,24 @@ html, body {
 .transfer-pane .btn.secondary[aria-pressed='true'] { background: var(--primary); color: #fff; box-shadow: 0 6px 0 var(--primary-dark); }
 .transfer-paste-head { margin: 8px 0 0; font-size: 1.1rem; font-weight: 900; color: var(--primary-dark); }
 @media (orientation: landscape) and (max-height: 500px) {
-  .transfer-pane { max-width: 640px; }
-  .transfer-qr, .transfer-cam { width: min(40vw, calc(100vh - 165px)); }
+  /* short and wide: the code (or camera) on the left, the text and buttons beside it */
+  .transfer-pane:not([hidden]) {
+    max-width: 760px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 18px;
+    text-align: left;
+  }
+  .transfer-pane > .transfer-qr, .transfer-pane > .transfer-cam { grid-row: 1 / span 6; align-self: start; }
+  .transfer-pane > :not(.transfer-qr):not(.transfer-cam) { grid-column: 2; }
+  .transfer-pane:not([hidden]) { align-content: start; row-gap: 6px; }
+  .transfer-pane .setting-text { margin: 0; font-size: 0.95rem; }
+  .transfer-pane .btn { min-height: 46px; }
+  .transfer-scroll { padding-top: 4px; gap: 8px; }
+  .transfer-tabs .seg-btn { min-height: 42px; }
+  .transfer-qr, .transfer-cam { width: min(40vw, calc(100vh - 168px)); }
+  .transfer-actions { justify-content: flex-start; }
 }
 
 /* ---------- settings ---------- */

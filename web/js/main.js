@@ -570,6 +570,7 @@ function onBack() {
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'klok-menu') games.klok.leave();
   else if (action === 'klok-menu-back') games.klok.menuBack();
+  else if (action === 'transfer-card') games.transfer.onBackCard();
   else if (action === 'settings') show('settings');
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();

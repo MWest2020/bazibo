@@ -1549,6 +1549,52 @@ def open_transfer(browser, base, lang, save, viewport=(390, 844)):
     return ctx, page, errors, outside
 
 
+SLOW_CAMERA = """
+window.__tracks = [];
+const fake = () => new Promise((resolve) => setTimeout(() => {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  c.getContext('2d').fillRect(0, 0, 64, 64);
+  const s = c.captureStream(5);
+  window.__tracks.push(...s.getTracks());
+  resolve(s);
+}, 600));
+Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia: fake }, configurable: true });
+"""
+
+
+def transfer_camera_race(browser, base, problems):
+    """Review of PR #20, B1: a camera that starts slowly, tapped twice, the tab switched and the
+    screen left meanwhile, must leave no camera running. On the receive tab exactly one runs."""
+    small = {"version": 1, "games": {"bubbels": {"stars": {"1": 3}}}, "settings": {"muted": False, "lang": "nl"}, "purchase": {"owned": False}}
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(seeded(small))
+    ctx.add_init_script(SLOW_CAMERA)
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#btn-settings")
+    page.click("#btn-transfer")
+    solve_gate(page, "nl")
+    page.wait_for_selector("#screen-transfer.active")
+    live = "window.__tracks.filter((t) => t.readyState === 'live').length"
+    page.click("[data-transfer='receive']")
+    page.click("[data-transfer='receive']")
+    page.click("[data-transfer='send']")
+    page.click("[data-transfer='receive']")
+    page.wait_for_timeout(1500)
+    n = page.evaluate(live)
+    if n != 1:
+        problems.append(f"transfer camera: {n} cameras run on the receive tab after quick taps (expected 1)")
+    page.click("[data-transfer='send']")
+    page.click("[data-transfer='receive']")
+    page.click("#screen-transfer [data-go='settings']")  # leave while the camera is still starting
+    page.wait_for_timeout(1500)
+    n = page.evaluate(live)
+    if n != 0:
+        problems.append(f"transfer camera: {n} cameras still run after leaving the screen")
+    ctx.close()
+
+
 def transfer_flow(browser, base, problems):
     """Voortgang overzetten: the QR codes on one device, read from screenshots by another device
     (jsQR, as on a phone without BarcodeDetector), merged; and the paste fallback with replace.
@@ -1657,6 +1703,14 @@ def transfer_flow(browser, base, problems):
                 r = page.locator(sel).bounding_box()
                 if r is None or r["x"] < -0.5 or r["x"] + r["width"] > w + 0.5:
                     problems.append(f"transfer {w}x{h}: {sel} off screen: {r}")
+            t = page.locator(".transfer-tabs").bounding_box()
+            if t is None or t["height"] > 80:
+                problems.append(f"transfer {w}x{h}: Versturen/Ontvangen are not on one line: {t}")
+            if tab == "send" and h < 500:  # sideways: the hint and the buttons are in view too
+                for sel in ("#transfer-copy", ".transfer-pane:not([hidden]) .setting-text"):
+                    r = page.locator(sel).bounding_box()
+                    if r is None or r["y"] + r["height"] > h + 0.5:
+                        problems.append(f"transfer {w}x{h}: {sel} is below the screen: {r}")
             if tab == "send":  # the whole QR code must be on screen without scrolling, or it cannot be scanned
                 r = page.locator("#transfer-qr").bounding_box()
                 if r is None or r["y"] < -0.5 or r["y"] + r["height"] > h + 0.5:
@@ -1704,6 +1758,7 @@ def main():
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
             transfer_flow(browser, base, problems)
+            transfer_camera_race(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

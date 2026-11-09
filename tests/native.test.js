@@ -38,6 +38,7 @@ test('the camera permission for scanning a progress code is declared, optional, 
   const manifest = readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
   assert.match(manifest, /android\.permission\.CAMERA/);
   assert.match(manifest, /android\.hardware\.camera" android:required="false"/);
+  assert.match(manifest, /android\.hardware\.camera\.autofocus" android:required="false"/);
   const plist = readFileSync(new URL('../ios/App/App/Info.plist', import.meta.url), 'utf8');
   assert.match(plist, /<key>NSCameraUsageDescription<\/key>\s*<string>[^<]*QR[^<]*<\/string>/);
 });
