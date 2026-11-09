@@ -7,6 +7,8 @@ import { conflicts, isSolved, attacked, nextHint, starsFor, regionGrid, bushSet,
 import { dogSvg, bushSvg, crossSvg, REGIONS, GARDEN, regionBackground } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
+import { generate, makeRandom, newSeed, randomCard } from '../../js/random.js';
+import { RANDOM_TIERS } from './generate.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -43,6 +45,13 @@ export function createDogudoku(shell) {
   const boards = new Map(); // unfinished boards of this session, so leaving a puzzle loses nothing
   let cells = []; // the buttons, row by row
   let flash = null; // the last hint's cell, highlighted for a moment
+  const randomKept = new Map(); // tier key -> this session's unfinished random puzzle
+  let randomBusy = false;
+  // the next random puzzle per size, made in the background while the child plays this one, so
+  // "another one" is there at once even for an 8×8 on a slow phone
+  const ahead = new Map();
+  const recent = []; // boards seen this session (4×4 has few), so a repeat is skipped
+  let nav = 0; // counts screen changes: a random puzzle that arrives after the child left is dropped
 
   const locked = (p) => !p.free && !shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -53,6 +62,7 @@ export function createDogudoku(shell) {
     if (onScreen('dogudoku-levels')) renderLevels();
   });
   shell.onShow((name) => {
+    nav++;
     if (name === 'dogudoku-levels') renderLevels();
     if (name === 'dogudoku') requestAnimationFrame(fitBoard);
   });
@@ -87,6 +97,19 @@ export function createDogudoku(shell) {
       box.appendChild(head);
       const grid = document.createElement('div');
       grid.className = 'level-grid dogu-grid';
+      const tier = RANDOM_TIERS.find((x) => x.n === n);
+      if (tier) {
+        grid.appendChild(
+          randomCard({
+            t,
+            tap,
+            locked: !shell.unlock.owned,
+            solved: store.loadRandomSolved(meta.id)[tier.key] || 0,
+            onPlay: () => playRandom(tier.key),
+            onLocked: () => shell.offerUnlock(t('random.lead')),
+          }),
+        );
+      }
       for (const p of puzzles.filter((q) => q.n === n)) {
         const b = document.createElement('button');
         b.type = 'button';
@@ -130,6 +153,55 @@ export function createDogudoku(shell) {
       offer();
       return;
     }
+    start(p);
+  }
+
+  /**
+   * A random puzzle of one size (full version only). The unfinished one of this session comes
+   * back first; `fresh` makes a new one, `seed` a given one (tests).
+   */
+  async function playRandom(key, { fresh = false, seed = null } = {}) {
+    if (!shell.unlock.owned) {
+      shell.offerUnlock(t('random.lead'));
+      return;
+    }
+    if (randomBusy) return;
+    const kept = !fresh && seed == null ? randomKept.get(key) : null;
+    if (kept) {
+      start(kept);
+      return;
+    }
+    randomBusy = true;
+    try {
+      const token = nav;
+      const stillWanted = () => nav === token && shell.unlock.owned;
+      let p = null;
+      for (let tries = 0; tries < 6; tries++) {
+        const ready = seed == null ? ahead.get(key) : null;
+        ahead.delete(key);
+        p = await makeRandom(shell, 'dogudoku', 'randomPuzzle', [key, tries === 0 && seed != null ? seed : newSeed()], { ready, stillWanted });
+        if (!p || seed != null || !seenBefore(p)) break; // a repeat of this session: make another
+      }
+      if (!p) return;
+      remember(p);
+      p.random = key;
+      randomKept.set(key, p);
+      start(p);
+      // the next one of this size, made while the child plays (not while the app is in the background)
+      if (seed == null && !document.hidden) ahead.set(key, generate('dogudoku', 'randomPuzzle', [key, newSeed()]).catch(() => null));
+    } finally {
+      randomBusy = false;
+    }
+  }
+
+  const boardKey = (p) => JSON.stringify([p.n, p.regions, p.bushes, p.solution]);
+  const seenBefore = (p) => recent.includes(boardKey(p));
+  function remember(p) {
+    recent.push(boardKey(p));
+    if (recent.length > 30) recent.shift();
+  }
+
+  function start(p) {
     if (current && !solved) boards.set(current.id, { marks, hintsUsed });
     plays++;
     current = p;
@@ -381,7 +453,7 @@ export function createDogudoku(shell) {
   // ---------- HUD and rules ----------
 
   function renderHud() {
-    $('#dogu-title').textContent = t('dogudoku.puzzle', { n: current.id });
+    $('#dogu-title').textContent = current.random ? t('random.title') : t('dogudoku.puzzle', { n: current.id });
     $('#dogu-sub').textContent = t('dogudoku.size', { n: current.n });
     renderAuto();
     renderHint();
@@ -425,7 +497,11 @@ export function createDogudoku(shell) {
     solved = true;
     boards.delete(current.id);
     const stars = starsFor(hintsUsed);
-    store.recordStars(meta.id, current.id, stars);
+    if (current.random) {
+      // random puzzles keep no stars per board, only how many were solved
+      store.recordRandomSolved(meta.id, current.random);
+      randomKept.delete(current.random);
+    } else store.recordStars(meta.id, current.id, stars);
     refresh();
     $('#dogu-status').textContent = '';
     board.classList.add('won');
@@ -439,6 +515,18 @@ export function createDogudoku(shell) {
   }
 
   function showWinCard(done, stars) {
+    if (done.random) {
+      shell.showOverlay({
+        art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
+        title: t(`dogudoku.win${stars}`),
+        text: `${t('dogudoku.winText')} ${t('random.solved', { n: store.loadRandomSolved(meta.id)[done.random] || 1 })}`,
+        buttons: [
+          [t('random.new'), 'big primary', () => playRandom(done.random, { fresh: true })],
+          [t('dogudoku.puzzles'), 'big secondary', () => shell.show('dogudoku-levels')],
+        ],
+      });
+      return;
+    }
     const nextAny = puzzles[puzzles.indexOf(done) + 1];
     const sameSize = nextAny && nextAny.n === done.n; // "Next" never jumps to a bigger board
     const buttons = [];
@@ -494,7 +582,9 @@ export function createDogudoku(shell) {
     testHook() {
       return {
         play: (id) => play(id),
-        puzzle: () => (current ? { id: current.id, n: current.n, tier: current.tier, solution: current.solution.slice() } : null),
+        playRandom: (key, seed) => playRandom(key, { fresh: true, seed }),
+        randomSolved: () => store.loadRandomSolved(meta.id),
+        puzzle: () => (current ? { id: current.id, n: current.n, tier: current.tier, solution: current.solution.slice(), random: current.random || null } : null),
         state: () => ({ solved, hintsUsed, marks: Object.fromEntries(marks), status: $('#dogu-status').textContent }),
         hint: () => hint(),
         tapCell: (r, c) => cycle(r, c),

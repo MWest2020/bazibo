@@ -346,3 +346,25 @@ for (const game of ['bubbels', 'dogudoku', 'picturedoku']) {
     assert.deepEqual(store.loadProgress(game).stars, { 1: 3, 2: 3, 3: 3, 4: 2, 5: 1 });
   });
 }
+
+test('random play: solved counts go up per game and tier, are saved, and are not options', async () => {
+  const prefs = fakePreferences();
+  await store.init({ backend: store.preferencesBackend(prefs), legacyStorage: fakeLocalStorage() });
+  assert.deepEqual(store.loadRandomSolved('dogudoku'), {});
+  assert.equal(store.recordRandomSolved('dogudoku', 's8'), 1);
+  assert.equal(store.recordRandomSolved('dogudoku', 's8'), 2);
+  store.recordRandomSolved('slang', 'count-big');
+  store.saveProgress('dogudoku', { stars: { 3: 2 } }); // stars and counts live side by side
+  await store.flushed();
+  const saved = JSON.parse(prefs.dump()[store.SAVE_KEY]);
+  assert.deepEqual(saved.games.dogudoku, { random: { s8: 2 }, stars: { 3: 2 } });
+  assert.deepEqual(saved.games.slang, { random: { 'count-big': 1 } });
+  assert.equal(store.loadGameOption('dogudoku', 'random', 'none'), 'none');
+  assert.throws(() => store.saveGameOption('dogudoku', 'random', {}), /recordRandomSolved/);
+});
+
+test('mergeSaves: random counts of a session that could not read the save are added', () => {
+  const stored = { version: 1, games: { dogudoku: { random: { s4: 5, s8: 1 } } }, settings: {}, purchase: { owned: true } };
+  const session = { games: { dogudoku: { random: { s8: 3, s6: 1 } } }, settings: {}, purchase: { owned: false } };
+  assert.deepEqual(store.mergeSaves(stored, session, false).games.dogudoku.random, { s4: 5, s8: 4, s6: 1 });
+});

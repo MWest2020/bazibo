@@ -4,6 +4,7 @@
 //     games:    { bubbels: { stars: {1: 3, ...} },
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
+//                 <any game>: { random: {tier: solved count} }   // random play, full version
 //                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
@@ -216,6 +217,11 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
     const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
     const stars = isObj(mine.stars) ? mine.stars : (mine.stars = {});
     for (const [level, n] of Object.entries(isObj(g?.stars) ? g.stars : {})) stars[level] = Math.max(stars[level] || 0, n || 0);
+    if (isObj(g?.random)) {
+      const random = isObj(mine.random) ? mine.random : (mine.random = {});
+      // the session could not read the save, so its counts started at 0: they are added, not compared
+      for (const [tier, n] of Object.entries(g.random)) random[tier] = (Number(random[tier]) || 0) + (Number(n) || 0);
+    }
   }
   out.purchase = { ...out.purchase, owned: out.purchase?.owned === true || session.purchase?.owned === true };
   if (sessionSettingsChanged) out.settings = { ...out.settings, muted: !!session.settings.muted, lang: session.settings.lang || null };
@@ -357,14 +363,33 @@ export function recordStars(gameId, id, n) {
   saveProgress(gameId, { stars: { [id]: n } });
 }
 
+/**
+ * Random play (full version): how many random boards were solved, per tier key, e.g.
+ * { s4: 12, s8: 3 }. The count only ever goes up.
+ */
+export function loadRandomSolved(gameId) {
+  const g = save.games[gameId];
+  return isObj(g?.random) ? clone(g.random) : {};
+}
+
+export function recordRandomSolved(gameId, tier) {
+  const g = isObj(save.games[gameId]) ? save.games[gameId] : {};
+  const random = isObj(g.random) ? clone(g.random) : {};
+  random[tier] = (Number(random[tier]) || 0) + 1;
+  save.games[gameId] = { ...g, random };
+  persist();
+  return random[tier];
+}
+
 /** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
 export function loadGameOption(gameId, key, fallback) {
   const g = save.games[gameId];
-  return isObj(g) && key in g && key !== 'stars' ? clone(g[key]) : fallback;
+  return isObj(g) && key in g && key !== 'stars' && key !== 'random' ? clone(g[key]) : fallback;
 }
 
 export function saveGameOption(gameId, key, value) {
   if (key === 'stars') throw new Error('stars go through saveProgress');
+  if (key === 'random') throw new Error('random counts go through recordRandomSolved');
   save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
   persist();
 }

@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-1acbc0bddd';
+const VERSION = 'bubbels-63200e1700';
 const ASSETS = [
   './',
   'index.html',
@@ -18,6 +18,8 @@ const ASSETS = [
   'js/billing-native.js',
   'js/parental-gate.js',
   'js/back.js',
+  'js/random.js',
+  'js/gen-worker.js',
   'games/bubbels/bubbels.css',
   'games/bubbels/bubbels.js',
   'games/bubbels/game.js',
@@ -25,17 +27,20 @@ const ASSETS = [
   'games/bubbels/levels.js',
   'games/bubbels/levels.json',
   'games/bubbels/meta.js',
+  'games/bubbels/generate.js',
   'games/bubbels/strings.js',
   'games/dogudoku/art.js',
   'games/dogudoku/dogudoku.css',
   'games/dogudoku/dogudoku.js',
   'games/dogudoku/meta.js',
+  'games/dogudoku/generate.js',
   'games/dogudoku/puzzles.json',
   'games/dogudoku/rules.js',
   'games/dogudoku/strings.js',
   'games/picturedoku/art.js',
   'games/picturedoku/input.js',
   'games/picturedoku/meta.js',
+  'games/picturedoku/generate.js',
   'games/picturedoku/picturedoku.css',
   'games/picturedoku/picturedoku.js',
   'games/picturedoku/puzzles.json',
@@ -51,6 +56,7 @@ const ASSETS = [
   'games/slang/art.js',
   'games/slang/levels.json',
   'games/slang/meta.js',
+  'games/slang/generate.js',
   'games/slang/rules.js',
   'games/slang/slang.css',
   'games/slang/slang.js',

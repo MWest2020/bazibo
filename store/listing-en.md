@@ -74,7 +74,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later, plus endless new puzzles in the full version: a random level per difficulty, different every time. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/

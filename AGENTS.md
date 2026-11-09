@@ -67,7 +67,10 @@ dogs must never look like cats (floppy or rounded ears only). Picturedoku the sa
 tap never changes a filled square the child did not just choose), puzzles through `tools/gen-picturedoku.mjs` (also
 `npm run puzzles`; every puzzle unique and solvable with singles only); its pictures must stay
 different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with a test. Level changes go through
-`tools/gen-levels.mjs`, not by hand-editing the JSON. After changing anything under `web/`, run
+`tools/gen-levels.mjs`, not by hand-editing the JSON. The generators themselves live in
+`web/games/<id>/generate.js` and serve both the tools and random play in the full version
+(`web/js/random.js`); keep a tool's output byte for byte the same when you change one, and keep
+`tests/random.test.js` green (200 seeds per tier). After changing anything under `web/`, run
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
 Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pure, seeded in the
