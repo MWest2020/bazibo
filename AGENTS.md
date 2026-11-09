@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, the learning snake `slang`, telling time `klok`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, the learning snake `slang`, colouring pages and mandalas `kleuren`, telling time `klok`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -37,6 +37,7 @@ native config) and `uv run --with playwright python tests/smoke.py` (home → Do
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
+home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
@@ -84,6 +85,10 @@ given for the upright board and turned on a sideways one). `npm test` plays ever
 end in both languages and orientations; a new level or word must pass that. The youngest tiers
 must never be losable (wrap-around, no bump into yourself, no walls). New words go in `WORDS` for
 every language, with a picture in `art.js`.
+Kleurplaten: every region must be one closed path with a unique id (`npm test` checks every
+picture and hundreds of mandala seeds); a mandala region's `g` is its symmetry group. New pictures
+go in `PICTURES` in difficulty order (few large parts first) with a name in `strings.js`. Pages are
+saved through `saveArt`/`loadArt` only (never `saveGameOption`).
 Klok kijken: the time logic in `web/games/klok/time.js` (pure). Dutch phrasing works around the
 half hour ("vijf voor half drie" = 2:25); every 5-minute step of every hour is tested in both
 languages, so a change to `phrase()` must keep those tests green. Answer options stay on the

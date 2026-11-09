@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku with puppies, Picturedoku, Four in a Row and Snake, which helps with counting and letters: games for ages 3 to 10, without a single ad.
+Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake for counting and letters, and Colouring with mandalas: games for ages 3 to 10, with no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,four in a row,snake,counting,puppies,puzzle,kids,toddler,no ads,offline
+bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,puzzle,kids,no ads
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has five games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row and Snake. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has six games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake and Colouring. More games will follow.
 
 The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
@@ -42,29 +42,35 @@ DOGUDOKU: HIDE THE PUPPIES
 • For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
 • From age 5, coloured beds join in: one puppy per colour.
 • From age 7, bigger gardens, up to 8 by 8.
-• 60 puzzles, each with exactly one solution. A mistake lights up gently; a hint helps one step further.
+• 60 puzzles, each with exactly one solution. A mistake lights up gently; a hint helps.
 
 PICTUREDOKU: SUDOKU WITH PICTURES
 • Every picture goes once in every row, every column and every box.
 • For the youngest (age 3 and up): 4 by 4 with an apple, a banana, grapes and a carrot, no numbers and no reading.
 • From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
 • With a pencil, an eraser and undo.
-• 60 puzzles, each with exactly one solution and solvable without guessing. A mistake lights up gently; a hint helps one step further.
+• 60 puzzles, each with one solution, solvable without guessing.
 
 FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Take turns dropping a token into a column. The first to get four in a row (straight or slanting) wins.
-• Play together on one screen, with a brother, sister or parent. Or against the computer: Easy, Medium or Hard. On Easy the computer makes mistakes on purpose, so young children win too.
+• Play together on one screen, or against the computer: Easy, Medium or Hard. On Easy it makes mistakes on purpose.
 • For the youngest (age 3 and up): the little board, 5 by 4, where three in a row already wins. No reading needed.
-• Pick your own token. Against the computer you can take back a move.
+• Pick your own token.
 
 SNAKE: COUNTING, LETTERS AND COLOURS
 • Steer a happy snake by swiping or with big arrows, and eat the right things.
 • Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
 • Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
 • Colours: eat only the fruit of the right colour; every colour also has its own shape.
-• A mistake is never game over: the snake gets a little shorter and the fruit hops somewhere else.
+• A mistake is never game over: the snake just gets a little shorter.
 • For the youngest (age 3 and up) the snake is slow and comes back on the other side at the edge. From age 7 it is faster, with fences and stones.
 • 30 levels.
+
+COLOURING PAGES AND MANDALAS
+• Pick a colour and tap a part: done. No reading needed.
+• For the youngest (age 3 and up): 13 pictures, from a sun and a house to a rocket and an elephant.
+• From age 7: mandalas, with a button that colours all copies at once.
+• Every picture is kept in My pictures.
 
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.
@@ -74,7 +80,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later, plus endless new puzzles in the full version: a random level per difficulty, different every time. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, in Snake 10 of the 30 levels, and in Colouring 6 pictures and 3 mandalas. Paying once opens everything, in every game, including later ones, plus endless new puzzles and mandalas: a new one per difficulty, every time. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/

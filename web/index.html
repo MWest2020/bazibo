@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/slang/slang.css">
+  <link rel="stylesheet" href="games/kleuren/kleuren.css">
   <link rel="stylesheet" href="games/klok/klok.css">
 </head>
 <body>
@@ -56,6 +57,10 @@
           <button id="tile-slang" class="tile" type="button" data-game="slang">
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.slang">Slangetje</span>
+          </button>
+          <button id="tile-kleuren" class="tile" type="button" data-game="kleuren">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.kleuren">Kleurplaten</span>
           </button>
           <button id="tile-klok" class="tile" type="button" data-game="klok">
             <span class="tile-art" aria-hidden="true"></span>
@@ -300,6 +305,45 @@
           <button class="pad-btn" type="button" data-dir="left" data-i18n-aria="slang.left" aria-label="Naar links"></button>
           <button class="pad-btn" type="button" data-dir="right" data-i18n-aria="slang.right" aria-label="Naar rechts"></button>
           <button class="pad-btn" type="button" data-dir="down" data-i18n-aria="slang.down" aria-label="Omlaag"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kleurplaten: the list (my pictures, pictures, mandalas) -->
+    <section id="screen-kleuren-list" class="screen" data-i18n-aria="games.kleuren" aria-label="Kleurplaten">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="kleur.choose">Kies een kleurplaat</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="kleur-list"></div></div>
+    </section>
+
+    <!-- Kleurplaten: colouring a page -->
+    <section id="screen-kleuren" class="screen" data-i18n-aria="games.kleuren" aria-label="Kleurplaten">
+      <header class="bar dogu-hud kleur-hud">
+        <button id="kleur-back" class="btn icon" type="button" data-i18n-aria="kleur.list" aria-label="Kleurplaten">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="kleur-sub" class="hud-level"></div>
+          <div id="kleur-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="kleur-stage">
+        <div id="kleur-page" class="kleur-page" role="group" data-i18n-aria="kleur.page" aria-label="Kleurplaat: kies een kleur en tik op een vlak"></div>
+        <div class="kleur-side">
+          <div id="kleur-palette" class="kleur-palette" role="group" data-i18n-aria="kleur.palette" aria-label="Kleuren"></div>
+          <div class="kleur-tools" role="group" data-i18n-aria="kleur.tools" aria-label="Gereedschap">
+            <button id="kleur-undo" class="btn icon tool" type="button" data-i18n-aria="kleur.undo" aria-label="Ongedaan maken"></button>
+            <button id="kleur-restart" class="btn icon tool" type="button" data-i18n-aria="kleur.restart" aria-label="Opnieuw beginnen"></button>
+            <button id="kleur-mirror" class="btn icon tool" type="button" data-i18n-aria="kleur.mirror" aria-label="Alle kopieën tegelijk kleuren" aria-pressed="false"></button>
+            <button id="kleur-zoom" class="btn icon tool" type="button" data-i18n-aria="kleur.zoom" aria-label="Inzoomen" aria-pressed="false"></button>
+            <button id="kleur-done" class="btn icon tool done" type="button" data-i18n-aria="kleur.done" aria-label="Klaar"></button>
+          </div>
         </div>
       </div>
     </section>

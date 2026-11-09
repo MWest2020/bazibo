@@ -8,6 +8,9 @@ import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
 import '../web/games/vier/strings.js';
 import '../web/games/slang/strings.js';
+import '../web/games/kleuren/strings.js';
+import { PICTURES } from '../web/games/kleuren/pictures.js';
+import { PALETTE } from '../web/games/kleuren/art.js';
 import '../web/games/klok/strings.js';
 import '../web/js/random.js';
 import { GAMES } from '../web/js/games.js';
@@ -58,6 +61,8 @@ test('every key used in index.html and in the code exists', () => {
   for (const k of ['easy', 'medium', 'hard']) used.add(`bubbels.tier.${k}`);
   for (const n of [1, 2, 3]) used.add(`slang.win${n}`);
   for (let c = 0; c < 6; c++) used.add(`slang.color.${c}`);
+  for (const p of PICTURES) used.add(`kleur.pic.${p.name}`); // built as t(`kleur.pic.${name}`)
+  for (let c = 0; c < PALETTE.length; c++) used.add(`kleur.colour.${c}`);
   for (const m of ['set', 'read', 'day']) used.add(`klok.mode.${m}`).add(`klok.mode.${m}Sub`).add(`klok.how.${m}`);
   for (const k of ['t1', 't2', 't3', 't4', 't5', 'day']) used.add(`klok.tier.${k}`);
   for (const n of [1, 2, 3]) used.add(`klok.win${n}`);

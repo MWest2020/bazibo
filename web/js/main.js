@@ -25,6 +25,9 @@ import { tokenSvg } from '../games/vier/art.js';
 import '../games/slang/strings.js';
 import { createSlang } from '../games/slang/slang.js';
 import { snakeSvg } from '../games/slang/art.js';
+import '../games/kleuren/strings.js';
+import { createKleuren } from '../games/kleuren/kleuren.js';
+import { tileMandalaSvg } from '../games/kleuren/tile.js';
 import '../games/klok/strings.js';
 import { createKlok } from '../games/klok/klok.js';
 import { tileSvg as klokTileSvg } from '../games/klok/art.js';
@@ -174,6 +177,10 @@ function drawVierTile() {
 
 function drawSlangTile() {
   $('#tile-slang .tile-art').innerHTML = snakeSvg();
+}
+
+function drawKleurenTile() {
+  $('#tile-kleuren .tile-art').innerHTML = tileMandalaSvg();
 }
 
 function drawKlokTile() {
@@ -461,6 +468,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.kleuren = createKleuren({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.slang = createSlang({
     t,
     show,
@@ -489,11 +507,12 @@ async function boot() {
   drawPicturedokuTile();
   drawVierTile();
   drawSlangTile();
+  drawKleurenTile();
   drawKlokTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.klok.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.klok.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -503,6 +522,7 @@ async function boot() {
       pdoku: games.picturedoku.testHook(),
       vier: games.vier.testHook(),
       slang: games.slang.testHook(),
+      kleur: games.kleuren.testHook(),
       klok: games.klok.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
@@ -537,6 +557,7 @@ function onBack() {
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'slang-menu') games.slang.leave();
+  else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'klok-menu') games.klok.leave();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();

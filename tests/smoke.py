@@ -5,9 +5,10 @@ square-then-picture) and check on 4×4, 6×6 and 9×9 that tapping another pictu
 never changes the placed square, play Vier op een rij (a two-player game to a win on the
 kleuterbord, and a game against the easy computer with one take-back), play Slangetje (a counting
 round and a letters round to the end with the arrow pad and a swipe, the pause card and "keep
-playing"; also on a 320×568 phone and sideways), play Klok kijken (a "set the clock" round by
-dragging the hour hand, a "what time is it" round with one mistake, a daily-rhythm round, the + and -
-buttons, the hint and "keep playing"; the layout at 320×568 and sideways), check that nothing went to the network and nothing threw, that the
+playing"; also on a 320×568 phone and sideways), colour a Kleurplaten page (tap, undo, done, "my
+pictures", kept after a reload; a mirrored mandala on small and sideways phones), play Klok kijken (a "set the clock"
+round by dragging, a "what time is it" round with one mistake, a daily-rhythm round, + and -, the
+hint and "keep playing"; the layout at 320×568 and sideways), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -55,6 +56,7 @@ TEXT = {
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel", "vierTile": "Vier op een rij",
            "pupWins": "Puppy wint!", "again": "Nog een keer", "keep": "Verder spelen",
            "slangTile": "Slangetje", "egg": "EI", "levels": "Levels",
+           "kleurTile": "Kleurplaten", "mine": "Mijn kleurplaten", "lovely": "Wat mooi!",
            "klokTile": "Klok kijken", "klokWin": "Super!", "klokAlmost": "Bijna!"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
@@ -62,6 +64,7 @@ TEXT = {
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play", "vierTile": "Four in a Row",
            "pupWins": "Puppy wins!", "again": "Play again", "keep": "Keep playing",
            "slangTile": "Snake", "egg": "EGG", "levels": "Levels",
+           "kleurTile": "Colouring", "mine": "My pictures", "lovely": "How lovely!",
            "klokTile": "Telling Time", "klokWin": "Super!", "klokAlmost": "Almost!"},
 }
 
@@ -108,6 +111,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     play_picturedoku(page, name, say, problems)
     play_vier(page, name, say, problems)
     play_slang(page, name, say, problems)
+    play_kleuren(page, name, say, problems)
     play_klok(page, name, say, problems)
 
     page.click("#tile-bubbels")
@@ -582,6 +586,17 @@ def play_vier(page, name, say, problems):
     page.wait_for_timeout(200)
 
 
+def close_card_if_any(page, timeout=1200):
+    """Close the how-to card if one comes up (it shows once per kind), and wait until it is gone."""
+    try:
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=timeout)
+    except Exception:
+        return False
+    page.click("#ov-buttons button")
+    page.wait_for_selector("#overlay", state="hidden", timeout=3000)
+    return True
+
+
 def slang_round(page, name, problems, shot=None, swipe=False):
     """Play the Slangetje round on the board to its end: the test hook's path finder says which
     way to go, the arrow pad (or one real swipe) steers, and the hook moves the snake one step at
@@ -633,12 +648,12 @@ def play_slang(page, name, say, problems):
     page.screenshot(path=str(SHOTS / f"{name}-s1-menu.png"), full_page=True)
 
     page.click(".slang-grid .level-btn[data-level='1']")
-    page.wait_for_timeout(300)
-    if not page.is_visible("#overlay"):
-        problems.append(f"{name}: no how-to card the first time")
-    else:
+    try:
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=3000)
         page.click("#ov-buttons button")
-    page.wait_for_timeout(200)
+        page.wait_for_selector("#overlay", state="hidden", timeout=3000)
+    except Exception:
+        problems.append(f"{name}: no how-to card the first time")
     st = page.evaluate("window.__bubbels.slang.state()")
     if st["started"] or len(st["items"]) != 3:
         problems.append(f"{name}: counting level 1 should wait for the child with 1, 2, 3 on the board: {st}")
@@ -655,9 +670,8 @@ def play_slang(page, name, say, problems):
 
     # letters: the word in this language
     page.click(".slang-grid .level-btn[data-level='13']")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
+    page.wait_for_selector("#screen-slang.active")
+    close_card_if_any(page)
     word = "".join(page.locator("#slang-target .slang-letter").all_inner_texts())
     if word != say["egg"]:
         problems.append(f"{name}: the letters round spells {word!r}, expected {say['egg']!r}")
@@ -669,9 +683,8 @@ def play_slang(page, name, say, problems):
     # waiting for the first swipe: no animation frames (review of PR #12), and a short swipe goes
     # the way the finger went
     page.click(".slang-grid .level-btn[data-level='4']")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
+    page.wait_for_selector("#screen-slang.active")
+    close_card_if_any(page)
     page.wait_for_timeout(400)
     page.evaluate("""(() => { window.__raf = 0; const o = window.requestAnimationFrame.bind(window);
         window.requestAnimationFrame = (f) => { window.__raf++; return o(f); }; })()""")
@@ -1087,6 +1100,128 @@ CARD_FIT_JS = """() => [...document.querySelectorAll('.screen.active .random-btn
 })"""
 
 
+def play_kleuren(page, name, say, problems):
+    """Kleurplaten: a locked page offers only OK on the web; colour the free sun by tapping (a real
+    tap on the face, the rays by event), undo once, finish it, find it under "my pictures", and
+    check it is still there after a reload."""
+    page.click("#tile-kleuren")
+    page.wait_for_timeout(250)
+    if page.inner_text("#tile-kleuren .tile-name").strip() != say["kleurTile"]:
+        problems.append(f"{name}: colouring tile says {page.inner_text('#tile-kleuren .tile-name')!r}")
+    page.click("#kleur-list .kleur-card.locked >> nth=0")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]]:
+        problems.append(f"{name}: locked colouring page offers {labels}")
+    page.click(f"#ov-buttons button >> text={say['ok']}")
+    page.click("#kleur-list .kleur-card[data-page='p:zon']")
+    page.wait_for_timeout(300)
+    if not page.is_disabled("#kleur-done") or not page.is_disabled("#kleur-undo"):
+        problems.append(f"{name}: on a blank page Done and Undo should be off")
+    page.click("#kleur-palette .swatch[data-c='2']")
+    face = page.locator("#kleur-page path[data-r='face']").bounding_box()
+    page.mouse.click(face["x"] + face["width"] / 2, face["y"] + face["height"] * 0.8)  # below the smile
+    page.wait_for_timeout(150)
+    st = page.evaluate("window.__bubbels.kleur.state()")
+    if st["fills"].get("face") != 2:
+        problems.append(f"{name}: tapping the sun's face did not colour it ({st['fills']})")
+    if page.is_disabled("#kleur-undo") or page.is_disabled("#kleur-done"):
+        problems.append(f"{name}: after one tap Undo and Done should be on")
+    page.click("#kleur-undo")
+    if page.evaluate("Object.keys(window.__bubbels.kleur.state().fills).length") != 0 or not page.is_disabled("#kleur-done"):
+        problems.append(f"{name}: undo after one tap did not take it back")
+    page.mouse.click(face["x"] + face["width"] / 2, face["y"] + face["height"] * 0.8)
+    page.click("#kleur-palette .swatch[data-c='1']")
+    for i in range(8):
+        page.evaluate(f"document.querySelector(\"#kleur-page path[data-r='ray{i}']\").dispatchEvent(new MouseEvent('click', {{bubbles: true}}))")
+    page.click("#kleur-palette .swatch[data-c='0']")
+    page.evaluate("document.querySelector(\"#kleur-page path[data-r='ray0']\").dispatchEvent(new MouseEvent('click', {bubbles: true}))")
+    page.click("#kleur-undo")
+    st = page.evaluate("window.__bubbels.kleur.state()")
+    if st["fills"].get("ray0") != 1 or len(st["fills"]) != 9:
+        problems.append(f"{name}: colouring or undo went wrong: {st['fills']}")
+    # start over (it asks first), then undo brings every colour back
+    page.click("#kleur-restart")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_selector("#overlay", state="hidden")
+    if page.evaluate("Object.keys(window.__bubbels.kleur.state().fills).length") != 0 or page.is_disabled("#kleur-undo"):
+        problems.append(f"{name}: start over left colours or Undo off")
+    page.click("#kleur-undo")
+    if page.evaluate("window.__bubbels.kleur.state().fills") != st["fills"]:
+        problems.append(f"{name}: undo after start over did not bring the colours back")
+    if page.get_attribute("#kleur-page path[data-r='ray3']", "fill").lower() != "#ff8a3d":
+        problems.append(f"{name}: a coloured ray is not drawn in its colour")
+    page.screenshot(path=str(SHOTS / f"{name}-k1-sun.png"))
+    page.click("#kleur-done")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    if page.inner_text("#ov-title").strip() != say["lovely"]:
+        problems.append(f"{name}: the done card says {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / f"{name}-k2-done.png"))
+    page.click("#ov-buttons button >> nth=-1")  # back to the list
+    page.wait_for_timeout(250)
+    heads = page.locator("#kleur-list h3 .dogu-size-n").all_inner_texts()
+    if not heads or heads[0] != say["mine"]:
+        problems.append(f"{name}: no 'my pictures' section first: {heads}")
+    if page.locator("#kleur-list .kleur-mine .kleur-card[data-page='p:zon'] .kleur-badge.check").count() != 1:
+        problems.append(f"{name}: the finished sun is not under my pictures with a check")
+    page.screenshot(path=str(SHOTS / f"{name}-k3-mine.png"))
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    art = page.evaluate("window.__bubbels.kleur.art()")
+    if not art.get("p:zon", {}).get("done") or len(art["p:zon"]["f"]) != 9:
+        problems.append(f"{name}: the sun was not kept after a reload: {art.get('p:zon')}")
+
+
+def kleuren_fits(browser, base, problems):
+    """Kleurplaten in the full version on small and sideways phones: a new mandala and a picture
+    fit (page, palette and the done button on screen, no sideways scroll), and mirroring colours
+    every copy of a shape at once."""
+    for w, h in ((320, 568), (568, 320), (844, 390)):
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.click("#tile-kleuren")
+        page.wait_for_timeout(250)
+        label = f"kleuren {w}x{h}"
+        new = page.locator("#kleur-list .random-btn:not(.locked)")
+        if new.count() != 2:
+            problems.append(f"{label}: expected 2 open 'new mandala' cards, got {new.count()}")
+        new.nth(1).click()
+        page.wait_for_timeout(400)
+        st = page.evaluate("window.__bubbels.kleur.state()")
+        if st["kind"] != "mandala" or not st["key"].startswith("m:m2:"):
+            problems.append(f"{label}: 'new mandala' opened {st['key']}")
+        page.evaluate("window.__bubbels.kleur.mirror(true)")
+        page.click("#kleur-palette .swatch[data-c='7']")
+        shape = next(r for r in st["regions"] if r.startswith("b0"))
+        group = re.sub(r"\d+$", "", shape)
+        page.evaluate(f"window.__bubbels.kleur.paint('{shape}')")
+        coloured = page.evaluate("Object.keys(window.__bubbels.kleur.state().fills)")
+        if len(coloured) < 6 or not all(re.sub(r"\d+$", "", k) == group for k in coloured):
+            problems.append(f"{label}: mirroring coloured {coloured}")
+        for sel in ("#kleur-page", "#kleur-palette", "#kleur-done", "#kleur-back"):
+            r = page.locator(sel).bounding_box()
+            if r is None or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"{label}: {sel} off screen: {r}")
+        if page.evaluate("document.documentElement.scrollWidth") > w + 1:
+            problems.append(f"{label}: the page scrolls sideways")
+        page.screenshot(path=str(SHOTS / f"kleur-mandala-{w}x{h}.png"))
+        page.click("#kleur-back")
+        page.click("#kleur-list .kleur-card[data-page='p:raket']")  # a full-version picture
+        page.wait_for_timeout(300)
+        if page.evaluate("window.__bubbels.kleur.state().key") != "p:raket":
+            problems.append(f"{label}: the full version did not open a locked picture")
+        if errors:
+            problems.append(f"{label}: page errors: {errors}")
+        ctx.close()
+
+
 def random_cards_fit(browser, base, problems):
     """The random cards fit at 320 and 390 px in all four games, locked (web) and open (full)."""
     for w, h in ((320, 568), (390, 844)):
@@ -1311,6 +1446,7 @@ def main():
             run_returning(browser, base, problems)
             random_play(browser, base, problems)
             random_cards_fit(browser, base, problems)
+            kleuren_fits(browser, base, problems)
             klok_layouts(browser, base, problems)
             browser.close()
     finally:
