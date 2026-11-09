@@ -77,7 +77,7 @@ GEEN RECLAME, NOOIT
 • Geen account en geen trackers: de app verzamelt niets.
 • Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, en bij Slangetje 10 van de 30 levels, van elke soort een paar. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
-Privacyverklaring: https://mwest2020.github.io/bazibo/privacy/index.html
+Privacyverklaring: https://bazibo.nl/privacy/
 Broncode (MIT): https://github.com/MWest2020/bazibo
 
 ## In-app product
@@ -91,6 +91,6 @@ Broncode (MIT): https://github.com/MWest2020/bazibo
 
 - Play: Games › Educatief (of Games › Puzzel); tags: Kinderen, Bubble shooter, Puzzel, Bordspel. App Store: primair
   Games › Familie, secundair Educatie; Kids-categorie: zie `forms.md`.
-- Contact-e-mail: mark@westerweel.work
-- Website: https://mwest2020.github.io/bazibo/
-- Privacybeleid-URL: https://mwest2020.github.io/bazibo/privacy/index.html
+- Contact-e-mail: hallo@bazibo.nl
+- Website: https://bazibo.nl/
+- Privacybeleid-URL: https://bazibo.nl/privacy/

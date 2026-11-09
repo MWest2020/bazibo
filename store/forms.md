@@ -46,7 +46,7 @@ to map onto them.
 
 ### Privacy policy URL
 
-https://mwest2020.github.io/bazibo/privacy/index.html
+https://bazibo.nl/privacy/
 
 ## Apple App Store Connect
 
@@ -57,7 +57,7 @@ https://mwest2020.github.io/bazibo/privacy/index.html
 - The label then reads **Data Not Collected**. Purchases are handled by Apple and do not count
   as collection by the developer. Save data sits in UserDefaults on the device and is part of the
   user's own iCloud or computer backup, which the developer never sees.
-- Privacy policy URL: https://mwest2020.github.io/bazibo/privacy/en.html
+- Privacy policy URL: https://bazibo.nl/privacy/en.html
 
 ### Age rating
 

@@ -230,7 +230,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     # privacy pages: served next to the game, no scripts, no outside requests
     for path in ("privacy/index.html", "privacy/en.html"):
         r = page.goto(f"{base}/{path}")
-        if not r or r.status != 200 or "mark@westerweel.work" not in page.content():
+        if not r or r.status != 200 or "hallo@bazibo.nl" not in page.content():
             problems.append(f"{name}: {path} missing or incomplete")
     page.screenshot(path=str(SHOTS / f"{name}-9-privacy.png"))
     page.goto(f"{base}/index.html?test")

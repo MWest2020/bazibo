@@ -18,7 +18,7 @@ and the storage keys keep the name `bubbels`.
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
   sound, the full version, privacy.
 
-Play it: https://mwest2020.github.io/bazibo/ (every merge to `main` runs the tests and publishes `web/` there through GitHub Actions; releases to the stores: `docs/release.md`).
+Play it: https://bazibo.nl/ (also at https://mwest2020.github.io/bazibo/). Every merge to `main` runs the tests and publishes `web/` to GitHub Pages through GitHub Actions, and a GitHub webhook makes Plesk (Yourhosting) pull `main` and serve `web/` on bazibo.nl. Releases to the stores: `docs/release.md`.
 
 ### Dogudoku
 

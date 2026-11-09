@@ -241,3 +241,18 @@ it can only be tested once the Play key exists.
 
 The iOS lanes are a skeleton until there is a Mac or the macOS job from
 `docs/ci/ios-build.yml.example`.
+
+## 7. Websites
+
+The web build (`web/`) is served in two places:
+
+- **https://bazibo.nl/** (canonical; used as the store website and privacy URL). Hosting is
+  Yourhosting's Plesk (Basic Web + Mail). A GitHub push webhook makes Plesk pull `main` into
+  `~/bazibo-repo` on the hosting and the site's document root is `bazibo-repo/web`, so only
+  `web/` is reachable. Let's Encrypt (Plesk "SSL It!") covers bazibo.nl, www and mail, and
+  renews itself 30 days before expiry. HTTP and www redirect (301) to https://bazibo.nl/.
+- **https://mwest2020.github.io/bazibo/** (GitHub Pages, deployed by `.github/workflows/ci.yml`).
+
+Contact for the stores and the privacy pages: **hallo@bazibo.nl** (a Plesk forwarder to
+Mark's mailbox). Where everything lives, the credentials' OpenBao paths and how to roll back:
+homelab runbook `docusaurus/docs/runbooks/bazibo-nl.md`.
