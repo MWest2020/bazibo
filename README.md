@@ -16,7 +16,7 @@ and the storage keys keep the name `bubbels`.
 - Home screen with a tile per game (a game that is not ready yet can show a "binnenkort" /
   "coming soon" tile) and a
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
-  sound, the full version, privacy.
+  sound, the full version, privacy, terms.
 
 Play it: https://bazibo.nl/ (also at https://mwest2020.github.io/bazibo/). Every merge to `main` runs the tests and publishes `web/` to GitHub Pages through GitHub Actions, and a GitHub webhook makes Plesk (Yourhosting) pull `main` and serve `web/` on bazibo.nl. Releases to the stores: `docs/release.md`.
 
@@ -173,7 +173,7 @@ The smoke test uses the headless Chromium at the path in `CHROME` (default: the 
 cache on the dev machine) and fails on page errors or on any request outside the local server.
 It also checks that the web build sells nothing, that the end of the free levels leads to the
 offer, walks through the parental gate in both languages, switches the language in settings,
-checks that a returning player keeps their progress, and opens the privacy pages.
+checks that a returning player keeps their progress, and opens the privacy and terms pages.
 
 ## Layout
 
@@ -190,7 +190,10 @@ checks that a returning player keeps their progress, and opens the privacy pages
 | `web/js/parental-gate.js` | the adult question before buying or restoring |
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
 | `web/games/bubbels/` | the bubble shooter: `meta.js` (free tier), `strings.js`, `bubbels.js` (levels, HUD), `game.js` (state, input, physics, drawing), `grid.js` (pure hex-grid logic), `levels.json`, `bubbels.css` |
-| `web/privacy/` | privacy policy, Dutch (`index.html`) and English (`en.html`) |
+| `web/nl/privacy/`, `web/en/privacy/` | privacy policy, Dutch and English |
+| `web/nl/voorwaarden/`, `web/en/terms/` | terms of service, Dutch and English; linked from Settings and the privacy pages |
+| `web/privacy/`, `web/terms/`, `web/voorwaarden/` | old and language-neutral URLs: they forward to the page in the reader's language (`js/legal-redirect.js`) |
+| `web/css/legal.css` | style of the legal pages |
 | `web/sw.js`, `web/manifest.webmanifest`, `web/icons/` | PWA basics |
 | `tools/` | level generator, icon renderer (`make_icons.py --native` also does the app icons and launch screens), store screenshots (`store_shots.py`), service-worker cache stamp (`stamp-sw.mjs`) |
 | `android/`, `ios/`, `capacitor.config.json` | the Capacitor app projects (app ID `work.westerweel.bazibo`) |

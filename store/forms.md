@@ -46,7 +46,20 @@ to map onto them.
 
 ### Privacy policy URL
 
-https://bazibo.nl/privacy/
+https://bazibo.nl/nl/privacy/ (Dutch listing) and https://bazibo.nl/en/privacy/ (English). Play
+holds one URL for the app: use https://bazibo.nl/en/privacy/, or the language-neutral
+https://bazibo.nl/privacy/, which sends a reader to their own language.
+
+### Terms of service URL
+
+https://bazibo.nl/en/terms/ (Dutch: https://bazibo.nl/nl/voorwaarden/)
+
+### Trader status (EU Digital Services Act)
+
+- Bazibo is sold by a business (Westerweel Work, KvK), so the answer is **"Ja, ik ben een
+  handelaar" / "I am a trader"**.
+- The trader details Play shows in the EU (name, address, phone number, email) come from the
+  developer account and payments profile. Use **hallo@bazibo.nl** as the contact email.
 
 ## Apple App Store Connect
 
@@ -57,7 +70,10 @@ https://bazibo.nl/privacy/
 - The label then reads **Data Not Collected**. Purchases are handled by Apple and do not count
   as collection by the developer. Save data sits in UserDefaults on the device and is part of the
   user's own iCloud or computer backup, which the developer never sees.
-- Privacy policy URL: https://bazibo.nl/privacy/en.html
+- Privacy policy URL: https://bazibo.nl/en/privacy/
+- Terms of service: Apple's standard EULA applies unless a custom one is set; our terms page is
+  https://bazibo.nl/en/terms/ (can go in the app description or as a custom EULA).
+- Trader status (EU DSA): **trader**, with the same business details and hallo@bazibo.nl.
 
 ### Age rating
 

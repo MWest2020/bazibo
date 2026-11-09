@@ -76,7 +76,8 @@ NO ADS, EVER
 • No account and no trackers: the app collects nothing.
 • Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later. No subscription. Buying is only possible after a question for parents.
 
-Privacy policy: https://bazibo.nl/privacy/en.html
+Privacy policy: https://bazibo.nl/en/privacy/
+Terms: https://bazibo.nl/en/terms/
 Source code (MIT): https://github.com/MWest2020/bazibo
 
 ## In-app product
@@ -92,4 +93,4 @@ Source code (MIT): https://github.com/MWest2020/bazibo
   Games › Family, secondary Education; Kids category: see `forms.md`.
 - Contact email: hallo@bazibo.nl
 - Website: https://bazibo.nl/
-- Privacy policy URL: https://bazibo.nl/privacy/en.html
+- Privacy policy URL: https://bazibo.nl/en/privacy/
