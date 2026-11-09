@@ -5,7 +5,9 @@ square-then-picture) and check on 4×4, 6×6 and 9×9 that tapping another pictu
 never changes the placed square, play Vier op een rij (a two-player game to a win on the
 kleuterbord, and a game against the easy computer with one take-back), play Slangetje (a counting
 round and a letters round to the end with the arrow pad and a swipe, the pause card and "keep
-playing"; also on a 320×568 phone and sideways), check that nothing went to the network and nothing threw, that the
+playing"; also on a 320×568 phone and sideways), play Klok kijken (a "set the clock" round by
+dragging the hour hand, a "what time is it" round with one mistake, a daily-rhythm round, the + and -
+buttons, the hint and "keep playing"; the layout at 320×568 and sideways), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -52,13 +54,15 @@ TEXT = {
            "settings": "Instellingen", "puzzles": "Puzzels", "stars3": "3 van 3", "dogWin": "Super!",
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” betekent spel", "vierTile": "Vier op een rij",
            "pupWins": "Puppy wint!", "again": "Nog een keer", "keep": "Verder spelen",
-           "slangTile": "Slangetje", "egg": "EI", "levels": "Levels"},
+           "slangTile": "Slangetje", "egg": "EI", "levels": "Levels",
+           "klokTile": "Klok kijken", "klokWin": "Super!", "klokAlmost": "Bijna!"},
     "en": {"ok": "OK", "promise": "No ads. Ever.", "tile": "Bubble Shooter", "soon": "Coming soon!",
            "more": "More levels", "wrong": "That is not right", "ask": r"What is (\w+) times (\w+)\?",
            "settings": "Settings", "puzzles": "Puzzles", "stars3": "3 of 3", "dogWin": "Super!",
            "brand": "Bazibo", "lore": "Bazibo: “bāzi” means play", "vierTile": "Four in a Row",
            "pupWins": "Puppy wins!", "again": "Play again", "keep": "Keep playing",
-           "slangTile": "Snake", "egg": "EGG", "levels": "Levels"},
+           "slangTile": "Snake", "egg": "EGG", "levels": "Levels",
+           "klokTile": "Telling Time", "klokWin": "Super!", "klokAlmost": "Almost!"},
 }
 
 
@@ -104,6 +108,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     play_picturedoku(page, name, say, problems)
     play_vier(page, name, say, problems)
     play_slang(page, name, say, problems)
+    play_klok(page, name, say, problems)
 
     page.click("#tile-bubbels")
     page.wait_for_timeout(300)
@@ -750,6 +755,185 @@ def slang_glyphs(browser, base, w, h, problems):
     ctx.close()
 
 
+def klok_drag(page, hand, to_deg):
+    """Drag a hand of the clock with a real pointer, along the rim, to `to_deg` (clockwise from 12)."""
+    st = page.evaluate("window.__bubbels.klok.state()")
+    svg = page.locator("#klok-face svg").bounding_box()
+    # the clock's viewBox is -10 -12 220 226 with the centre at (100, 100)
+    sx, sy = svg["width"] / 220, svg["height"] / 226
+    cx, cy = svg["x"] + 110 * sx, svg["y"] + 112 * sy
+    cur = st["cur"]
+    start_deg = ((cur % 720) / 720 * 360) if hand == "hour" else (cur % 60) * 6
+    radius = (40 if hand == "hour" else 66) * sx
+
+    def pt(deg, r=radius):
+        a = math.radians(deg)
+        return cx + r * math.sin(a), cy - r * math.cos(a)
+
+    page.mouse.move(*pt(start_deg))
+    page.mouse.down()
+    diff = (to_deg - start_deg + 540) % 360 - 180  # the shorter way round
+    steps = max(4, int(abs(diff) / 6))
+    for k in range(1, steps + 1):
+        page.mouse.move(*pt(start_deg + diff * k / steps))
+    page.mouse.up()
+
+
+def klok_answer(page, right=True):
+    st = page.evaluate("window.__bubbels.klok.state()")
+    k = st["correctOption"] if right else (st["correctOption"] + 1) % page.locator("#klok-controls .klok-option").count()
+    page.click(f"#klok-controls .klok-option[data-option='{k}']")
+
+
+def klok_next(page, i):
+    page.wait_for_function(f"window.__bubbels.klok.state().i > {i} || window.__bubbels.klok.state().done", timeout=5000)
+
+
+def play_klok(page, name, say, problems):
+    """Klok kijken: the tile, the lock on the web, a "set the clock" round by dragging, a "what time
+    is it" round with one mistake (and its explanation card), a daily-rhythm round, + and -, the hint
+    and "keep playing"."""
+    if page.inner_text("#tile-klok .tile-name").strip() != say["klokTile"]:
+        problems.append(f"{name}: Klok tile says {page.inner_text('#tile-klok .tile-name')!r}")
+    page.click("#tile-klok")
+    page.wait_for_timeout(250)
+    page.screenshot(path=str(SHOTS / f"{name}-k1-menu.png"))
+    # the website sells nothing: a quarter-hours round is locked and offers only OK
+    page.click(".klok-grid .level-btn[data-round='set-t3-1']")
+    page.wait_for_timeout(200)
+    if page.locator("#ov-buttons button").all_inner_texts() != [say["ok"]] or page.evaluate("window.__bubbels.klok.state()"):
+        problems.append(f"{name}: Klok locked round did not just offer OK")
+    page.click("#ov-buttons button")
+
+    # 1. set the clock, whole hours: drag the hour hand for all 10 questions
+    page.click(".klok-grid .level-btn[data-round='set-t1-1']")
+    page.wait_for_timeout(300)
+    if not page.is_visible("#overlay"):
+        problems.append(f"{name}: Klok how-to card missing")
+    else:
+        page.click("#ov-buttons button")
+    for i in range(10):
+        st = page.evaluate("window.__bubbels.klok.state()")
+        klok_drag(page, "hour", (st["target"] % 720) / 720 * 360)
+        if i == 0:
+            page.screenshot(path=str(SHOTS / f"{name}-k2-set.png"))
+        st2 = page.evaluate("window.__bubbels.klok.state()")
+        if st2["cur"] % 720 != st["target"] % 720:
+            problems.append(f"{name}: Klok drag ended at {st2['cur']}, wanted {st['target']}")
+            page.evaluate(f"window.__bubbels.klok.setTime({st['target']})")
+        page.click("#klok-check")
+        klok_next(page, i)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.inner_text("#ov-title").strip() != say["klokWin"] or page.evaluate("window.__bubbels.klok.stars()").get("set-t1-1") != 3:
+        problems.append(f"{name}: Klok set round: {page.inner_text('#ov-title')!r}, stars {page.evaluate('window.__bubbels.klok.stars()')}")
+    page.screenshot(path=str(SHOTS / f"{name}-k3-won.png"))
+    page.click("#ov-buttons button >> nth=-1")  # Rondes
+    page.wait_for_timeout(200)
+
+    # 2. what time is it, half hours: one mistake first (explanation card), then all right
+    page.click(".klok-grid .level-btn[data-round='read-t2-1']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.screenshot(path=str(SHOTS / f"{name}-k4-read.png"))
+    klok_answer(page, right=False)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.inner_text("#ov-title").strip() != say["klokAlmost"] or len(page.inner_text("#ov-text")) < 20:
+        problems.append(f"{name}: Klok mistake card: {page.inner_text('#ov-title')!r} / {page.inner_text('#ov-text')!r}")
+    page.screenshot(path=str(SHOTS / f"{name}-k5-almost.png"))
+    page.click("#ov-buttons button")
+    klok_next(page, 0)
+    for i in range(1, 10):
+        klok_answer(page)
+        klok_next(page, i)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.evaluate("window.__bubbels.klok.stars()").get("read-t2-1") != 2:
+        problems.append(f"{name}: Klok read round with one mistake: stars {page.evaluate('window.__bubbels.klok.stars()')}")
+    page.click("#ov-buttons button >> nth=-1")
+    page.wait_for_timeout(200)
+
+    # 3. the daily rhythm
+    page.click(".klok-grid .level-btn[data-round='day-t1-1']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.screenshot(path=str(SHOTS / f"{name}-k6-day.png"))
+    for i in range(10):
+        klok_answer(page)
+        klok_next(page, i)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.evaluate("window.__bubbels.klok.stars()").get("day-t1-1") != 3:
+        problems.append(f"{name}: Klok daily rhythm: stars {page.evaluate('window.__bubbels.klok.stars()')}")
+    page.click("#ov-buttons button >> nth=-1")
+    page.wait_for_timeout(200)
+
+    # 4. half hours with + and -, the hint, then leave and "keep playing"
+    page.click(".klok-grid .level-btn[data-round='set-t2-1']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    st = page.evaluate("window.__bubbels.klok.state()")
+    page.click("#klok-hint")
+    if not page.locator("#klok-face .klok-hand.hint").count() or not page.inner_text("#klok-status").strip():
+        problems.append(f"{name}: Klok hint shows nothing")
+    for _ in range(30):
+        st = page.evaluate("window.__bubbels.klok.state()")
+        if st["cur"] % 720 == st["target"] % 720:
+            break
+        diff = (st["target"] - st["cur"]) % 720
+        if diff % 60:
+            page.click("#klok-controls [data-nudge='minute+']")
+        else:
+            page.click("#klok-controls [data-nudge='hour+']" if diff <= 360 else "#klok-controls [data-nudge='hour-']")
+    st = page.evaluate("window.__bubbels.klok.state()")
+    if st["cur"] % 720 != st["target"] % 720:
+        problems.append(f"{name}: Klok + and - did not reach the target ({st})")
+    page.click("#klok-check")
+    klok_next(page, 0)
+    page.click("#klok-back")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#klok-continue") or page.inner_text("#klok-continue").strip() != say["keep"]:
+        problems.append(f"{name}: Klok keep-playing button missing")
+    else:
+        page.click("#klok-continue")
+        page.wait_for_timeout(200)
+        if page.evaluate("window.__bubbels.klok.state().i") != 1:
+            problems.append(f"{name}: Klok keep playing lost the round")
+        page.click("#klok-back")
+    page.evaluate("document.querySelector('#screen-klok-menu [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+
+def klok_layouts(browser, base, problems):
+    """Klok kijken at 320×568 and sideways (844×390, 640×360, 568×320): prompt, clock and controls on
+    screen, no sideways scroll, in every mode."""
+    for w, h in ((320, 568), (844, 390), (640, 360), (568, 320)):
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if w == 320 else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.click("#tile-klok")
+        for rid in ("set-t2-1", "read-t1-1", "day-t1-1"):
+            page.evaluate(f"window.__bubbels.klok.start('{rid}')")
+            page.wait_for_timeout(250)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(150)
+            for sel in ("#klok-prompt", "#klok-face", "#klok-controls", "#klok-dots"):
+                if sel == "#klok-prompt" and rid.startswith("read") and w > h:
+                    continue  # sideways, the bar already asks "what time is it?"
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"klok {w}x{h} {rid}: {sel} off screen ({r})")
+            face = page.locator("#klok-face svg, #klok-face .klok-activity").first.bounding_box()
+            if not face or min(face["width"], face["height"]) < 120:
+                problems.append(f"klok {w}x{h} {rid}: clock or picture too small ({face})")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"klok {w}x{h} {rid}: sideways scroll")
+            page.screenshot(path=str(SHOTS / f"klok-{w}x{h}-{rid}.png"))
+        ctx.close()
+
+
 def random_play(browser, base, problems):
     """Random play (full version): on the web every random card is locked and offers only OK; with
     the full version (stand-in store) a random puzzle opens in every game, and a 4×4 Dogudoku and a
@@ -1127,6 +1311,7 @@ def main():
             run_returning(browser, base, problems)
             random_play(browser, base, problems)
             random_cards_fit(browser, base, problems)
+            klok_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
