@@ -5,6 +5,8 @@
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 <any game>: { random: {tier: solved count} }   // random play, full version
+//                 kleuren: { art: {'p:zon': {f: {region: colour}, t, done, c?}, 'm:m1:1101': ...} },
+//                                    (a cleared page stays as {t, gone: true} so a merge carries the delete over)
 //                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
@@ -215,8 +217,18 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
   const out = clone(stored);
   for (const [id, g] of Object.entries(session.games || {})) {
     const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
-    const stars = isObj(mine.stars) ? mine.stars : (mine.stars = {});
-    for (const [level, n] of Object.entries(isObj(g?.stars) ? g.stars : {})) stars[level] = Math.max(stars[level] || 0, n || 0);
+    const sessionStars = isObj(g?.stars) ? g.stars : {};
+    if (Object.keys(sessionStars).length || isObj(mine.stars)) {
+      const stars = isObj(mine.stars) ? mine.stars : (mine.stars = {});
+      for (const [level, n] of Object.entries(sessionStars)) stars[level] = Math.max(stars[level] || 0, n || 0);
+    }
+    if (isObj(g?.art)) {
+      // colouring pages: the newer of the two wins per region, the other regions are kept; a page
+      // cleared later (gone) stays cleared; counted once stays counted
+      const art = isObj(mine.art) ? mine.art : (mine.art = {});
+      for (const [pic, entry] of Object.entries(g.art)) art[pic] = mergeArtPage(art[pic], entry);
+      boundArt(art);
+    }
     if (isObj(g?.random)) {
       const random = isObj(mine.random) ? mine.random : (mine.random = {});
       // the session could not read the save, so its counts started at 0: they are added, not compared
@@ -384,13 +396,85 @@ export function recordRandomSolved(gameId, tier) {
 /** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
 export function loadGameOption(gameId, key, fallback) {
   const g = save.games[gameId];
-  return isObj(g) && key in g && key !== 'stars' && key !== 'random' ? clone(g[key]) : fallback;
+  return isObj(g) && key in g && key !== 'stars' && key !== 'random' && key !== 'art' ? clone(g[key]) : fallback;
 }
 
 export function saveGameOption(gameId, key, value) {
   if (key === 'stars') throw new Error('stars go through saveProgress');
   if (key === 'random') throw new Error('random counts go through recordRandomSolved');
+  if (key === 'art') throw new Error('colouring pages go through saveArt');
   save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
+  persist();
+}
+
+/** How many generated mandalas are kept (the oldest go first); pictures are always kept. */
+export const ART_KEEP = 30;
+
+function boundArt(art) {
+  // the newest ART_KEEP generated mandalas, and as many cleared ones (their "gone" markers)
+  for (const gone of [false, true]) {
+    const ids = Object.keys(art).filter((id) => id.startsWith('m:') && !!art[id]?.gone === gone);
+    if (ids.length <= ART_KEEP) continue;
+    ids.sort((a, b) => (Number(art[b]?.t) || 0) - (Number(art[a]?.t) || 0));
+    for (const id of ids.slice(ART_KEEP)) delete art[id];
+  }
+}
+
+/** Two versions of one colouring page: the newer one per region, the other regions kept. */
+function mergeArtPage(a, b) {
+  if (!isObj(a)) return clone(b);
+  if (!isObj(b)) return clone(a);
+  const [older, newer] = (Number(a.t) || 0) > (Number(b.t) || 0) ? [b, a] : [a, b];
+  const counted = older.c || newer.c ? { c: 1 } : {};
+  if (newer.gone) return { t: newer.t, gone: true, ...counted };
+  if (older.gone) return { ...clone(newer), ...counted };
+  return { f: { ...(isObj(older.f) ? older.f : {}), ...(isObj(newer.f) ? newer.f : {}) }, t: newer.t, done: !!newer.done, ...counted };
+}
+
+const live = (entry) => isObj(entry) && !entry.gone && isObj(entry.f);
+
+/**
+ * Colouring pages: { id: { f: { regionId: colourIndex }, t: last change (ms), done: bool } }.
+ * Read fresh from the save each time (a kept copy could be older than the save). Cleared pages
+ * are left out.
+ */
+export function loadArt(gameId) {
+  const g = save.games[gameId];
+  const out = {};
+  for (const [id, entry] of Object.entries(isObj(g?.art) ? g.art : {})) if (live(entry)) out[id] = clone({ f: entry.f, t: entry.t, done: !!entry.done });
+  return out;
+}
+
+/** One page, or null. */
+export function loadArtPage(gameId, id) {
+  const entry = save.games[gameId]?.art?.[id];
+  return live(entry) ? clone({ f: entry.f, t: entry.t, done: !!entry.done }) : null;
+}
+
+/** Whether a page was already counted as solved (random mandalas count once per page). */
+export function artCounted(gameId, id) {
+  return !!save.games[gameId]?.art?.[id]?.c;
+}
+
+/**
+ * Store one colouring page. A page with no colour is never stored: if there was one, it is
+ * cleared (kept as `{t, gone}` so a later merge carries that over). `counted` marks it counted
+ * (it stays marked). Keeps at most ART_KEEP generated mandalas.
+ */
+export function saveArt(gameId, id, { f = {}, done = false, t = Date.now(), counted = false } = {}) {
+  const g = isObj(save.games[gameId]) ? save.games[gameId] : {};
+  const art = isObj(g.art) ? { ...g.art } : {};
+  const fills = {};
+  for (const [r, c] of Object.entries(isObj(f) ? f : {})) if (Number.isInteger(c) && c >= 0) fills[r] = c;
+  const was = art[id];
+  const c = counted || (isObj(was) && was.c) ? { c: 1 } : {};
+  const time = Number(t) || Date.now();
+  if (!Object.keys(fills).length) {
+    if (!isObj(was)) return;
+    art[id] = { t: time, gone: true, ...c };
+  } else art[id] = { f: fills, t: time, done: !!done, ...c };
+  boundArt(art);
+  save.games[gameId] = { ...g, art };
   persist();
 }
 

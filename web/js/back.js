@@ -8,6 +8,7 @@
 //   a Dogudoku or Picturedoku puzzle   -> its puzzle list (the board is kept for this session)
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
+//   a colouring page                   -> the list of pages (the page is saved)
 //   a level or puzzle list, settings   -> the home screen
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
@@ -18,6 +19,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'picturedoku') return 'picturedoku-levels';
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'slang') return 'slang-menu';
+  if (screen === 'kleuren') return 'kleuren-list';
   if (screen === 'home') return 'exit';
   return 'home';
 }
