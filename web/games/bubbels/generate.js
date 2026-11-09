@@ -123,9 +123,11 @@ export function randomLevel(key, seed) {
   const rand = mulberry32(seed);
   const i = spec.from + Math.floor(rand() * (spec.to - spec.from + 1));
   let best = null;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  // keep the most mixed of 8 playable boards; draw up to 64 before giving up
+  for (let attempt = 0, good = 0; attempt < 64 && good < 8; attempt++) {
     const l = level(i, attempt, (Math.floor(rand() * 4294967296) ^ (seed >>> 0)) >>> 0);
     if (!validBoard(l)) continue;
+    good++;
     if (!best || balance(l) < balance(best)) best = l;
   }
   if (!best) throw new Error(`no playable ${key} board for seed ${seed}`);

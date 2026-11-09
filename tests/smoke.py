@@ -893,6 +893,46 @@ def random_play(browser, base, problems):
     ctx.close()
 
 
+CARD_FIT_JS = """() => [...document.querySelectorAll('.screen.active .random-btn')].map((b) => {
+  const r = b.getBoundingClientRect();
+  const bad = [...b.children].filter((c) => {
+    const q = c.getBoundingClientRect();
+    return q.left < r.left - 0.5 || q.right > r.right + 0.5 || q.top < r.top - 0.5 || q.bottom > r.bottom + 0.5;
+  }).map((c) => c.className.baseVal ?? c.className);
+  return { over: b.scrollWidth > b.clientWidth + 1, bad, right: r.right, vw: innerWidth };
+})"""
+
+
+def random_cards_fit(browser, base, problems):
+    """The random cards fit at 320 and 390 px in all four games, locked (web) and open (full)."""
+    for w, h in ((320, 568), (390, 844)):
+        for owned in (False, True):
+            ctx = browser.new_context(bypass_csp=owned, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+            if owned:
+                ctx.add_init_script(OWNED_APP)
+            page = ctx.new_page()
+            page.goto(base + "/index.html?test")
+            page.wait_for_selector("html[data-ready='1']")
+            if owned:
+                page.wait_for_function("window.__bubbels.full()", timeout=8000)
+            for tile, home in (("bubbels", "levels"), ("dogudoku", "dogudoku-levels"), ("picturedoku", "picturedoku-levels"), ("slang", "slang-menu")):
+                page.click(f"#tile-{tile}")
+                page.wait_for_timeout(250)
+                cards = page.evaluate(CARD_FIT_JS)
+                label = f"{w}px {'full' if owned else 'web'} {tile}"
+                if not cards:
+                    problems.append(f"random cards: none in {label}")
+                for i, c in enumerate(cards):
+                    if c["over"] or c["bad"] or c["right"] > c["vw"] + 0.5:
+                        problems.append(f"random cards: {label} card {i} overflows ({c})")
+                if w == 320 and tile in ("bubbels", "slang"):
+                    page.locator(".screen.active .random-btn >> nth=0").scroll_into_view_if_needed()
+                    page.screenshot(path=str(SHOTS / f"random-card-{w}-{'full' if owned else 'web'}-{tile}.png"))
+                page.evaluate(f"document.querySelector('#screen-{home} [data-go=home]').click()")
+                page.wait_for_timeout(150)
+            ctx.close()
+
+
 def slang_fits(page, w, h, label, problems):
     """Open Slangetje level 1 and check that the board and the arrow pad are fully on screen."""
     page.click("#tile-slang")
@@ -1086,6 +1126,7 @@ def main():
                 slang_glyphs(browser, base, w, h, problems)
             run_returning(browser, base, problems)
             random_play(browser, base, problems)
+            random_cards_fit(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

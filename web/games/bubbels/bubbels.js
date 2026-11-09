@@ -24,6 +24,7 @@ export function createBubbels(shell) {
   let game = null;
   let random = null; // the random board being played (full version), or null for a fixed level
   let randomBusy = false;
+  let nav = 0; // counts screen changes: a random board that arrives after the child left is dropped
 
   const locked = (id) => isLocked(id, meta.free, shell.unlock.owned);
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -32,6 +33,7 @@ export function createBubbels(shell) {
     if (onScreen('levels')) renderLevels();
   });
   shell.onShow((name) => {
+    nav++;
     if (game) game.active = name === 'game';
     if (name === 'game') requestAnimationFrame(() => game.resize());
     if (name === 'levels') renderLevels();
@@ -50,6 +52,11 @@ export function createBubbels(shell) {
     tap();
     const i = nextOpenIndex();
     play(i >= 0 ? i : 0);
+  });
+
+  $('#btn-random-jump').addEventListener('click', () => {
+    tap();
+    $('#levels-random-head').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   function starsText(n) {
@@ -96,6 +103,7 @@ export function createBubbels(shell) {
           t,
           tap,
           title: t(`bubbels.tier.${tier.key}`),
+          done: true,
           locked: !shell.unlock.owned,
           solved: solved[tier.key] || 0,
           onPlay: () => playRandom(tier.key),
@@ -142,7 +150,8 @@ export function createBubbels(shell) {
     if (!level) {
       randomBusy = true;
       try {
-        level = await makeRandom(shell, 'bubbels', 'randomLevel', [key, seed ?? newSeed()]);
+        const token = nav;
+        level = await makeRandom(shell, 'bubbels', 'randomLevel', [key, seed ?? newSeed()], { stillWanted: () => nav === token && shell.unlock.owned });
       } finally {
         randomBusy = false;
       }
@@ -165,7 +174,7 @@ export function createBubbels(shell) {
       shell.showOverlay({
         art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
         title: t(`bubbels.win${stars}`),
-        text: `${t('bubbels.points', { score })} ${t('random.solved', { n })}`,
+        text: `${t('bubbels.points', { score })} ${t('random.done', { n })}`,
         buttons: [
           [t('random.new'), 'big primary', () => playRandom(done.tier)],
           [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],

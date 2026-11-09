@@ -219,7 +219,8 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
     for (const [level, n] of Object.entries(isObj(g?.stars) ? g.stars : {})) stars[level] = Math.max(stars[level] || 0, n || 0);
     if (isObj(g?.random)) {
       const random = isObj(mine.random) ? mine.random : (mine.random = {});
-      for (const [tier, n] of Object.entries(g.random)) random[tier] = Math.max(Number(random[tier]) || 0, Number(n) || 0);
+      // the session could not read the save, so its counts started at 0: they are added, not compared
+      for (const [tier, n] of Object.entries(g.random)) random[tier] = (Number(random[tier]) || 0) + (Number(n) || 0);
     }
   }
   out.purchase = { ...out.purchase, owned: out.purchase?.owned === true || session.purchase?.owned === true };

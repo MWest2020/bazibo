@@ -20,10 +20,26 @@ const MODULES = {
 };
 
 const WORKER_TIMEOUT_MS = 8000;
+const MAX_TIMEOUTS = 2; // after this many stuck workers, generate on the page for the rest of the session
 let worker = null;
 let workerBroken = false;
+let timeouts = 0;
 let nextId = 1;
-const waiting = new Map();
+const waiting = new Map(); // job id -> { fallback, settle }
+
+/** Stop the worker; every job it still had is made on the page instead. */
+function dropWorker({ broken = false } = {}) {
+  try {
+    worker?.terminate();
+  } catch {
+    // already gone
+  }
+  worker = null;
+  if (broken) workerBroken = true;
+  const jobs = [...waiting.values()];
+  waiting.clear();
+  for (const job of jobs) job.fallback();
+}
 
 function getWorker() {
   if (workerBroken || typeof Worker === 'undefined') return null;
@@ -31,19 +47,17 @@ function getWorker() {
   try {
     worker = new Worker(new URL('./gen-worker.js', import.meta.url), { type: 'module' });
     worker.onmessage = (e) => {
-      const job = waiting.get(e.data.id);
+      const job = waiting.get(e.data?.id);
       if (!job) return;
       waiting.delete(e.data.id);
-      if (e.data.ok) job.resolve(e.data.value);
-      else job.reject(new Error(e.data.error));
+      if (e.data.ok) job.settle(e.data.value);
+      else if (e.data.kind === 'load') {
+        // the worker cannot load generators here (old WebView, blocked import): page from now on
+        job.fallback();
+        dropWorker({ broken: true });
+      } else job.fallback(); // a generator error in the worker: try once more on the page
     };
-    worker.onerror = () => {
-      // a worker that cannot start (old WebView, module workers unsupported): run on the page
-      workerBroken = true;
-      worker = null;
-      for (const [, job] of waiting) job.fallback();
-      waiting.clear();
-    };
+    worker.onerror = () => dropWorker({ broken: true }); // could not start at all
   } catch {
     workerBroken = true;
     worker = null;
@@ -58,7 +72,8 @@ async function onPage(game, fn, args) {
 
 /**
  * Run a game's generator: `generate('dogudoku', 'randomPuzzle', ['s8', seed])`. Resolves with the
- * board or puzzle; rejects only if the generator itself failed.
+ * board or puzzle. In a worker when possible; any worker trouble (cannot load, an error, no answer
+ * within 8 s) makes the same job again on the page, once. Rejects only if that fails too.
  */
 export function generate(game, fn, args) {
   if (!MODULES[game]) return Promise.reject(new Error(`no generator for ${game}`));
@@ -66,41 +81,54 @@ export function generate(game, fn, args) {
   if (!w) return onPage(game, fn, args);
   return new Promise((resolve, reject) => {
     const id = nextId++;
-    // a worker that never answers (stuck, killed by the system) must not leave the child waiting
+    let finished = false;
     const timer = setTimeout(() => {
       if (!waiting.has(id)) return;
-      waiting.delete(id);
-      onPage(game, fn, args).then(resolve, reject);
+      // a stuck worker: replace it (or give up on workers after a few), and redo its jobs on the page
+      timeouts++;
+      dropWorker({ broken: timeouts >= MAX_TIMEOUTS });
     }, WORKER_TIMEOUT_MS);
-    const done = (fnDone) => (v) => {
+    const finish = (fnDone) => (v) => {
+      if (finished) return;
+      finished = true;
       clearTimeout(timer);
       fnDone(v);
     };
-    const fallback = () => (clearTimeout(timer), onPage(game, fn, args).then(resolve, reject));
-    waiting.set(id, { resolve: done(resolve), reject: done(reject), fallback });
+    waiting.set(id, {
+      settle: finish(resolve),
+      fallback: () => onPage(game, fn, args).then(finish(resolve), finish(reject)),
+    });
     w.postMessage({ id, url: MODULES[game], fn, args });
   });
 }
 
+const nextFrame = () =>
+  new Promise((r) => {
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(r, 0));
+    else setTimeout(r, 0);
+  });
+
 /**
- * generate() with the shell's cards (optionally finishing one made ahead, `ready`): a "making a new puzzle" card if it takes longer than a
- * moment, and a friendly error card if it fails. Resolves with the result, or null on failure.
+ * generate() with the shell's cards: the "making a new puzzle" card at once (so a slow phone, or the
+ * page fallback, never looks frozen), then a frame for it to paint, then the work. `ready`: a
+ * puzzle made ahead (used if it worked). `stillWanted()`: false when the child left meanwhile, and
+ * then the result is dropped. Resolves with the result, or null (failed or no longer wanted).
  */
-export async function makeRandom(shell, game, fn, args, ready = null) {
-  let shown = false;
-  const timer = setTimeout(() => {
-    shown = true;
-    shell.showOverlay({ title: shell.t('random.title'), text: shell.t('random.busy'), buttons: [] });
-  }, 200);
+export async function makeRandom(shell, game, fn, args, { ready = null, stillWanted = () => true } = {}) {
+  shell.showOverlay({ title: shell.t('random.title'), text: shell.t('random.busy'), buttons: [] });
+  const busyCard = document.querySelector('#ov-text');
+  const ours = () => busyCard && busyCard.textContent === shell.t('random.busy');
   try {
-    // `ready`: a puzzle made ahead of time (see prefetch below); made now if that failed
+    await nextFrame();
     const value = (ready && (await ready.catch(() => null))) || (await generate(game, fn, args));
-    clearTimeout(timer);
-    if (shown) shell.hideOverlay();
-    return value;
+    if (ours()) shell.hideOverlay();
+    return stillWanted() ? value : null;
   } catch (err) {
-    clearTimeout(timer);
     console.error(err);
+    if (!stillWanted()) {
+      if (ours()) shell.hideOverlay();
+      return null;
+    }
     shell.showOverlay({ title: shell.t('error.title'), text: shell.t('random.error'), buttons: [[shell.t('common.ok'), 'big primary', shell.hideOverlay]] });
     return null;
   }
@@ -118,7 +146,8 @@ const LOCK_SVG =
  * The "random" card for one tier in a level list. Locked (full version only) it shows a lock and
  * calls `onLocked`; otherwise it shows how many random ones were solved and calls `onPlay`.
  */
-export function randomCard({ t, title = null, solved = 0, locked = false, onPlay, onLocked, tap = () => {} }) {
+export function randomCard({ t, title = null, solved = 0, locked = false, done = false, onPlay, onLocked, tap = () => {} }) {
+  // `done`: "12 gehaald" (boards and rounds) instead of "12 opgelost" (puzzles)
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'level-btn random-btn';
@@ -135,8 +164,8 @@ export function randomCard({ t, title = null, solved = 0, locked = false, onPlay
     b.setAttribute('aria-label', `${title ? `${title}: ` : ''}${t('random.lockedAria')}`);
   } else {
     b.innerHTML = DICE_SVG;
-    sub.textContent = t('random.solved', { n: solved });
-    b.setAttribute('aria-label', `${title ? `${title}: ` : ''}${t('random.aria', { n: solved })}`);
+    sub.textContent = t(done ? 'random.done' : 'random.solved', { n: solved });
+    b.setAttribute('aria-label', `${title ? `${title}: ` : ''}${t(done ? 'random.ariaDone' : 'random.aria', { n: solved })}`);
   }
   b.append(label, sub);
   b.addEventListener('click', () => {
@@ -150,6 +179,9 @@ addStrings({
   nl: {
     'random.play': 'Willekeurig',
     'random.solved': '{n} opgelost',
+    'random.done': '{n} gehaald',
+    'random.ariaDone': 'Willekeurig, {n} gehaald',
+    'random.jump': 'Willekeurig',
     'random.full': 'Volledige versie',
     'random.aria': 'Willekeurige puzzel, {n} opgelost',
     'random.lockedAria': 'Willekeurige puzzels, volledige versie',
@@ -163,6 +195,9 @@ addStrings({
   en: {
     'random.play': 'Random',
     'random.solved': '{n} solved',
+    'random.done': '{n} done',
+    'random.ariaDone': 'Random, {n} done',
+    'random.jump': 'Random',
     'random.full': 'Full version',
     'random.aria': 'Random puzzle, {n} solved',
     'random.lockedAria': 'Random puzzles, full version',

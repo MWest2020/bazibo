@@ -45,6 +45,7 @@ export function createSlang(shell) {
   let plays = 0; // counts rounds started, so a late card never lands on a newer round
   let cardTimer = null;
   let randomBusy = false;
+  let nav = 0; // counts screen changes: a random round that arrives after the child left is dropped
   const fx = { flash: 0, squash: 0, shake: 0, parts: [] };
   let cell = 24;
   let dpr = 1;
@@ -61,6 +62,7 @@ export function createSlang(shell) {
     if (onScreen('slang-menu')) renderMenu();
   });
   shell.onShow((name) => {
+    nav++;
     if (name === 'slang-menu') renderMenu();
     if (name === 'slang') requestAnimationFrame(() => (fit(), draw()));
     else stopLoop();
@@ -135,6 +137,7 @@ export function createSlang(shell) {
             tap,
             locked: !shell.unlock.owned,
             solved: store.loadRandomSolved(meta.id)[`${mode}-${tier}`] || 0,
+            done: true,
             onPlay: () => playRandom(mode, tier),
             onLocked: () => shell.offerUnlock(t('random.lead')),
           }),
@@ -196,7 +199,8 @@ export function createSlang(shell) {
     randomBusy = true;
     let level = null;
     try {
-      level = await makeRandom(shell, 'slang', 'randomLevel', [mode, tier, seed ?? newSeed()]);
+      const token = nav;
+      level = await makeRandom(shell, 'slang', 'randomLevel', [mode, tier, seed ?? newSeed()], { stillWanted: () => nav === token && shell.unlock.owned });
     } finally {
       randomBusy = false;
     }
@@ -388,7 +392,7 @@ export function createSlang(shell) {
       shell.showOverlay({
         art: [0, 1, 2].map((k) => `<svg class="star ${k < n ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
         title: t(`slang.win${n}`),
-        text: `${t('slang.winText')} ${t('random.solved', { n: store.loadRandomSolved(meta.id)[level.random] || 1 })}`,
+        text: `${t('slang.winText')} ${t('random.done', { n: store.loadRandomSolved(meta.id)[level.random] || 1 })}`,
         buttons: [
           [t('random.new'), 'big primary', () => (shell.hideOverlay(), playRandom(level.mode, level.tier))],
           [t('slang.levels'), 'big secondary', () => shell.show('slang-menu')],

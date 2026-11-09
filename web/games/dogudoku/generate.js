@@ -82,11 +82,12 @@ function growRegions(n, solution, rand) {
  * placed bush already makes it unique; a few more (never on the solution) give the boards
  * variety. Keep a random 1-4 bushes, as long as the solution stays the only one.
  */
-function placeBushes(n, solution, rand) {
+function placeBushes(n, solution, rand, { moreBushes = false } = {}) {
   const cells = [];
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (solution[r] !== c) cells.push([r, c]);
   for (;;) {
-    const want = 1 + Math.floor(rand() * 4);
+    // random play weights toward 2-4 bushes, so the few 4×4 solutions look different more often
+    const want = moreBushes ? 2 + Math.floor(rand() * 3) : 1 + Math.floor(rand() * 4);
     const bushes = shuffle(cells.slice(), rand).slice(0, want);
     if (solve({ n, tier: 'tiny', regions: null, bushes }).count === 1) return bushes.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   }
@@ -148,12 +149,12 @@ function refineRegions(puzzle, rand, steps = 3000) {
   return count === 1 ? asPuzzle().regions : null;
 }
 
-export function makePuzzle({ n, tier }, rand, seen) {
+export function makePuzzle({ n, tier }, rand, seen, { moreBushes = false } = {}) {
   for (let attempt = 0; attempt < 20000; attempt++) {
     const touch = true; // every size: puppies never touch
     const solution = randomSolution(n, touch, rand);
     const puzzle = { n, tier, regions: null, bushes: [], solution };
-    if (tier === 'tiny') puzzle.bushes = placeBushes(n, solution, rand);
+    if (tier === 'tiny') puzzle.bushes = placeBushes(n, solution, rand, { moreBushes });
     else {
       puzzle.regions = growRegions(n, solution, rand);
       puzzle.regions = refineRegions(puzzle, rand);
@@ -179,7 +180,7 @@ export function makePuzzle({ n, tier }, rand, seen) {
 export function randomPuzzle(key, seed) {
   const spec = RANDOM_TIERS.find((t) => t.key === key);
   if (!spec) throw new Error(`unknown tier ${key}`);
-  const { effort, ...p } = makePuzzle(spec, mulberry32(seed), new Set());
+  const { effort, ...p } = makePuzzle(spec, mulberry32(seed), new Set(), { moreBushes: true });
   const puzzle = { id: `r-${key}-${seed >>> 0}`, ...p, free: false, seed: seed >>> 0 };
   const problems = validate(puzzle);
   if (problems.length) throw new Error(`random puzzle ${puzzle.id}: ${problems.join(', ')}`);

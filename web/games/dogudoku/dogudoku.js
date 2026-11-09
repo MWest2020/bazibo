@@ -50,6 +50,8 @@ export function createDogudoku(shell) {
   // the next random puzzle per size, made in the background while the child plays this one, so
   // "another one" is there at once even for an 8×8 on a slow phone
   const ahead = new Map();
+  const recent = []; // boards seen this session (4×4 has few), so a repeat is skipped
+  let nav = 0; // counts screen changes: a random puzzle that arrives after the child left is dropped
 
   const locked = (p) => !p.free && !shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -60,6 +62,7 @@ export function createDogudoku(shell) {
     if (onScreen('dogudoku-levels')) renderLevels();
   });
   shell.onShow((name) => {
+    nav++;
     if (name === 'dogudoku-levels') renderLevels();
     if (name === 'dogudoku') requestAnimationFrame(fitBoard);
   });
@@ -170,17 +173,32 @@ export function createDogudoku(shell) {
     }
     randomBusy = true;
     try {
-      const ready = seed == null ? ahead.get(key) : null;
-      ahead.delete(key);
-      const p = await makeRandom(shell, 'dogudoku', 'randomPuzzle', [key, seed ?? newSeed()], ready);
-      if (!p || !shell.unlock.owned) return;
+      const token = nav;
+      const stillWanted = () => nav === token && shell.unlock.owned;
+      let p = null;
+      for (let tries = 0; tries < 6; tries++) {
+        const ready = seed == null ? ahead.get(key) : null;
+        ahead.delete(key);
+        p = await makeRandom(shell, 'dogudoku', 'randomPuzzle', [key, tries === 0 && seed != null ? seed : newSeed()], { ready, stillWanted });
+        if (!p || seed != null || !seenBefore(p)) break; // a repeat of this session: make another
+      }
+      if (!p) return;
+      remember(p);
       p.random = key;
       randomKept.set(key, p);
       start(p);
-      if (seed == null) ahead.set(key, generate('dogudoku', 'randomPuzzle', [key, newSeed()]).catch(() => null));
+      // the next one of this size, made while the child plays (not while the app is in the background)
+      if (seed == null && !document.hidden) ahead.set(key, generate('dogudoku', 'randomPuzzle', [key, newSeed()]).catch(() => null));
     } finally {
       randomBusy = false;
     }
+  }
+
+  const boardKey = (p) => JSON.stringify([p.n, p.regions, p.bushes, p.solution]);
+  const seenBefore = (p) => recent.includes(boardKey(p));
+  function remember(p) {
+    recent.push(boardKey(p));
+    if (recent.length > 30) recent.shift();
   }
 
   function start(p) {

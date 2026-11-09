@@ -58,6 +58,7 @@ export function createPicturedoku(shell) {
   let cells = [];
   const randomKept = new Map(); // tier key -> this session's unfinished random puzzle
   let randomBusy = false;
+  let nav = 0; // counts screen changes: a random puzzle that arrives after the child left is dropped
 
   const locked = (p) => !p.free && !shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -69,6 +70,7 @@ export function createPicturedoku(shell) {
     if (onScreen('picturedoku-levels')) renderLevels();
   });
   shell.onShow((name) => {
+    nav++;
     if (name === 'picturedoku-levels') renderLevels();
     if (name === 'picturedoku') requestAnimationFrame(fitBoard);
   });
@@ -184,8 +186,9 @@ export function createPicturedoku(shell) {
     }
     randomBusy = true;
     try {
-      const p = await makeRandom(shell, 'picturedoku', 'randomPuzzle', [key, seed ?? newSeed()]);
-      if (!p || !shell.unlock.owned) return;
+      const token = nav;
+      const p = await makeRandom(shell, 'picturedoku', 'randomPuzzle', [key, seed ?? newSeed()], { stillWanted: () => nav === token && shell.unlock.owned });
+      if (!p) return;
       p.random = key;
       randomKept.set(key, p);
       start(p);

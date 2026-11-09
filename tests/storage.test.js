@@ -363,8 +363,8 @@ test('random play: solved counts go up per game and tier, are saved, and are not
   assert.throws(() => store.saveGameOption('dogudoku', 'random', {}), /recordRandomSolved/);
 });
 
-test('mergeSaves: random counts keep the higher number per tier', () => {
+test('mergeSaves: random counts of a session that could not read the save are added', () => {
   const stored = { version: 1, games: { dogudoku: { random: { s4: 5, s8: 1 } } }, settings: {}, purchase: { owned: true } };
   const session = { games: { dogudoku: { random: { s8: 3, s6: 1 } } }, settings: {}, purchase: { owned: false } };
-  assert.deepEqual(store.mergeSaves(stored, session, false).games.dogudoku.random, { s4: 5, s8: 3, s6: 1 });
+  assert.deepEqual(store.mergeSaves(stored, session, false).games.dogudoku.random, { s4: 5, s8: 4, s6: 1 });
 });
