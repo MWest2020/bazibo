@@ -1,0 +1,149 @@
+/* Kleurplaten: the list of pages, the colouring screen, the palette and tools. The list headings,
+   HUD and random cards reuse Dogudoku's and Bubbels' classes; shared look lives in css/style.css. */
+
+/* ---------- home tile: a coloured mandala ---------- */
+#tile-kleuren .tile-art { display: flex; align-items: center; justify-content: center; }
+.mini-mandala { width: 92px; height: 92px; display: block; }
+
+/* ---------- the list ---------- */
+.level-grid.kleur-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 600px) { .level-grid.kleur-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kleur-card {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.12);
+  cursor: pointer;
+  font: inherit;
+}
+.kleur-card:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
+.kleur-card:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kleur-thumb { width: 100%; height: 100%; display: block; }
+.kleur-card.locked { background: rgba(255, 255, 255, 0.6); box-shadow: 0 4px 0 #ddd8f7; }
+.kleur-card.locked .kleur-thumb { opacity: 0.45; }
+.kleur-badge {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(43, 35, 112, 0.25);
+}
+.kleur-badge.lock { background: #fff; fill: #a59fd0; }
+.kleur-badge.check { background: #2fae5b; color: #fff; }
+
+/* ---------- colouring ---------- */
+.kleur-hud .bar-spacer { width: 52px; }
+#kleur-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px 14px;
+}
+#kleur-stage.side { flex-direction: row; gap: 16px; }
+.kleur-page {
+  position: relative;
+  flex: none;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 0 #c9c1ff, 0 10px 22px rgba(59, 47, 168, 0.14);
+  overflow: hidden;
+  touch-action: manipulation;
+}
+.kleur-svg { width: 100%; height: 100%; display: block; }
+.kleur-svg path[data-r] { cursor: pointer; transition: fill 0.12s ease-out; }
+.kleur-page.zoom { overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+.kleur-page.zoom .kleur-svg { width: 220%; height: 220%; }
+@media (prefers-reduced-motion: reduce) { .kleur-svg path[data-r] { transition: none; } }
+
+/* a little sparkle when a page is done */
+.kleur-page.sparkle::before,
+.kleur-page.sparkle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 22%, #fff 0 4px, transparent 5px),
+    radial-gradient(circle at 78% 18%, #ffd23f 0 5px, transparent 6px),
+    radial-gradient(circle at 84% 70%, #fff 0 4px, transparent 5px),
+    radial-gradient(circle at 24% 80%, #ff8fc7 0 5px, transparent 6px),
+    radial-gradient(circle at 52% 50%, rgba(255, 255, 255, 0.55) 0 30%, transparent 60%);
+  animation: kleur-sparkle 1.1s ease-out forwards;
+}
+.kleur-page.sparkle::after { transform: rotate(45deg) scale(0.9); animation-delay: 0.18s; opacity: 0; }
+@keyframes kleur-sparkle {
+  0% { opacity: 0; transform: scale(0.6); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) { .kleur-page.sparkle::before, .kleur-page.sparkle::after { animation-duration: 0.01s; } }
+
+.kleur-side { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(100%, 460px); }
+#kleur-stage.side .kleur-side { width: 220px; flex: none; }
+.kleur-palette {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 7px;
+}
+#kleur-stage.side .kleur-palette { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.swatch {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 3px 0 rgba(43, 35, 112, 0.18), 0 0 0 1.5px rgba(43, 35, 112, 0.2);
+  cursor: pointer;
+}
+.swatch.white { background: #fff linear-gradient(135deg, transparent 44%, #ff8fa8 44% 56%, transparent 56%); }
+.swatch[aria-pressed="true"] { transform: scale(1.12); box-shadow: 0 0 0 3px var(--primary), 0 4px 8px rgba(43, 35, 112, 0.3); }
+.swatch:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.kleur-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.kleur-tools .tool[hidden] { display: none; }
+.kleur-tools .tool[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }
+.kleur-tools .tool:disabled { opacity: 0.45; }
+.kleur-tools .tool.done { background: #2fae5b; color: #fff; box-shadow: 0 5px 0 #1f7d40; }
+.kleur-tools .tool svg { width: 26px; height: 26px; }
+
+/* short sideways phones: the HUD becomes a column on the left, the palette sits beside the page */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-kleuren { flex-direction: row; }
+  #kleur-stage { padding: 6px 8px; }
+  #kleur-stage.side .kleur-side { width: 214px; justify-content: center; }
+  #kleur-stage.side .kleur-palette { gap: 6px; }
+  .kleur-tools { gap: 8px; }
+  .kleur-tools .tool { width: 46px; height: 46px; border-radius: 16px; }
+  .kleur-tools .tool svg { width: 24px; height: 24px; }
+}
+
+/* very short sideways phones (about 320 px tall): the tools stand in a column next to the colours */
+@media (orientation: landscape) and (max-height: 360px) {
+  #kleur-stage.side .kleur-side { width: auto; flex-direction: row; align-items: center; gap: 8px; }
+  #kleur-stage.side .kleur-palette { width: 172px; gap: 5px; }
+  .kleur-tools { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
+  .kleur-tools .tool { width: 44px; height: 44px; }
+}
+
+/* the "done" card shows the page */
+.ov-kleur { width: 150px; height: 150px; display: block; margin: 0 auto; border-radius: 16px; background: #fff; }
+
+/* narrow phones: smaller gaps so 8 colours fit in a row */
+@media (max-width: 360px) {
+  .kleur-palette { gap: 5px; }
+  .swatch { border-width: 2px; }
+  .kleur-tools { gap: 8px; }
+}

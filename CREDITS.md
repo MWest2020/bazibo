@@ -15,6 +15,7 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | Vier op een rij computer player (`web/games/vier/ai.js`: minimax with alpha-beta, written for this app) | MWest2020 (with Claude Code) | MIT | this repository |
 | Slangetje art: the snake, the numbered oranges, the letter tiles, the colour fruits, the stones, the egg and the sun (canvas and SVG drawn in code in `web/games/slang/art.js`; the word pictures reuse the Picturedoku pictures and a Dogudoku puppy) | MWest2020 (with Claude Code) | MIT | this repository |
 | Slangetje levels and words (`web/games/slang/levels.json`, `WORDS` in `web/games/slang/rules.js`) | MWest2020 (with Claude Code) | MIT | this repository |
+| Kleurplaten pictures and mandalas (SVG drawn in code in `web/games/kleuren/pictures.js` and `mandala.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Sounds | synthesised at runtime with the Web Audio API in `web/js/audio.js` (pops, the Dogudoku woof, the Picturedoku notes and chime, the Vier op een rij token "tok", the Slangetje munch and boop); no sound files | MIT | this repository |
 | UI icons (inline SVG paths in `web/index.html` and `web/js/main.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Bubble colours | based on the Okabe-Ito colour-blind-safe palette (Masataka Okabe and Kei Ito, "Color Universal Design", 2002), brightened | colour values, not copyrightable | https://jfly.uni-koeln.de/color/ |

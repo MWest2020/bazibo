@@ -198,14 +198,13 @@ def shoot(browser, base, name, viewport, dpr, lang):
     shots.append(out / "6-vier-7x6.png")
     page.screenshot(path=str(shots[-1]))
 
-    # Slangetje: a counting round (two numbers eaten) and a letters round (the first letter eaten),
-    # both free levels; the snake is stepped by the test hook so the shot is the same every time
+    # Slangetje: a counting round (two numbers eaten), a free level; the snake is stepped by the test hook so the shot is the same every time
     page.click("#vier-back")
     page.wait_for_timeout(200)
     page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-vier-menu [data-go=home]').click()")
     page.click("#tile-slang")
     page.wait_for_timeout(300)
-    for level, file, eaten, extra in ((4, "7-slang-count.png", 2, 2), (15, "8-slang-letters.png", 1, 1)):
+    for level, file, eaten, extra in ((4, "7-slang-count.png", 2, 2),):
         page.evaluate(f"window.__seed({level}); window.__bubbels.slang.start({level})")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
@@ -229,6 +228,24 @@ def shoot(browser, base, name, viewport, dpr, lang):
         page.evaluate("window.__bubbels.slang.manual(false)")
         page.click("#slang-back")
         page.wait_for_timeout(200)
+    # Kleurplaten: a free mandala, coloured ring by ring with the mirror on
+    page.evaluate("document.querySelector('#screen-slang-menu [data-go=home]').click()")
+    page.wait_for_timeout(200)
+    page.click("#tile-kleuren")
+    page.wait_for_timeout(300)
+    page.evaluate("""(() => {
+      const k = window.__bubbels.kleur;
+      k.open('f:m1:2207');
+      const ids = k.state().regions;
+      const groups = [...new Set(ids.map((id) => id.replace(/\\d+$/, '')))];
+      const colours = [0, 2, 9, 7, 3, 1, 8, 5, 6, 4, 11];
+      k.mirror(true);
+      groups.forEach((g, i) => { k.pick(colours[i % colours.length]); k.paint(ids.find((id) => id.replace(/\\d+$/, '') === g)); });
+      k.pick(9);
+    })()""")
+    page.wait_for_timeout(400)
+    shots.append(out / "8-kleurplaat.png")
+    page.screenshot(path=str(shots[-1]))
     ctx.close()
     for s in shots:
         flatten(s)

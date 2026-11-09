@@ -5,7 +5,8 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
 sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer) and
-Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour); more
+Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
+Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
@@ -89,6 +90,26 @@ with round holes and picture tokens, never "Connect Four" or its blue frame with
 - Free: playing together on both boards and the easy and medium computer. Hard is in the full
   version (`meta.js`). The child's wins against the computer are counted per board and level
   (never lowered, `storage.js`); games played together are not counted.
+
+### Kleurplaten
+
+Colouring pages in `web/games/kleuren/`: pick a colour, tap a part, and it is coloured. Everything
+is drawn in code as SVG, one closed path per part ("region"), so colouring is just a fill and no
+flood fill is needed. Parts are layered (later ones on top), so no shape is cut out of another.
+
+- **Pictures** (`pictures.js`, ages 3-6): 13 friendly pictures from a sun (9 parts) to a gazebo
+  (15 parts); eyes and smiles are details on top that taps ignore. The first 6 are free.
+- **Mandalas** (`mandala.js`, ages 7-10): made from a seed (the same seed always gives the same
+  mandala), 6- to 12-fold, rings of petals, drops, scallops, dots and chequered bands around a
+  centre. Every shape knows its group (its copies around the circle), and the mirror button colours
+  the whole group at once (on by default for 7-8). Three fixed mandalas are free; the full version
+  makes endless new ones ("New (7+)", "New (9+)").
+- **Saving:** every page is saved while it is coloured (`saveArt` in `storage.js`: colour per
+  region, when it last changed, and whether it is done). "Mijn kleurplaten" lists them, newest
+  first. Pictures and the free mandalas are always kept; of the generated mandalas the newest 30.
+  After a failed read, the newer version of each page wins when the save is read again.
+- Tools: undo, start over (with a question first), mirror and zoom (mandalas), and done (a little
+  sparkle and a chime, then the page is in "my pictures").
 
 ### Slangetje
 

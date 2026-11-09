@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku with puppies, Picturedoku, Four in a Row and Snake, which helps with counting and letters: games for ages 3 to 10, without a single ad.
+Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake for counting and letters, and Colouring with mandalas: games for ages 3 to 10, with no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,four in a row,snake,counting,puppies,puzzle,kids,toddler,no ads,offline
+bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,puzzle,kids,no ads
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has five games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row and Snake. More games will follow, including games to learn from.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has six games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake and Colouring. More games will follow.
 
 The name comes from "bāzi", the Persian word for play. The logo is a garden gazebo: a little place to play together.
 
@@ -66,6 +66,12 @@ SNAKE: COUNTING, LETTERS AND COLOURS
 • For the youngest (age 3 and up) the snake is slow and comes back on the other side at the edge. From age 7 it is faster, with fences and stones.
 • 30 levels.
 
+COLOURING PAGES AND MANDALAS
+• Pick a colour and tap a part: done. No reading needed.
+• For the youngest (age 3 and up): 13 pictures, from a sun and a house to a rocket and an elephant.
+• From age 7: mandalas, with a button that colours all copies at once.
+• Every picture is kept in My pictures.
+
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.
 • Big buttons, short texts, in English or Dutch.
@@ -74,7 +80,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, and in Snake 10 of the 30 levels, a few of every kind. Hard against the computer is part of the full version. Paying once opens everything, in every game, including the games that come later, plus endless new puzzles in the full version: a random level per difficulty, different every time. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, in Snake 10 of the 30 levels, and in Colouring 6 pictures and 3 mandalas. Paying once opens everything, in every game, including later ones, plus endless new puzzles and mandalas: a new one per difficulty, every time. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/

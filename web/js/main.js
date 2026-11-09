@@ -25,6 +25,9 @@ import { tokenSvg } from '../games/vier/art.js';
 import '../games/slang/strings.js';
 import { createSlang } from '../games/slang/slang.js';
 import { snakeSvg } from '../games/slang/art.js';
+import '../games/kleuren/strings.js';
+import { createKleuren } from '../games/kleuren/kleuren.js';
+import { tileMandalaSvg } from '../games/kleuren/tile.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -171,6 +174,10 @@ function drawVierTile() {
 
 function drawSlangTile() {
   $('#tile-slang .tile-art').innerHTML = snakeSvg();
+}
+
+function drawKleurenTile() {
+  $('#tile-kleuren .tile-art').innerHTML = tileMandalaSvg();
 }
 
 const games = {};
@@ -454,6 +461,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.kleuren = createKleuren({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.slang = createSlang({
     t,
     show,
@@ -471,10 +489,11 @@ async function boot() {
   drawPicturedokuTile();
   drawVierTile();
   drawSlangTile();
+  drawKleurenTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -484,6 +503,7 @@ async function boot() {
       pdoku: games.picturedoku.testHook(),
       vier: games.vier.testHook(),
       slang: games.slang.testHook(),
+      kleur: games.kleuren.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -517,6 +537,7 @@ function onBack() {
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'slang-menu') games.slang.leave();
+  else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();

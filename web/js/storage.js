@@ -5,6 +5,7 @@
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 <any game>: { random: {tier: solved count} }   // random play, full version
+//                 kleuren: { art: {'p:zon': {f: {region: colour}, t, done}, 'm:m1:1101': ...} },
 //                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
@@ -217,6 +218,14 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
     const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
     const stars = isObj(mine.stars) ? mine.stars : (mine.stars = {});
     for (const [level, n] of Object.entries(isObj(g?.stars) ? g.stars : {})) stars[level] = Math.max(stars[level] || 0, n || 0);
+    if (isObj(g?.art)) {
+      // colouring pages: per picture the newer of the two (stored `t` is when it was last changed)
+      const art = isObj(mine.art) ? mine.art : (mine.art = {});
+      for (const [pic, entry] of Object.entries(g.art)) {
+        if (isObj(entry) && (!isObj(art[pic]) || (Number(entry.t) || 0) > (Number(art[pic].t) || 0))) art[pic] = clone(entry);
+      }
+      boundArt(art);
+    }
     if (isObj(g?.random)) {
       const random = isObj(mine.random) ? mine.random : (mine.random = {});
       // the session could not read the save, so its counts started at 0: they are added, not compared
@@ -384,13 +393,46 @@ export function recordRandomSolved(gameId, tier) {
 /** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
 export function loadGameOption(gameId, key, fallback) {
   const g = save.games[gameId];
-  return isObj(g) && key in g && key !== 'stars' && key !== 'random' ? clone(g[key]) : fallback;
+  return isObj(g) && key in g && key !== 'stars' && key !== 'random' && key !== 'art' ? clone(g[key]) : fallback;
 }
 
 export function saveGameOption(gameId, key, value) {
   if (key === 'stars') throw new Error('stars go through saveProgress');
   if (key === 'random') throw new Error('random counts go through recordRandomSolved');
+  if (key === 'art') throw new Error('colouring pages go through saveArt');
   save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
+  persist();
+}
+
+/** How many generated mandalas are kept (the oldest go first); pictures are always kept. */
+export const ART_KEEP = 30;
+
+function boundArt(art) {
+  const generated = Object.keys(art).filter((id) => id.startsWith('m:'));
+  if (generated.length <= ART_KEEP) return;
+  generated.sort((a, b) => (Number(art[b]?.t) || 0) - (Number(art[a]?.t) || 0));
+  for (const id of generated.slice(ART_KEEP)) delete art[id];
+}
+
+/**
+ * Colouring pages: { id: { f: { regionId: colourIndex }, t: last change (ms), done: bool } }.
+ * Read fresh from the save each time (a kept copy could be older than the save).
+ */
+export function loadArt(gameId) {
+  const g = save.games[gameId];
+  return isObj(g?.art) ? clone(g.art) : {};
+}
+
+/** Store one colouring page; an empty, unfinished page is removed. Keeps at most ART_KEEP mandalas. */
+export function saveArt(gameId, id, { f = {}, done = false, t = Date.now() } = {}) {
+  const g = isObj(save.games[gameId]) ? save.games[gameId] : {};
+  const art = isObj(g.art) ? clone(g.art) : {};
+  const fills = {};
+  for (const [r, c] of Object.entries(isObj(f) ? f : {})) if (Number.isInteger(c) && c >= 0) fills[r] = c;
+  if (!Object.keys(fills).length && !done) delete art[id];
+  else art[id] = { f: fills, t: Number(t) || Date.now(), done: !!done };
+  boundArt(art);
+  save.games[gameId] = { ...g, art };
   persist();
 }
 

@@ -1,0 +1,171 @@
+// Mandalas for the colouring game, made in code from a seed: the same seed always gives the same
+// mandala. A mandala is rings of shapes around a centre, repeated k times around the circle
+// (rotational symmetry). Every shape is one closed path ("region") that a tap colours. Shapes are
+// layered (a ring's background wedges first, its petals and dots on top), so no shape needs to be
+// cut out of another: the one on top is the one that is tapped and seen.
+//
+// A region: { id, d, g } where g is its symmetry group: the same shape in every one of the k copies
+// shares a group, so "colour all copies" fills the whole group at once.
+
+/** Mandala tiers: m1 for ages 7-8 (fewer, larger shapes), m2 for ages 9-10. */
+export const MANDALA_TIERS = Object.freeze({
+  m1: Object.freeze({ age: 7, folds: [6, 8], bands: [3, 4], regions: [30, 160], symmetry: true }),
+  m2: Object.freeze({ age: 9, folds: [8, 10, 12], bands: [5, 6], regions: [80, 340], symmetry: false }),
+});
+
+/** The free mandalas: fixed seeds, the same for everyone. */
+export const FREE_MANDALAS = Object.freeze([
+  Object.freeze({ tier: 'm1', seed: 1101 }),
+  Object.freeze({ tier: 'm1', seed: 2207 }),
+  Object.freeze({ tier: 'm2', seed: 3313 }),
+]);
+
+/** A small seeded random generator (mulberry32): a function returning numbers in [0, 1). */
+export function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const R = 96; // the outer radius; the drawing spans -100..100
+const f = (n) => Math.round(n * 100) / 100;
+const pt = (r, a) => `${f(r * Math.cos(a))} ${f(r * Math.sin(a))}`;
+
+/** An annulus sector from angle a1 to a2 between radii r1 < r2 (r1 may be 0: a pie slice). */
+export function sector(r1, r2, a1, a2) {
+  const large = a2 - a1 > Math.PI ? 1 : 0;
+  if (r1 <= 0) return `M0 0L${pt(r2, a1)}A${f(r2)} ${f(r2)} 0 ${large} 1 ${pt(r2, a2)}Z`;
+  return `M${pt(r1, a1)}L${pt(r2, a1)}A${f(r2)} ${f(r2)} 0 ${large} 1 ${pt(r2, a2)}L${pt(r1, a2)}A${f(r1)} ${f(r1)} 0 ${large} 0 ${pt(r1, a1)}Z`;
+}
+
+/** A pointed petal (a lens) from radius r1 to r2 along angle a, w radians wide at its middle. */
+export function petal(r1, r2, a, w) {
+  const m = (r1 + r2) / 2;
+  const reach = m / Math.cos(w); // the control points sit a little further out, so the petal is full
+  return `M${pt(r1, a)}Q${pt(reach, a + w)} ${pt(r2, a)}Q${pt(reach, a - w)} ${pt(r1, a)}Z`;
+}
+
+/** A drop: pointed at r1, round at r2, w radians wide at its widest. */
+export function drop(r1, r2, a, w) {
+  const hr = Math.min((r2 - r1) * 0.32, r2 * Math.sin(w)); // the round head
+  const hc = r2 - hr; // its centre's radius
+  const ca = Math.cos(a);
+  const sa = Math.sin(a);
+  const at = (along, across) => `${f(along * ca - across * sa)} ${f(along * sa + across * ca)}`; // along the ray, across it
+  return `M${at(r1, 0)}C${at(r1 + (hc - r1) * 0.55, hr * 0.35)} ${at(hc - hr * 0.4, hr * 1.05)} ${at(hc, hr)}` +
+    `A${f(hr)} ${f(hr)} 0 0 0 ${at(hc, -hr)}` +
+    `C${at(hc - hr * 0.4, -hr * 1.05)} ${at(r1 + (hc - r1) * 0.55, -hr * 0.35)} ${at(r1, 0)}Z`;
+}
+
+/** A circle of radius s around the point at radius r, angle a. */
+export function dot(r, a, s) {
+  const cx = f(r * Math.cos(a));
+  const cy = f(r * Math.sin(a));
+  return `M${f(cx - s)} ${cy}A${f(s)} ${f(s)} 0 1 0 ${f(cx + s)} ${cy}A${f(s)} ${f(s)} 0 1 0 ${f(cx - s)} ${cy}Z`;
+}
+
+/** A sector whose outer edge is a shallow round bump (a scallop) that just reaches r2. */
+export function scallop(r1, r2, a1, a2) {
+  const h = Math.min((r2 - r1) * 0.45, r2 * (a2 - a1) * 0.28); // how far the bump stands out
+  const base = r2 - h;
+  const c = 2 * base * Math.sin((a2 - a1) / 2); // the chord between the bump's ends
+  const br = f((c * c) / 4 / (2 * h) + h / 2); // the circle through both ends and the top
+  return `M${pt(r1, a1)}L${pt(base, a1)}A${br} ${br} 0 0 1 ${pt(base, a2)}L${pt(r1, a2)}A${f(r1)} ${f(r1)} 0 0 0 ${pt(r1, a1)}Z`;
+}
+
+/** Pick one element of a list. */
+const pick = (rand, list) => list[Math.floor(rand() * list.length)];
+
+// The ring designs. Each fills the band r1..r2 with k copies; `push(part, j, d)` adds a region.
+const BANDS = {
+  // plain wedges with a petal on top of every wedge
+  petals(push, k, r1, r2, step, off, rand) {
+    const w = step * (0.32 + rand() * 0.1);
+    for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
+    for (let j = 0; j < k; j++) push('p', j, petal(r1 + 1, r2 - 1, off + (j + 0.5) * step, w));
+  },
+  // two rings of petals, the second between the first: a woven look
+  lattice(push, k, r1, r2, step, off, rand) {
+    const w = step * (0.4 + rand() * 0.08);
+    for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
+    for (let j = 0; j < k; j++) push('p', j, petal(r1 + 1, r2 - 1, off + j * step, w));
+    for (let j = 0; j < k; j++) push('q', j, petal(r1 + (r2 - r1) * 0.25, r2 - 1, off + (j + 0.5) * step, w * 0.62));
+  },
+  // scalloped edge with a dot in every scallop
+  scallops(push, k, r1, r2, step, off, rand) {
+    const n = rand() < 0.5 ? k : 2 * k; // one or two scallops per copy
+    const s = (2 * Math.PI) / n;
+    // the band's own background first, so the corners between the bumps can be coloured too
+    for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
+    for (let j = 0; j < n; j++) push(n === k ? 's' : j % 2 ? 't' : 's', n === k ? j : Math.floor(j / 2), scallop(r1, r2, off + j * s, off + (j + 1) * s));
+    const size = Math.min((r2 - r1) * 0.2, ((r1 + r2) / 2) * s * 0.22);
+    for (let j = 0; j < n; j++) push(n === k ? 'd' : j % 2 ? 'e' : 'd', n === k ? j : Math.floor(j / 2), dot(r1 + (r2 - r1) * 0.42, off + (j + 0.5) * s, size));
+  },
+  // drops pointing outwards, with dots between them
+  drops(push, k, r1, r2, step, off, rand) {
+    const w = step * (0.26 + rand() * 0.05);
+    for (let j = 0; j < k; j++) push('w', j, sector(r1, r2, off + j * step, off + (j + 1) * step));
+    for (let j = 0; j < k; j++) push('p', j, drop(r1 + 1.5, r2 - 1.5, off + (j + 0.5) * step, w));
+    const size = Math.min((r2 - r1) * 0.13, r2 * step * 0.09);
+    for (let j = 0; j < k; j++) push('d', j, dot(r2 - (r2 - r1) * 0.28, off + j * step, size));
+  },
+  // a band of small wedges, two per copy, like a chequered ribbon
+  checks(push, k, r1, r2, step, off) {
+    const m = (r1 + r2) / 2;
+    for (let j = 0; j < k; j++) {
+      const a = off + j * step;
+      push('a', j, sector(r1, m, a, a + step / 2));
+      push('b', j, sector(r1, m, a + step / 2, a + step));
+      push('c', j, sector(m, r2, a, a + step / 2));
+      push('e', j, sector(m, r2, a + step / 2, a + step));
+    }
+  },
+};
+const BAND_KINDS = Object.keys(BANDS);
+
+/**
+ * The mandala for `seed` in tier `tier`: { tier, seed, folds, regions: [{ id, d, g }] }.
+ * Deterministic: the same seed and tier always give the same mandala.
+ */
+export function makeMandala(tier, seed) {
+  const spec = MANDALA_TIERS[tier];
+  if (!spec) throw new Error(`unknown mandala tier ${tier}`);
+  const rand = rng(seed * 31 + (tier === 'm2' ? 7 : 3));
+  const k = pick(rand, spec.folds);
+  const nb = pick(rand, spec.bands);
+  const step = (2 * Math.PI) / k;
+  const r0 = tier === 'm1' ? 18 + rand() * 4 : 13 + rand() * 4; // the centre
+  // band edges from r0 to R, a little uneven so not every mandala looks alike
+  const weights = Array.from({ length: nb }, () => 0.8 + rand() * 0.5);
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const edges = [r0];
+  for (const w of weights) edges.push(edges[edges.length - 1] + ((R - r0) * w) / sum);
+  edges[edges.length - 1] = R;
+  const regions = [];
+  const push = (prefix) => (part, j, d) => regions.push({ id: `${prefix}${part}${j}`, d, g: `${prefix}${part}` });
+  // the centre: a disc with a small flower on top
+  regions.push({ id: 'c0', d: dot(0, 0, r0), g: 'c0' });
+  const cw = step * 0.38;
+  for (let j = 0; j < k; j++) push('c')('p', j, petal(r0 * 0.18, r0 * 0.92, j * step - Math.PI / 2, Math.min(cw, 0.5)));
+  regions.push({ id: 'c1', d: dot(0, 0, r0 * 0.24), g: 'c1' });
+  let last = '';
+  for (let b = 0; b < nb; b++) {
+    let kind = pick(rand, BAND_KINDS);
+    if (kind === last) kind = BAND_KINDS[(BAND_KINDS.indexOf(kind) + 1) % BAND_KINDS.length]; // no two alike in a row
+    last = kind;
+    const off = -Math.PI / 2 + (b % 2 ? step / 2 : 0); // every other ring turned half a step
+    BANDS[kind](push(`b${b}`), k, edges[b], edges[b + 1], step, off, rand);
+  }
+  return { tier, seed, folds: k, regions };
+}
+
+/** The regions of the same group as `id` (its copies around the circle), for "colour all copies". */
+export function groupOf(mandala, id) {
+  const r = mandala.regions.find((x) => x.id === id);
+  return r ? mandala.regions.filter((x) => x.g === r.g).map((x) => x.id) : [];
+}
