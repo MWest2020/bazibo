@@ -15,21 +15,21 @@ phases:
     # The next phase's done-means, open until built and verified (the overview shows done_means
     # for the current phase only).
     done_means:
-      - {item: "Picturedoku, a picture sudoku: 4x4 with pictures and no numbers for ages 3-6, 6x6 for 6-8, 9x9 for 8-10 (numbers optional); 60 puzzles, each unique and solvable without guessing, 10 free", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/6 + review fixes in https://github.com/MWest2020/bubbels/pull/7"}
-      - {item: "Dogudoku: a Queens-style puzzle with puppies (one per row, column and colour, never touching on every size). 4x4 with bushes for ages 3-5, 5x5 with colours for 5-7, 6x6 to 8x8 for 7-10; 60 puzzles, each with exactly one solution, 10 free", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
-      - {item: "Vier op een rij: four in a row on 7x6 (ages 6+) and three in a row on a 5x4 kleuterbord (ages 3+); two players on one screen, or the computer at easy, medium and hard (hard in the full version); own name and look", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/11"}
-      - {item: "Slangetje: a snake that eats numbers in order (counting up to 20, in twos, counting down), the letters of a word with a picture (Dutch and English words), or only one colour of fruit; slow with wrap-around edges and no way to lose for ages 3-5, walls and bumps for 7-10; 30 levels, 10 free", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/12"}
-      - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
-      - {item: "Letters with a voice: hear a sound, tap the letter (local Dutch voice, no cloud)", status: open, evidence: "https://github.com/MWest2020/bubbels/issues/2"}
+      - {item: "Picturedoku, a picture sudoku: 4x4 with pictures and no numbers for ages 3-6, 6x6 for 6-8, 9x9 for 8-10 (numbers optional); 60 puzzles, each unique and solvable without guessing, 10 free", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/6 + review fixes in https://github.com/MWest2020/bazibo/pull/7"}
+      - {item: "Dogudoku: a Queens-style puzzle with puppies (one per row, column and colour, never touching on every size). 4x4 with bushes for ages 3-5, 5x5 with colours for 5-7, 6x6 to 8x8 for 7-10; 60 puzzles, each with exactly one solution, 10 free", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/5"}
+      - {item: "Vier op een rij: four in a row on 7x6 (ages 6+) and three in a row on a 5x4 kleuterbord (ages 3+); two players on one screen, or the computer at easy, medium and hard (hard in the full version); own name and look", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/11"}
+      - {item: "Slangetje: a snake that eats numbers in order (counting up to 20, in twos, counting down), the letters of a word with a picture (Dutch and English words), or only one colour of fruit; slow with wrap-around edges and no way to lose for ages 3-5, walls and bumps for 7-10; 30 levels, 10 free", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/12"}
+      - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bazibo/issues/2"}
+      - {item: "Letters with a voice: hear a sound, tap the letter (local Dutch voice, no cloud)", status: open, evidence: "https://github.com/MWest2020/bazibo/issues/2"}
 done_means:
-  - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
-  - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
-  - {item: "Android and iOS projects, €1 unlock through the stores, parental gate, privacy policy", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/1"}
-  - {item: "Brand name in the app, the native app names, the store texts and the privacy pages (Idaveld, issue #2 default)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/5"}
-  - {item: "Brand name Bazibo (Mark's choice, issue #2) with a gazebo logo: app icons, splash screens, home screen, store icon and feature graphic", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/8"}
-  - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/3"}
-  - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bubbels/pull/4"}
-  - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
-  - {item: "The €1 purchase tested on a real device (Play internal testing)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
-  - {item: "Live on Google Play (organisation account, D-U-N-S)", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
-  - {item: "Live on the App Store", status: open, evidence: "https://github.com/MWest2020/bubbels/blob/main/docs/release.md"}
+  - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
+  - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
+  - {item: "Android and iOS projects, €1 unlock through the stores, parental gate, privacy policy", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/1"}
+  - {item: "Brand name in the app, the native app names, the store texts and the privacy pages (Idaveld, issue #2 default)", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/5"}
+  - {item: "Brand name Bazibo (Mark's choice, issue #2) with a gazebo logo: app icons, splash screens, home screen, store icon and feature graphic", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/8"}
+  - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
+  - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/4"}
+  - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
+  - {item: "The €1 purchase tested on a real device (Play internal testing)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
+  - {item: "Live on Google Play (organisation account, D-U-N-S)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
+  - {item: "Live on the App Store", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}

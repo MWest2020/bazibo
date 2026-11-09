@@ -57,7 +57,7 @@ Backup: `android/app/src/main/res/xml/backup_rules.xml` (Android 6-11) and
 and PR, and on `main` publishes `web/` to GitHub Pages. Store releases go through the lanes in
 `fastlane/Fastfile` (table in `docs/release.md`, section 6); store texts and images stay in
 `store/`, `tools/store-to-fastlane.mjs` converts them and `npm test` checks the store limits.
-Push over SSH (`git@github.com:MWest2020/bubbels.git`): the gh token cannot push workflow files.
+Push over SSH (`git@github.com:MWest2020/bazibo.git`): the gh token cannot push workflow files.
 
 **When you change things:** Dogudoku's rules go in `web/games/dogudoku/rules.js` with a test;
 puzzles only through `npm run puzzles` (`tools/gen-dogudoku.mjs`; `npm test` fails if

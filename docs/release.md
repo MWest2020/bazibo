@@ -1,6 +1,6 @@
 # Releasing Bazibo to Google Play and the App Store
 
-Bazibo (the repository and package id keep the old name `bubbels`) is one app with several
+Bazibo (repository `MWest2020/bazibo` and package id `work.westerweel.bazibo` since 2026-11-09; the first game and the storage keys keep the name `bubbels`) is one app with several
 games (the brand, tagline and the line about the name are in `web/js/brand.js`; issue #2 holds
 the name decision, decided: Bazibo). The app lives in `web/`: the shell in `web/js/`, each game
 in `web/games/<id>/`. Capacitor wraps it as `android/` and `ios/`; both apps load the same files
@@ -58,8 +58,10 @@ regenerate the app icons and launch screens, run
    requirement for new personal accounts (12 testers for 14 days) does not apply to
    organisation accounts. Check the Play Console text when you sign up, because Google changes
    these rules.
-2. **Create the app.** Package name `work.westerweel.bubbels` (it stays, whatever the brand
-   name becomes; users never see it). Name "Bazibo: spelen en leren". It is a game and it is
+2. **Create the app.** Package name `work.westerweel.bazibo`. It is permanent once the first
+   build is uploaded and it shows in the Play Store URL. It was changed from
+   `work.westerweel.bubbels` on 2026-11-09, before any upload; save data needed no migration,
+   because there were no store users yet (Capacitor Preferences are per app). Name "Bazibo: spelen en leren". It is a game and it is
    free (with an in-app purchase).
 3. **Signing.** Use Play App Signing: Google keeps the app signing key, and we only hold an
    *upload key*. It exists (made 2026-11-07) and lives outside the repository:
@@ -122,15 +124,15 @@ regenerate the app icons and launch screens, run
    - Sign the Paid Apps agreement and fill in tax and bank details in App Store Connect. Without
      them the in-app purchase does not work, not even in TestFlight.
 2. **App ID.** Under Certificates, Identifiers & Profiles, register the bundle ID
-   `work.westerweel.bubbels` with the *In-App Purchase* capability.
+   `work.westerweel.bazibo` with the *In-App Purchase* capability.
 3. **App record.** In App Store Connect, create a new app with bundle ID
-   `work.westerweel.bubbels`, name "Bazibo: spelen en leren" (English localization "Bazibo:
+   `work.westerweel.bazibo`, name "Bazibo: spelen en leren" (English localization "Bazibo:
    play and learn") and primary language Dutch.
 4. **Product.** Under In-App Purchases, create a Non-Consumable with product ID `unlock_all`,
    price € 1 and the texts from the listings. It goes to review together with the first build.
 5. **Build, option A: your Mac.**
    ```sh
-   git clone https://github.com/MWest2020/bubbels && cd bubbels
+   git clone https://github.com/MWest2020/bazibo && cd bazibo
    npm ci && npx cap sync ios && npx cap open ios
    ```
    Xcode opens. Then:

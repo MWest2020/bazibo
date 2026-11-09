@@ -9,15 +9,16 @@ Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
-the source of every app icon). The repository, the package id (`work.westerweel.bubbels`) and
-the website path keep the old name `bubbels`.
+the source of every app icon). The repository (`MWest2020/bazibo`, renamed from `bubbels` on 2026-11-09), the package id
+(`work.westerweel.bazibo`) and the website path (`/bazibo/`) carry the brand name; the first game
+and the storage keys keep the name `bubbels`.
 
 - Home screen with a tile per game (a game that is not ready yet can show a "binnenkort" /
   "coming soon" tile) and a
   settings screen: language (Dutch or English; it follows the device and Dutch is the fallback),
   sound, the full version, privacy.
 
-Play it: https://mwest2020.github.io/bubbels/ (every merge to `main` runs the tests and publishes `web/` there through GitHub Actions; releases to the stores: `docs/release.md`).
+Play it: https://mwest2020.github.io/bazibo/ (every merge to `main` runs the tests and publishes `web/` there through GitHub Actions; releases to the stores: `docs/release.md`).
 
 ### Dogudoku
 
@@ -192,7 +193,7 @@ checks that a returning player keeps their progress, and opens the privacy pages
 | `web/privacy/` | privacy policy, Dutch (`index.html`) and English (`en.html`) |
 | `web/sw.js`, `web/manifest.webmanifest`, `web/icons/` | PWA basics |
 | `tools/` | level generator, icon renderer (`make_icons.py --native` also does the app icons and launch screens), store screenshots (`store_shots.py`), service-worker cache stamp (`stamp-sw.mjs`) |
-| `android/`, `ios/`, `capacitor.config.json` | the Capacitor app projects (app ID `work.westerweel.bubbels`) |
+| `android/`, `ios/`, `capacitor.config.json` | the Capacitor app projects (app ID `work.westerweel.bazibo`) |
 | `store/` | store texts (NL/EN), answers for the store forms, screenshots per language, feature graphics |
 | `docs/release.md` | step-by-step release to Google Play and the App Store, signing, save data |
 | `docs/reference/roadmap.yml` | phases and what "done" means, for westerweel.work/nu/ |

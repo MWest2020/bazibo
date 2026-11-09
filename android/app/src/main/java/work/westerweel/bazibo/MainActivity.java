@@ -1,4 +1,4 @@
-package work.westerweel.bubbels;
+package work.westerweel.bazibo;
 
 import com.getcapacitor.BridgeActivity;
 
