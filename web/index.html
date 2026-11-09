@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
+  <link rel="stylesheet" href="games/klok/klok.css">
 </head>
 <body>
   <main id="app">
@@ -61,6 +62,10 @@
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.kleuren">Kleurplaten</span>
           </button>
+          <button id="tile-klok" class="tile" type="button" data-game="klok">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.klok">Klok kijken</span>
+          </button>
         </div>
         <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
         <p class="lore" id="brand-lore">Bazibo: “bāzi” betekent spel</p>
@@ -96,7 +101,7 @@
           <p id="full-status" class="setting-text"></p>
           <button id="btn-full" class="btn secondary wide" type="button" data-i18n="settings.more">Meer over de volledige versie</button>
         </div>
-        <p class="small-links"><a id="privacy-link" href="nl/privacy/index.html" data-i18n="settings.privacy">Privacy</a> · <a id="terms-link" href="nl/voorwaarden/index.html" data-i18n="settings.terms">Voorwaarden</a></p>
+        <p class="small-links"><a id="privacy-link" href="nl/privacy/index.html" data-i18n="settings.privacy">Privacy</a> · <a id="terms-link" href="nl/voorwaarden/index.html" data-i18n="settings.terms">Voorwaarden</a> · <a id="roadmap-link" href="nl/plannen/index.html" data-i18n="settings.roadmap">Plannen</a></p>
       </div>
     </section>
 
@@ -339,6 +344,41 @@
             <button id="kleur-zoom" class="btn icon tool" type="button" data-i18n-aria="kleur.zoom" aria-label="Inzoomen" aria-pressed="false"></button>
             <button id="kleur-done" class="btn icon tool done" type="button" data-i18n-aria="kleur.done" aria-label="Klaar"></button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Klok kijken: choose a round (set the clock, what time is it, daily rhythm) -->
+    <section id="screen-klok-menu" class="screen" data-i18n-aria="games.klok" aria-label="Klok kijken">
+      <header class="bar">
+        <button id="klok-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 id="klok-menu-title">Klok kijken</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="klok-menu" class="klok-menu"></div></div>
+    </section>
+
+    <!-- Klok kijken: one question at a time -->
+    <section id="screen-klok" class="screen" data-i18n-aria="games.klok" aria-label="Klok kijken">
+      <header class="bar dogu-hud klok-hud">
+        <button id="klok-back" class="btn icon" type="button" data-i18n-aria="klok.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="klok-sub" class="hud-level"></div>
+          <div id="klok-title" class="dogu-title"></div>
+        </div>
+        <button id="klok-hint" class="btn icon" type="button" data-i18n-aria="klok.hint" aria-label="Hint"></button>
+      </header>
+      <div id="klok-stage">
+        <div id="klok-prompt" class="klok-prompt" role="group" data-i18n-aria="klok.prompt" aria-label="De opdracht"></div>
+        <div id="klok-face" class="klok-face" role="img" aria-label="De klok"></div>
+        <div class="klok-side">
+          <div id="klok-controls" class="klok-controls"></div>
+          <div id="klok-dots" class="klok-dots" role="img"></div>
+          <p id="klok-status" class="klok-status" aria-live="polite"></p>
         </div>
       </div>
     </section>

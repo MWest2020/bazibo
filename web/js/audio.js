@@ -248,3 +248,14 @@ export function boop() {
   const t = ac.currentTime + 0.005;
   tone('sine', 380, 250, t, 0.22, 0.26, 0.012);
 }
+
+// Klok kijken: a soft wooden "tick" and "tock" while a hand turns (alternating, like a real
+// clock), rate-limited so a fast spin does not rattle.
+const tickGate = makeLimiter();
+export function ticktock(i = 0) {
+  if (!on() || !tickGate(ac.currentTime, 0.045)) return;
+  const t = ac.currentTime + 0.003;
+  const f = i % 2 ? 1250 : 1650;
+  tone('sine', f, f * 0.8, t, 0.035, 0.12, 0.002);
+  hiss(t, 0.02, 0.06, 'bandpass', f * 1.6, f * 1.2, 2);
+}

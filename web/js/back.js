@@ -9,17 +9,21 @@
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
 //   a colouring page                   -> the list of pages (the page is saved)
+//   a Klok kijken round (or its card)  -> its menu (the round is kept: "keep playing")
+//   the Klok kijken menu               -> from one kind of round to the kinds, then home
 //   a level or puzzle list, settings   -> the home screen
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
   if (overlay === 'busy') return 'ignore';
-  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : 'close';
+  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'klok' ? 'klok-menu' : 'close';
   if (screen === 'game') return 'pause';
   if (screen === 'dogudoku') return 'dogudoku-levels';
   if (screen === 'picturedoku') return 'picturedoku-levels';
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'slang') return 'slang-menu';
   if (screen === 'kleuren') return 'kleuren-list';
+  if (screen === 'klok') return 'klok-menu';
+  if (screen === 'klok-menu') return 'klok-menu-back';
   if (screen === 'home') return 'exit';
   return 'home';
 }

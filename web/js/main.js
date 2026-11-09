@@ -28,6 +28,9 @@ import { snakeSvg } from '../games/slang/art.js';
 import '../games/kleuren/strings.js';
 import { createKleuren } from '../games/kleuren/kleuren.js';
 import { tileMandalaSvg } from '../games/kleuren/tile.js';
+import '../games/klok/strings.js';
+import { createKlok } from '../games/klok/klok.js';
+import { tileSvg as klokTileSvg } from '../games/klok/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -78,6 +81,7 @@ function renderLanguage() {
   translateDom(document);
   $('#privacy-link').href = lang === 'en' ? 'en/privacy/index.html' : 'nl/privacy/index.html';
   $('#terms-link').href = lang === 'en' ? 'en/terms/index.html' : 'nl/voorwaarden/index.html';
+  $('#roadmap-link').href = lang === 'en' ? 'en/roadmap/index.html' : 'nl/plannen/index.html';
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);
@@ -178,6 +182,10 @@ function drawSlangTile() {
 
 function drawKleurenTile() {
   $('#tile-kleuren .tile-art').innerHTML = tileMandalaSvg();
+}
+
+function drawKlokTile() {
+  $('#tile-klok .tile-art').innerHTML = klokTileSvg();
 }
 
 const games = {};
@@ -483,6 +491,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.klok = createKlok({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   renderLanguage();
   drawTileArt();
   drawDoguTile();
@@ -490,10 +509,11 @@ async function boot() {
   drawVierTile();
   drawSlangTile();
   drawKleurenTile();
+  drawKlokTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.klok.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -504,6 +524,7 @@ async function boot() {
       vier: games.vier.testHook(),
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
+      klok: games.klok.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
@@ -538,6 +559,8 @@ function onBack() {
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();
+  else if (action === 'klok-menu') games.klok.leave();
+  else if (action === 'klok-menu-back') games.klok.menuBack();
   else if (action === 'home') show('home');
   else if (action === 'pause') $('#btn-pause').click();
   else if (action === 'exit') App?.exitApp?.();
