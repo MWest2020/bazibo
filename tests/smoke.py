@@ -266,7 +266,7 @@ def play_dogudoku(page, name, say, problems):
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-d1-puzzles.png"))
     # a locked puzzle: on the web only a friendly card with OK
-    page.click("#dogu-levels .level-btn.locked >> nth=0")
+    page.click("#dogu-levels .level-btn.locked:not(.random-btn) >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
@@ -337,7 +337,7 @@ def play_picturedoku(page, name, say, problems):
     page.click("#tile-picturedoku")
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-p1-puzzles.png"))
-    page.click("#pdoku-levels .level-btn.locked >> nth=0")
+    page.click("#pdoku-levels .level-btn.locked:not(.random-btn) >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
@@ -740,6 +740,149 @@ def slang_glyphs(browser, base, w, h, problems):
     ctx.close()
 
 
+def random_play(browser, base, problems):
+    """Random play (full version): on the web every random card is locked and offers only OK; with
+    the full version (stand-in store) a random puzzle opens in every game, and a 4×4 Dogudoku and a
+    4×4 Picturedoku are solved by tapping, which counts one solved and offers another one."""
+    # the website sells nothing: the random cards are locked
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(200)
+    locked = page.locator("#dogu-levels .random-btn.locked").count()
+    if locked != 5:
+        problems.append(f"random (web): {locked} locked random cards in Dogudoku, expected 5")
+    page.click("#dogu-levels .random-btn >> nth=0")
+    page.wait_for_timeout(200)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Oké"] or page.evaluate("window.__bubbels.dogu.puzzle()") is not None:
+        problems.append(f"random (web): a locked random card offers {labels} or opened a puzzle")
+    ctx.close()
+
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(OWNED_APP)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.wait_for_function("window.__bubbels.full()", timeout=8000)
+
+    def dismiss():
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+            page.wait_for_timeout(150)
+
+    # Dogudoku: a random 4×4 by tapping the first random card, solved by tapping
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(200)
+    if page.locator("#dogu-levels .random-btn:not(.locked)").count() != 5:
+        problems.append("random: Dogudoku does not show 5 open random cards")
+    page.screenshot(path=str(SHOTS / "random-dogu-list.png"))
+    page.click("#dogu-levels .random-btn >> nth=0")
+    page.wait_for_function("window.__bubbels.dogu.puzzle() && window.__bubbels.dogu.puzzle().random === 's4'", timeout=8000)
+    dismiss()
+    pz = page.evaluate("window.__bubbels.dogu.puzzle()")
+    if page.inner_text("#dogu-title").strip() != "Willekeurig":
+        problems.append(f"random: Dogudoku title {page.inner_text('#dogu-title')!r}")
+    for r, c in enumerate(pz["solution"]):
+        page.click(f"#dogu-board .dcell[data-r='{r}'][data-c='{c}']")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SHOTS / "random-dogu-solved.png"))
+    if not page.evaluate("window.__bubbels.dogu.state().solved"):
+        problems.append("random: the random Dogudoku 4×4 was not solved by tapping")
+    page.wait_for_timeout(1400)
+    if page.evaluate("window.__bubbels.dogu.randomSolved()").get("s4") != 1:
+        problems.append(f"random: Dogudoku count {page.evaluate('window.__bubbels.dogu.randomSolved()')}")
+    if "1 opgelost" not in page.inner_text("#ov-text"):
+        problems.append(f"random: Dogudoku win card says {page.inner_text('#ov-text')!r}")
+    first_id = pz["id"]
+    page.click("#ov-buttons button >> text=Nog een")
+    page.wait_for_function(f"window.__bubbels.dogu.puzzle() && window.__bubbels.dogu.puzzle().id !== '{first_id}'", timeout=8000)
+    if page.evaluate("window.__bubbels.dogu.puzzle().random") != "s4":
+        problems.append("random: 'another one' did not open a new random 4×4")
+    # the biggest board too (made in a worker)
+    page.click("#dogu-back")
+    page.wait_for_timeout(200)
+    page.click("#dogu-levels .random-btn >> nth=4")
+    page.wait_for_function("window.__bubbels.dogu.puzzle() && window.__bubbels.dogu.puzzle().n === 8", timeout=15000)
+    dismiss()
+    page.screenshot(path=str(SHOTS / "random-dogu-8x8.png"))
+    page.click("#dogu-back")
+    page.wait_for_timeout(200)
+    label = page.locator("#dogu-levels .random-btn >> nth=0").get_attribute("aria-label") or ""
+    if "1 opgelost" not in label:
+        problems.append(f"random: Dogudoku 4×4 card label {label!r}")
+    page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+    # Picturedoku: a random 4×4, solved square first, then the picture
+    page.click("#tile-picturedoku")
+    page.wait_for_timeout(200)
+    page.click("#pdoku-levels .random-btn >> nth=0")
+    page.wait_for_function("window.__bubbels.pdoku.puzzle() && window.__bubbels.pdoku.puzzle().random === 's4'", timeout=8000)
+    dismiss()
+    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+    for i, ch in enumerate(pz["givens"]):
+        if ch == ".":
+            page.click(f"#pdoku-board .pcell[data-i='{i}']")
+            page.click(f"#pdoku-palette .pick[data-v='{pz['solution'][i]}']")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SHOTS / "random-pdoku-solved.png"))
+    if not page.evaluate("window.__bubbels.pdoku.state().solved"):
+        problems.append("random: the random Picturedoku 4×4 was not solved by tapping")
+    page.wait_for_timeout(1400)
+    if page.evaluate("window.__bubbels.pdoku.randomSolved()").get("s4") != 1:
+        problems.append(f"random: Picturedoku count {page.evaluate('window.__bubbels.pdoku.randomSolved()')}")
+    page.click("#ov-buttons button >> nth=-1")
+    page.wait_for_timeout(200)
+    page.click("#pdoku-levels .random-btn >> nth=2")  # 9×9
+    page.wait_for_function("window.__bubbels.pdoku.puzzle() && window.__bubbels.pdoku.puzzle().n === 9", timeout=8000)
+    dismiss()
+    page.click("#pdoku-back")
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+    # Bubbels: the random section under the levels, a hard board opens
+    page.click("#tile-bubbels")
+    page.wait_for_timeout(200)
+    if page.locator("#levels-random .random-btn:not(.locked)").count() != 3:
+        problems.append("random: Bubbels does not show 3 open random cards")
+    page.locator("#levels-random").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "random-bubbels-list.png"))
+    page.click("#levels-random .random-btn >> nth=2")
+    page.wait_for_function("window.__bubbels.random() && window.__bubbels.random().tier === 'hard'", timeout=8000)
+    page.wait_for_timeout(400)
+    if page.inner_text("#hud-level").strip() != "Moeilijk":
+        problems.append(f"random: Bubbels HUD says {page.inner_text('#hud-level')!r}")
+    page.screenshot(path=str(SHOTS / "random-bubbels-game.png"))
+    page.click("#btn-pause")
+    page.wait_for_timeout(200)
+    page.click("#ov-buttons button >> nth=-1")  # Levels
+    page.wait_for_timeout(200)
+    page.evaluate("document.querySelector('#screen-levels [data-go=home]').click()")
+    page.wait_for_timeout(200)
+
+    # Slangetje: a random counting round for the youngest, played to the end
+    page.click("#tile-slang")
+    page.wait_for_timeout(200)
+    page.click(".slang-grid .random-btn >> nth=0")
+    page.wait_for_function("window.__bubbels.slang.state() && String(window.__bubbels.slang.state().id).startsWith('r-count-tiny')", timeout=8000)
+    dismiss()
+    page.screenshot(path=str(SHOTS / "random-slang.png"))
+    slang_round(page, "random", problems)
+    page.wait_for_timeout(1100)
+    if page.evaluate("window.__bubbels.slang.randomSolved()").get("count-tiny") != 1:
+        problems.append(f"random: Slangetje count {page.evaluate('window.__bubbels.slang.randomSolved()')}")
+    if errors:
+        problems.append(f"random: page errors: {errors}")
+    ctx.close()
+
+
 def slang_fits(page, w, h, label, problems):
     """Open Slangetje level 1 and check that the board and the arrow pad are fully on screen."""
     page.click("#tile-slang")
@@ -932,6 +1075,7 @@ def main():
             for w, h in ((320, 568), (568, 320), (640, 360)):
                 slang_glyphs(browser, base, w, h, problems)
             run_returning(browser, base, problems)
+            random_play(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()

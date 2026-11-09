@@ -6,6 +6,8 @@ import { loadLevels } from './levels.js';
 import { meta } from './meta.js';
 import * as store from '../../js/storage.js';
 import { isLocked, allFreeDone } from '../../js/unlock.js';
+import { makeRandom, newSeed, randomCard } from '../../js/random.js';
+import { RANDOM_TIERS } from './generate.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -20,6 +22,8 @@ export function createBubbels(shell) {
   let levels = [];
   let index = 0; // index into levels of the level being played
   let game = null;
+  let random = null; // the random board being played (full version), or null for a fixed level
+  let randomBusy = false;
 
   const locked = (id) => isLocked(id, meta.free, shell.unlock.owned);
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -34,7 +38,7 @@ export function createBubbels(shell) {
   });
   shell.onLangChange(() => {
     if (onScreen('levels')) renderLevels();
-    if (levels[index]) $('#hud-level').textContent = t('bubbels.level', { n: levels[index].id });
+    renderHudLevel();
     renderMute();
   });
 
@@ -83,6 +87,22 @@ export function createBubbels(shell) {
         free.appendChild(b);
       }
     });
+    const box = $('#levels-random');
+    box.textContent = '';
+    const solved = store.loadRandomSolved(meta.id);
+    for (const tier of RANDOM_TIERS) {
+      box.appendChild(
+        randomCard({
+          t,
+          tap,
+          title: t(`bubbels.tier.${tier.key}`),
+          locked: !shell.unlock.owned,
+          solved: solved[tier.key] || 0,
+          onPlay: () => playRandom(tier.key),
+          onLocked: () => shell.offerUnlock(t('random.lead')),
+        }),
+      );
+    }
   }
 
   /** The app-wide offer, with a line about which levels it opens here. */
@@ -100,12 +120,59 @@ export function createBubbels(shell) {
       return;
     }
     index = i;
-    $('#hud-level').textContent = t('bubbels.level', { n: level.id });
+    random = null;
+    renderHudLevel();
     shell.show('game');
     game.start(level);
   }
 
+  function renderHudLevel() {
+    if (random) $('#hud-level').textContent = t(`bubbels.tier.${random.tier}`);
+    else if (levels[index]) $('#hud-level').textContent = t('bubbels.level', { n: levels[index].id });
+  }
+
+  /** A random board of one tier (full version only); `again` replays the same board. */
+  async function playRandom(key, { again = null, seed = null } = {}) {
+    if (!shell.unlock.owned) {
+      shell.offerUnlock(t('random.lead'));
+      return;
+    }
+    if (randomBusy) return;
+    let level = again;
+    if (!level) {
+      randomBusy = true;
+      try {
+        level = await makeRandom(shell, 'bubbels', 'randomLevel', [key, seed ?? newSeed()]);
+      } finally {
+        randomBusy = false;
+      }
+      if (!level || !shell.unlock.owned) return;
+      level.tier = key;
+    }
+    random = level;
+    renderHudLevel();
+    shell.show('game');
+    game.start(level);
+  }
+
+  /** Play the current board again: the same fixed level, or the same random board. */
+  const replay = () => (random ? playRandom(random.tier, { again: random }) : play(index));
+
   function onWin({ stars, score }) {
+    if (random) {
+      const done = random;
+      const n = store.recordRandomSolved(meta.id, done.tier);
+      shell.showOverlay({
+        art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
+        title: t(`bubbels.win${stars}`),
+        text: `${t('bubbels.points', { score })} ${t('random.solved', { n })}`,
+        buttons: [
+          [t('random.new'), 'big primary', () => playRandom(done.tier)],
+          [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
+        ],
+      });
+      return;
+    }
     const level = levels[index];
     store.recordStars(meta.id, level.id, stars);
     refresh();
@@ -134,10 +201,16 @@ export function createBubbels(shell) {
     shell.showOverlay({
       title: t('bubbels.loseTitle'),
       text: t('bubbels.loseText'),
-      buttons: [
-        [t('bubbels.again'), 'big primary', () => play(index)],
-        [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
-      ],
+      buttons: random
+        ? [
+            [t('random.same'), 'big primary', replay],
+            [t('random.new'), 'big secondary', () => playRandom(random.tier)],
+            [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
+          ]
+        : [
+            [t('bubbels.again'), 'big primary', replay],
+            [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
+          ],
     });
   }
 
@@ -148,7 +221,7 @@ export function createBubbels(shell) {
       title: t('bubbels.pause'),
       buttons: [
         [t('bubbels.resume'), 'big primary', resume],
-        [t('bubbels.restart'), 'big secondary', () => play(index)],
+        [t('bubbels.restart'), 'big secondary', replay],
         [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
       ],
     });
@@ -216,6 +289,9 @@ export function createBubbels(shell) {
         state: () => ({ ...game.snapshot(), loop: game.running }),
         fire: (deg) => game.fire((deg * Math.PI) / 180),
         play: (i) => play(i),
+        playRandom: (key, seed) => playRandom(key, { seed }),
+        random: () => (random ? { id: random.id, tier: random.tier, rows: random.rows.slice() } : null),
+        randomSolved: () => store.loadRandomSolved(meta.id),
         locked: () => offer(),
         win: (stars = 3) => onWin({ stars, score: 100 }),
         setIndex: (i) => (index = i),

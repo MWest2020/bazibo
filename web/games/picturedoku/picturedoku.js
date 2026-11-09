@@ -10,6 +10,8 @@ import { pictureSvg, numberSvg } from './art.js';
 import * as input from './input.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
+import { makeRandom, newSeed, randomCard } from '../../js/random.js';
+import { RANDOM_TIERS } from './generate.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -54,6 +56,8 @@ export function createPicturedoku(shell) {
   let plays = 0; // counts boards opened, so a late win card never lands on a newer board
   const boards = new Map(); // unfinished boards of this session, so leaving a puzzle loses nothing
   let cells = [];
+  const randomKept = new Map(); // tier key -> this session's unfinished random puzzle
+  let randomBusy = false;
 
   const locked = (p) => !p.free && !shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -100,6 +104,19 @@ export function createPicturedoku(shell) {
       box.appendChild(head);
       const grid = document.createElement('div');
       grid.className = 'level-grid dogu-grid';
+      const tier = RANDOM_TIERS.find((x) => x.n === n);
+      if (tier) {
+        grid.appendChild(
+          randomCard({
+            t,
+            tap,
+            locked: !shell.unlock.owned,
+            solved: store.loadRandomSolved(meta.id)[tier.key] || 0,
+            onPlay: () => playRandom(tier.key),
+            onLocked: () => shell.offerUnlock(t('random.lead')),
+          }),
+        );
+      }
       for (const p of puzzles.filter((q) => q.n === n)) {
         const b = document.createElement('button');
         b.type = 'button';
@@ -147,6 +164,37 @@ export function createPicturedoku(shell) {
       offer();
       return;
     }
+    start(p);
+  }
+
+  /**
+   * A random puzzle of one size (full version only). The unfinished one of this session comes
+   * back first; `fresh` makes a new one, `seed` a given one (tests).
+   */
+  async function playRandom(key, { fresh = false, seed = null } = {}) {
+    if (!shell.unlock.owned) {
+      shell.offerUnlock(t('random.lead'));
+      return;
+    }
+    if (randomBusy) return;
+    const kept = !fresh && seed == null ? randomKept.get(key) : null;
+    if (kept) {
+      start(kept);
+      return;
+    }
+    randomBusy = true;
+    try {
+      const p = await makeRandom(shell, 'picturedoku', 'randomPuzzle', [key, seed ?? newSeed()]);
+      if (!p || !shell.unlock.owned) return;
+      p.random = key;
+      randomKept.set(key, p);
+      start(p);
+    } finally {
+      randomBusy = false;
+    }
+  }
+
+  function start(p) {
     keep();
     plays++;
     current = p;
@@ -472,7 +520,7 @@ export function createPicturedoku(shell) {
   // ---------- HUD and rules ----------
 
   function renderHud() {
-    $('#pdoku-title').textContent = t('pdoku.puzzle', { n: current.id });
+    $('#pdoku-title').textContent = current.random ? t('random.title') : t('pdoku.puzzle', { n: current.id });
     $('#pdoku-sub').textContent = t('pdoku.size', { n: current.n });
     renderNumbers();
     renderHint();
@@ -512,7 +560,11 @@ export function createPicturedoku(shell) {
     solved = true;
     boards.delete(current.id);
     const stars = starsFor(hintsUsed);
-    store.recordStars(meta.id, current.id, stars);
+    if (current.random) {
+      // random puzzles keep no stars per board, only how many were solved
+      store.recordRandomSolved(meta.id, current.random);
+      randomKept.delete(current.random);
+    } else store.recordStars(meta.id, current.id, stars);
     refresh();
     selected = -1;
     brush = 0;
@@ -529,6 +581,18 @@ export function createPicturedoku(shell) {
   }
 
   function showWinCard(done, stars) {
+    if (done.random) {
+      shell.showOverlay({
+        art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
+        title: t(`pdoku.win${stars}`),
+        text: `${t('pdoku.winText')} ${t('random.solved', { n: store.loadRandomSolved(meta.id)[done.random] || 1 })}`,
+        buttons: [
+          [t('random.new'), 'big primary', () => playRandom(done.random, { fresh: true })],
+          [t('pdoku.puzzles'), 'big secondary', () => shell.show('picturedoku-levels')],
+        ],
+      });
+      return;
+    }
     const nextAny = puzzles[puzzles.indexOf(done) + 1];
     const sameSize = nextAny && nextAny.n === done.n; // "Next" never jumps to a bigger board
     const buttons = [];
@@ -589,7 +653,9 @@ export function createPicturedoku(shell) {
     testHook() {
       return {
         play: (id) => play(id),
-        puzzle: () => (current ? { id: current.id, n: current.n, tier: current.tier, givens: current.givens, solution: current.solution } : null),
+        playRandom: (key, seed) => playRandom(key, { fresh: true, seed }),
+        randomSolved: () => store.loadRandomSolved(meta.id),
+        puzzle: () => (current ? { id: current.id, n: current.n, tier: current.tier, givens: current.givens, solution: current.solution, random: current.random || null } : null),
         state: () => ({ solved, hintsUsed, board: board.slice(), selected, brush, pencil, status: $('#pdoku-status').textContent }),
         hint: () => hint(),
         tapCell: (i) => tapCell(i),

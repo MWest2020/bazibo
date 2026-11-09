@@ -15,6 +15,7 @@ import { MODES, TIERS, OPPOSITE, tierOf, createRound, turn, step, expected, tota
 import { snakeSvg, modeSvg, wordPictureSvg, numberFruitSvg, colorFruitSvg, drawBoard, drawNumberFruit, drawLetterTile, drawColorFruit, drawHelpRing, drawSnake, ITEM_R, glyphSizes, FRUIT_COLORS } from './art.js';
 import { getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
+import { makeRandom, newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -43,6 +44,7 @@ export function createSlang(shell) {
   let clock = 0; // seconds of animation, for the little wobbles
   let plays = 0; // counts rounds started, so a late card never lands on a newer round
   let cardTimer = null;
+  let randomBusy = false;
   const fx = { flash: 0, squash: 0, shake: 0, parts: [] };
   let cell = 24;
   let dpr = 1;
@@ -127,6 +129,16 @@ export function createSlang(shell) {
         box.appendChild(age);
         const grid = document.createElement('div');
         grid.className = 'level-grid slang-grid';
+        grid.appendChild(
+          randomCard({
+            t,
+            tap,
+            locked: !shell.unlock.owned,
+            solved: store.loadRandomSolved(meta.id)[`${mode}-${tier}`] || 0,
+            onPlay: () => playRandom(mode, tier),
+            onLocked: () => shell.offerUnlock(t('random.lead')),
+          }),
+        );
         for (const level of group) {
           const b = document.createElement('button');
           b.type = 'button';
@@ -171,6 +183,29 @@ export function createSlang(shell) {
       offer();
       return;
     }
+    begin(level);
+  }
+
+  /** A random round of one kind and age tier (full version only). */
+  async function playRandom(mode, tier, { seed = null } = {}) {
+    if (!shell.unlock.owned) {
+      shell.offerUnlock(t('random.lead'));
+      return;
+    }
+    if (randomBusy) return;
+    randomBusy = true;
+    let level = null;
+    try {
+      level = await makeRandom(shell, 'slang', 'randomLevel', [mode, tier, seed ?? newSeed()]);
+    } finally {
+      randomBusy = false;
+    }
+    if (!level || !shell.unlock.owned) return;
+    level.random = `${mode}-${tier}`;
+    begin(level);
+  }
+
+  function begin(level) {
     plays++;
     cancelCard();
     paused = false;
@@ -232,7 +267,7 @@ export function createSlang(shell) {
   function renderHud() {
     const { level } = game;
     $('#slang-sub').textContent = t(`slang.mode.${level.mode}`);
-    $('#slang-title').textContent = t('slang.level', { n: level.id });
+    $('#slang-title').textContent = level.random ? t('random.title') : t('slang.level', { n: level.id });
   }
 
   /** The "eat this" panel above the board. */
@@ -334,7 +369,8 @@ export function createSlang(shell) {
     const { level, state: s } = game;
     const seconds = s.steps / level.speed; // the snake's own time, pauses not counted
     const n = starsFor({ tier: level.tier, mistakes: s.mistakes, seconds, par: parSeconds(level, s.cols, s.rows) });
-    store.recordStars(meta.id, String(level.id), n);
+    if (level.random) store.recordRandomSolved(meta.id, level.random); // no stars per random board
+    else store.recordStars(meta.id, String(level.id), n);
     setStatus('');
     renderTarget();
     sfx.chime();
@@ -348,6 +384,18 @@ export function createSlang(shell) {
   }
 
   function showWinCard(level, n) {
+    if (level.random) {
+      shell.showOverlay({
+        art: [0, 1, 2].map((k) => `<svg class="star ${k < n ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
+        title: t(`slang.win${n}`),
+        text: `${t('slang.winText')} ${t('random.solved', { n: store.loadRandomSolved(meta.id)[level.random] || 1 })}`,
+        buttons: [
+          [t('random.new'), 'big primary', () => (shell.hideOverlay(), playRandom(level.mode, level.tier))],
+          [t('slang.levels'), 'big secondary', () => shell.show('slang-menu')],
+        ],
+      });
+      return;
+    }
     const ofMode = levels.filter((l) => l.mode === level.mode);
     const next = ofMode[ofMode.indexOf(level) + 1]; // "Next" stays with the same kind of round
     const buttons = [];
@@ -381,10 +429,16 @@ export function createSlang(shell) {
         art: `<span class="slang-ov">${snakeSvg()}</span>`,
         title: t('slang.crash'),
         text: t('slang.crashText'),
-        buttons: [
-          [t('slang.again'), 'big primary', () => (shell.hideOverlay(), start(level.id))],
-          [t('slang.menuBtn'), 'big secondary', () => shell.show('slang-menu')],
-        ],
+        buttons: level.random
+          ? [
+              [t('random.same'), 'big primary', () => (shell.hideOverlay(), begin(level))],
+              [t('random.new'), 'big secondary', () => (shell.hideOverlay(), playRandom(level.mode, level.tier))],
+              [t('slang.menuBtn'), 'big secondary', () => shell.show('slang-menu')],
+            ]
+          : [
+              [t('slang.again'), 'big primary', () => (shell.hideOverlay(), start(level.id))],
+              [t('slang.menuBtn'), 'big secondary', () => shell.show('slang-menu')],
+            ],
       });
     }, 800);
   }
@@ -704,6 +758,8 @@ export function createSlang(shell) {
       };
       return {
         start: (id) => start(id),
+        playRandom: (mode, tier, seed) => playRandom(mode, tier, { seed }),
+        randomSolved: () => store.loadRandomSolved(meta.id),
         manual: (on) => {
           manual = !!on;
           if (!manual) startLoop();

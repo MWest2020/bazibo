@@ -75,7 +75,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, en bij Slangetje 10 van de 30 levels, van elke soort een paar. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, en bij Slangetje 10 van de 30 levels, van elke soort een paar. Moeilijk tegen de computer hoort bij de volledige versie. Eén keer betalen opent alles, in alle spellen, ook de spellen die er later bij komen, plus eindeloos nieuwe puzzels in de volledige versie: per moeilijkheid een willekeurig level, steeds anders. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/privacy/
 Broncode (MIT): https://github.com/MWest2020/bazibo
