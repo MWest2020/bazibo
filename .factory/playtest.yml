@@ -1,0 +1,9 @@
+# Playtester config (habitat add-playtester-role). Dry run branch only.
+paths: [web/**]
+serve_dir: web
+viewports: [390x844, 1280x800]
+checks: |
+  Open the home screen. Open "Bubbels schieten" and its level list.
+  Open Dogudoku and its first puzzle, and tap a square to place a puppy.
+  Open /en/privacy/. Everything must be readable at both sizes, with no
+  console errors and no requests to other hosts.
