@@ -1,0 +1,126 @@
+/* Letters: big letter tiles, a picture, slots for building a word. The menu reuses Klok kijken's
+   menu cards and round grid (klok.css). */
+#letters-replay svg { width: 30px; height: 30px; color: var(--primary-dark); }
+.letters-case { font: 900 1.15rem/1 var(--font); color: var(--primary-dark); }
+.letters-case[aria-pressed="true"] { background: var(--primary-light); }
+
+#letters-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px 14px;
+}
+.letters-muted {
+  width: min(100%, 520px);
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff4d6;
+  color: #7a4b00;
+  font-weight: 800;
+  text-align: center;
+}
+.letters-prompt { margin: 0; text-align: center; font-size: clamp(1.05rem, 4.6vw, 1.3rem); font-weight: 900; color: var(--primary); text-wrap: balance; }
+.letters-picbox {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(60vw, 230px);
+  aspect-ratio: 1;
+  padding: 10px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 5px 0 #d6cff7;
+}
+.letters-picbox svg { width: 100%; height: 100%; display: block; }
+#letters-stage.happy .letters-picbox { animation: klok-hop 0.5s ease-out; }
+
+.letters-slots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.letters-slot {
+  width: clamp(48px, 15vw, 64px);
+  height: clamp(56px, 17vw, 74px);
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 3px dashed #c9c0f2;
+  background: rgba(255, 255, 255, 0.6);
+  font: 900 clamp(2rem, 9vw, 2.6rem)/1 var(--font);
+  color: var(--ink);
+}
+.letters-slot.next { border-color: var(--primary); border-style: solid; }
+.letters-slot.filled { border-style: solid; border-color: #9be15d; background: #eaffdc; }
+.letters-slots.done .letters-slot { animation: klok-hop 0.5s ease-out; }
+
+.letters-options { width: min(100%, 520px); display: grid; gap: 12px; justify-content: center; }
+.letters-options.n3 { grid-template-columns: repeat(3, minmax(0, 104px)); }
+.letters-options.n4 { grid-template-columns: repeat(4, minmax(0, 104px)); }
+.letters-options.n5, .letters-options.n6 { grid-template-columns: repeat(3, minmax(0, 96px)); }
+.letters-tile {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 22px;
+  background: #fff;
+  color: var(--ink);
+  font: 900 clamp(2.3rem, 11vw, 3.4rem)/1 var(--font);
+  box-shadow: 0 5px 0 #c9c0f2;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.letters-tile:nth-child(6n + 1) { background: #fff3c4; }
+.letters-tile:nth-child(6n + 2) { background: #dcf2ff; }
+.letters-tile:nth-child(6n + 3) { background: #ffe1ef; }
+.letters-tile:nth-child(6n + 4) { background: #e2f8d6; }
+.letters-tile:nth-child(6n + 5) { background: #ffe6d2; }
+.letters-tile:nth-child(6n) { background: #ece8ff; }
+.letters-tile:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c0f2; }
+.letters-tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.letters-tile.right { background: #9be15d; box-shadow: 0 5px 0 #5aa82e; }
+.letters-tile.wrong { animation: letters-shake 0.4s; opacity: 0.55; }
+.letters-tile.used { visibility: hidden; }
+@keyframes letters-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .letters-tile.wrong, #letters-stage.happy .letters-picbox, .letters-slots.done .letters-slot { animation: none; }
+}
+@media (max-width: 360px) {
+  .letters-options { gap: 9px; }
+  .letters-options.n4 { grid-template-columns: repeat(2, minmax(0, 96px)); }
+}
+
+/* sideways phones: the picture on the left, everything else on the right */
+@media (orientation: landscape) and (max-height: 560px) {
+  #screen-letters { flex-direction: row; }
+  #letters-stage {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "muted muted" "pic prompt" "pic slots" "pic options" "pic dots" "pic status";
+    grid-template-rows: auto auto auto 1fr auto auto;
+    align-items: center;
+    justify-items: center;
+    gap: 6px 16px;
+    padding: 6px 12px;
+  }
+  #screen-letters[data-mode="tap"] #letters-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "muted" "prompt" "slots" "options" "dots" "status"; }
+  .letters-muted { grid-area: muted; }
+  .letters-prompt { grid-area: prompt; font-size: 1rem; }
+  .letters-picbox { grid-area: pic; width: auto; height: min(calc(100vh - 24px), 38vw); max-height: calc(100vh - 24px); }
+  .letters-slots { grid-area: slots; }
+  .letters-options { grid-area: options; }
+  #letters-dots { grid-area: dots; }
+  #letters-status { grid-area: status; min-height: 1.2em; }
+  .letters-tile { font-size: clamp(1.8rem, 9vh, 2.6rem); }
+  .letters-options.n3, .letters-options.n4 { grid-template-columns: repeat(var(--cols, 4), minmax(0, min(74px, 18vh))); }
+  .letters-options.n3 { --cols: 3; }
+  .letters-options.n5, .letters-options.n6 { grid-template-columns: repeat(6, minmax(0, min(66px, 16vh))); }
+  .letters-slot { width: min(52px, 13vh); height: min(60px, 15vh); font-size: min(2.2rem, 10vh); }
+}

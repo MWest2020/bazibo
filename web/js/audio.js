@@ -1,4 +1,6 @@
-// All sounds are synthesised with the Web Audio API: no sound files, no downloads.
+// All sound effects are synthesised with the Web Audio API: no sound files for them. The only
+// recorded sound is Letters' read-aloud voice (web/games/letters/voice/, made offline with Piper),
+// played through the same bus via output().
 // The context is created on the first touch/click (browsers require a user gesture).
 
 let ac = null;
@@ -43,6 +45,11 @@ export function unlock() {
 }
 
 const on = () => ac && !muted;
+
+/** The context and the sound bus, for recorded clips (Letters' voice). Null before the first touch. */
+export function output() {
+  return ac && master ? { ac, master } : null;
+}
 
 /** tanh over the shaper's [-1, 1] input, which `pre` maps from [-3, 3]. */
 export function softClipCurve(n = 2048) {

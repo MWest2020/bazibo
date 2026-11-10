@@ -12,6 +12,7 @@ import '../web/games/kleuren/strings.js';
 import { PICTURES } from '../web/games/kleuren/pictures.js';
 import { PALETTE } from '../web/games/kleuren/art.js';
 import '../web/games/klok/strings.js';
+import '../web/games/letters/strings.js';
 import '../web/js/random.js';
 import { GAMES } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';

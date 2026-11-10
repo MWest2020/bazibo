@@ -21,15 +21,15 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten en Klok kijken: spelen en leren voor 3 tot 10 jaar, zonder reclame.
+Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten, Klok kijken en Letters: spelen en leren, 3 tot 10 jaar.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
-bubble shooter,sudoku,vier op een rij,slang,tellen,kleurplaat,mandala,klok kijken,kinderen
+bubble shooter,sudoku,vier op een rij,slang,tellen,letters,kleurplaat,mandala,klok kijken
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu zeven spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten en Klok kijken. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu acht spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten, Klok kijken en Letters. Er komen meer spellen bij.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -40,10 +40,9 @@ BUBBELS SCHIETEN
 • 30 levels.
 
 DOGUDOKU: VERSTOP DE HONDJES
-• Een logische puzzel: zet in elke rij en elke kolom één hondje, en hondjes mogen elkaar niet raken, ook niet schuin.
+• Eén hondje per rij en kolom, en hondjes raken elkaar niet, ook niet schuin.
 • Voor de kleinsten (vanaf 3 jaar): een tuintje van 4 bij 4 met struiken, zonder lezen.
 • Vanaf 5 jaar komen er kleurvakken bij: één hondje per kleur.
-• Vanaf 7 jaar grotere tuinen, tot 8 bij 8.
 • 60 puzzels, elk met één oplossing. Een hint helpt verder.
 
 PICTUREDOKU: SUDOKU MET PLAATJES
@@ -53,12 +52,11 @@ PICTUREDOKU: SUDOKU MET PLAATJES
 • 60 puzzels, elk met één oplossing, zonder gokken op te lossen.
 
 VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
-• Laat om de beurt een fiche in een kolom vallen. Wie als eerste vier op een rij heeft (recht of schuin), wint.
+• Laat om de beurt een fiche vallen: wie eerst vier op een rij heeft, wint.
 • Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk. Op Makkelijk maakt de computer expres foutjes.
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
-• Stuur een vrolijke slang met vegen of grote pijlen.
 • Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
 • Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
 • Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
@@ -69,13 +67,17 @@ KLEURPLATEN EN MANDALA'S
 • Kies een kleur en tik op een vlak: klaar. Zonder lezen.
 • Voor de kleinsten (vanaf 3 jaar): 13 kleurplaten, van een zon en een huis tot een raket en een olifant.
 • Vanaf 7 jaar: mandala's, met een knop die alle kopieën tegelijk kleurt.
-• Elke kleurplaat wordt bewaard bij Mijn kleurplaten.
 
 KLOK KIJKEN
 • Zet de klok: draai de wijzers naar "half drie" of "kwart voor vier".
 • Hoe laat is het? Kies de goede tijd bij de klok.
-• Dagritme voor de kleinsten: hoe laat ontbijt je, hoe laat ga je naar bed?
+• Dagritme voor de kleinsten: ontbijt, school, bedtijd.
 • Van hele uren tot losse minuten en de 24-uursklok. Bij een fout legt de klok uit waar de wijzers staan.
+
+LETTERS MET EEN VOORLEESSTEM
+• Een stem zegt een letter of een woord; je kind tikt de goede letter. Zonder lezen.
+• Tik de letter, Beginletter en Woordje maken; kleine letters of hoofdletters.
+• De stem is vooraf lokaal gemaakt en zit in de app.
 
 GEMAAKT VOOR KINDEREN
 • Kleuren met elk een eigen symbool of patroon, zodat ook kleurenblinde kinderen kunnen meespelen.
@@ -85,7 +87,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, bij Slangetje 10 van de 30 levels, bij Kleurplaten 6 kleurplaten en 3 mandala's, en bij Klok kijken de hele en halve uren en het dagritme. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, bij Slangetje 10 van de 30 levels, bij Kleurplaten 6 kleurplaten en 3 mandala's, bij Klok kijken de hele en halve uren en het dagritme, en bij Letters de eerste letters. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

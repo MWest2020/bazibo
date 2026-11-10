@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
   <link rel="stylesheet" href="games/klok/klok.css">
+  <link rel="stylesheet" href="games/letters/letters.css">
 </head>
 <body>
   <main id="app">
@@ -65,6 +66,10 @@
           <button id="tile-klok" class="tile" type="button" data-game="klok">
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.klok">Klok kijken</span>
+          </button>
+          <button id="tile-letters" class="tile" type="button" data-game="letters">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.letters">Letters</span>
           </button>
         </div>
         <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
@@ -424,6 +429,42 @@
           <div id="klok-dots" class="klok-dots" role="img"></div>
           <p id="klok-status" class="klok-status" aria-live="polite"></p>
         </div>
+      </div>
+    </section>
+
+    <!-- Letters: choose a round (tap the letter, first letter, build a word) -->
+    <section id="screen-letters-menu" class="screen" data-i18n-aria="games.letters" aria-label="Letters">
+      <header class="bar">
+        <button id="letters-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 id="letters-menu-title">Letters</h2>
+        <span class="bar-spacer"></span>
+        <button id="letters-case" class="btn icon letters-case" type="button" aria-pressed="false" aria-label="Kleine letters">aA</button>
+      </header>
+      <div class="levels-scroll"><div id="letters-menu" class="klok-menu"></div></div>
+    </section>
+
+    <!-- Letters: one question at a time, spoken -->
+    <section id="screen-letters" class="screen" data-i18n-aria="games.letters" aria-label="Letters">
+      <header class="bar dogu-hud klok-hud">
+        <button id="letters-back" class="btn icon" type="button" data-i18n-aria="letters.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="letters-sub" class="hud-level"></div>
+          <div id="letters-title" class="dogu-title"></div>
+        </div>
+        <button id="letters-replay" class="btn icon" type="button" data-i18n-aria="letters.replay" aria-label="Nog eens horen"></button>
+      </header>
+      <div id="letters-stage">
+        <p id="letters-muted" class="letters-muted" hidden></p>
+        <p id="letters-prompt" class="letters-prompt"></p>
+        <div id="letters-pic" class="letters-picbox" role="img" hidden></div>
+        <div id="letters-slots" class="letters-slots" role="group" data-i18n-aria="letters.slots" aria-label="Het woord" hidden></div>
+        <div id="letters-options" class="letters-options" role="group" data-i18n-aria="letters.options" aria-label="Kies een letter"></div>
+        <div id="letters-dots" class="klok-dots" role="img"></div>
+        <p id="letters-status" class="klok-status" aria-live="polite"></p>
       </div>
     </section>
 

@@ -6,8 +6,9 @@ wrapped with Capacitor as an Android and an iOS app. The games: the bubble shoot
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
 sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer) and
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
-Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children) and Klok
-kijken ("Telling Time", read and set an analogue clock); more
+Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
+kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by ear,
+with a read-aloud voice); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
@@ -200,6 +201,34 @@ blue minute hand that are easy to tell apart.
   24-hour clock, and random practice per tier, are in the full version (`meta.js`).
 - Saved under `games.klok`: stars per round, random rounds done per mode and tier, and which
   how-to cards were seen. A round in progress is kept while the app stays open ("keep playing").
+
+### Letters
+
+Learn the letters by ear, in `web/games/letters/` (ages 4-7; the rounds in `round.js` and the
+words in `words.js`, pure and tested; the pictures in `art.js`, which colours in the Kleurplaten
+drawings and reuses the Picturedoku fruit; the voice in `voice.js`; the screens in `letters.js`).
+Everything that matters is spoken, so a child who cannot read yet can play.
+
+- Three kinds of round: **Tik de letter / Tap the letter** (hear a letter, tap it among 3-6 big
+  tiles), **Beginletter / First letter** (a picture and its spoken word, tap the letter it starts
+  with) and **Woordje maken / Build a word** (hear a word, tap its letters in order).
+- Three tiers: the first letters (a i o m s k), more letters, the whole alphabet. Lowercase by
+  default, as Dutch schools start; the "aA" button in the menu bar switches to capitals.
+- A wrong tap is gentle: the voice says "Probeer het nog eens" and repeats the question; after two
+  wrong tries the right letter is shown and said (building: the next letter goes in by itself).
+  Stars by mistakes per question (counted once).
+- **The voice** is recorded, not generated on the phone: `tools/make_voice.py` makes every clip once
+  with Piper, offline (Dutch nl_NL-alex, dataset CC0; English en_GB-cori, dataset CC BY 4.0; see
+  CREDITS.md), trims and levels it and writes small MP3s (about 140 KiB per language) plus
+  `voice/manifest.json`. The clips play through the app's own sound bus, so the sound setting
+  mutes them; with sound off the game says so. They are in the offline cache like every file.
+  Regenerate after changing the words or phrases: `uv run --no-project --with piper-tts==1.8.0
+  --with numpy --with lameenc==1.8.1 python tools/make_voice.py` (the English model is pinned by
+  sha256 in `tools/voice-pins.json`).
+- Free: every round of the first tier, in all three kinds. The other tiers and random practice are
+  in the full version (`meta.js`).
+- Saved under `games.letters`: stars per round, random rounds done, how-to cards seen, the last
+  tier per kind and the capitals option.
 
 ### Bubbels schieten
 
