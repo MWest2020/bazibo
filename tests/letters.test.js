@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf } from '../web/games/letters/words.js';
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf, confusable } from '../web/games/letters/words.js';
 import { MODES, TIER_IDS, ROUND_LEN, OPTIONS, EXTRA_TILES, makeRound, starsFor, nextLetterOk, hashSeed } from '../web/games/letters/round.js';
 import { PICTURE_IDS, wordPictureSvg } from '../web/games/letters/art.js';
 import { meta } from '../web/games/letters/meta.js';
@@ -62,6 +62,7 @@ test('rounds: the answer is always there, the choices differ, the same seed give
             if (mode === 'build') {
               assert.equal(q.tiles.length, q.word.length + EXTRA_TILES[tier]);
               for (const l of q.word) assert.ok(q.tiles.includes(l));
+              for (const x of q.tiles.filter((l) => !q.word.includes(l))) for (const l of q.word) assert.ok(!confusable(lang, l).includes(x), `${lang} build ${q.word}: extra ${x} sounds like ${l}`);
               assert.ok(BUILD[lang][tier].includes(q.word));
             } else {
               assert.equal(q.options.length, OPTIONS[tier]);
@@ -96,4 +97,25 @@ test('stars and the free part', () => {
     assert.equal(meta.isLocked({ mode, tier: 't2' }, false), true);
     assert.equal(meta.isLocked({ mode, tier: 't3' }, true), false);
   }
+});
+
+test('choices never pair letters that sound alike, and tier 1 stays within its letters', () => {
+  for (const lang of ['nl', 'en']) {
+    for (const mode of ['tap', 'first']) {
+      for (const tier of TIER_IDS) {
+        for (let s = 0; s < 200; s++) {
+          for (const q of makeRound({ mode, tier, lang, seed: hashSeed(`c${lang}${mode}${tier}${s}`) })) {
+            const answer = mode === 'tap' ? q.letter : q.word[0];
+            for (const o of q.options) {
+              if (o !== answer) assert.ok(!confusable(lang, answer).includes(o), `${lang} ${mode} ${tier}: ${answer} next to ${o}`);
+            }
+            if (mode === 'first' && tier === 't1') {
+              for (const o of q.options) assert.ok(o === answer || LETTER_SETS.t1.includes(o), `${lang} t1 first: ${o} is not a tier-1 letter`);
+            }
+          }
+        }
+      }
+    }
+  }
+  assert.ok(!firstWords('nl', 't3').some(([w]) => w === 'auto'), '"auto" does not start with the a sound');
 });

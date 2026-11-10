@@ -14,7 +14,8 @@ evidence, in the same PR).
   native additions are Capacitor, `@capacitor/preferences`, `@capacitor/app` (back button) and
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
-  Only CC0, MIT, BSD or Apache-2.0 assets.
+  Only CC0, MIT, BSD, Apache-2.0, or CC BY 4.0 with attribution shown in the app and on bazibo.nl
+  (the privacy pages' voice section; issue #22).
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
   `web/games/<id>/strings.js`) in Dutch and English; `npm test` fails on a missing key. Short and
   friendly. Big touch targets. Brand name and tagline only in `web/js/brand.js`.

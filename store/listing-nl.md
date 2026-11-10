@@ -35,32 +35,29 @@ De naam komt van "bāzi", het Perzische woord voor spel.
 
 BUBBELS SCHIETEN
 • Sleep om te mikken en laat los om te schieten.
-• Een stippellijn laat zien waar de bubbel landt, ook via de muur.
 • Drie of meer van dezelfde kleur knallen kapot, met een echt plopgeluid.
 • 30 levels.
 
 DOGUDOKU: VERSTOP DE HONDJES
 • Eén hondje per rij en kolom, en hondjes raken elkaar niet, ook niet schuin.
-• Voor de kleinsten (vanaf 3 jaar): een tuintje van 4 bij 4 met struiken, zonder lezen.
-• Vanaf 5 jaar komen er kleurvakken bij: één hondje per kleur.
+• Van een tuintje van 4 bij 4 voor de kleinsten tot kleurvakken vanaf 5 jaar.
 • 60 puzzels, elk met één oplossing. Een hint helpt verder.
 
 PICTUREDOKU: SUDOKU MET PLAATJES
-• Elk plaatje komt één keer in elke rij, elke kolom en elk vak.
 • Voor de kleinsten (vanaf 3 jaar): 4 bij 4 met appel, banaan, druiven en wortel, zonder cijfers en zonder lezen.
-• Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9; oudere kinderen kunnen cijfers kiezen in plaats van plaatjes.
+• Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9, ook met cijfers.
 • 60 puzzels, elk met één oplossing, zonder gokken op te lossen.
 
 VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Laat om de beurt een fiche vallen: wie eerst vier op een rij heeft, wint.
-• Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk. Op Makkelijk maakt de computer expres foutjes.
+• Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk.
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
 • Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
 • Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
 • Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
-• Een fout is nooit game over. Voor de kleinsten gaat de slang langzaam en kan hij nergens tegenaan botsen.
+• Een fout is nooit game over.
 • 30 levels.
 
 KLEURPLATEN EN MANDALA'S

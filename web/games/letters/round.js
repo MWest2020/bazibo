@@ -2,7 +2,7 @@
 //   tap    hear a letter, tap it among 3-6 tiles
 //   first  see a picture and hear its word, tap the letter it starts with
 //   build  hear a word, put its letters in order
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords } from './words.js';
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, confusable } from './words.js';
 
 export const MODES = Object.freeze(['tap', 'first', 'build']);
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
@@ -71,21 +71,24 @@ export function makeRound({ mode, tier, lang = 'nl', seed }) {
     const set = LETTER_SETS[tier];
     return sequence(set, n, rand).map((letter) => ({
       letter,
-      options: shuffle([letter, ...pick(set.length > OPTIONS[tier] ? set : ALPHABET, OPTIONS[tier] - 1, [letter], rand)], rand),
+      options: shuffle([letter, ...pick(set.length > OPTIONS[tier] ? set : ALPHABET, OPTIONS[tier] - 1, [letter, ...confusable(lang, letter)], rand)], rand),
     }));
   }
   if (mode === 'first') {
     const words = firstWords(lang, tier).map(([w]) => w);
     return sequence(words, n, rand).map((word) => {
       const letter = word[0];
-      const pool = tier === 't3' ? ALPHABET : LETTER_SETS.t2.concat(words.map((w) => w[0]));
+      // tier 1: only the tier-1 letters around the answer; tier 2: the tier-2 letters and the
+      // first letters of its words; tier 3: the alphabet. Never a letter that sounds the same.
+      const pool = tier === 't3' ? ALPHABET : tier === 't1' ? LETTER_SETS.t1 : LETTER_SETS.t2.concat(words.map((w) => w[0]));
       const uniq = [...new Set(pool)];
-      return { word, letter, options: shuffle([letter, ...pick(uniq, OPTIONS[tier] - 1, [letter], rand)], rand) };
+      return { word, letter, options: shuffle([letter, ...pick(uniq, OPTIONS[tier] - 1, [letter, ...confusable(lang, letter)], rand)], rand) };
     });
   }
   const words = (BUILD[lang] || BUILD.nl)[tier];
   return sequence(words, n, rand).map((word) => {
-    const extra = pick(ALPHABET, EXTRA_TILES[tier], word.split(''), rand);
+    const letters = word.split('');
+    const extra = pick(ALPHABET, EXTRA_TILES[tier], [...letters, ...letters.flatMap((l) => confusable(lang, l))], rand);
     return { word, tiles: shuffle([...word.split(''), ...extra], rand) };
   });
 }

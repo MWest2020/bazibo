@@ -23,7 +23,7 @@ import * as sfx from '../../js/audio.js';
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
-const EAR = '<path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M10 9.5a2 2 0 0 1 4 0c0 1.5-1.5 2-1.5 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>';
+const SPEAKER = '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
 const AGES = Object.freeze({ t1: '4-5', t2: '5-6', t3: '6-7' });
 const MAX_TRIES = 2; // wrong taps on one question before the right letter is shown
 
@@ -289,9 +289,18 @@ export function createLetters(shell) {
   function speakQuestion() {
     if (!game || game.done) return;
     voice.say(game.lang, questionKeys());
+    // load the rest of this round's clips meanwhile, so the next questions speak without a pause
+    if (game.i === 0) {
+      const keys = new Set(['p-good', 'p-again', 'p-thisIs', 'p-done']);
+      for (const it of game.qs) {
+        if (it.letter) keys.add(`l-${it.letter}`);
+        if (it.word) keys.add(`w-${it.word}`);
+      }
+      voice.warm(game.lang, [...keys]);
+    }
   }
 
-  $('#letters-replay').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${EAR}</svg>`;
+  $('#letters-replay').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${SPEAKER}</svg>`;
   $('#letters-replay').addEventListener('click', () => {
     if (!game || game.done || overlayUp()) return;
     sfx.unlock();
@@ -426,6 +435,7 @@ export function createLetters(shell) {
     const letter = it.tiles[k];
     if (nextLetterOk(it.word, game.placed, letter)) {
       game.placed.push(letter);
+      game.tries = 0; // two wrong tries count per letter, not per word
       sfx.plink(0.7 + game.placed.length * 0.1);
       renderSlots();
       renderOptions();

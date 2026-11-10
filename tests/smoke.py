@@ -1798,6 +1798,32 @@ def letters_play(browser, base, problems):
         if errors:
             problems.append(f"letters {w}x{h} {lang}: page errors {errors[:2]}")
         ctx.close()
+    # tier 3 sideways (full version): six tiles in 3x2, each at least 44 px, nothing off screen
+    for w, h in ((568, 320), (640, 360)):
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.click("#tile-letters")
+        for mode in ("tap", "first", "build"):
+            page.evaluate(f"window.__bubbels.letters.start('{mode}-t3-1')")
+            page.wait_for_timeout(250)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(200)
+            boxes = page.evaluate("[...document.querySelectorAll('#letters-options .letters-tile')].map((b) => { const r = b.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })")
+            for x, y, bw, bh in boxes:
+                if min(bw, bh) < 44 or x < -0.5 or y < -0.5 or x + bw > w + 0.5 or y + bh > h + 0.5:
+                    problems.append(f"letters t3 {w}x{h} {mode}: tile {round(bw)}x{round(bh)} at {round(x)},{round(y)}")
+                    break
+            for sel in ("#letters-pic", "#letters-slots") if mode != "tap" else ():
+                r = page.locator(sel).bounding_box()
+                if r and (r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5):
+                    problems.append(f"letters t3 {w}x{h} {mode}: {sel} off screen ({r})")
+            page.screenshot(path=str(SHOTS / f"letters-t3-{w}x{h}-{mode}.png"))
+        ctx.close()
 
 
 def main():

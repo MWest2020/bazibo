@@ -20,6 +20,8 @@ export function isMuted() {
 
 export function unlock() {
   try {
+    // iOS (16.4+): play as media, so the ringer switch does not silence the Letters voice
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
     if (!ac) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
@@ -38,7 +40,8 @@ export function unlock() {
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ac.state === 'suspended') ac.resume();
+    // WebKit also has 'interrupted' (a call, Siri): resume from anything that is not running
+    if (ac.state !== 'running') ac.resume().catch?.(() => {});
   } catch {
     ac = null;
   }

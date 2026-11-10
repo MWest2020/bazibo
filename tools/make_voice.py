@@ -53,11 +53,11 @@ LETTERS = {
     "nl": {
         "a": "aa", "b": "bee", "c": "cee", "d": "dee", "e": "ee", "f": "ef", "g": "gee", "h": "haa",
         "i": "ie", "j": "jee", "k": "kaa", "l": "el", "m": "em", "n": "en", "o": "oo", "p": "pee",
-        "q": "kuu", "r": "er", "s": "es", "t": "tee", "u": "uu", "v": "vee", "w": "wee", "x": "iks",
+        "q": "kuu", "r": "èr", "s": "es", "t": "tee", "u": "uu", "v": "vee", "w": "wee", "x": "iks",
         "y": "ie-grek", "z": "zet",
     },
     "en": {
-        "a": "ay", "b": "bee", "c": "see", "d": "dee", "e": "ee", "f": "eff", "g": "jee", "h": "aitch",
+        "a": "A", "b": "bee", "c": "see", "d": "dee", "e": "ee", "f": "ef", "g": "jee", "h": "aitch",
         "i": "eye", "j": "jay", "k": "kay", "l": "ell", "m": "em", "n": "en", "o": "oh", "p": "pee",
         "q": "cue", "r": "are", "s": "ess", "t": "tee", "u": "you", "v": "vee", "w": "double you",
         "x": "ex", "y": "why", "z": "zed",
@@ -68,7 +68,7 @@ LETTERS = {
 WORDS = {
     "nl": ["zon", "huis", "vis", "bloem", "hond", "auto", "kat", "vogel", "boot", "schildpad",
            "olifant", "raket", "appel", "banaan", "druiven", "wortel", "peer", "paddenstoel", "bal"],
-    "en": ["sun", "house", "fish", "flower", "dog", "car", "cat", "bird", "boat", "turtle",
+    "en": ["sun", "house", "fish", "flower", "dog", "car", "cat", "bird", "boat", "tortoise",
            "elephant", "rocket", "apple", "banana", "grapes", "carrot", "pear", "mushroom", "ball"],
 }
 
@@ -85,7 +85,7 @@ PHRASES = {
     "en": {
         "find": "Find the letter",
         "first": "Which letter does this word start with?",
-        "build": "Make the word",
+        "build": "Build the word",
         "good": "Well done!",
         "again": "Try again.",
         "thisIs": "This is the letter",
@@ -186,8 +186,11 @@ def main():
                 os.remove(os.path.join(d, old))
         manifest[lang] = {}
         total = 0
+        # letter names are one short syllable: said a little slower and as a sentence ("A."), or
+        # Piper clips them to a blip (English "A" alone came out at about 0.1 s)
+        slow = SynthesisConfig(length_scale=VOICES[lang]["length_scale"] * 1.2)
         for key, text in items.items():
-            x = clean(say(voice, cfg, text))
+            x = clean(say(voice, slow, text + ".") if key.startswith("l-") else say(voice, cfg, text))
             data = mp3(x)
             with open(os.path.join(d, f"{key}.mp3"), "wb") as f:
                 f.write(data)

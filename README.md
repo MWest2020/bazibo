@@ -214,6 +214,12 @@ Everything that matters is spoken, so a child who cannot read yet can play.
   with) and **Woordje maken / Build a word** (hear a word, tap its letters in order).
 - Three tiers: the first letters (a i o m s k), more letters, the whole alphabet. Lowercase by
   default, as Dutch schools start; the "aA" button in the menu bar switches to capitals.
+- The voice says letter **names** ("bee", "kaa"), not letter sounds ("buh"); many schools teach the
+  sounds first. That is the default of issue #23 until Mark decides; switching means new clips and
+  a test change, the game itself stays the same.
+- Choices never put letters that sound alike next to each other at the start of a word (`CONFUSABLE`
+  in `words.js`: English c/k/s, Dutch k/c/q, v/f, z/s). b, d and p do appear together from tier 2 on,
+  on purpose: telling those mirrored shapes apart is part of learning them.
 - A wrong tap is gentle: the voice says "Probeer het nog eens" and repeats the question; after two
   wrong tries the right letter is shown and said (building: the next letter goes in by itself).
   Stars by mistakes per question (counted once).
