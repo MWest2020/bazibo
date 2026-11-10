@@ -202,36 +202,24 @@ def shoot(browser, base, name, viewport, dpr, lang):
     page.click("#klok-menu-back")
     page.wait_for_timeout(200)
 
-    # Slangetje: a counting round (two numbers eaten), a free level; the snake is stepped by the test hook so the shot is the same every time
-    page.click("#tile-slang")
+    # Letters: "first letter" with a picture, one right answer showing (Slangetje made way for it; the stores take 8 shots)
+    page.click("#tile-letters")
     page.wait_for_timeout(300)
-    for level, file, eaten, extra in ((4, "7-slang-count.png", 2, 2),):
-        page.evaluate(f"window.__seed({level}); window.__bubbels.slang.start({level})")
-        page.wait_for_timeout(300)
-        if page.is_visible("#overlay"):
-            page.click("#ov-buttons button")
-        page.evaluate("window.__bubbels.slang.manual(true)")
-        moved = 0
-        for _ in range(400):
-            st = page.evaluate("window.__bubbels.slang.state()")
-            whole = all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(st["snake"], st["snake"][1:]))
-            if st["over"] or (st["idx"] >= eaten and moved >= extra and whole):  # not split over an edge
-                break
-            if st["idx"] >= eaten:
-                moved += 1
-            d = page.evaluate("window.__bubbels.slang.autopilot()")
-            if d:
-                page.evaluate(f"window.__bubbels.slang.steer('{d}')")
-            page.evaluate("window.__bubbels.slang.advance(1)")
-        page.wait_for_timeout(300)
-        shots.append(out / file)
-        page.screenshot(path=str(shots[-1]))
-        page.evaluate("window.__bubbels.slang.manual(false)")
-        page.click("#slang-back")
-        page.wait_for_timeout(200)
-    # Kleurplaten: a free mandala, coloured ring by ring with the mirror on
-    page.evaluate("document.querySelector('#screen-slang-menu [data-go=home]').click()")
+    page.evaluate("window.__bubbels.letters.start('first-t1-1')")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.evaluate("document.querySelector('#letters-muted').hidden = true")  # the shots run muted; players with sound on never see this note
+    page.wait_for_timeout(300)
+    shots.append(out / "7-letters.png")
+    page.screenshot(path=str(shots[-1]))
+    page.click("#letters-back")
     page.wait_for_timeout(200)
+    page.click("#letters-menu-back")
+    page.wait_for_timeout(150)
+    page.click("#letters-menu-back")
+    page.wait_for_timeout(200)
+    # Kleurplaten: a free mandala, coloured ring by ring with the mirror on
     page.click("#tile-kleuren")
     page.wait_for_timeout(300)
     page.evaluate("""(() => {

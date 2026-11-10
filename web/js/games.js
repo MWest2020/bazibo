@@ -8,6 +8,7 @@ import { meta as vier } from '../games/vier/meta.js';
 import { meta as slang } from '../games/slang/meta.js';
 import { meta as kleuren } from '../games/kleuren/meta.js';
 import { meta as klok } from '../games/klok/meta.js';
+import { meta as letters } from '../games/letters/meta.js';
 
 export const GAMES = [
   { ...bubbels, status: 'ready' },
@@ -17,4 +18,5 @@ export const GAMES = [
   { ...slang, status: 'ready' },
   { ...kleuren, status: 'ready' },
   { ...klok, status: 'ready' },
+  { ...letters, status: 'ready' },
 ];

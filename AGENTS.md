@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, the learning snake `slang`, colouring pages and mandalas `kleuren`, telling time `klok`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, the learning snake `slang`, colouring pages and mandalas `kleuren`, telling time `klok`, letters with a read-aloud voice `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -14,7 +14,8 @@ evidence, in the same PR).
   native additions are Capacitor, `@capacitor/preferences`, `@capacitor/app` (back button) and
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
-  Only CC0, MIT, BSD or Apache-2.0 assets.
+  Only CC0, MIT, BSD, Apache-2.0, or CC BY 4.0 with attribution shown in the app and on bazibo.nl
+  (the privacy pages' voice section; issue #22).
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
   `web/games/<id>/strings.js`) in Dutch and English; `npm test` fails on a missing key. Short and
   friendly. Big touch targets. Brand name and tagline only in `web/js/brand.js`.
@@ -43,6 +44,7 @@ home → Vier op een rij: hard is locked on the web, a two-player game on the kl
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
+home → Letters: one round of each kind played by taps in Dutch and English, the voice asked for every question, a gentle wrong tap, a locked tier stays locked; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
@@ -98,5 +100,10 @@ half hour ("vijf voor half drie" = 2:25); every 5-minute step of every hour is t
 languages, so a change to `phrase()` must keep those tests green. Answer options stay on the
 tier's grid and never show the same clock twice. Stars through `recordStars`, random rounds
 through `recordRandomSolved`.
+Letters: everything a child needs is spoken. The only recorded audio in the app is the voice in
+`web/games/letters/voice/`, made offline by `tools/make_voice.py` (Piper); never add a runtime
+TTS, a cloud voice or a voice whose licence forbids commercial use. New words go in `WORDS` (both
+languages, with a picture that exists in `art.js`) and in `tools/make_voice.py`; `npm test` checks
+that every word, letter and phrase has a clip.
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.

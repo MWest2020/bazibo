@@ -1721,6 +1721,111 @@ def transfer_flow(browser, base, problems):
         ctx.close()
 
 
+def letters_play(browser, base, problems):
+    """Letters: one round of each kind played by taps (Dutch and English), the voice asked for every
+    question, stars saved; then the layouts at 320x568 and sideways stay on screen."""
+    for lang, w, h, full in (("nl", 390, 844, True), ("en", 390, 844, True), ("nl", 320, 568, False), ("en", 844, 390, False), ("nl", 568, 320, False)):
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if lang == "en" else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.click("#tile-letters")
+        page.wait_for_timeout(200)
+        for mode in ("tap", "first", "build"):
+            page.evaluate(f"window.__bubbels.letters.start('{mode}-t1-1')")
+            page.wait_for_timeout(250)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(200)
+            for sel in ("#letters-prompt", "#letters-options", "#letters-dots") + (("#letters-pic",) if mode != "tap" else ()):
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"letters {w}x{h} {lang} {mode}: {sel} off screen ({r})")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"letters {w}x{h} {lang} {mode}: sideways scroll")
+            page.screenshot(path=str(SHOTS / f"letters-{w}x{h}-{lang}-{mode}.png"))
+            if not full:
+                continue
+            asked = page.evaluate("window.__bubbels.letters.spoken()")
+            st = page.evaluate("window.__bubbels.letters.state()")
+            want = ("p-find+l-" + st["q"]["letter"]) if mode == "tap" else ("w-" + st["q"]["word"] + "+p-first") if mode == "first" else ("p-build+w-" + st["q"]["word"])
+            if not asked or not asked[-1].endswith(want) or not asked[-1].startswith(lang + ":"):
+                problems.append(f"letters {lang} {mode}: voice not asked for the question ({asked[-1:] }, want {want})")
+            for _ in range(12):
+                st = page.evaluate("window.__bubbels.letters.state()")
+                if st["done"]:
+                    break
+                q = st["q"]
+                if mode == "build":
+                    for letter in q["word"]:
+                        tiles = page.locator("#letters-options .letters-tile:not(.used)")
+                        n = tiles.count()
+                        for k in range(n):
+                            if tiles.nth(k).get_attribute("data-letter") == letter:
+                                tiles.nth(k).click()
+                                break
+                        page.wait_for_timeout(60)
+                else:
+                    right = q["letter"] if mode == "tap" else q["word"][0]
+                    page.locator(f"#letters-options .letters-tile[data-letter='{right}']").click()
+                page.wait_for_timeout(1500)
+            st = page.evaluate("window.__bubbels.letters.state()")
+            if not st["done"]:
+                problems.append(f"letters {lang} {mode}: round did not finish ({st['i']})")
+            got = page.evaluate("window.__bubbels.letters.stars()").get(f"{mode}-t1-1")
+            if got != 3:
+                problems.append(f"letters {lang} {mode}: stars {got}, want 3")
+            page.click("#ov-buttons button:last-child")
+            page.wait_for_timeout(150)
+        # a wrong tap: gentle, counted once, the voice says try again
+        if full:
+            page.evaluate("window.__bubbels.letters.start('tap-t1-2')")
+            page.wait_for_timeout(250)
+            st = page.evaluate("window.__bubbels.letters.state()")
+            wrong = [o for o in st["q"]["options"] if o != st["q"]["letter"]][0]
+            page.locator(f"#letters-options .letters-tile[data-letter='{wrong}']").click()
+            page.wait_for_timeout(200)
+            st = page.evaluate("window.__bubbels.letters.state()")
+            if st["mistakes"] != 1 or "p-again" not in page.evaluate("window.__bubbels.letters.spoken()")[-1]:
+                problems.append(f"letters {lang}: a wrong tap was not handled gently ({st['mistakes']})")
+            # locked tiers stay locked without the purchase
+            page.evaluate("window.__bubbels.letters.start('tap-t2-1')")
+            page.wait_for_timeout(250)
+            if page.evaluate("window.__bubbels.letters.state()")["tier"] == "t2":
+                problems.append(f"letters {lang}: a locked tier opened without the purchase")
+        if errors:
+            problems.append(f"letters {w}x{h} {lang}: page errors {errors[:2]}")
+        ctx.close()
+    # tier 3 sideways (full version): six tiles in 3x2, each at least 44 px, nothing off screen
+    for w, h in ((568, 320), (640, 360)):
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.click("#tile-letters")
+        for mode in ("tap", "first", "build"):
+            page.evaluate(f"window.__bubbels.letters.start('{mode}-t3-1')")
+            page.wait_for_timeout(250)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(200)
+            boxes = page.evaluate("[...document.querySelectorAll('#letters-options .letters-tile')].map((b) => { const r = b.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })")
+            for x, y, bw, bh in boxes:
+                if min(bw, bh) < 44 or x < -0.5 or y < -0.5 or x + bw > w + 0.5 or y + bh > h + 0.5:
+                    problems.append(f"letters t3 {w}x{h} {mode}: tile {round(bw)}x{round(bh)} at {round(x)},{round(y)}")
+                    break
+            for sel in ("#letters-pic", "#letters-slots") if mode != "tap" else ():
+                r = page.locator(sel).bounding_box()
+                if r and (r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5):
+                    problems.append(f"letters t3 {w}x{h} {mode}: {sel} off screen ({r})")
+            page.screenshot(path=str(SHOTS / f"letters-t3-{w}x{h}-{mode}.png"))
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -1757,6 +1862,7 @@ def main():
             kleuren_fits(browser, base, problems)
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
+            letters_play(browser, base, problems)
             transfer_flow(browser, base, problems)
             transfer_camera_race(browser, base, problems)
             browser.close()

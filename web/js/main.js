@@ -32,6 +32,9 @@ import { tileMandalaSvg } from '../games/kleuren/tile.js';
 import '../games/klok/strings.js';
 import { createKlok } from '../games/klok/klok.js';
 import { tileSvg as klokTileSvg } from '../games/klok/art.js';
+import '../games/letters/strings.js';
+import { createLetters } from '../games/letters/letters.js';
+import { tileSvg as lettersTileSvg } from '../games/letters/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -189,6 +192,10 @@ function drawSlangTile() {
 
 function drawKleurenTile() {
   $('#tile-kleuren .tile-art').innerHTML = tileMandalaSvg();
+}
+
+function drawLettersTile() {
+  $('#tile-letters .tile-art').innerHTML = lettersTileSvg();
 }
 
 function drawKlokTile() {
@@ -509,6 +516,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.letters = createLetters({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.transfer = createTransfer({ t, show, showOverlay, hideOverlay, onShow: (fn) => showHooks.push(fn), tap });
   renderLanguage();
   drawTileArt();
@@ -518,10 +536,11 @@ async function boot() {
   drawSlangTile();
   drawKleurenTile();
   drawKlokTile();
+  drawLettersTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.klok.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.klok.init(), games.letters.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -533,6 +552,7 @@ async function boot() {
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
       klok: games.klok.testHook(),
+      letters: games.letters.testHook(),
       transfer: games.transfer.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
@@ -570,6 +590,8 @@ function onBack() {
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'klok-menu') games.klok.leave();
   else if (action === 'klok-menu-back') games.klok.menuBack();
+  else if (action === 'letters-menu') games.letters.leave();
+  else if (action === 'letters-menu-back') games.letters.menuBack();
   else if (action === 'transfer-card') games.transfer.onBackCard();
   else if (action === 'settings') show('settings');
   else if (action === 'home') show('home');
