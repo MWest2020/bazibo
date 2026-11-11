@@ -25,7 +25,7 @@ phases:
       - {item: "A roadmap page for parents (bazibo.nl/nl/plannen, /en/roadmap): what is in Bazibo now and what comes next, in order and without dates", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/18"}
       - {item: "Move progress between devices with a QR code, without the internet", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/20"}
       - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bazibo/issues/2"}
-      - {item: "Letters with a read-aloud voice: tap the letter you hear, the first letter of a pictured word, build a word; clips made offline with Piper (Dutch CC0, English CC BY 4.0), no cloud and no runtime TTS", status: open, evidence: "https://github.com/MWest2020/bazibo/tree/letters"}
+      - {item: "Letters with a read-aloud voice: tap the letter you hear, the first letter of a pictured word, build a word; clips made offline with Piper (Dutch CC0, English CC BY 4.0), slower for children, no cloud and no runtime TTS", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/21 + https://github.com/MWest2020/bazibo/pull/24"}
 done_means:
   - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
   - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
@@ -34,7 +34,7 @@ done_means:
   - {item: "Brand name Bazibo (Mark's choice, issue #2) with a gazebo logo: app icons, splash screens, home screen, store icon and feature graphic", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/8"}
   - {item: "Release AAB signed with the Play upload key (Play App Signing)", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
   - {item: "Release automation built: fastlane lanes (build, internal, promote, metadata; iOS beta and metadata), signed build verified, lanes and store limits checked in CI; the upload lanes stay unverified until the Play key exists", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/4"}
-  - {item: "First automated release: fastlane android internal uploads to Play internal testing (needs the Play service-account key)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
-  - {item: "The €1 purchase tested on a real device (Play internal testing)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
-  - {item: "Live on Google Play (organisation account, D-U-N-S)", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
+  - {item: "First automated release: uploads to Play internal testing through the Play API with the service-account key (1.0.0 on 9 Nov; 1.1 to 1.5.1 since)", status: done, evidence: "https://github.com/MWest2020/bazibo/releases/tag/v1.0.0"}
+  - {item: "The €1 purchase tested on a real device (Play internal testing): buy, restart, offline, restore; and Move progress with the camera on two devices (Mark, 9 and 10 Nov)", status: done, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md#device-tests"}
+  - {item: "Live on Google Play: 1.0.0 submitted 9 Nov and in Google's review; 1.4.0 replaces it as a draft for Mark to roll out", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
   - {item: "Live on the App Store", status: open, evidence: "https://github.com/MWest2020/bazibo/blob/main/docs/release.md"}
