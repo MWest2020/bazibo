@@ -256,3 +256,9 @@ The web build (`web/`) is served in two places:
 Contact for the stores and the privacy pages: **hallo@bazibo.nl** (a Plesk forwarder to
 Mark's mailbox). Where everything lives, the credentials' OpenBao paths and how to roll back:
 homelab runbook `docusaurus/docs/runbooks/bazibo-nl.md`.
+
+
+## Device tests
+
+- 2026-11-09, Mark, Play internal testing: the €1 purchase (license tester), restart, offline start and "Aankoop herstellen" work.
+- 2026-11-10, Mark: 1.4.0 "Voortgang overzetten" with the camera between two devices works.
