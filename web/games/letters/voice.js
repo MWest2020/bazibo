@@ -52,7 +52,7 @@ export function stop() {
  * Say clips one after another (`keys` like ['p-find', 'l-b']). Resolves true when it started,
  * false when sound is off or the clips could not be loaded.
  */
-export async function say(lang, keys, { gap = 0.1 } = {}) {
+export async function say(lang, keys, { gap = 0.22 } = {}) {
   stop();
   const mine = token;
   spoken.push(`${lang}:${keys.join('+')}`);
