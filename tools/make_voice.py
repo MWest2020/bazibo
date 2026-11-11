@@ -35,7 +35,7 @@ VOICES = {
             "nl_NL-alex-medium.onnx": "22f0497c4d895a09fbc6a469459aa8954ea0955d3c6e19dbcc2e23acbb93e30b",
             "nl_NL-alex-medium.onnx.json": "9ea643871742c038511b6aaf20e6fc098a78a11968122d2f6ca3e50403423f95",
         },
-        "length_scale": 1.12,
+        "length_scale": 1.60,  # 2026-11-11: words about 1.3x longer than with 1.12, for young children (Mark)
     },
     "en": {
         "path": "en/en_GB/cori/medium/",
@@ -43,7 +43,7 @@ VOICES = {
             "en_GB-cori-medium.onnx": None,  # pinned below after the first verified download
             "en_GB-cori-medium.onnx.json": None,
         },
-        "length_scale": 1.08,
+        "length_scale": 1.52,  # 2026-11-11: words about 1.3x longer than with 1.08 (Mark)
     },
 }
 PINS_FILE = os.path.join(ROOT, "tools", "voice-pins.json")
@@ -188,7 +188,9 @@ def main():
         total = 0
         # letter names are one short syllable: said a little slower and as a sentence ("A."), or
         # Piper clips them to a blip (English "A" alone came out at about 0.1 s)
-        slow = SynthesisConfig(length_scale=VOICES[lang]["length_scale"] * 1.2)
+        # 1.06x on top of the (already slower) base keeps letters about 1.25x longer than before,
+        # still crisp
+        slow = SynthesisConfig(length_scale=VOICES[lang]["length_scale"] * 1.06)
         for key, text in items.items():
             x = clean(say(voice, slow, text + ".") if key.startswith("l-") else say(voice, cfg, text))
             data = mp3(x)

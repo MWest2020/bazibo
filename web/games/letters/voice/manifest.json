@@ -1,422 +1,422 @@
 {
  "en": {
   "l-a": {
-   "bytes": 1698,
-   "ms": 278
-  },
-  "l-b": {
-   "bytes": 2351,
-   "ms": 403
-  },
-  "l-c": {
-   "bytes": 2220,
-   "ms": 373
-  },
-  "l-d": {
-   "bytes": 2351,
-   "ms": 412
-  },
-  "l-e": {
-   "bytes": 1567,
-   "ms": 236
-  },
-  "l-f": {
-   "bytes": 1567,
-   "ms": 236
-  },
-  "l-g": {
-   "bytes": 2482,
-   "ms": 440
-  },
-  "l-h": {
-   "bytes": 2482,
-   "ms": 426
-  },
-  "l-i": {
-   "bytes": 2090,
-   "ms": 349
-  },
-  "l-j": {
-   "bytes": 2873,
-   "ms": 502
-  },
-  "l-k": {
-   "bytes": 2612,
-   "ms": 458
-  },
-  "l-l": {
-   "bytes": 2220,
-   "ms": 378
-  },
-  "l-m": {
-   "bytes": 1959,
-   "ms": 325
-  },
-  "l-n": {
-   "bytes": 2090,
-   "ms": 342
-  },
-  "l-o": {
    "bytes": 2220,
    "ms": 366
   },
-  "l-p": {
-   "bytes": 2351,
-   "ms": 408
-  },
-  "l-q": {
+  "l-b": {
    "bytes": 2612,
-   "ms": 455
+   "ms": 452
   },
-  "l-r": {
-   "bytes": 1567,
-   "ms": 252
+  "l-c": {
+   "bytes": 2612,
+   "ms": 467
   },
-  "l-s": {
-   "bytes": 2090,
-   "ms": 359
-  },
-  "l-t": {
+  "l-d": {
    "bytes": 2482,
-   "ms": 425
+   "ms": 441
   },
-  "l-u": {
+  "l-e": {
+   "bytes": 1437,
+   "ms": 231
+  },
+  "l-f": {
    "bytes": 2090,
    "ms": 357
   },
-  "l-v": {
-   "bytes": 2482,
-   "ms": 421
-  },
-  "l-w": {
-   "bytes": 3918,
-   "ms": 720
-  },
-  "l-x": {
-   "bytes": 3265,
-   "ms": 583
-  },
-  "l-y": {
-   "bytes": 3004,
-   "ms": 535
-  },
-  "l-z": {
-   "bytes": 2482,
-   "ms": 433
-  },
-  "p-again": {
-   "bytes": 4441,
-   "ms": 812
-  },
-  "p-build": {
-   "bytes": 4833,
-   "ms": 907
-  },
-  "p-done": {
-   "bytes": 4441,
-   "ms": 811
-  },
-  "p-find": {
-   "bytes": 5355,
-   "ms": 1000
-  },
-  "p-first": {
-   "bytes": 10841,
-   "ms": 2101
-  },
-  "p-good": {
-   "bytes": 4441,
-   "ms": 812
-  },
-  "p-thisIs": {
-   "bytes": 5224,
-   "ms": 970
-  },
-  "w-apple": {
-   "bytes": 2482,
-   "ms": 431
-  },
-  "w-ball": {
-   "bytes": 2482,
-   "ms": 431
-  },
-  "w-banana": {
-   "bytes": 3657,
-   "ms": 658
-  },
-  "w-bird": {
-   "bytes": 2873,
-   "ms": 507
-  },
-  "w-boat": {
-   "bytes": 2482,
-   "ms": 431
-  },
-  "w-car": {
+  "l-g": {
    "bytes": 2743,
-   "ms": 478
+   "ms": 486
   },
-  "w-carrot": {
-   "bytes": 3265,
-   "ms": 575
-  },
-  "w-cat": {
-   "bytes": 2873,
-   "ms": 520
-  },
-  "w-dog": {
-   "bytes": 1959,
-   "ms": 322
-  },
-  "w-elephant": {
-   "bytes": 3004,
-   "ms": 543
-  },
-  "w-fish": {
+  "l-h": {
    "bytes": 2743,
-   "ms": 474
+   "ms": 472
   },
-  "w-flower": {
-   "bytes": 3004,
-   "ms": 544
+  "l-i": {
+   "bytes": 2612,
+   "ms": 449
   },
-  "w-grapes": {
-   "bytes": 3526,
-   "ms": 648
+  "l-j": {
+   "bytes": 3135,
+   "ms": 562
   },
-  "w-house": {
+  "l-k": {
+   "bytes": 3135,
+   "ms": 567
+  },
+  "l-l": {
+   "bytes": 2482,
+   "ms": 440
+  },
+  "l-m": {
+   "bytes": 2612,
+   "ms": 448
+  },
+  "l-n": {
+   "bytes": 2351,
+   "ms": 398
+  },
+  "l-o": {
+   "bytes": 2482,
+   "ms": 442
+  },
+  "l-p": {
+   "bytes": 2482,
+   "ms": 440
+  },
+  "l-q": {
    "bytes": 3265,
    "ms": 579
   },
-  "w-mushroom": {
-   "bytes": 3526,
-   "ms": 633
+  "l-r": {
+   "bytes": 2090,
+   "ms": 346
   },
-  "w-pear": {
-   "bytes": 2351,
-   "ms": 404
+  "l-s": {
+   "bytes": 2482,
+   "ms": 440
   },
-  "w-rocket": {
-   "bytes": 3004,
-   "ms": 548
+  "l-t": {
+   "bytes": 2873,
+   "ms": 504
   },
-  "w-sun": {
+  "l-u": {
    "bytes": 2090,
    "ms": 355
   },
-  "w-tortoise": {
+  "l-v": {
+   "bytes": 2873,
+   "ms": 520
+  },
+  "l-w": {
+   "bytes": 4963,
+   "ms": 930
+  },
+  "l-x": {
+   "bytes": 3788,
+   "ms": 680
+  },
+  "l-y": {
+   "bytes": 3657,
+   "ms": 653
+  },
+  "l-z": {
+   "bytes": 3135,
+   "ms": 550
+  },
+  "p-again": {
+   "bytes": 5877,
+   "ms": 1105
+  },
+  "p-build": {
+   "bytes": 6400,
+   "ms": 1204
+  },
+  "p-done": {
+   "bytes": 5355,
+   "ms": 1016
+  },
+  "p-find": {
+   "bytes": 6661,
+   "ms": 1274
+  },
+  "p-first": {
+   "bytes": 13584,
+   "ms": 2647
+  },
+  "p-good": {
+   "bytes": 5355,
+   "ms": 996
+  },
+  "p-thisIs": {
+   "bytes": 6922,
+   "ms": 1322
+  },
+  "w-apple": {
    "bytes": 3396,
-   "ms": 613
+   "ms": 605
+  },
+  "w-ball": {
+   "bytes": 2743,
+   "ms": 492
+  },
+  "w-banana": {
+   "bytes": 4571,
+   "ms": 846
+  },
+  "w-bird": {
+   "bytes": 3396,
+   "ms": 601
+  },
+  "w-boat": {
+   "bytes": 3265,
+   "ms": 593
+  },
+  "w-car": {
+   "bytes": 3526,
+   "ms": 628
+  },
+  "w-carrot": {
+   "bytes": 3918,
+   "ms": 728
+  },
+  "w-cat": {
+   "bytes": 3657,
+   "ms": 677
+  },
+  "w-dog": {
+   "bytes": 2482,
+   "ms": 421
+  },
+  "w-elephant": {
+   "bytes": 3657,
+   "ms": 653
+  },
+  "w-fish": {
+   "bytes": 4049,
+   "ms": 741
+  },
+  "w-flower": {
+   "bytes": 3918,
+   "ms": 719
+  },
+  "w-grapes": {
+   "bytes": 4702,
+   "ms": 881
+  },
+  "w-house": {
+   "bytes": 4179,
+   "ms": 770
+  },
+  "w-mushroom": {
+   "bytes": 4441,
+   "ms": 819
+  },
+  "w-pear": {
+   "bytes": 3004,
+   "ms": 533
+  },
+  "w-rocket": {
+   "bytes": 4179,
+   "ms": 783
+  },
+  "w-sun": {
+   "bytes": 2612,
+   "ms": 463
+  },
+  "w-tortoise": {
+   "bytes": 4571,
+   "ms": 850
   }
  },
  "nl": {
   "l-a": {
-   "bytes": 2351,
-   "ms": 415
+   "bytes": 3004,
+   "ms": 525
   },
   "l-b": {
-   "bytes": 2743,
-   "ms": 492
+   "bytes": 2873,
+   "ms": 510
   },
   "l-c": {
-   "bytes": 3135,
-   "ms": 554
+   "bytes": 3657,
+   "ms": 669
   },
   "l-d": {
-   "bytes": 2873,
-   "ms": 515
+   "bytes": 2743,
+   "ms": 495
   },
   "l-e": {
-   "bytes": 2612,
-   "ms": 454
+   "bytes": 3004,
+   "ms": 540
   },
   "l-f": {
-   "bytes": 2351,
-   "ms": 394
+   "bytes": 2873,
+   "ms": 511
   },
   "l-g": {
-   "bytes": 2482,
-   "ms": 426
+   "bytes": 3265,
+   "ms": 589
   },
   "l-h": {
-   "bytes": 2090,
-   "ms": 359
+   "bytes": 2482,
+   "ms": 437
   },
   "l-i": {
    "bytes": 2090,
-   "ms": 351
+   "ms": 340
   },
   "l-j": {
-   "bytes": 2351,
-   "ms": 401
+   "bytes": 3004,
+   "ms": 543
   },
   "l-k": {
-   "bytes": 2351,
-   "ms": 408
+   "bytes": 2612,
+   "ms": 449
   },
   "l-l": {
-   "bytes": 2482,
-   "ms": 430
+   "bytes": 2743,
+   "ms": 494
   },
   "l-m": {
-   "bytes": 2351,
-   "ms": 417
+   "bytes": 3004,
+   "ms": 536
   },
   "l-n": {
-   "bytes": 2090,
-   "ms": 355
+   "bytes": 2482,
+   "ms": 428
   },
   "l-o": {
-   "bytes": 2482,
-   "ms": 424
+   "bytes": 2743,
+   "ms": 495
   },
   "l-p": {
-   "bytes": 2482,
-   "ms": 423
+   "bytes": 3004,
+   "ms": 534
   },
   "l-q": {
-   "bytes": 2090,
-   "ms": 353
+   "bytes": 2351,
+   "ms": 406
   },
   "l-r": {
-   "bytes": 2090,
-   "ms": 360
+   "bytes": 2612,
+   "ms": 458
   },
   "l-s": {
+   "bytes": 3657,
+   "ms": 672
+  },
+  "l-t": {
+   "bytes": 3004,
+   "ms": 534
+  },
+  "l-u": {
+   "bytes": 2743,
+   "ms": 487
+  },
+  "l-v": {
+   "bytes": 3265,
+   "ms": 590
+  },
+  "l-w": {
    "bytes": 2743,
    "ms": 479
   },
-  "l-t": {
-   "bytes": 2612,
-   "ms": 444
-  },
-  "l-u": {
-   "bytes": 2482,
-   "ms": 424
-  },
-  "l-v": {
-   "bytes": 2743,
-   "ms": 474
-  },
-  "l-w": {
-   "bytes": 2612,
-   "ms": 452
-  },
   "l-x": {
-   "bytes": 2743,
-   "ms": 484
+   "bytes": 3135,
+   "ms": 552
   },
   "l-y": {
-   "bytes": 3265,
-   "ms": 599
+   "bytes": 4179,
+   "ms": 761
   },
   "l-z": {
-   "bytes": 2743,
-   "ms": 474
+   "bytes": 3526,
+   "ms": 629
   },
   "p-again": {
-   "bytes": 5486,
-   "ms": 1021
+   "bytes": 6922,
+   "ms": 1328
   },
   "p-build": {
-   "bytes": 4049,
-   "ms": 739
+   "bytes": 5094,
+   "ms": 965
   },
   "p-done": {
-   "bytes": 3396,
-   "ms": 614
+   "bytes": 4702,
+   "ms": 879
   },
   "p-find": {
-   "bytes": 4049,
-   "ms": 739
+   "bytes": 5094,
+   "ms": 943
   },
   "p-first": {
-   "bytes": 7837,
-   "ms": 1500
+   "bytes": 9926,
+   "ms": 1911
   },
   "p-good": {
-   "bytes": 3526,
-   "ms": 636
+   "bytes": 4571,
+   "ms": 860
   },
   "p-thisIs": {
-   "bytes": 4310,
-   "ms": 799
+   "bytes": 5877,
+   "ms": 1112
   },
   "w-appel": {
-   "bytes": 2612,
-   "ms": 454
+   "bytes": 3265,
+   "ms": 596
   },
   "w-auto": {
-   "bytes": 3135,
-   "ms": 565
+   "bytes": 3788,
+   "ms": 702
   },
   "w-bal": {
-   "bytes": 2090,
-   "ms": 356
+   "bytes": 2612,
+   "ms": 462
   },
   "w-banaan": {
-   "bytes": 3004,
-   "ms": 539
+   "bytes": 4049,
+   "ms": 742
   },
   "w-bloem": {
-   "bytes": 2090,
-   "ms": 357
+   "bytes": 3135,
+   "ms": 556
   },
   "w-boot": {
-   "bytes": 2090,
-   "ms": 350
+   "bytes": 1959,
+   "ms": 337
   },
   "w-druiven": {
-   "bytes": 3396,
-   "ms": 610
+   "bytes": 4179,
+   "ms": 780
   },
   "w-hond": {
-   "bytes": 2482,
-   "ms": 420
+   "bytes": 3135,
+   "ms": 550
   },
   "w-huis": {
-   "bytes": 3265,
-   "ms": 575
+   "bytes": 3396,
+   "ms": 626
   },
   "w-kat": {
    "bytes": 1828,
-   "ms": 304
+   "ms": 308
   },
   "w-olifant": {
-   "bytes": 3657,
-   "ms": 670
+   "bytes": 4571,
+   "ms": 859
   },
   "w-paddenstoel": {
-   "bytes": 3396,
-   "ms": 623
+   "bytes": 3918,
+   "ms": 718
   },
   "w-peer": {
-   "bytes": 2090,
-   "ms": 350
+   "bytes": 2612,
+   "ms": 466
   },
   "w-raket": {
-   "bytes": 3004,
-   "ms": 524
+   "bytes": 3918,
+   "ms": 717
   },
   "w-schildpad": {
-   "bytes": 3788,
-   "ms": 681
+   "bytes": 4833,
+   "ms": 897
   },
   "w-vis": {
-   "bytes": 2351,
-   "ms": 411
+   "bytes": 3396,
+   "ms": 621
   },
   "w-vogel": {
-   "bytes": 3526,
-   "ms": 650
+   "bytes": 4441,
+   "ms": 816
   },
   "w-wortel": {
-   "bytes": 3004,
-   "ms": 541
+   "bytes": 3657,
+   "ms": 674
   },
   "w-zon": {
-   "bytes": 2351,
-   "ms": 400
+   "bytes": 2873,
+   "ms": 503
   }
  }
 }
