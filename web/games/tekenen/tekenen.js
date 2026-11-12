@@ -1,14 +1,16 @@
 // Tekenen: free drawing with a finger. Every colour of Kleurplaten's palette, three brushes, an
 // eraser, undo and "clear the page" are free, and up to FREE_DRAWINGS drawings are kept in "my
 // drawings". The full version adds mirror mode (2, 4, 6 or 8 mirror lines through the middle, so
-// every stroke becomes a mandala), stamps, and an album without a limit.
+// every stroke becomes a mandala), stamps, and an album of up to MAX_DRAWINGS (100).
 // A drawing is a list of strokes and stamps (drawing.js), saved as a short text through
-// storage.js saveDrawing; it is drawn again at any size by render.js.
+// storage.js saveDrawing; it is drawn again at any size by render.js. What is kept when is
+// session.js (tested without a screen).
 // The shell (web/js/main.js) owns the overlay card, the sound settings and the purchase.
 import { meta } from './meta.js';
-import { GRID, STAMPS, ERASER, FREE_DRAWINGS, MAX_DRAWINGS, STROKE_TOLERANCE, visible, decode, pack, simplify, mayKeep, newId, clampCoord } from './drawing.js';
+import { GRID, STAMPS, ERASER, FREE_DRAWINGS, MAX_DRAWINGS, STROKE_TOLERANCE, visible, decode, simplify, mayKeep, clampCoord } from './drawing.js';
 import { AXES, axisAngles, transforms } from './symmetry.js';
-import { drawItems, drawItem, thumbCanvas, stampIcon } from './render.js';
+import { drawItems, drawMore, drawStrokeTail, thumbCanvas, stampIcon } from './render.js';
+import { createSession } from './session.js';
 import { PALETTE, WHITE, ICONS } from '../kleuren/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -37,10 +39,11 @@ function mirrorIcon(n) {
   return `<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="${lines}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>`;
 }
 
+
 export function createTekenen(shell) {
   const { t, tap } = shell;
-  let id = null; // the drawing on the page (null: new, not kept yet)
-  let items = []; // drawing.js items, a "clear" included (so undo can bring the page back)
+  const owned = () => shell.unlock.owned;
+  const session = createSession({ store, gameId: meta.id, owned });
   let colour = 7; // blue
   let size = 1;
   let tool = 'pen'; // 'pen' | 'eraser' | 'stamp'
@@ -48,25 +51,35 @@ export function createTekenen(shell) {
   let mirror = 0; // mirror lines (0, or one of AXES)
   let tray = null; // 'stamps' | 'mirror' while its choices are open over the page
   let current = null; // the stroke under the finger
+  let drawn = 0; // how many of its points are on the screen already
   let active = null; // its pointer id
   let px = 0; // the canvas size in pixels
   let dirty = false;
-  let lastSave = 'saved'; // what the last write did: 'saved' | 'empty' | 'nospace'
+  let lastSave = 'saved'; // what the last write did (session.write)
   let saveTimer = 0;
   let frame = 0;
   let plays = 0; // a late "done" card never lands on a newer drawing
+  let checkpoints = []; // [{ n, canvas }]: the page after its first n items, so undo redraws little
 
   const canvas = $('#teken-canvas');
   const ctx = canvas.getContext('2d');
   const committed = document.createElement('canvas'); // every finished item; the stroke goes on top
   const cctx = committed.getContext('2d');
+  const thumbs = new Map(); // id -> { t, canvas }: "my drawings" draws each drawing once
 
-  const owned = () => shell.unlock.owned;
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
-  const hasInk = () => visible(items).length > 0;
-  const isKept = () => !!(id && store.loadDrawing(meta.id, id));
+  const items = () => session.items;
+  const hasInk = () => session.hasInk();
+  const albumHasRoom = () => mayKeep({ owned: owned(), count: store.countDrawings(meta.id), saved: false });
 
   shell.unlock.onChange(() => {
+    if (!owned()) {
+      // the full version went away (a refund): its tools close
+      mirror = 0;
+      if (tool === 'stamp') tool = 'pen';
+      closeTray();
+      renderGuides();
+    }
     if (onScreen('tekenen-list')) renderList();
     renderTools();
   });
@@ -86,9 +99,33 @@ export function createTekenen(shell) {
 
   // ---------- my drawings ----------
 
+  let thumbQueue = [];
+  let thumbTimer = 0;
+
+  /** Draw the waiting thumbnails one at a time, so the list shows at once. */
+  function drawThumbs() {
+    thumbTimer = 0;
+    const job = thumbQueue.shift();
+    if (!job) return;
+    const { key, d, c } = job;
+    drawItems(c.getContext('2d'), decode(d.s), c.width);
+    thumbs.set(key, { t: d.t, canvas: c });
+    if (thumbQueue.length) thumbTimer = setTimeout(drawThumbs, 0);
+  }
+
+  function thumbFor(key, d) {
+    const hit = thumbs.get(key);
+    if (hit && hit.t === d.t) return hit.canvas;
+    const c = thumbCanvas([], 120, 'kleur-thumb'); // white for now
+    thumbQueue.push({ key, d, c });
+    return c;
+  }
+
   function renderList() {
     const box = $('#teken-list');
     box.textContent = '';
+    clearTimeout(thumbTimer);
+    thumbQueue = [];
     const grid = document.createElement('div');
     grid.className = 'level-grid kleur-grid teken-grid';
     const add = document.createElement('button');
@@ -96,20 +133,28 @@ export function createTekenen(shell) {
     add.className = 'kleur-card teken-new';
     add.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${TOOL_ICONS.plus}</svg><span></span>`;
     add.querySelector('span').textContent = t('teken.new');
+    if (!albumHasRoom()) {
+      add.classList.add('full');
+      if (!owned()) add.insertAdjacentHTML('beforeend', `<svg class="kleur-badge lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`);
+    }
     add.addEventListener('click', () => {
       tap();
-      openDrawing(null);
+      // a full album says so before the child starts, not after
+      if (!albumHasRoom()) albumFull();
+      else openDrawing(null);
     });
     grid.appendChild(add);
     const all = Object.entries(store.loadDrawings(meta.id)).sort((a, b) => a[1].t - b[1].t);
-    all.forEach(([key, d], i) => (d.n = i + 1)); // numbered from the oldest
+    all.forEach(([, d], i) => (d.n = i + 1)); // numbered from the oldest
+    const live = new Set(all.map(([key]) => key));
+    for (const key of thumbs.keys()) if (!live.has(key)) thumbs.delete(key);
     for (const [key, d] of all.reverse()) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'kleur-card teken-card';
       b.dataset.id = key;
       b.setAttribute('aria-label', t('teken.card', { n: d.n }));
-      b.appendChild(thumbCanvas(decode(d.s), 120, 'kleur-thumb'));
+      b.appendChild(thumbFor(key, d));
       b.addEventListener('click', () => {
         tap();
         openDrawing(key);
@@ -117,6 +162,7 @@ export function createTekenen(shell) {
       grid.appendChild(b);
     }
     box.appendChild(grid);
+    if (thumbQueue.length) thumbTimer = setTimeout(drawThumbs, 0);
   }
 
   // ---------- drawing ----------
@@ -124,13 +170,12 @@ export function createTekenen(shell) {
   function openDrawing(key) {
     flush();
     plays++;
-    const saved = key ? store.loadDrawing(meta.id, key) : null;
-    id = saved ? key : null;
-    items = saved ? decode(saved.s) : [];
+    session.open(key);
     dirty = false;
     lastSave = 'saved';
     current = null;
     active = null;
+    checkpoints = [];
     tool = tool === 'eraser' ? 'pen' : tool;
     if (!owned()) {
       mirror = 0;
@@ -161,32 +206,62 @@ export function createTekenen(shell) {
       px = want;
       canvas.width = committed.width = px;
       canvas.height = committed.height = px;
+      checkpoints = [];
       renderAll();
     }
   }
 
+  /** The page again from its items, from the newest checkpoint that still holds. */
   function renderAll() {
     if (!px) return;
-    drawItems(cctx, items, px);
+    const list = items();
+    checkpoints = checkpoints.filter((c) => c.n <= list.length);
+    const cp = checkpoints[checkpoints.length - 1];
+    if (cp) {
+      cctx.setTransform(1, 0, 0, 1, 0, 0);
+      cctx.drawImage(cp.canvas, 0, 0);
+      drawMore(cctx, list.slice(cp.n), px);
+    } else drawItems(cctx, list, px);
     blit();
+  }
+
+  /** Every CHECK_EVERY items, the page is kept as a picture (two of them), so undo is quick. */
+  const CHECK_EVERY = 12;
+  function checkpoint() {
+    const n = items().length;
+    const last = checkpoints[checkpoints.length - 1];
+    if (n - (last ? last.n : 0) < CHECK_EVERY) return;
+    const reuse = checkpoints.length >= 2 ? checkpoints.shift().canvas : document.createElement('canvas');
+    reuse.width = px;
+    reuse.height = px;
+    reuse.getContext('2d').drawImage(committed, 0, 0);
+    checkpoints.push({ n, canvas: reuse });
   }
 
   function blit() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(committed, 0, 0);
     if (current) {
-      const s = px / GRID;
-      ctx.setTransform(s, 0, 0, s, 0, 0);
-      drawItem(ctx, current);
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      drawn = 0;
+      drawTail();
     }
   }
 
-  function scheduleBlit() {
+  /** Only the new points of the stroke under the finger (render.js drawStrokeTail). */
+  function drawTail() {
+    if (!current || !px) return;
+    const s = px / GRID;
+    ctx.setTransform(s, 0, 0, s, 0, 0);
+    drawStrokeTail(ctx, current, drawn);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    drawn = current.pts.length;
+  }
+
+  function scheduleTail() {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      blit();
+      drawTail();
     });
   }
 
@@ -209,19 +284,13 @@ export function createTekenen(shell) {
 
   /** A finished stroke or a stamp: on the page, undoable, saved soon. False when the page is full. */
   function addItem(it) {
-    items.push(it);
-    if (pack(items) === null) {
-      items.pop();
-      renderAll();
+    if (!session.add(it)) {
+      blit();
       shell.showOverlay({ title: t('teken.pageFullTitle'), text: t('teken.pageFullText'), buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
       return false;
     }
-    const s = px / GRID;
-    if (px) {
-      cctx.setTransform(s, 0, 0, s, 0, 0);
-      drawItem(cctx, it);
-      cctx.setTransform(1, 0, 0, 1, 0, 0);
-    }
+    if (px) drawMore(cctx, [it], px);
+    checkpoint();
     blit();
     renderTools();
     scheduleSave();
@@ -231,7 +300,9 @@ export function createTekenen(shell) {
   const brushColour = () => (tool === 'eraser' ? ERASER : colour);
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (active !== null || !e.isPrimary || e.button > 0) return;
+    // any finger may start a stroke while none is drawing (not only the "primary" one); a second
+    // finger during a stroke is left alone
+    if (active !== null || e.button > 0) return;
     e.preventDefault();
     sfx.unlock();
     if (tray) {
@@ -250,7 +321,8 @@ export function createTekenen(shell) {
     }
     active = e.pointerId;
     current = { k: 's', c: brushColour(), z: size, a: mirror, pts: [[x, y]] };
-    scheduleBlit();
+    drawn = 0;
+    scheduleTail();
   });
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== active || !current) return;
@@ -260,7 +332,7 @@ export function createTekenen(shell) {
       const last = current.pts[current.pts.length - 1];
       if (p[0] !== last[0] || p[1] !== last[1]) current.pts.push(p);
     }
-    scheduleBlit();
+    scheduleTail();
   });
   const endStroke = (e) => {
     if (e.pointerId !== active || !current) return;
@@ -271,11 +343,11 @@ export function createTekenen(shell) {
   };
   canvas.addEventListener('pointerup', endStroke);
   canvas.addEventListener('pointercancel', endStroke);
+  canvas.addEventListener('lostpointercapture', endStroke);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   function undoLast() {
-    if (!items.length) return;
-    items.pop();
+    if (!session.undo()) return;
     renderAll();
     renderTools();
     scheduleSave();
@@ -291,8 +363,7 @@ export function createTekenen(shell) {
           'big primary',
           () => {
             shell.hideOverlay();
-            if (!hasInk()) return;
-            items.push({ k: 'c' }); // undo brings the drawing back
+            if (!session.clear()) return; // undo brings the drawing back
             renderAll();
             renderTools();
             scheduleSave();
@@ -312,42 +383,38 @@ export function createTekenen(shell) {
   }
 
   /**
-   * Write the drawing (after a pause, when leaving, when the app goes to the background), if it
-   * may be kept (drawing.js mayKeep). An empty page deletes a kept drawing.
+   * Write the drawing (after a pause, when the app goes to the background; `final` when leaving or
+   * finishing). session.js decides what may be kept and when an empty page deletes it.
    */
-  function write() {
-    const text = pack(items) ?? '';
-    const kept = isKept();
-    if (!text) {
-      if (kept) store.saveDrawing(meta.id, id, '');
-      return 'empty';
-    }
-    if (!mayKeep({ owned: owned(), count: store.countDrawings(meta.id), saved: kept })) return 'nospace';
-    if (!id) id = newId();
-    store.saveDrawing(meta.id, id, text);
-    return 'saved';
-  }
-
-  function flush() {
+  function flush(final = false) {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (!dirty) return lastSave;
+    if (!dirty && !final) return lastSave;
     dirty = false;
-    lastSave = write();
+    lastSave = session.write({ final });
     return lastSave;
   }
 
+  /** The album is full: the free version offers the full one, the full version says so. */
   function albumFull() {
     if (owned()) {
       shell.showOverlay({ title: t('teken.albumFullTitle'), text: t('teken.albumFullText', { max: MAX_DRAWINGS }), buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
-    } else shell.offerUnlock(t('teken.fullLead', { free: FREE_DRAWINGS }));
+    } else shell.offerUnlock(t('teken.fullLead', { free: FREE_DRAWINGS, max: MAX_DRAWINGS }));
+  }
+
+  function cantSave() {
+    shell.showOverlay({ title: t('teken.cantSaveTitle'), text: t('teken.cantSaveText'), buttons: [[t('common.ok'), 'big primary', shell.hideOverlay]] });
   }
 
   function finish() {
     if (!hasInk()) return;
-    dirty = true;
-    if (flush() === 'nospace') {
+    const result = flush(true);
+    if (result === 'nospace') {
       albumFull();
+      return;
+    }
+    if (result !== 'saved') {
+      cantSave();
       return;
     }
     sfx.chime();
@@ -356,16 +423,21 @@ export function createTekenen(shell) {
     void page.offsetWidth;
     page.classList.add('sparkle');
     const token = plays;
-    const art = `<img class="ov-kleur ov-teken" src="${thumbCanvas(items, 150).toDataURL('image/png')}" alt="">`;
+    const art = `<img class="ov-kleur ov-teken" src="${thumbCanvas(items(), 150).toDataURL('image/png')}" alt="">`;
     setTimeout(() => {
       if (token !== plays || !onScreen('tekenen')) return;
       page.classList.remove('sparkle');
+      // the write itself can fail later (a full storage): then the card says so
+      if (store.writeFailing()) {
+        cantSave();
+        return;
+      }
       shell.showOverlay({
         art,
         title: t('teken.doneTitle'),
         text: t('teken.doneText'),
         buttons: [
-          [t('teken.new'), 'big primary', () => openDrawing(null)],
+          [t('teken.new'), 'big primary', () => (albumHasRoom() ? openDrawing(null) : albumFull())],
           [t('teken.keep'), 'big secondary', shell.hideOverlay],
           [t('teken.mine'), 'big secondary', goList],
         ],
@@ -381,10 +453,10 @@ export function createTekenen(shell) {
   /** Back to "my drawings"; a drawing that cannot be kept asks first. */
   function leave() {
     closeTray();
-    if (flush() === 'nospace' && hasInk()) {
+    if (flush(true) === 'nospace' && hasInk()) {
       shell.showOverlay({
         title: t('teken.notSavedTitle'),
-        text: t('teken.notSavedText', { free: FREE_DRAWINGS }),
+        text: owned() ? t('teken.notSavedFull', { max: MAX_DRAWINGS }) : t('teken.notSavedText', { free: FREE_DRAWINGS }),
         buttons: [
           [t('teken.keep'), 'big primary', shell.hideOverlay],
           [t('teken.stop'), 'big secondary', goList],
@@ -404,7 +476,7 @@ export function createTekenen(shell) {
   // ---------- palette, tools and the rows of choices ----------
 
   function offer() {
-    shell.offerUnlock(t('teken.lockedLead', { free: FREE_DRAWINGS }));
+    shell.offerUnlock(t('teken.lockedLead', { free: FREE_DRAWINGS, max: MAX_DRAWINGS }));
   }
 
   function renderPalette() {
@@ -440,7 +512,7 @@ export function createTekenen(shell) {
       b.style.setProperty('--c', tool === 'eraser' ? '#ffffff' : PALETTE[colour]);
     }
     $('#teken-eraser').setAttribute('aria-pressed', String(tool === 'eraser'));
-    $('#teken-undo').disabled = !items.length;
+    $('#teken-undo').disabled = !session.canUndo();
     $('#teken-clear').disabled = !hasInk();
     $('#teken-done').disabled = !hasInk();
     const locked = !owned();
@@ -564,6 +636,7 @@ export function createTekenen(shell) {
   renderPalette();
   renderTools();
 
+
   return {
     open() {
       shell.show('tekenen-list');
@@ -597,9 +670,10 @@ export function createTekenen(shell) {
         finish: () => finish(),
         flush: () => flush(),
         state: () => ({
-          id,
-          items: visible(items).length,
-          history: items.length,
+          id: session.id,
+          items: visible(items()).length,
+          history: items().length,
+          canUndo: session.canUndo(),
           colour,
           size,
           tool,
@@ -607,7 +681,8 @@ export function createTekenen(shell) {
           mirror,
           copies: transforms(mirror).length,
           tray,
-          kept: isKept(),
+          kept: session.kept(),
+          lastSave,
           px,
         }),
         drawings: () => store.loadDrawings(meta.id),

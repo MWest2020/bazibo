@@ -10,9 +10,13 @@
 //   's' colour size lines (x y)*      'p' stamp colour size lines x y
 // That is about 4 characters per point. The text is checked against DRAWING_RE and capped at
 // DRAWING_MAX characters; a drawing that would not fit even with coarser strokes is "full".
-import { DRAWING_MAX } from '../../js/storage.js';
 import { PALETTE, WHITE } from '../kleuren/art.js';
 import { AXES } from './symmetry.js';
+
+/** The longest drawing text; storage.js and the transfer check refuse anything longer. */
+export const DRAWING_MAX = 24000;
+/** A drawing text: only the URL-safe base64 alphabet and dots. */
+export const DRAWING_RE = /^[A-Za-z0-9_.-]*$/;
 
 export const GRID = 4096;
 /** Brush widths in grid units: thin, medium, thick (about 3, 6 and 12 px on a 360 px page). */
@@ -98,6 +102,11 @@ export function decode(text) {
     }
   }
   return out;
+}
+
+/** A text that may be stored: the right alphabet, not too long, and at least one stroke or stamp. */
+export function isDrawingText(s) {
+  return typeof s === 'string' && s.length > 0 && s.length <= DRAWING_MAX && DRAWING_RE.test(s) && decode(s).length > 0;
 }
 
 function lineDist([px, py], [ax, ay], [bx, by]) {

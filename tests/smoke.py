@@ -1345,7 +1345,7 @@ def play_tekenen(page, name, say, problems):
         problems.append(f"{name}: expected 2 strokes, got {page.evaluate('window.__bubbels.teken.state()')}")
     page.screenshot(path=str(SHOTS / f"{name}-t1-draw.png"))
     page.click("#teken-done")
-    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=8000)  # after the sparkle; slow on a busy host
     if page.inner_text("#ov-title").strip() != say["lovely"]:
         problems.append(f"{name}: the drawing done card says {page.inner_text('#ov-title')!r}")
     page.screenshot(path=str(SHOTS / f"{name}-t2-done.png"))
@@ -1366,8 +1366,39 @@ def play_tekenen(page, name, say, problems):
     st = page.evaluate("window.__bubbels.teken.state()")
     if st["items"] != 2 or not st["kept"] or is_white(page.evaluate("window.__bubbels.teken.pixel(0.5, 0.3)")):
         problems.append(f"{name}: the drawing did not come back after a reload: {st}")
+    if not page.is_disabled("#teken-undo"):
+        problems.append(f"{name}: undo can go back past the drawing as it was opened")
+    # clear the page, let the autosave pass, undo: the drawing is back and stays kept
+    page.click("#teken-clear")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(900)
+    if page.evaluate("window.__bubbels.teken.state().items") != 0 or len(page.evaluate("window.__bubbels.teken.drawings()")) != 1:
+        problems.append(f"{name}: clear emptied the page wrongly or the autosave deleted the drawing")
+    page.click("#teken-undo")
+    page.wait_for_timeout(900)
+    st = page.evaluate("window.__bubbels.teken.state()")
+    if st["items"] != 2 or not st["kept"] or st["lastSave"] != "saved":
+        problems.append(f"{name}: undo after clear did not bring the drawing back for good: {st}")
     page.click("#teken-back")
     page.wait_for_timeout(150)
+    # two more drawings fill the free album; the fourth "+" offers the full version first
+    for n in range(2):
+        page.click("#teken-list .teken-new")
+        page.wait_for_timeout(200)
+        page.evaluate(f"window.__bubbels.teken.stroke([[0.2, {0.3 + n * 0.2}], [0.8, {0.3 + n * 0.2}]])")
+        page.click("#teken-back")
+        page.wait_for_timeout(200)
+    if page.locator("#teken-list .teken-card").count() != 3 or page.locator("#teken-list .teken-new .kleur-badge.lock").count() != 1:
+        problems.append(f"{name}: after 3 drawings the album should be full and the new card locked")
+    page.click("#teken-list .teken-new")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != [say["ok"]] or page.evaluate("document.querySelector('#screen-tekenen').classList.contains('active')"):
+        problems.append(f"{name}: a 4th drawing on the web offers {labels} or opened the page")
+    page.screenshot(path=str(SHOTS / f"{name}-t4-full.png"))
+    page.click("#ov-buttons button")
+    page.wait_for_selector("#overlay", state="hidden")
     page.click("#screen-tekenen-list [data-go='home']")
     page.wait_for_timeout(150)
 
@@ -1401,12 +1432,26 @@ def tekenen_fits(browser, base, problems):
             problems.append(f"{label}: {page.locator('#teken-guides line').count()} guide lines for 8 mirror lines")
         page.click("#teken-palette .swatch[data-c='8']")
         teken_drag(page, [(0.3, 0.25), (0.4, 0.2)])
-        for fx, fy in ((0.35, 0.225), (0.65, 0.225), (0.35, 0.775), (0.65, 0.775)):
+        # mirrored, upside down, and turned by 45 degrees (a copy only 8 lines make, not 6)
+        for fx, fy in ((0.35, 0.225), (0.65, 0.225), (0.35, 0.775), (0.65, 0.775), (0.588, 0.1995)):
             if is_white(page.evaluate(f"window.__bubbels.teken.pixel({fx}, {fy})")):
                 problems.append(f"{label}: no mirrored copy at {fx}, {fy}")
+        page.screenshot(path=str(SHOTS / f"teken-8lines-{w}x{h}.png"))
+        page.click("#teken-undo")
+        page.click("#teken-mirror")
+        page.click("#teken-tray button[data-n='6']")
+        teken_drag(page, [(0.3, 0.25), (0.4, 0.2)])
+        if page.evaluate("window.__bubbels.teken.state().copies") != 12:
+            problems.append(f"{label}: 6 lines do not make 12 copies")
+        if not is_white(page.evaluate("window.__bubbels.teken.pixel(0.588, 0.1995)")) or is_white(page.evaluate("window.__bubbels.teken.pixel(0.663, 0.2326)")):
+            problems.append(f"{label}: 6 lines drew a 45-degree copy, or no 60-degree one")
         page.click("#teken-stamp")
         page.wait_for_selector("#teken-tray:not([hidden])")
         page.screenshot(path=str(SHOTS / f"teken-stamps-{w}x{h}.png"))
+        small = page.evaluate("""() => [...document.querySelectorAll('#teken-palette .swatch, #teken-stage .tool')]
+          .map((b) => b.getBoundingClientRect()).filter((r) => r.width && (r.width < 43.5 || r.height < 43.5)).length""")
+        if small and w > h:  # sideways the panel has room for 44 px (upright, the colours share one width, as in Kleurplaten)
+            problems.append(f"{label}: {small} colours or tools are smaller than 44 px")
         page.click("#teken-tray button[data-stamp='puppy']")
         page.click("#teken-mirror")
         page.click("#teken-tray button[data-n='0']")
@@ -1428,6 +1473,40 @@ def tekenen_fits(browser, base, problems):
         if errors:
             problems.append(f"{label}: page errors: {errors}")
         ctx.close()
+
+
+def tekenen_locked_four(browser, base, problems):
+    """Review of PR #26 (B2): a locked device with 4 drawings (moved in from another device) clears
+    one, waits for the autosave, undoes: after a reload all 4 drawings are still there."""
+    save = {"version": 1, "games": {"tekenen": {"drawings": {f"k{i}": {"s": "s" + "ABCD"[i] + "BA" + "IAIA" + "QAQA", "t": 1000 + i} for i in range(4)}}},
+            "settings": {"muted": True, "lang": "nl"}, "purchase": {"owned": False}}
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844})
+    ctx.add_init_script(seeded(save))
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-tekenen")
+    page.wait_for_timeout(250)
+    if page.locator("#teken-list .teken-card").count() != 4:
+        problems.append(f"tekenen 4 drawings: the list shows {page.locator('#teken-list .teken-card').count()}")
+    page.click("#teken-list .teken-card[data-id='k1']")
+    page.wait_for_timeout(250)
+    page.click("#teken-clear")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(900)
+    page.click("#teken-undo")
+    page.wait_for_timeout(900)
+    page.click("#teken-back")
+    page.wait_for_timeout(200)
+    if page.locator("#overlay:not([hidden])").count():
+        problems.append(f"tekenen 4 drawings: leaving asked {page.inner_text('#ov-title')!r}")
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    kept = page.evaluate("window.__bubbels.teken.drawings()")
+    if sorted(kept) != ["k0", "k1", "k2", "k3"]:
+        problems.append(f"tekenen 4 drawings: after clear, undo and a reload only {sorted(kept)} are kept")
+    ctx.close()
 
 
 def kleuren_fits(browser, base, problems):
@@ -2015,6 +2094,7 @@ def main():
             random_cards_fit(browser, base, problems)
             kleuren_fits(browser, base, problems)
             tekenen_fits(browser, base, problems)
+            tekenen_locked_four(browser, base, problems)
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
             letters_play(browser, base, problems)

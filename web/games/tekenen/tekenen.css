@@ -24,7 +24,8 @@
   text-align: center;
 }
 .kleur-card.teken-new:active { box-shadow: 0 2px 0 var(--primary-dark); }
-.kleur-card.teken-new svg { width: 46%; height: 46%; }
+.kleur-card.teken-new > svg:first-child { width: 46%; height: 46%; }
+.kleur-card.teken-new.full { opacity: 0.75; }
 
 /* ---------- drawing ---------- */
 #teken-stage {
@@ -82,12 +83,14 @@
 .teken-size[data-z="2"] .dot { width: 22px; height: 22px; }
 .teken-tools .teken-size[aria-pressed="true"] .dot { box-shadow: 0 0 0 2.5px #fff; }
 
-/* short sideways phones: the HUD is a column on the left; colours and tools stand side by side */
+/* short sideways phones: the HUD is a column on the left; colours and tools stand side by side.
+   Every swatch and tool stays at least 44 px (a child's fingertip). */
 @media (orientation: landscape) and (max-height: 520px) {
   #screen-tekenen { flex-direction: row; }
   #teken-stage { padding: 6px 8px; gap: 12px; }
   #teken-stage.side .teken-side { width: auto; flex-direction: row; align-items: center; gap: 10px; }
-  #teken-stage.side .kleur-palette { width: 176px; gap: 6px; }
+  #teken-stage.side .kleur-palette { width: auto; grid-template-columns: repeat(4, 44px); gap: 6px; }
+  #teken-stage.side .swatch { width: 44px; height: 44px; }
   #teken-stage.side .teken-tools { display: grid; grid-template-columns: repeat(2, 46px); gap: 6px; }
   .teken-tools .tool { width: 46px; height: 46px; border-radius: 16px; }
   .teken-tools .tool svg { width: 24px; height: 24px; }
@@ -95,12 +98,14 @@
   .teken-tray .tool { width: 46px; height: 46px; }
 }
 
-/* very short sideways phones (about 320 px tall): no title, so the page can be bigger */
+/* very short sideways phones (about 320 px tall): no title, colours in three columns */
 @media (orientation: landscape) and (max-height: 360px) {
   #screen-tekenen .hud-mid { display: none; }
-  #teken-stage.side .kleur-palette { width: 128px; gap: 4px; }
-  #teken-stage.side .teken-tools { grid-template-columns: repeat(2, 40px); gap: 5px; }
-  .teken-tools .tool { width: 40px; height: 40px; border-radius: 14px; }
+  #teken-stage.side .teken-side { gap: 8px; }
+  #teken-stage.side .kleur-palette { grid-template-columns: repeat(3, 44px); gap: 5px; }
+  #teken-stage.side .swatch { border-width: 2px; }
+  #teken-stage.side .teken-tools { grid-template-columns: repeat(2, 44px); gap: 5px; }
+  .teken-tools .tool { width: 44px; height: 44px; border-radius: 14px; }
   .teken-tools .tool svg, .teken-tools .tool canvas { width: 22px; height: 22px; }
 }
 

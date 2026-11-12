@@ -184,6 +184,58 @@ export function drawItem(ctx, it) {
   }
 }
 
+/**
+ * The stroke under the finger, only its newest part: the straight bits from point `from` on, in
+ * every mirror copy (cheap per frame however long the stroke is). The finished stroke is drawn
+ * again, smoothed, by drawItem. The canvas is already scaled to grid units.
+ */
+export function drawStrokeTail(ctx, it, from) {
+  const col = PALETTE[it.c] || PALETTE[0];
+  const w = SIZES[it.z];
+  const pts = it.pts;
+  if (from >= pts.length) return;
+  for (const m of transforms(it.a)) {
+    ctx.save();
+    if (it.a) {
+      ctx.translate(HALF, HALF);
+      ctx.transform(m.a, m.b, m.c, m.d, 0, 0);
+      ctx.translate(-HALF, -HALF);
+    }
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = w;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    if (from === 0) {
+      ctx.arc(pts[0][0], pts[0][1], w / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+    }
+    const start = Math.max(from - 1, 0);
+    ctx.moveTo(pts[start][0], pts[start][1]);
+    for (let i = start + 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** More items on a canvas that already shows the page before them; a "clear" paints it white. */
+export function drawMore(ctx, items, px) {
+  const s = px / GRID;
+  for (const it of items) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (it.k === 'c') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, px, px);
+      continue;
+    }
+    ctx.setTransform(s, 0, 0, s, 0, 0);
+    drawItem(ctx, it);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
 /** The whole page on a canvas of `px` × `px` pixels: white, then every visible item. */
 export function drawItems(ctx, items, px) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);

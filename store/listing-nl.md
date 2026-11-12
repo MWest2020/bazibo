@@ -69,7 +69,7 @@ TEKENEN
 • Vrij tekenen met je vinger, met alle kleuren, drie kwasten, een gum en ongedaan maken.
 • Spiegelen met 2, 4, 6 of 8 lijnen: elke streep wordt een mandala.
 • Stempels: een ster, een hart, een zon, een bloem en een puppy.
-• Elke tekening blijft bewaard in Mijn tekeningen.
+• Tot 100 tekeningen blijven bewaard in Mijn tekeningen.
 
 KLOK KIJKEN
 • Zet de klok: draai de wijzers naar "half drie" of "kwart voor vier".

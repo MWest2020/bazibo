@@ -43,7 +43,7 @@ home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first an
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
-home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload; in the full version 8 mirror lines (16 copies) and a stamp at 320x568, 844x390 and 568x320;
+home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English, the voice asked for every question, a gentle wrong tap, a locked tier stays locked; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
@@ -98,11 +98,17 @@ go in `PICTURES` in difficulty order (few large parts first) with a name in `str
 saved through `saveArt`/`loadArt` only (never `saveGameOption`).
 Tekenen: a drawing is a list of strokes and stamps (`web/games/tekenen/drawing.js`, pure, with a
 test), saved as a short text through `saveDrawing`/`loadDrawings` only (never `saveGameOption`);
-the text stays under `DRAWING_MAX` (coarser strokes first, then "the page is full") and matches
-`DRAWING_RE`, which `sanitizePayload` checks too. The mirror maths is in `symmetry.js` (the
-dihedral group of 2, 4, 6 or 8 lines, tested); stamps are vectors in `render.js` (the puppy keeps
-floppy ears). Free: every colour, brush, the eraser, undo and `FREE_DRAWINGS` (3) kept drawings;
-the full version adds mirror mode, stamps and up to `MAX_DRAWINGS`.
+the text stays under `DRAWING_MAX` (coarser strokes first, then "the page is full") and must be
+`isDrawingText`, which storage.js and `sanitizePayload` check too (drawings only in the `tekenen`
+section, at most `DRAWINGS_BUDGET` characters per code). What is kept when lives in `session.js`
+(tested without a screen): undo never goes back past the drawing as it was opened, a drawing that
+was kept when opened may always be kept again, and an empty page deletes a drawing only when the
+child leaves, never from the autosave. A merge or transfer never pushes the receiver's own
+drawings out: the oldest incoming ones are left out and the card says how many. The mirror maths
+is in `symmetry.js` (the dihedral group of 2, 4, 6 or 8 lines, tested); stamps are vectors in
+`render.js` (the puppy keeps floppy ears); the stroke under the finger is drawn only by its new
+points. Free: every colour, brush, the eraser, undo and `FREE_DRAWINGS` (3) kept drawings; the full
+version adds mirror mode, stamps and up to `MAX_DRAWINGS` (100). Touch targets stay 44 px or more.
 Klok kijken: the time logic in `web/games/klok/time.js` (pure). Dutch phrasing works around the
 half hour ("vijf voor half drie" = 2:25); every 5-minute step of every hour is tested in both
 languages, so a change to `phrase()` must keep those tests green. Answer options stay on the
