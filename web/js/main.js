@@ -29,6 +29,9 @@ import { snakeSvg } from '../games/slang/art.js';
 import '../games/kleuren/strings.js';
 import { createKleuren } from '../games/kleuren/kleuren.js';
 import { tileMandalaSvg } from '../games/kleuren/tile.js';
+import '../games/tekenen/strings.js';
+import { createTekenen } from '../games/tekenen/tekenen.js';
+import { tileCanvas as tekenenTileCanvas } from '../games/tekenen/tile.js';
 import '../games/klok/strings.js';
 import { createKlok } from '../games/klok/klok.js';
 import { tileSvg as klokTileSvg } from '../games/klok/art.js';
@@ -192,6 +195,12 @@ function drawSlangTile() {
 
 function drawKleurenTile() {
   $('#tile-kleuren .tile-art').innerHTML = tileMandalaSvg();
+}
+
+function drawTekenenTile() {
+  const box = $('#tile-tekenen .tile-art');
+  box.textContent = '';
+  box.appendChild(tekenenTileCanvas());
 }
 
 function drawLettersTile() {
@@ -494,6 +503,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.tekenen = createTekenen({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.slang = createSlang({
     t,
     show,
@@ -535,12 +555,13 @@ async function boot() {
   drawVierTile();
   drawSlangTile();
   drawKleurenTile();
+  drawTekenenTile();
   drawKlokTile();
   drawLettersTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.klok.init(), games.letters.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -551,6 +572,7 @@ async function boot() {
       vier: games.vier.testHook(),
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
+      teken: games.tekenen.testHook(),
       klok: games.klok.testHook(),
       letters: games.letters.testHook(),
       transfer: games.transfer.testHook(),
@@ -588,6 +610,7 @@ function onBack() {
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();
+  else if (action === 'tekenen-list') games.tekenen.back();
   else if (action === 'klok-menu') games.klok.leave();
   else if (action === 'klok-menu-back') games.klok.menuBack();
   else if (action === 'letters-menu') games.letters.leave();

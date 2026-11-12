@@ -5,7 +5,7 @@ import qrcode from '../vendor/qrcode-generator/qrcode.min.js';
 import * as store from './storage.js';
 import { GAMES } from './games.js';
 import { ART_KEEP } from './storage.js';
-import { saveToParts, hasArt, createCollector, partsFromText, decodeText, summarize, mergeTransfer, replaceTransfer } from './transfer.js';
+import { fitParts, hasArt, countDrawings, droppedDrawings, createCollector, partsFromText, decodeText, summarize, mergeTransfer, replaceTransfer } from './transfer.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CYCLE_MS = 1500;
@@ -73,6 +73,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   let partAt = 0;
   let cycleTimer = 0;
   let withArt = true;
+  let withDrawings = true;
   let stream = null;
   let scanTimer = 0;
   let scanning = false;
@@ -108,12 +109,18 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     stopCycle();
     const save = store.snapshot();
     const canDrop = hasArt(save);
+    const drawings = countDrawings(save);
     $('#transfer-noart').hidden = !canDrop;
     $('#transfer-noart').setAttribute('aria-pressed', String(!withArt));
+    $('#transfer-nodraw').hidden = !drawings;
+    $('#transfer-nodraw').setAttribute('aria-pressed', String(!withDrawings));
     $('#transfer-code').hidden = true;
     $('#transfer-send-msg').textContent = '';
     try {
-      parts = await saveToParts(save, { withArt });
+      const fit = await fitParts(save, { withArt, withDrawings });
+      parts = fit.parts;
+      // the oldest drawings that did not fit in the codes are named, never left out silently
+      if (fit.leftOut) $('#transfer-send-msg').textContent = t('transfer.leftOut', { n: fit.leftOut });
     } catch (e) {
       parts = [];
       const ctx = $('#transfer-qr').getContext('2d');
@@ -136,6 +143,11 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   $('#transfer-noart').addEventListener('click', () => {
     tap();
     withArt = !withArt;
+    makeCodes();
+  });
+  $('#transfer-nodraw').addEventListener('click', () => {
+    tap();
+    withDrawings = !withDrawings;
     makeCodes();
   });
 
@@ -274,7 +286,9 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
     for (const g of [store.snapshot().games?.kleuren, payload.games?.kleuren]) {
       for (const [id, e] of Object.entries(g?.art || {})) if (id.startsWith('m:') && !e?.gone) ids.add(id);
     }
-    return ids.size > ART_KEEP ? ` ${t('transfer.capNote', { n: ART_KEEP })}` : '';
+    const art = ids.size > ART_KEEP ? ` ${t('transfer.capNote', { n: ART_KEEP })}` : '';
+    const left = droppedDrawings(store.snapshot(), payload);
+    return left ? `${art} ${t('transfer.drawNote', { n: left })}` : art;
   }
 
   function askWhatToDo(payload) {
@@ -293,7 +307,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   function confirmReplace(payload) {
     showOverlay({
       title: t('transfer.sure'),
-      text: payload.noArt ? `${t('transfer.sureText')} ${t('transfer.sureKeepArt')}` : t('transfer.sureText'),
+      text: [t('transfer.sureText'), payload.noArt ? t('transfer.sureKeepArt') : '', payload.noDrawings ? t('transfer.sureKeepDrawings') : ''].filter(Boolean).join(' '),
       buttons: [
         [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload))],
         [t('common.cancel'), 'big secondary', () => askWhatToDo(payload)],
@@ -383,6 +397,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
   onShow((name) => {
     if (name === 'transfer') {
       withArt = true;
+      withDrawings = true;
       setTab('send');
     } else {
       stopCycle();

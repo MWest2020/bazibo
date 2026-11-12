@@ -7,6 +7,7 @@
 //                 <any game>: { random: {tier: solved count} }   // random play, full version
 //                 kleuren: { art: {'p:zon': {f: {region: colour}, t, done, c?}, 'm:m1:1101': ...} },
 //                                    (a cleared page stays as {t, gone: true} so a merge carries the delete over)
+//                 tekenen: { drawings: {'d<id>': {s: 'strokes as text', t}} }   (a deleted one: {t, gone: true})
 //                 <later games add their own section> },
 //     settings: { muted: false, lang: 'nl' | 'en' | null },
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
@@ -24,6 +25,9 @@
 //   bubbels.v1 {stars, muted}, bubbels.settings.v1 {muted, lang}, bubbels.full.v1 '1'.
 // On the first start without a save document they are copied in once and left in place.
 
+import { DRAWING_MAX, DRAWING_RE, isDrawingText } from '../games/tekenen/drawing.js';
+
+export { DRAWING_MAX, DRAWING_RE };
 export const SAVE_KEY = 'bubbels.save';
 export const VERSION = 1;
 const LEGACY = { progress: 'bubbels.v1', settings: 'bubbels.settings.v1', full: 'bubbels.full.v1' };
@@ -120,11 +124,9 @@ export function localStorageBackend(ls = globalThis.window?.localStorage) {
       }
     },
     async set(key, text) {
-      try {
-        ls.setItem(key, text);
-      } catch {
-        /* not available: the save stays in memory for this session */
-      }
+      // a full or blocked localStorage throws (QuotaExceededError): persist() marks the write as
+      // failed (writeFailing), keeps the save in memory and tries again on the next chance
+      ls.setItem(key, text);
     },
   };
 }
@@ -180,6 +182,11 @@ function persist() {
     });
 }
 
+/** True while the last write did not reach the backend (a full or blocked storage). */
+export function writeFailing() {
+  return writeFailed;
+}
+
 /** Write the latest save again after a failed write; retry a failed read (also on visibilitychange). */
 export function retryFailedWrite() {
   if (writeFailed) persist();
@@ -228,6 +235,10 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
       const art = isObj(mine.art) ? mine.art : (mine.art = {});
       for (const [pic, entry] of Object.entries(g.art)) art[pic] = mergeArtPage(art[pic], entry);
       boundArt(art);
+    }
+    if (isObj(g?.drawings)) {
+      const drawings = isObj(mine.drawings) ? mine.drawings : (mine.drawings = {});
+      mergeDrawings(drawings, g.drawings);
     }
     if (isObj(g?.howSeen)) {
       // how-to cards seen in either: a card the child already closed is not shown again
@@ -420,16 +431,19 @@ export function recordRandomSolved(gameId, tier) {
   return random[tier];
 }
 
+const RESERVED = new Set(['stars', 'random', 'art', 'drawings']);
+
 /** A game's own option (e.g. Dogudoku's auto-cross), kept in its section next to `stars`. */
 export function loadGameOption(gameId, key, fallback) {
   const g = save.games[gameId];
-  return isObj(g) && key in g && key !== 'stars' && key !== 'random' && key !== 'art' ? clone(g[key]) : fallback;
+  return isObj(g) && key in g && !RESERVED.has(key) ? clone(g[key]) : fallback;
 }
 
 export function saveGameOption(gameId, key, value) {
   if (key === 'stars') throw new Error('stars go through saveProgress');
   if (key === 'random') throw new Error('random counts go through recordRandomSolved');
   if (key === 'art') throw new Error('colouring pages go through saveArt');
+  if (key === 'drawings') throw new Error('drawings go through saveDrawing');
   save.games[gameId] = { ...(isObj(save.games[gameId]) ? save.games[gameId] : {}), [key]: clone(value) };
   persist();
 }
@@ -503,6 +517,99 @@ export function saveArt(gameId, id, { f = {}, done = false, t = Date.now(), coun
   boundArt(art);
   save.games[gameId] = { ...g, art };
   persist();
+}
+
+// ---------- drawings (Tekenen) ----------
+// The text format is web/games/tekenen/drawing.js's (DRAWING_MAX, DRAWING_RE, isDrawingText).
+
+/** At most this many drawings (a new one beyond it is refused), and as many "deleted" markers. */
+export const DRAWINGS_KEEP = 100;
+
+const liveDrawing = (e) => isObj(e) && !e.gone && typeof e.s === 'string' && e.s.length > 0;
+
+/** Only the "deleted" markers are trimmed (the newest stay); a drawing itself is never dropped here. */
+function boundGone(d) {
+  const ids = Object.keys(d).filter((id) => !liveDrawing(d[id]));
+  if (ids.length <= DRAWINGS_KEEP) return;
+  ids.sort((a, b) => (Number(d[b]?.t) || 0) - (Number(d[a]?.t) || 0));
+  for (const id of ids.slice(DRAWINGS_KEEP)) delete d[id];
+}
+
+/**
+ * Merge drawings into `mine` (changed in place): per drawing the newer one wins (a drawing is one
+ * picture, not parts), a drawing deleted later stays deleted. The drawings `mine` already has
+ * are never pushed out: if the album would hold more than DRAWINGS_KEEP, the oldest of the
+ * drawings that came in are left out. Returns how many were left out.
+ */
+export function mergeDrawings(mine, incoming) {
+  const had = new Set(Object.keys(mine).filter((id) => liveDrawing(mine[id])));
+  const before = {};
+  for (const [id, entry] of Object.entries(isObj(incoming) ? incoming : {})) {
+    if (!isObj(entry)) continue;
+    if (!isObj(mine[id]) || (Number(entry.t) || 0) > (Number(mine[id].t) || 0)) {
+      before[id] = mine[id];
+      mine[id] = clone(entry);
+    }
+  }
+  const live = Object.keys(mine).filter((id) => liveDrawing(mine[id]));
+  let over = live.length - DRAWINGS_KEEP;
+  let dropped = 0;
+  if (over > 0) {
+    const extra = live.filter((id) => !had.has(id)).sort((a, b) => (Number(mine[a].t) || 0) - (Number(mine[b].t) || 0));
+    for (const id of extra) {
+      if (over <= 0) break;
+      if (isObj(before[id])) mine[id] = before[id]; // its own "deleted" marker comes back
+      else delete mine[id];
+      over--;
+      dropped++;
+    }
+  }
+  boundGone(mine);
+  return dropped;
+}
+
+/** Every kept drawing: { id: { s, t } } (deleted ones are left out). Read fresh each time. */
+export function loadDrawings(gameId) {
+  const d = save.games[gameId]?.drawings;
+  const out = {};
+  for (const [id, e] of Object.entries(isObj(d) ? d : {})) if (liveDrawing(e)) out[id] = { s: e.s, t: Number(e.t) || 0 };
+  return out;
+}
+
+/** One drawing, or null. */
+export function loadDrawing(gameId, id) {
+  const e = save.games[gameId]?.drawings?.[id];
+  return liveDrawing(e) ? { s: e.s, t: Number(e.t) || 0 } : null;
+}
+
+export function countDrawings(gameId) {
+  return Object.keys(loadDrawings(gameId)).length;
+}
+
+/**
+ * Store one drawing as its text (drawing.js pack). An empty text deletes it (kept as `{t, gone}`
+ * so a later merge carries that over). Refused (false, nothing changes): a text that is too long,
+ * has other characters or holds no stroke, and a new drawing when there are DRAWINGS_KEEP
+ * already. Fields this version does not know are kept.
+ */
+export function saveDrawing(gameId, id, s, t = Date.now()) {
+  if (typeof id !== 'string' || !id || (s !== '' && !isDrawingText(s))) return false;
+  const g = isObj(save.games[gameId]) ? save.games[gameId] : {};
+  const drawings = isObj(g.drawings) ? { ...g.drawings } : {};
+  const time = Number(t) || Date.now();
+  const was = drawings[id];
+  const { gone, s: oldText, ...rest } = isObj(was) ? was : {};
+  if (!s) {
+    if (!isObj(was)) return true;
+    drawings[id] = { ...rest, t: time, gone: true };
+  } else {
+    if (!liveDrawing(was) && Object.values(drawings).filter(liveDrawing).length >= DRAWINGS_KEEP) return false;
+    drawings[id] = { ...rest, s, t: time };
+  }
+  boundGone(drawings);
+  save.games[gameId] = { ...g, drawings };
+  persist();
+  return true;
 }
 
 export const fullCache = {

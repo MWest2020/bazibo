@@ -10,7 +10,8 @@
 //   parts = 'BZ1' + set id (4 hex) + part (2 digits) + of (2 digits) + ':' + a slice of text
 // A receiver collects the parts of one set in any order. Everything that comes in is checked
 // (size, format, checksum, the shape of every value) before it can touch the save.
-import { mergeSaves, VERSION } from './storage.js';
+import { mergeSaves, mergeDrawings, VERSION, DRAWINGS_KEEP } from './storage.js';
+import { isDrawingText } from '../games/tekenen/drawing.js';
 
 export const FORMAT = 1;
 // Characters per QR code. A multiple of 3 (a base45 group), so no part ends inside one. With the
@@ -132,19 +133,44 @@ async function inflate(bytes, limit) {
 
 // ---------- what travels ----------
 
-/** The part of a save that travels: games and settings, never the purchase. */
-export function payloadOf(save, { withArt = true } = {}) {
+/** The only game whose section may hold drawings (Tekenen). */
+export const DRAWINGS_GAME = 'tekenen';
+/** The most drawing text one code may carry (characters); the newest drawings go first. */
+export const DRAWINGS_BUDGET = 300000;
+
+const liveEntries = (o) => Object.entries(isObj(o) ? o : {}).filter(([, e]) => isObj(e) && !e.gone);
+
+/**
+ * The part of a save that travels: games and settings, never the purchase. Without colouring
+ * pages (`withArt: false`) or without drawings (`withDrawings: false`), replace then keeps the
+ * receiver's own; `drawingLimit` sends only the newest that many drawings (to fit the codes).
+ */
+export function payloadOf(save, { withArt = true, withDrawings = true, drawingLimit = Infinity } = {}) {
   const games = clone(isObj(save?.games) ? save.games : {});
-  if (!withArt) for (const g of Object.values(games)) if (isObj(g)) delete g.art;
+  for (const g of Object.values(games)) {
+    if (!isObj(g)) continue;
+    if (!withArt) delete g.art;
+    if (!withDrawings) delete g.drawings;
+    else if (isObj(g.drawings) && drawingLimit < Infinity) {
+      const live = liveEntries(g.drawings).sort((a, b) => (Number(b[1].t) || 0) - (Number(a[1].t) || 0));
+      for (const [id] of live.slice(drawingLimit)) delete g.drawings[id];
+    }
+  }
   const s = isObj(save?.settings) ? save.settings : {};
   const out = { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
-  if (!withArt) out.noArt = true; // replace then keeps the receiver's own colouring pages
+  if (!withArt) out.noArt = true;
+  if (!withDrawings) out.noDrawings = true;
   return out;
 }
 
 /** Whether a save has colouring pages (then a smaller code without them can be offered). */
 export function hasArt(save) {
-  return Object.values(isObj(save?.games) ? save.games : {}).some((g) => isObj(g?.art) && Object.keys(g.art).length > 0);
+  return Object.values(isObj(save?.games) ? save.games : {}).some((g) => liveEntries(g?.art).length > 0);
+}
+
+/** How many drawings a save has (deleted ones not counted). */
+export function countDrawings(save) {
+  return Object.values(isObj(save?.games) ? save.games : {}).reduce((n, g) => n + liveEntries(g?.drawings).length, 0);
 }
 
 /** A save as one long code text. */
@@ -189,6 +215,37 @@ export function randomId() {
 /** The QR parts of a save. Throws 'too-big' when it needs more than MAX_PARTS codes. */
 export async function saveToParts(save, opts = {}) {
   return splitParts(await encodeSave(save, opts));
+}
+
+/**
+ * The QR parts, leaving out the oldest drawings when everything does not fit: { parts, leftOut }.
+ * Throws 'too-big' when even without any drawing it does not fit.
+ */
+export async function fitParts(save, opts = {}) {
+  try {
+    return { parts: await saveToParts(save, opts), leftOut: 0 };
+  } catch (e) {
+    const total = countDrawings(save);
+    if (e?.message !== 'too-big' || opts.withDrawings === false || !total) throw e;
+  }
+  const total = countDrawings(save);
+  // the most newest drawings that still fit: a binary search over how many go along
+  let lo = 0;
+  let hi = total - 1;
+  let best = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    try {
+      const parts = await saveToParts(save, { ...opts, drawingLimit: mid });
+      best = { parts, leftOut: total - mid };
+      lo = mid + 1;
+    } catch (e) {
+      if (e?.message !== 'too-big') throw e;
+      hi = mid - 1;
+    }
+  }
+  if (!best) throw new Error('too-big');
+  return best;
 }
 
 /** Read one part; null when the text is not a part of ours. */
@@ -323,12 +380,15 @@ function cleanFlags(obj) {
   return out;
 }
 
+// a time in the far future would win every later merge
+const cleanTime = (t) => (Number.isFinite(t) && t >= 0 ? Math.min(t, Date.now() + 864e5) : 0);
+
 function cleanArt(obj) {
   const out = {};
   if (!isObj(obj)) return out;
   for (const [page, e] of Object.entries(obj).slice(0, 200)) {
     if (!KEY_RE.test(page) || !isObj(e)) continue;
-    const t = Number.isFinite(e.t) && e.t >= 0 ? Math.min(e.t, Date.now() + 864e5) : 0; // a time in the far future would win every later merge
+    const t = cleanTime(e.t);
     const c = e.c ? { c: 1 } : {};
     if (e.gone === true) {
       out[page] = { t, gone: true, ...c };
@@ -337,6 +397,34 @@ function cleanArt(obj) {
     const f = {};
     for (const [r, col] of Object.entries(isObj(e.f) ? e.f : {}).slice(0, 1000)) if (KEY_RE.test(r) && Number.isInteger(col) && col >= 0 && col < 64) f[r] = col;
     if (Object.keys(f).length) out[page] = { f, t, done: e.done === true, ...c };
+  }
+  return out;
+}
+
+/**
+ * Drawings (Tekenen): a text that is a real drawing (drawing.js isDrawingText), or a "deleted"
+ * marker. At most DRAWINGS_KEEP of each, and DRAWINGS_BUDGET characters of text in all: the
+ * newest first.
+ */
+function cleanDrawings(obj) {
+  const out = {};
+  if (!isObj(obj)) return out;
+  const entries = Object.entries(obj)
+    .slice(0, 4 * DRAWINGS_KEEP)
+    .filter(([id, e]) => KEY_RE.test(id) && isObj(e))
+    .map(([id, e]) => [id, e, cleanTime(e.t)])
+    .sort((a, b) => b[2] - a[2]);
+  let live = 0;
+  let gone = 0;
+  let budget = DRAWINGS_BUDGET;
+  for (const [id, e, t] of entries) {
+    if (e.gone === true) {
+      if (gone++ < DRAWINGS_KEEP) out[id] = { t, gone: true };
+    } else if (isDrawingText(e.s) && live < DRAWINGS_KEEP && e.s.length <= budget) {
+      out[id] = { s: e.s, t };
+      live++;
+      budget -= e.s.length;
+    }
   }
   return out;
 }
@@ -372,6 +460,9 @@ export function sanitizePayload(doc) {
       if (k === 'stars' || k === 'random') out[k] = cleanCounts(v);
       else if (k === 'howSeen') out[k] = cleanFlags(v);
       else if (k === 'art') out[k] = cleanArt(v);
+      else if (k === 'drawings') {
+        if (id === DRAWINGS_GAME) out[k] = cleanDrawings(v); // nowhere else
+      }
       else {
         const o = cleanOption(v);
         if (o !== undefined) out[k] = o;
@@ -381,7 +472,7 @@ export function sanitizePayload(doc) {
   }
   const s = isObj(doc.settings) ? doc.settings : {};
   const lang = s.lang === 'nl' || s.lang === 'en' ? s.lang : null;
-  return { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true };
+  return { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true, noDrawings: doc.noDrawings === true };
 }
 
 // ---------- what the other device does with it ----------
@@ -393,13 +484,14 @@ export function summarize(payload) {
     let n = 0;
     for (const v of Object.values(isObj(g.stars) ? g.stars : {})) if (v > 0) n++;
     for (const e of Object.values(isObj(g.art) ? g.art : {})) if (!e.gone) n++;
+    n += liveEntries(g.drawings).length;
     for (const v of Object.values(isObj(g.random) ? g.random : {})) n += v;
     if (n > 0) out.push({ id, n });
   }
   return out;
 }
 
-const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art']);
+const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art', 'drawings']);
 
 /**
  * Merge: what this device has, plus what came in. Stars and counts keep the higher value, colouring
@@ -426,18 +518,27 @@ export function mergeTransfer(stored, payload) {
   return out;
 }
 
+/** How many drawings that came in would not fit this device's album when merged (mergeDrawings). */
+export function droppedDrawings(stored, payload) {
+  const incoming = payload.games?.[DRAWINGS_GAME]?.drawings;
+  if (!isObj(incoming)) return 0;
+  const mine = clone(stored.games?.[DRAWINGS_GAME]?.drawings || {});
+  return mergeDrawings(isObj(mine) ? mine : {}, incoming);
+}
+
 /**
  * Replace: the progress and settings that came in; this device keeps its purchase. A code made
- * "without colouring pages" leaves this device's colouring pages as they are.
+ * "without colouring pages" (or "without drawings") leaves this device's own as they are.
  */
 export function replaceTransfer(stored, payload) {
   const out = clone(stored);
   out.games = clone(payload.games || {});
-  if (payload.noArt) {
+  for (const [flag, key] of [['noArt', 'art'], ['noDrawings', 'drawings']]) {
+    if (!payload[flag]) continue;
     for (const [id, g] of Object.entries(isObj(stored.games) ? stored.games : {})) {
-      if (!isObj(g?.art)) continue;
+      if (!isObj(g?.[key])) continue;
       const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
-      mine.art = clone(g.art);
+      mine[key] = clone(g[key]);
     }
   }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };
