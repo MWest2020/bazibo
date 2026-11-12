@@ -7,6 +7,7 @@ import { meta as picturedoku } from '../games/picturedoku/meta.js';
 import { meta as vier } from '../games/vier/meta.js';
 import { meta as slang } from '../games/slang/meta.js';
 import { meta as kleuren } from '../games/kleuren/meta.js';
+import { meta as tekenen } from '../games/tekenen/meta.js';
 import { meta as klok } from '../games/klok/meta.js';
 import { meta as letters } from '../games/letters/meta.js';
 
@@ -17,6 +18,7 @@ export const GAMES = [
   { ...vier, status: 'ready' },
   { ...slang, status: 'ready' },
   { ...kleuren, status: 'ready' },
+  { ...tekenen, status: 'ready' },
   { ...klok, status: 'ready' },
   { ...letters, status: 'ready' },
 ];

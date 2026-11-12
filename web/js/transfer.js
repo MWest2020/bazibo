@@ -10,7 +10,7 @@
 //   parts = 'BZ1' + set id (4 hex) + part (2 digits) + of (2 digits) + ':' + a slice of text
 // A receiver collects the parts of one set in any order. Everything that comes in is checked
 // (size, format, checksum, the shape of every value) before it can touch the save.
-import { mergeSaves, VERSION } from './storage.js';
+import { mergeSaves, VERSION, DRAWING_MAX, DRAWING_RE, DRAWINGS_KEEP } from './storage.js';
 
 export const FORMAT = 1;
 // Characters per QR code. A multiple of 3 (a base45 group), so no part ends inside one. With the
@@ -135,16 +135,23 @@ async function inflate(bytes, limit) {
 /** The part of a save that travels: games and settings, never the purchase. */
 export function payloadOf(save, { withArt = true } = {}) {
   const games = clone(isObj(save?.games) ? save.games : {});
-  if (!withArt) for (const g of Object.values(games)) if (isObj(g)) delete g.art;
+  if (!withArt) {
+    for (const g of Object.values(games)) {
+      if (!isObj(g)) continue;
+      delete g.art;
+      delete g.drawings;
+    }
+  }
   const s = isObj(save?.settings) ? save.settings : {};
   const out = { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
-  if (!withArt) out.noArt = true; // replace then keeps the receiver's own colouring pages
+  if (!withArt) out.noArt = true; // replace then keeps the receiver's own colouring pages and drawings
   return out;
 }
 
-/** Whether a save has colouring pages (then a smaller code without them can be offered). */
+/** Whether a save has colouring pages or drawings (then a smaller code without them can be offered). */
 export function hasArt(save) {
-  return Object.values(isObj(save?.games) ? save.games : {}).some((g) => isObj(g?.art) && Object.keys(g.art).length > 0);
+  const some = (o) => isObj(o) && Object.keys(o).length > 0;
+  return Object.values(isObj(save?.games) ? save.games : {}).some((g) => some(g?.art) || some(g?.drawings));
 }
 
 /** A save as one long code text. */
@@ -323,12 +330,15 @@ function cleanFlags(obj) {
   return out;
 }
 
+// a time in the far future would win every later merge
+const cleanTime = (t) => (Number.isFinite(t) && t >= 0 ? Math.min(t, Date.now() + 864e5) : 0);
+
 function cleanArt(obj) {
   const out = {};
   if (!isObj(obj)) return out;
   for (const [page, e] of Object.entries(obj).slice(0, 200)) {
     if (!KEY_RE.test(page) || !isObj(e)) continue;
-    const t = Number.isFinite(e.t) && e.t >= 0 ? Math.min(e.t, Date.now() + 864e5) : 0; // a time in the far future would win every later merge
+    const t = cleanTime(e.t);
     const c = e.c ? { c: 1 } : {};
     if (e.gone === true) {
       out[page] = { t, gone: true, ...c };
@@ -337,6 +347,19 @@ function cleanArt(obj) {
     const f = {};
     for (const [r, col] of Object.entries(isObj(e.f) ? e.f : {}).slice(0, 1000)) if (KEY_RE.test(r) && Number.isInteger(col) && col >= 0 && col < 64) f[r] = col;
     if (Object.keys(f).length) out[page] = { f, t, done: e.done === true, ...c };
+  }
+  return out;
+}
+
+/** Drawings (Tekenen): a text of the drawing alphabet, not too long, or a "deleted" marker. */
+function cleanDrawings(obj) {
+  const out = {};
+  if (!isObj(obj)) return out;
+  for (const [id, e] of Object.entries(obj).slice(0, 2 * DRAWINGS_KEEP)) {
+    if (!KEY_RE.test(id) || !isObj(e)) continue;
+    const t = cleanTime(e.t);
+    if (e.gone === true) out[id] = { t, gone: true };
+    else if (typeof e.s === 'string' && e.s.length > 0 && e.s.length <= DRAWING_MAX && DRAWING_RE.test(e.s)) out[id] = { s: e.s, t };
   }
   return out;
 }
@@ -372,6 +395,7 @@ export function sanitizePayload(doc) {
       if (k === 'stars' || k === 'random') out[k] = cleanCounts(v);
       else if (k === 'howSeen') out[k] = cleanFlags(v);
       else if (k === 'art') out[k] = cleanArt(v);
+      else if (k === 'drawings') out[k] = cleanDrawings(v);
       else {
         const o = cleanOption(v);
         if (o !== undefined) out[k] = o;
@@ -393,13 +417,14 @@ export function summarize(payload) {
     let n = 0;
     for (const v of Object.values(isObj(g.stars) ? g.stars : {})) if (v > 0) n++;
     for (const e of Object.values(isObj(g.art) ? g.art : {})) if (!e.gone) n++;
+    for (const e of Object.values(isObj(g.drawings) ? g.drawings : {})) if (!e.gone) n++;
     for (const v of Object.values(isObj(g.random) ? g.random : {})) n += v;
     if (n > 0) out.push({ id, n });
   }
   return out;
 }
 
-const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art']);
+const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art', 'drawings']);
 
 /**
  * Merge: what this device has, plus what came in. Stars and counts keep the higher value, colouring
@@ -428,16 +453,17 @@ export function mergeTransfer(stored, payload) {
 
 /**
  * Replace: the progress and settings that came in; this device keeps its purchase. A code made
- * "without colouring pages" leaves this device's colouring pages as they are.
+ * "without colouring pages" leaves this device's colouring pages and drawings as they are.
  */
 export function replaceTransfer(stored, payload) {
   const out = clone(stored);
   out.games = clone(payload.games || {});
   if (payload.noArt) {
     for (const [id, g] of Object.entries(isObj(stored.games) ? stored.games : {})) {
-      if (!isObj(g?.art)) continue;
+      if (!isObj(g?.art) && !isObj(g?.drawings)) continue;
       const mine = isObj(out.games[id]) ? out.games[id] : (out.games[id] = {});
-      mine.art = clone(g.art);
+      if (isObj(g.art)) mine.art = clone(g.art);
+      if (isObj(g.drawings)) mine.drawings = clone(g.drawings);
     }
   }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };

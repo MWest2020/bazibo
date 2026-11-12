@@ -19,15 +19,15 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake, Colouring, Telling Time and Letters: play and learn for ages 3 to 10, no ads.
+Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake, Colouring, Drawing, Telling Time and Letters: play and learn for ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,puzzle,kids,no ads
+bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,drawing,puzzle,kids,no ads
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has eight games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake, Colouring, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has nine games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake, Colouring, Drawing, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -67,6 +67,9 @@ COLOURING PAGES AND MANDALAS
 • For the youngest (age 3 and up): 13 pictures, from a sun and a house to a rocket and an elephant.
 • From age 7: mandalas, with a button that colours all copies at once.
 
+DRAWING
+• Draw with a finger; mirror mode makes every stroke a mandala.
+
 TELLING TIME
 • Set the clock: turn the hands to "half past two" or "quarter to four".
 • What time is it? Pick the right time for the clock.
@@ -86,7 +89,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, in Snake 10 of the 30 levels, in Colouring 6 pictures and 3 mandalas, in Telling Time whole and half hours and the daily rhythm, and in Letters the first letters. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part: levels 1 to 10 in Bubble Shooter, in Dogudoku and in Picturedoku 10 free puzzles each, spread over every size, in Four in a Row playing together and the Easy and Medium computer, in Snake 10 of the 30 levels, in Colouring 6 pictures and 3 mandalas, in Drawing 3 kept drawings, in Telling Time whole and half hours and the daily rhythm, and in Letters the first letters. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/

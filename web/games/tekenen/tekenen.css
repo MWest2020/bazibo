@@ -1,0 +1,115 @@
+/* Tekenen: my drawings and the drawing page. The page, palette, tools, cards and the sparkle reuse
+   Kleurplaten's classes (kleuren.css); only the layout of this screen and its own parts are here. */
+
+/* ---------- home tile ---------- */
+#tile-tekenen .tile-art { display: flex; align-items: center; justify-content: center; }
+.mini-drawing { width: 92px; height: 92px; display: block; border-radius: 18px; box-shadow: 0 0 0 2px #e4e0fb; }
+
+/* ---------- my drawings ---------- */
+.teken-grid { margin-top: 6px; }
+.kleur-card.teken-card { padding: 5px; }
+.kleur-card.teken-card .kleur-thumb { border-radius: 13px; }
+.kleur-card.teken-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 5px 0 var(--primary-dark), 0 8px 16px rgba(59, 47, 168, 0.18);
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  text-align: center;
+}
+.kleur-card.teken-new:active { box-shadow: 0 2px 0 var(--primary-dark); }
+.kleur-card.teken-new svg { width: 46%; height: 46%; }
+
+/* ---------- drawing ---------- */
+#teken-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px 14px;
+}
+#teken-stage.side { flex-direction: row; gap: 16px; }
+.teken-page { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#teken-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+#teken-guides { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+.teken-page.mirrored #teken-guides { display: block; }
+#teken-guides line { stroke: rgba(91, 75, 219, 0.2); stroke-width: 9; stroke-dasharray: 40 34; }
+#teken-guides circle { fill: rgba(91, 75, 219, 0.3); }
+
+/* the row of stamps or mirror choices, over the bottom of the page */
+.teken-tray {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 4px 0 #c9c1ff, 0 8px 22px rgba(43, 35, 112, 0.22);
+  z-index: 2;
+}
+.teken-tray[hidden] { display: none; }
+.teken-choice { position: relative; }
+.teken-choice canvas { width: 40px; height: 40px; display: block; }
+.teken-choice svg { width: 30px; height: 30px; }
+.teken-choice b { position: absolute; right: 3px; bottom: 1px; font-size: 0.85rem; font-weight: 900; }
+.teken-choice[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }
+
+.teken-side { width: min(100%, 460px); }
+#teken-stage.side .teken-side { width: 236px; flex: none; }
+#teken-stage.side .kleur-palette { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.teken-tools .tool { position: relative; }
+.teken-tools .tool canvas { width: 30px; height: 30px; display: block; }
+.teken-tools .tool .kleur-badge { width: 22px; height: 22px; padding: 3px; right: -6px; top: -6px; }
+/* the three brushes: a dot as big as the line, in the chosen colour */
+.teken-size .dot { display: block; border-radius: 50%; background: var(--c, #3a6fe8); box-shadow: 0 0 0 1.5px rgba(43, 35, 112, 0.35); }
+.teken-size[data-z="0"] .dot { width: 7px; height: 7px; }
+.teken-size[data-z="1"] .dot { width: 13px; height: 13px; }
+.teken-size[data-z="2"] .dot { width: 22px; height: 22px; }
+.teken-tools .teken-size[aria-pressed="true"] .dot { box-shadow: 0 0 0 2.5px #fff; }
+
+/* short sideways phones: the HUD is a column on the left; colours and tools stand side by side */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-tekenen { flex-direction: row; }
+  #teken-stage { padding: 6px 8px; gap: 12px; }
+  #teken-stage.side .teken-side { width: auto; flex-direction: row; align-items: center; gap: 10px; }
+  #teken-stage.side .kleur-palette { width: 176px; gap: 6px; }
+  #teken-stage.side .teken-tools { display: grid; grid-template-columns: repeat(2, 46px); gap: 6px; }
+  .teken-tools .tool { width: 46px; height: 46px; border-radius: 16px; }
+  .teken-tools .tool svg { width: 24px; height: 24px; }
+  .teken-tray { gap: 6px; padding: 8px; }
+  .teken-tray .tool { width: 46px; height: 46px; }
+}
+
+/* very short sideways phones (about 320 px tall): no title, so the page can be bigger */
+@media (orientation: landscape) and (max-height: 360px) {
+  #screen-tekenen .hud-mid { display: none; }
+  #teken-stage.side .kleur-palette { width: 128px; gap: 4px; }
+  #teken-stage.side .teken-tools { grid-template-columns: repeat(2, 40px); gap: 5px; }
+  .teken-tools .tool { width: 40px; height: 40px; border-radius: 14px; }
+  .teken-tools .tool svg, .teken-tools .tool canvas { width: 22px; height: 22px; }
+}
+
+/* narrow phones */
+@media (max-width: 360px) {
+  .teken-tools { gap: 7px; }
+  .teken-tools .tool { width: 46px; height: 46px; }
+  .teken-tray .tool { width: 46px; height: 46px; }
+}
+
+/* the done card shows the drawing */
+.ov-kleur.ov-teken { box-shadow: 0 0 0 2px #e4e0fb; }

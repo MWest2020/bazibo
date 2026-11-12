@@ -9,6 +9,8 @@
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
 //   a colouring page                   -> the list of pages (the page is saved)
+//   a drawing                          -> an open row of stamps or mirror choices closes; else
+//                                         "my drawings" (the drawing is saved, or a card asks first)
 //   a Klok kijken round (or its card)  -> its menu (the round is kept: "keep playing")
 //   the Klok kijken menu               -> from one kind of round to the kinds, then home
 //   a Letters round (or its card)      -> its menu (the round is kept: "keep playing")
@@ -25,6 +27,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'slang') return 'slang-menu';
   if (screen === 'kleuren') return 'kleuren-list';
+  if (screen === 'tekenen') return 'tekenen-list';
   if (screen === 'klok') return 'klok-menu';
   if (screen === 'klok-menu') return 'klok-menu-back';
   if (screen === 'letters') return 'letters-menu';

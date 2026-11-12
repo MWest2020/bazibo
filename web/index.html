@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
+  <link rel="stylesheet" href="games/tekenen/tekenen.css">
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
 </head>
@@ -62,6 +63,10 @@
           <button id="tile-kleuren" class="tile" type="button" data-game="kleuren">
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.kleuren">Kleurplaten</span>
+          </button>
+          <button id="tile-tekenen" class="tile" type="button" data-game="tekenen">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.tekenen">Tekenen</span>
           </button>
           <button id="tile-klok" class="tile" type="button" data-game="klok">
             <span class="tile-art" aria-hidden="true"></span>
@@ -135,7 +140,7 @@
           <p class="setting-text" data-i18n="transfer.sendHint">Scan deze code met het andere toestel: Instellingen › Voortgang overzetten › Ontvangen.</p>
           <p id="transfer-send-msg" class="transfer-msg" aria-live="polite"></p>
           <div class="transfer-actions">
-            <button id="transfer-noart" class="btn secondary" type="button" hidden data-i18n="transfer.noArt">Zonder kleurplaten</button>
+            <button id="transfer-noart" class="btn secondary" type="button" hidden data-i18n="transfer.noArt">Zonder kleurplaten en tekeningen</button>
             <button id="transfer-copy" class="btn secondary" type="button" data-i18n="transfer.copy">Kopieer als tekst</button>
           </div>
           <textarea id="transfer-code" class="transfer-code" readonly hidden rows="4" data-i18n-aria="transfer.codeLabel" aria-label="De code als tekst"></textarea>
@@ -392,6 +397,52 @@
             <button id="kleur-mirror" class="btn icon tool" type="button" data-i18n-aria="kleur.mirror" aria-label="Alle kopieën tegelijk kleuren" aria-pressed="false"></button>
             <button id="kleur-zoom" class="btn icon tool" type="button" data-i18n-aria="kleur.zoom" aria-label="Inzoomen" aria-pressed="false"></button>
             <button id="kleur-done" class="btn icon tool done" type="button" data-i18n-aria="kleur.done" aria-label="Klaar"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tekenen: my drawings (and a new one) -->
+    <section id="screen-tekenen-list" class="screen" data-i18n-aria="games.tekenen" aria-label="Tekenen">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="teken.mine">Mijn tekeningen</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="teken-list"></div></div>
+    </section>
+
+    <!-- Tekenen: drawing -->
+    <section id="screen-tekenen" class="screen" data-i18n-aria="games.tekenen" aria-label="Tekenen">
+      <header class="bar dogu-hud kleur-hud">
+        <button id="teken-back" class="btn icon" type="button" data-i18n-aria="teken.mine" aria-label="Mijn tekeningen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="teken-title" class="dogu-title" data-i18n="games.tekenen">Tekenen</div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="teken-stage">
+        <div id="teken-page" class="kleur-page teken-page">
+          <canvas id="teken-canvas" role="img" data-i18n-aria="teken.page" aria-label="Tekenblad: teken met je vinger"></canvas>
+          <svg id="teken-guides" viewBox="0 0 4096 4096" aria-hidden="true"></svg>
+          <div id="teken-tray" class="teken-tray" role="group" hidden></div>
+        </div>
+        <div class="kleur-side teken-side">
+          <div id="teken-palette" class="kleur-palette" role="group" data-i18n-aria="teken.palette" aria-label="Kleuren"></div>
+          <div class="kleur-tools teken-tools" role="group" data-i18n-aria="teken.tools" aria-label="Gereedschap">
+            <button id="teken-undo" class="btn icon tool" type="button" data-i18n-aria="teken.undo" aria-label="Ongedaan maken"></button>
+            <button id="teken-clear" class="btn icon tool" type="button" data-i18n-aria="teken.clear" aria-label="Alles wissen"></button>
+            <button class="btn icon tool teken-size" type="button" data-z="0" data-i18n-aria="teken.size0" aria-label="Dunne kwast" aria-pressed="false"><span class="dot"></span></button>
+            <button class="btn icon tool teken-size" type="button" data-z="1" data-i18n-aria="teken.size1" aria-label="Middelste kwast" aria-pressed="true"><span class="dot"></span></button>
+            <button class="btn icon tool teken-size" type="button" data-z="2" data-i18n-aria="teken.size2" aria-label="Dikke kwast" aria-pressed="false"><span class="dot"></span></button>
+            <button id="teken-eraser" class="btn icon tool" type="button" data-i18n-aria="teken.eraser" aria-label="Gum" aria-pressed="false"></button>
+            <button id="teken-stamp" class="btn icon tool" type="button" aria-label="Stempels" aria-pressed="false"></button>
+            <button id="teken-mirror" class="btn icon tool" type="button" aria-label="Spiegelen" aria-pressed="false"></button>
+            <button id="teken-done" class="btn icon tool done" type="button" data-i18n-aria="teken.done" aria-label="Klaar"></button>
           </div>
         </div>
       </div>
