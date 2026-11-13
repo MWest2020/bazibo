@@ -4,6 +4,7 @@
 export const meta = Object.freeze({
   id: 'letters',
   titleKey: 'games.letters',
+  group: 'learning', // the section on the home screen (GROUPS in js/games.js)
   freeTiers: Object.freeze(['t1']),
   /** Is this round (`{ mode, tier }`) behind the full version? */
   isLocked(round, owned) {

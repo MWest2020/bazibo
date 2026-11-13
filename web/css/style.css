@@ -139,38 +139,72 @@ html, body {
   padding: 12px 16px;
   z-index: 1;
 }
-.tiles {
+/* The tiles sit in sections (a group per kind of game, built by main.js), like the folders on a
+   phone's home screen. Phones: the sections are stacked and each one is a grid that fits as many
+   tiles of at least --tile-min as the width allows (3 on most phones, 2 on 320 px). Wider screens:
+   the sections stand side by side, each as wide as its own tiles (--n, set by main.js). */
+.tile-groups {
+  --tile-min: 96px;
+  --tile-gap: 10px;
+  --group-pad: 10px;
+  --art: 0.66; /* the 92 px drawings on the tiles, scaled */
+  width: 100%;
+  max-width: 560px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 18px;
+  gap: 14px;
   margin: 0 0 4px;
+}
+.tile-group {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding: 8px var(--group-pad) 14px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+  text-align: left;
+}
+.group-name {
+  margin: 0 6px 8px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--primary-dark);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
+  gap: var(--tile-gap);
 }
 .tile {
   font: inherit;
   position: relative;
-  width: 150px;
-  min-height: 176px;
-  padding: 14px 10px 16px;
+  min-width: 0;
+  min-height: 116px;
+  padding: 10px 5px;
   border: 0;
-  border-radius: 28px;
+  border-radius: 22px;
   background: #fff;
   color: var(--primary);
-  box-shadow: 0 6px 0 #c9c1ff, 0 12px 24px rgba(59, 47, 168, 0.18);
+  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.16);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
+  text-align: center;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
+  container-type: inline-size; /* the name's size follows the tile's width (cqi) */
 }
-.tile:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9c1ff, 0 4px 10px rgba(59, 47, 168, 0.18); }
-.tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 4px; }
-.tile-art { width: 92px; height: 92px; display: block; }
-.tile-art > span { flex: none; } /* the drawn mini boards keep their shape when scaled */
-.tile-name { font-size: 1.15rem; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; hyphens: manual; }
+.tile:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9c1ff, 0 3px 8px rgba(59, 47, 168, 0.18); }
+.tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.tile-art { width: 92px; height: 92px; display: block; flex: none; zoom: var(--art); }
+.tile-art > span { flex: none; } /* the drawn mini boards keep their shape */
+/* the longest single words ("Kleurplaten", "Ganzenbord") must fit whole in a 3-column tile at 360 px */
+.tile-name { font-size: min(0.92rem, 13.4cqi); font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
 .tile.soon { background: rgba(255, 255, 255, 0.72); color: var(--ink-soft); }
 .tile.soon .tile-art { opacity: 0.6; }
 .badge {
@@ -393,17 +427,35 @@ html, body {
   .brand-mark { width: 52px; height: 52px; }
   .btn.big { min-height: 60px; font-size: 1.4rem; }
   .tagline { margin-bottom: 4px; }
-  .tile { min-height: 132px; width: 132px; padding: 10px; }
-  .tile-art { width: 64px; height: 64px; }
-  .tile-art > span { transform: scale(0.72); } /* the small drawn boards on the tiles */
   .promise { display: none; }
+  .tile-groups { --tile-min: 92px; --tile-gap: 8px; --group-pad: 8px; --art: 0.62; }
+  .tile { min-height: 108px; padding: 8px 4px; }
+  .tile-name { font-size: min(0.86rem, 13.4cqi); }
+  .group-name { margin-bottom: 6px; font-size: 1rem; }
 }
 
-/* narrow phones (320-360 px): two tiles side by side instead of one long column */
-@media (max-width: 360px) {
-  .tiles { gap: 14px; }
-  .tile { width: 132px; min-height: 152px; padding: 10px 8px 12px; gap: 8px; }
-  .tile-art { width: 76px; height: 76px; }
-  .tile-art > span { transform: scale(0.84); }
+/* narrow phones (320 px): two tiles a row, so the names stay whole; the drawings a bit bigger */
+@media (max-width: 359px) {
+  .tile-groups { --art: 0.78; --tile-gap: 10px; }
+}
+
+/* wider screens: the sections side by side, each as wide as its tiles */
+@media (min-width: 560px) {
+  .tile-groups { max-width: 1180px; gap: 14px 16px; }
+  .tile-group {
+    flex: 0 1 auto;
+    width: calc(var(--n) * var(--tile-min) + (var(--n) - 1) * var(--tile-gap) + 2 * var(--group-pad));
+  }
+}
+/* tablets and desktop (tall enough): bigger tiles */
+@media (min-width: 720px) and (min-height: 521px) {
+  .tile-groups { --tile-min: 124px; --tile-gap: 12px; --group-pad: 12px; --art: 0.86; }
+  .tile { min-height: 150px; border-radius: 26px; gap: 8px; }
   .tile-name { font-size: 1.05rem; }
+  .group-name { font-size: 1.15rem; }
+}
+@media (min-width: 1100px) and (min-height: 521px) {
+  .tile-groups { --tile-min: 140px; --art: 0.95; }
+  .tile { min-height: 166px; }
+  .tile-name { font-size: 1.12rem; }
 }

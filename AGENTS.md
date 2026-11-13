@@ -2,11 +2,16 @@
 
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
-shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
+shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
 `web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
+
+The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
+`meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new
+game picks one). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
+phones, 2 at 320 px, the sections side by side on wider screens.
 
 **Hard rules**
 - No ads, no trackers, no analytics, no accounts, no third-party SDKs. Ever. Zero network
