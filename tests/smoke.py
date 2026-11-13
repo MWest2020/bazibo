@@ -10,7 +10,8 @@ pictures", kept after a reload; a mirrored mandala on small and sideways phones)
 real stroke, undo, mirror mode and stamps locked on the web, done, "my drawings", kept after a
 reload; mirror mode with 8 lines and a stamp on small and sideways phones), play Klok kijken (a "set the clock"
 round by dragging, a "what time is it" round with one mistake, a daily-rhythm round, + and -, the
-hint and "keep playing"; the layout at 320×568 and sideways), check that nothing went to the network and nothing threw, that the
+hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and Ganzenbord (see
+dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -2147,6 +2148,425 @@ def letters_play(browser, base, problems):
         ctx.close()
 
 
+# ---------- Dammen ----------
+
+def dam_wait(page, timeout=15000):
+    """Until no piece is moving and the computer is not thinking."""
+    page.wait_for_function("(() => { const s = window.__bubbels.dam.state(); return s && !s.busy; })()", timeout=timeout)
+
+
+def dam_play(page, move):
+    """Play one move by tapping its piece and then each landing square, as a child does."""
+    st = page.evaluate("window.__bubbels.dam.state()")
+    before = st["history"]
+    if not st["sel"] or st["sel"]["from"] != move["from"]:
+        page.click(f".dsq[data-i='{move['from']}']")
+    for sq in move["path"]:
+        if page.evaluate("window.__bubbels.dam.state()")["history"] != before or page.evaluate("window.__bubbels.dam.state().busy"):
+            break
+        page.click(f".dsq[data-i='{sq}']")
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.dam.state(); return s.history !== {before} || s.over; }})()", timeout=5000)
+    dam_wait(page)
+
+
+def dam_fits(page, w, h, label, problems, min_cell=None):
+    """The board, the turn chips and the HUD buttons stay on screen; no sideways scroll."""
+    for sel in ("#dammen-board", "#dammen-turn", "#dammen-back", "#dammen-undo"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"dammen {label}: {sel} off screen ({r})")
+    for sel in ("#dammen-back", "#dammen-undo"):
+        r = page.locator(sel).bounding_box()
+        if r and min(r["width"], r["height"]) < 44:
+            problems.append(f"dammen {label}: {sel} only {r['width']:.0f}x{r['height']:.0f}")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"dammen {label}: sideways scroll")
+    cell = page.locator(".dsq.dark >> nth=0").bounding_box()
+    if min_cell and cell["width"] < min_cell:
+        problems.append(f"dammen {label}: squares only {cell['width']:.0f} px")
+    return cell["width"]
+
+
+def dammen_flow(browser, base, problems):
+    """Dammen on the web build: locked parts offer only OK; a two-player game on 8x8 played to a
+    win by taps (counter not saved for duo, end card); against easy: a move, the computer's answer,
+    a take-back, back + keep playing; the glow on the pieces that must capture and a double jump
+    by taps; a near tap goes to the nearest movable piece; the Android back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-dammen .tile-name").strip() != "Dammen":
+        problems.append(f"dammen: tile says {page.inner_text('#tile-dammen .tile-name')!r}")
+    page.click("#tile-dammen")
+    page.wait_for_timeout(250)
+    for sel in (".dam-level[data-level='2']", ".dam-level[data-level='3']", ".dam-opt.board-big"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"dammen: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "dammen-1-menu.png"), full_page=True)
+
+    # two players on 8x8: both sides play their last legal move (a known 45-move game player 1 wins)
+    page.click(".dam-opt.board-small")
+    page.click(".dam-opt.mode-duo")
+    page.click("#dammen-play")
+    page.wait_for_timeout(400)
+    page.screenshot(path=str(SHOTS / "dammen-2-start.png"))
+    dam_fits(page, 390, 844, "390x844", problems, min_cell=44)
+    for ply in range(120):
+        st = page.evaluate("window.__bubbels.dam.state()")
+        if st["over"]:
+            break
+        dam_play(page, st["moves"][-1])
+        if ply == 20:
+            page.screenshot(path=str(SHOTS / "dammen-3-duo.png"))
+    st = page.evaluate("window.__bubbels.dam.state()")
+    if not st["over"] or st["over"].get("winner") != 1:
+        problems.append(f"dammen: the two-player game did not end in a win for player 1: {st['over']}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "dammen-4-duo-win.png"))
+    if page.inner_text("#ov-title").strip() != "Puppy wint!":
+        problems.append(f"dammen: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("(window.__bubbels.save().games.dammen || {}).stars || {}"):
+        problems.append("dammen: a game played together was counted")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+
+    # against easy: one move, the computer answers, a take-back, back + keep playing
+    page.click(".dam-level[data-level='1']")
+    page.click("#dammen-play")
+    page.wait_for_timeout(300)
+    st = page.evaluate("window.__bubbels.dam.state()")
+    # a tap a little off the piece still picks the nearest piece that can move
+    m = st["moves"][0]
+    box = page.locator(f".dsq[data-i='{m['from']}']").bounding_box()
+    page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 1.3)  # on the light square below it
+    if (page.evaluate("window.__bubbels.dam.state().sel") or {}).get("from") is None:
+        problems.append("dammen: a tap next to a movable piece did not pick it up")
+    page.click(".dsq[data-i='" + str(m['from']) + "']")  # put it down again
+    dam_play(page, m)
+    st = page.evaluate("window.__bubbels.dam.state()")
+    if st["history"] != 2 or st["turn"] != 1:
+        problems.append(f"dammen: after one move against easy: {st['history']} moves, turn {st['turn']}")
+    page.screenshot(path=str(SHOTS / "dammen-5-vs-easy.png"))
+    dam_play(page, st["moves"][0])
+    page.click("#dammen-undo")
+    page.wait_for_timeout(150)
+    st = page.evaluate("window.__bubbels.dam.state()")
+    if st["history"] != 2 or st["turn"] != 1:
+        problems.append(f"dammen: the take-back left {st['history']} moves, turn {st['turn']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#dammen-continue"):
+        problems.append("dammen: the back button did not lead to the menu with 'keep playing'")
+    page.click("#dammen-continue")
+    page.wait_for_timeout(200)
+
+    # compulsory capture: the glow is on the pieces that can capture, and a double jump by taps
+    board = [0] * 64
+    for r, c, v in ((7, 0, 1), (6, 1, 2), (4, 3, 2), (5, 6, 1), (0, 7, 2), (1, 0, 2)):
+        board[r * 8 + c] = v
+    page.evaluate(f"window.__bubbels.dam.setBoard({board})")
+    page.wait_for_timeout(200)
+    glow = page.evaluate("[...document.querySelectorAll('.dsq.must')].map((e) => Number(e.dataset.i))")
+    if glow != [56]:
+        problems.append(f"dammen: the glow is on {glow}, expected only the capturing piece [56]")
+    page.screenshot(path=str(SHOTS / "dammen-6-must.png"))
+    page.click(".dsq[data-i='46']")  # a piece that cannot: a gentle message
+    if "Slaan moet" not in page.inner_text("#dammen-status"):
+        problems.append(f"dammen: tapping a piece that may not move says {page.inner_text('#dammen-status')!r}")
+    page.click(".dsq[data-i='56']")
+    page.click(".dsq[data-i='42']")  # the first landing square: the rest of the double jump goes by itself
+    page.wait_for_timeout(100)
+    page.screenshot(path=str(SHOTS / "dammen-7-jump.png"))
+    dam_wait(page)
+    st = page.evaluate("window.__bubbels.dam.state()")
+    if st["board"][28] != 1 or st["board"][49] or st["board"][35]:
+        problems.append("dammen: the double jump did not land on square 28 with both pieces taken")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    page.evaluate("document.querySelector('#screen-dammen-menu [data-go=home]').click()")
+    if errors:
+        problems.append(f"dammen: page errors {errors[:3]}")
+    ctx.close()
+
+
+def dammen_layouts(browser, base, problems):
+    """Dammen at 320x568, sideways 844x390 and 568x320, and on desktop; the full version: the 10x10
+    board on a small phone (a near tap reaches a piece), and the hard computer thinks in a worker
+    without freezing the page."""
+    for w, h, owned, variant in ((320, 568, False, "small"), (844, 390, False, "small"), (568, 320, False, "small"), (1280, 800, False, "small"),
+                                 (320, 568, True, "big"), (568, 320, True, "big"), (390, 844, True, "big")):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full ' + variant if owned else ''}"
+        if english and page.inner_text("#tile-dammen .tile-name").strip() != "Checkers":
+            problems.append(f"dammen {label}: English tile says {page.inner_text('#tile-dammen .tile-name')!r}")
+        page.click("#tile-dammen")
+        page.wait_for_timeout(200)
+        if (w, h) == (320, 568) and not owned:
+            page.click(".dam-opt.look-classic")  # the classic look
+            page.wait_for_timeout(100)
+        page.screenshot(path=str(SHOTS / f"dammen-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        page.evaluate(f"window.__bubbels.dam.choose({{ variant: '{variant}', mode: 'cpu', level: {3 if owned else 1} }})")
+        page.click("#dammen-play")
+        page.wait_for_timeout(400)
+        cell = dam_fits(page, w, h, label, problems)
+        print(f"[dammen {label}] square {cell:.0f} px")
+        st = page.evaluate("window.__bubbels.dam.state()")
+        if st["size"] != (10 if variant == "big" else 8):
+            problems.append(f"dammen {label}: board size {st['size']}")
+        if cell < 44:
+            # small squares: a tap a third of a square off still reaches the piece
+            m = st["moves"][0]
+            box = page.locator(f".dsq[data-i='{m['from']}']").bounding_box()
+            page.mouse.click(box["x"] + box["width"] * 1.25, box["y"] + box["height"] * 0.5)
+            if (page.evaluate("window.__bubbels.dam.state().sel") or {}).get("from") != m["from"] and not any(x["from"] == (page.evaluate("window.__bubbels.dam.state().sel") or {}).get("from") for x in st["moves"]):
+                problems.append(f"dammen {label}: a near tap reached no piece")
+        st = page.evaluate("window.__bubbels.dam.state()")
+        page.click(f".dsq[data-i='{st['moves'][-1]['from']}']")
+        page.wait_for_timeout(150)
+        page.screenshot(path=str(SHOTS / f"dammen-{w}x{h}{'-full' if owned else ''}.png"))
+        if owned:
+            # hard on the big board: the page keeps drawing frames while the computer thinks
+            page.evaluate("window.__frames = 0; (function f() { window.__frames++; requestAnimationFrame(f); })()")
+            dam_play(page, page.evaluate("window.__bubbels.dam.state()")["moves"][-1])
+            st = page.evaluate("window.__bubbels.dam.state()")
+            if st["turn"] != 1 or st["history"] != 2:
+                problems.append(f"dammen {label}: hard did not answer ({st['history']} moves)")
+            if page.evaluate("window.__frames") < 20:
+                problems.append(f"dammen {label}: only {page.evaluate('window.__frames')} frames while the computer thought")
+        if errors:
+            problems.append(f"dammen {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
+# ---------- Ganzenbord ----------
+
+def gans_state(page):
+    return page.evaluate("window.__bubbels.gans.state()")
+
+
+def gans_wait(page, phases=("roll", "count", "over"), timeout=20000):
+    """Until the game waits for a child (a throw or a tap) or is over."""
+    js = "(() => { const s = window.__bubbels.gans.state(); return s && %s.includes(s.phase) && (s.phase !== 'roll' || s.setup.players[s.turn] === 'kid'); })()" % json.dumps(list(phases))
+    page.wait_for_function(js, timeout=timeout)
+
+
+def ganzen_flow(browser, base, problems):
+    """Ganzenbord on the web build: the winter and sea boards and a 3rd goose offer only OK; a game
+    against the computer goose played to a win by taps with "count yourself" (every square tapped,
+    one wrong tap that only shows where), the goose chain, the bridge, the win card and the counter;
+    back + keep playing; the Android back button; no voice is ever asked for."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors, audio = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: "/voice/" in r.url and audio.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-ganzen .tile-name").strip() != "Ganzenbord":
+        problems.append(f"ganzen: tile says {page.inner_text('#tile-ganzen .tile-name')!r}")
+    page.click("#tile-ganzen")
+    page.wait_for_timeout(250)
+    for sel in (".ganzen-boardopt.board-winter", ".ganzen-boardopt.board-sea", ".ganzen-slot.slot-2", ".ganzen-slot.slot-3"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"ganzen: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "ganzen-1-menu.png"), full_page=True)
+
+    # a child against the computer goose, counting yourself; the die is set for a short game
+    page.click(".ganzen-count.count-on")
+    page.evaluate("window.__bubbels.gans.fast(true)")
+    page.evaluate("window.__bubbels.gans.rolls([1, 1, 4, 1, 5, 1, 4, 1, 5, 1, 4])")
+    page.click("#ganzen-play")
+    page.wait_for_timeout(400)
+    page.screenshot(path=str(SHOTS / "ganzen-2-start.png"))
+    taps = wrong = 0
+    for turn in range(40):
+        gans_wait(page)
+        st = gans_state(page)
+        if st["phase"] == "over":
+            break
+        if st["phase"] == "roll":
+            page.click("#ganzen-die")
+            continue
+        # counting: tap the glowing square (once, first, a wrong one that must change nothing)
+        if wrong == 0:
+            off = 0 if st["next"] != 0 else 2
+            page.click(f".gsq[data-sq='{(st['next'] + 3) % 63 or 2}']")
+            page.wait_for_timeout(150)
+            after = gans_state(page)
+            if after["next"] != st["next"] or after["shown"] != st["shown"]:
+                problems.append("ganzen: a wrong tap moved the goose")
+            if "gloeit" not in after["msg"]:
+                problems.append(f"ganzen: a wrong tap says {after['msg']!r}")
+            wrong = 1
+        if st["next"] < 0:
+            problems.append(f"ganzen: counting with nothing left to tap: {st}")
+            break
+        page.click(f".gsq[data-sq='{st['next']}']")
+        taps += 1
+        pops = page.evaluate("document.querySelectorAll('#ganzen-board .count-pop').length")
+        if pops > 1:
+            problems.append(f"ganzen: {pops} count badges at once")
+        if taps == 2:
+            page.wait_for_timeout(120)
+            page.screenshot(path=str(SHOTS / "ganzen-3-count.png"))
+        if taps == 8:
+            # leave halfway and come back: the throw is finished at once, the game goes on
+            page.click("#ganzen-back")
+            page.wait_for_timeout(200)
+            if not page.is_visible("#ganzen-continue"):
+                problems.append("ganzen: no 'keep playing' halfway a game")
+            page.click("#ganzen-continue")
+            page.wait_for_timeout(300)
+    st = gans_state(page)
+    if st["winner"] != 0:
+        problems.append(f"ganzen: the child's goose did not win: {st}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=6000)
+    page.screenshot(path=str(SHOTS / "ganzen-4-win.png"))
+    if page.inner_text("#ov-title").strip() != "Jij wint!":
+        problems.append(f"ganzen: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("window.__bubbels.gans.wins()").get("won-classic") != 1:
+        problems.append(f"ganzen: the win was not counted: {page.evaluate('window.__bubbels.gans.wins()')}")
+    if taps < 12:
+        problems.append(f"ganzen: only {taps} squares were counted by tapping")
+    page.click("#ov-buttons button >> text=Nog een keer")
+    page.wait_for_timeout(300)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-ganzen-menu"):
+        problems.append("ganzen: the back button did not lead to the menu")
+
+    # leaving during the winning throw still wins: the counter goes up and the card shows
+    page.click(".ganzen-count.count-off")
+    page.evaluate("window.__bubbels.gans.rolls([1, 1, 4, 1, 5, 1, 4, 1, 5, 1, 4])")
+    page.click("#ganzen-play")
+    left = False
+    for turn in range(30):
+        gans_wait(page, ("roll", "over"))
+        st = gans_state(page)
+        if st["phase"] == "over":
+            break
+        last = st["players"][0]["pos"] == 55
+        page.click("#ganzen-die")
+        if last:
+            page.wait_for_function("window.__bubbels.gans.state().phase === 'moving'", timeout=5000, polling=20)
+            page.click("#ganzen-back")
+            left = True
+            break
+    page.wait_for_timeout(300)
+    if not left:
+        problems.append("ganzen: never reached the winning throw to leave during it")
+    elif not page.is_visible("#overlay") or page.inner_text("#ov-title").strip() != "Jij wint!":
+        problems.append("ganzen: leaving during the winning throw showed no win card")
+    elif page.locator("#ganzen-continue").count():
+        problems.append("ganzen: 'keep playing' offered for a game that was won")
+    if page.evaluate("window.__bubbels.gans.wins()").get("won-classic") != 2:
+        problems.append(f"ganzen: a win left halfway was not counted: {page.evaluate('window.__bubbels.gans.wins()')}")
+    page.screenshot(path=str(SHOTS / "ganzen-5-left-win.png"))
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(150)
+    if audio:
+        problems.append(f"ganzen: a voice clip was loaded: {audio[:2]}")
+    if errors:
+        problems.append(f"ganzen: page errors {errors[:3]}")
+    ctx.close()
+
+
+def ganzen_layouts(browser, base, problems):
+    """Ganzenbord at 320x568, sideways 844x390 and 568x320, desktop; the full version with four
+    geese on the winter and sea boards; the die and the squares stay on screen; a near tap counts."""
+    for w, h, owned, board in ((320, 568, False, "classic"), (844, 390, False, "classic"), (568, 320, False, "classic"), (1280, 800, False, "classic"),
+                               (390, 844, True, "winter"), (568, 320, True, "sea"), (320, 568, True, "sea")):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full ' + board if owned else ''}"
+        if english and page.inner_text("#tile-ganzen .tile-name").strip() != "Game of the Goose":
+            problems.append(f"ganzen {label}: English tile says {page.inner_text('#tile-ganzen .tile-name')!r}")
+        page.click("#tile-ganzen")
+        page.wait_for_timeout(200)
+        players = "['kid', 'cpu', 'kid', 'cpu']" if owned else "['kid', 'kid']"
+        page.evaluate(f"window.__bubbels.gans.choose({{ board: '{board}', players: {players}, count: true }})")
+        page.wait_for_timeout(150)
+        page.screenshot(path=str(SHOTS / f"ganzen-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        # every player button keeps its texts and its swap icon inside, without overlap
+        bad = page.evaluate("""[...document.querySelectorAll('.ganzen-slot')].filter((b) => {
+            const r = b.getBoundingClientRect();
+            const swap = b.querySelector('.swap, .lock');
+            const s = swap ? swap.getBoundingClientRect() : null;
+            return [...b.querySelectorAll('.slot-name, .slot-kind > span')].some((t) => {
+                const range = document.createRange();
+                range.selectNodeContents(t);
+                return [...range.getClientRects()].some((q) => q.right > r.right - 2 || (s && !b.classList.contains('locked') && q.right > s.left && q.left < s.right && q.top < s.bottom && q.bottom > s.top));
+            }) || [...b.querySelectorAll('.slot-kind > span')].some((t) => t.getClientRects().length > 2); // "een kind" broken over 3+ lines
+        }).map((b) => b.dataset.slot)""")
+        if bad:
+            problems.append(f"ganzen {label}: menu slots {bad} overflow or overlap the swap icon")
+        page.evaluate("window.__bubbels.gans.fast(true)")
+        page.evaluate("window.__bubbels.gans.rolls([3])")
+        page.click("#ganzen-play")
+        page.wait_for_timeout(400)
+        for sel in ("#ganzen-board", "#ganzen-die", "#ganzen-turn", "#ganzen-status", "#ganzen-back"):
+            r = page.locator(sel).bounding_box()
+            if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"ganzen {label}: {sel} off screen ({r})")
+        for sel in ("#ganzen-die", "#ganzen-back"):
+            r = page.locator(sel).bounding_box()
+            if r and min(r["width"], r["height"]) < 44:
+                problems.append(f"ganzen {label}: {sel} only {r['width']:.0f}x{r['height']:.0f}")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"ganzen {label}: sideways scroll")
+        cell = page.locator(".gsq >> nth=1").bounding_box()["width"]
+        print(f"[ganzen {label}] square {cell:.0f} px")
+        page.click("#ganzen-die")
+        gans_wait(page, ("count",))
+        st = gans_state(page)
+        # a tap half a square away from the glowing square still counts
+        box = page.locator(f".gsq[data-sq='{st['next']}']").bounding_box()
+        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 1.0)
+        page.wait_for_timeout(150)
+        if gans_state(page)["next"] == st["next"]:
+            problems.append(f"ganzen {label}: a near tap did not count")
+        page.screenshot(path=str(SHOTS / f"ganzen-{w}x{h}{'-full' if owned else ''}.png"))
+        if errors:
+            problems.append(f"ganzen {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -2154,9 +2574,21 @@ def main():
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Quiet, directory=str(WEB)))
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     problems = []
+    only = sorted(set(sys.argv[1:]))  # e.g. `tests/smoke.py dammen`: only that game's parts
+    unknown = [n for n in only if n not in PARTS]
+    if unknown:
+        httpd.shutdown()
+        print(f"unknown part(s): {', '.join(unknown)}; known: {', '.join(sorted(PARTS))}")
+        return 2
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME)
+            if only:
+                for name in only:
+                    for fn in PARTS[name]:
+                        fn(browser, base, problems)
+                browser.close()
+                return report(problems)
             run(browser, base, "desktop", {"viewport": {"width": 1280, "height": 800}}, problems)
             run(
                 browser,
@@ -2188,16 +2620,29 @@ def main():
             letters_play(browser, base, problems)
             transfer_flow(browser, base, problems)
             transfer_camera_race(browser, base, problems)
+            dammen_flow(browser, base, problems)
+            dammen_layouts(browser, base, problems)
+            ganzen_flow(browser, base, problems)
+            ganzen_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
+    return report(problems)
+
+
+# the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
+PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts)}
+
+
+def report(problems):
     if problems:
         print("FAIL")
         for line in problems:
             print(" -", line)
-        sys.exit(1)
+        return 1
     print(f"OK: screenshots in {SHOTS}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

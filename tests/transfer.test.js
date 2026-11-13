@@ -282,3 +282,36 @@ test('sanitizing: names that Object.prototype has are dropped, flags keep only t
   assert.deepEqual(clean.games.dogudoku.stars, { 7: 2 });
   assert.ok(clean.games.kleuren.art['p:zon'].t <= Date.now() + 864e5);
 });
+
+test('Dammen: its wins, board choice and look travel; odd values are dropped', () => {
+  const doc = {
+    v: 1,
+    games: {
+      dammen: {
+        stars: { 'cpu-small-1': 4, 'cpu-big-3': 1, 'cpu-small-2': 'lots' },
+        setup: { variant: 'big', mode: 'cpu', level: 3, deep: { no: 1 } },
+        look: 'classic',
+      },
+    },
+  };
+  const clean = sanitizePayload(doc);
+  assert.deepEqual(clean.games.dammen, {
+    stars: { 'cpu-small-1': 4, 'cpu-big-3': 1 },
+    setup: { variant: 'big', mode: 'cpu', level: 3 },
+    look: 'classic',
+  });
+  // the counters only go up in a merge; this device keeps its own look
+  const mine = { version: 1, games: { dammen: { stars: { 'cpu-small-1': 7 }, look: 'pets' } }, settings: {}, purchase: { owned: false } };
+  const out = mergeTransfer(mine, clean);
+  assert.deepEqual(out.games.dammen.stars, { 'cpu-small-1': 7, 'cpu-big-3': 1 });
+  assert.equal(out.games.dammen.look, 'pets');
+  assert.deepEqual(out.games.dammen.setup, { variant: 'big', mode: 'cpu', level: 3 });
+});
+
+test('Ganzenbord: its wins and setup (players as a list) travel; odd values are dropped', () => {
+  const clean = sanitizePayload({
+    v: 1,
+    games: { ganzen: { stars: { 'won-classic': 2, 'won-sea': -4 }, setup: { board: 'sea', players: ['kid', 'cpu', 'kid'], count: true, extra: { no: 1 } } } },
+  });
+  assert.deepEqual(clean.games.ganzen, { stars: { 'won-classic': 2 }, setup: { board: 'sea', players: ['kid', 'cpu', 'kid'], count: true } });
+});

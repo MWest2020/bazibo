@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer) and
+sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Ganzenbord ("Game of the Goose"),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by sight:
@@ -93,6 +93,46 @@ with round holes and picture tokens, never "Connect Four" or its blue frame with
   version (`meta.js`). The child's wins against the computer are counted per board and level
   (never lowered, `storage.js`); games played together are not counted.
 
+
+### Dammen
+
+Checkers, in `web/games/dammen/` (rules in `rules.js`, the computer in `ai.js` and
+`ai-worker.js`, pieces and boards drawn as SVG in `art.js`, the screens in `dammen.js`).
+
+- The 8×8 board with Dutch rules made small (free): a man steps one square diagonally forward,
+  capturing is compulsory and a man may also capture backwards, a capture goes on as long as it
+  can, a man that ends its move on the far row is crowned, and a king moves one step in every
+  direction. Any capture may be chosen.
+- The international 10×10 board (full version): flying kings, and you must take the most pieces.
+- On both: pieces jumped in a multi-capture stay until the move ends; a man that passes the far
+  row during a capture and goes on stays a man. A player who cannot move loses; the same position
+  for the third time, or 25 king moves each without a capture, is a draw.
+- Tap a piece, then a dot. The pieces that must capture glow softly; when only one can, it is
+  picked up for the child. A multi-capture is tapped jump by jump until only one way is left, then
+  the rest goes by itself. Taps go to the nearest useful square, so the small 10×10 squares still
+  have a finger-sized target.
+- Together on one screen, or against the computer: easy (free) plays mostly at random; medium and
+  hard (full version) search with alpha-beta, 3 and up to 8 moves deep, within a budget of
+  positions, in a worker so the screen never freezes. Against the computer a move can be taken
+  back. Wins against the computer are counted per board and level.
+- Puppy against kitten, or a classic white and black look. A king wears a crown.
+
+### Ganzenbord
+
+The game of the goose, in `web/games/ganzen/` (rules in `rules.js`, the spiral in `board.js`, the
+geese, the special squares, the die and the three boards drawn as SVG in `art.js`, the screens in
+`ganzen.js`). Our own board, never a publisher's art.
+
+- 63 squares in a spiral with big numbers. Geese on 5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54
+  and 59 (move again by the same amount, in the same direction); the bridge 6 → 12; the inn 19
+  (miss a turn); the well 31 and the prison 52 (wait until another goose lands there and takes
+  your place, but never more than two turns); the maze 42 → 37; 58 "lost in the woods", back to
+  the start; 63 exactly, the rest bounces back. One die; geese may share a square.
+- "Zelf tellen" / "Count yourself": after the throw the child taps every square the goose walks
+  to; the square to tap glows and the count pops up big. Otherwise the goose walks by itself with
+  the same big numbers. No voice.
+- Free: the classic meadow board with 2 players (a child against a computer goose, or two
+  children). Full version: up to 4 players in any mix, and a winter and a sea board.
 ### Kleurplaten
 
 Colouring pages in `web/games/kleuren/`: pick a colour, tap a part, and it is coloured. Everything

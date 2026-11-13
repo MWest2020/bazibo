@@ -16,6 +16,8 @@
   <link rel="stylesheet" href="games/dogudoku/dogudoku.css">
   <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
   <link rel="stylesheet" href="games/vier/vier.css">
+  <link rel="stylesheet" href="games/dammen/dammen.css">
+  <link rel="stylesheet" href="games/ganzen/ganzen.css">
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
   <link rel="stylesheet" href="games/tekenen/tekenen.css">
@@ -55,6 +57,14 @@
           <button id="tile-vier" class="tile" type="button" data-game="vier">
             <span class="tile-art" aria-hidden="true"></span>
             <span class="tile-name" data-i18n="games.vier">Vier op een rij</span>
+          </button>
+          <button id="tile-dammen" class="tile" type="button" data-game="dammen">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.dammen">Dammen</span>
+          </button>
+          <button id="tile-ganzen" class="tile" type="button" data-game="ganzen">
+            <span class="tile-art" aria-hidden="true"></span>
+            <span class="tile-name" data-i18n="games.ganzen">Ganzenbord</span>
           </button>
           <button id="tile-slang" class="tile" type="button" data-game="slang">
             <span class="tile-art" aria-hidden="true"></span>
@@ -322,6 +332,73 @@
         <div class="vier-side">
           <div id="vier-turn" class="vier-turn" role="group" data-i18n-aria="vier.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="vier-status" class="vier-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dammen: choose the board, the opponent and the look of the pieces -->
+    <section id="screen-dammen-menu" class="screen" data-i18n-aria="games.dammen" aria-label="Dammen">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="dam.menu">Dammen</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="dammen-menu" class="vier-menu dam-menu"></div></div>
+    </section>
+
+    <!-- Dammen: the board -->
+    <section id="screen-dammen" class="screen" data-i18n-aria="games.dammen" aria-label="Dammen">
+      <header class="bar dogu-hud vier-hud dam-hud">
+        <button id="dammen-back" class="btn icon" type="button" data-i18n-aria="dam.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="dammen-sub" class="hud-level"></div>
+          <div id="dammen-title" class="dogu-title"></div>
+        </div>
+        <button id="dammen-undo" class="btn icon" type="button" data-i18n-aria="dam.undo" aria-label="Zet terugnemen"></button>
+      </header>
+      <div id="dammen-stage">
+        <div id="dammen-board" class="dam-board" role="group" data-i18n-aria="dam.boardLabel" aria-label="Het dambord: tik op een stuk en dan op waar het heen gaat"></div>
+        <div class="vier-side dam-side">
+          <div id="dammen-turn" class="vier-turn" role="group" data-i18n-aria="dam.turnAria" aria-label="Wie is aan de beurt"></div>
+          <p id="dammen-status" class="vier-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ganzenbord: choose the board, the players and counting -->
+    <section id="screen-ganzen-menu" class="screen" data-i18n-aria="games.ganzen" aria-label="Ganzenbord">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="ganzen.menu">Ganzenbord</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="ganzen-menu" class="vier-menu ganzen-menu"></div></div>
+    </section>
+
+    <!-- Ganzenbord: the board -->
+    <section id="screen-ganzen" class="screen" data-i18n-aria="games.ganzen" aria-label="Ganzenbord">
+      <header class="bar dogu-hud vier-hud ganzen-hud">
+        <button id="ganzen-back" class="btn icon" type="button" data-i18n-aria="ganzen.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="ganzen-sub" class="hud-level"></div>
+          <div id="ganzen-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="ganzen-stage">
+        <div id="ganzen-board" class="ganzen-board" role="group" data-i18n-aria="ganzen.boardLabel" aria-label="Het ganzenbord"></div>
+        <div class="ganzen-side">
+          <button id="ganzen-die" class="ganzen-die" type="button" data-i18n-aria="ganzen.dieLabel" aria-label="Gooi de dobbelsteen"></button>
+          <div id="ganzen-turn" class="vier-turn ganzen-turn" role="group" data-i18n-aria="ganzen.turnAria" aria-label="Wie is aan de beurt"></div>
+          <p id="ganzen-status" class="ganzen-status" aria-live="polite"></p>
         </div>
       </div>
     </section>
