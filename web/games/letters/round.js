@@ -1,8 +1,11 @@
-// Letters' rounds, pure (no DOM, no sound) so the tests can play them.
-//   tap    hear a letter, tap it among 3-6 tiles
-//   first  see a picture and hear its word, tap the letter it starts with
-//   build  hear a word, put its letters in order
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, confusable } from './words.js';
+// Letters' rounds, pure (no DOM, no sound) so the tests can play them. Everything is seen, nothing
+// is spoken.
+//   tap    one big letter: tap the same letter among 3-6 tiles. Tier 1 the same shape, tier 2 a
+//          capital to match with its small letter, tier 3 mixed, with a mirrored look-alike (b/d)
+//   first  a picture with its word below it, the first letter left out ("_oon"): tap that letter
+//   build  a picture: put the word's letters in order. Tier 1 traces a faint word, tier 2 sees the
+//          word for a moment (a tap on the picture shows it again), tier 3 has the picture only
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, confusable, lookalike, caseClash, LOOKALIKE } from './words.js';
 
 export const MODES = Object.freeze(['tap', 'first', 'build']);
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
@@ -10,6 +13,12 @@ export const ROUNDS_PER_TIER = 3;
 export const ROUND_LEN = Object.freeze({ tap: 8, first: 8, build: 5 });
 export const OPTIONS = Object.freeze({ t1: 3, t2: 4, t3: 6 }); // tiles to choose from
 export const EXTRA_TILES = Object.freeze({ t1: 0, t2: 0, t3: 2 }); // extra letters when building
+/** Tap: is the big letter drawn in the tiles' case ('same'), the other case, or a mix per question? */
+export const TAP_CASE = Object.freeze({ t1: 'same', t2: 'other', t3: 'mixed' });
+/** Tap, tier 3: how many questions of a round are letters with a mirrored look-alike. */
+export const LOOKALIKE_QS = 3;
+/** Build: how the word is shown. ghost: always, faint, to trace; flash: for a moment; none. */
+export const BUILD_HINT = Object.freeze({ t1: 'ghost', t2: 'flash', t3: 'none' });
 
 /** Stars by mistakes: none 3, one or two 2, more 1. */
 export const starsFor = (mistakes) => (mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1);
@@ -60,19 +69,29 @@ function sequence(list, n, rand) {
 
 /**
  * A round: ROUND_LEN[mode] questions, the same for the same seed.
- *   tap:   { letter, options }
+ *   tap:   { letter, cross, options }   cross: the big letter is in the other case than the tiles
  *   first: { word, letter, options }
- *   build: { word, tiles }
+ *   build: { word, hint, tiles }         hint: BUILD_HINT of the tier
  */
 export function makeRound({ mode, tier, lang = 'nl', seed }) {
   const rand = rng(seed);
   const n = ROUND_LEN[mode];
   if (mode === 'tap') {
     const set = LETTER_SETS[tier];
-    return sequence(set, n, rand).map((letter) => ({
-      letter,
-      options: shuffle([letter, ...pick(set.length > OPTIONS[tier] ? set : ALPHABET, OPTIONS[tier] - 1, [letter, ...confusable(lang, letter)], rand)], rand),
-    }));
+    let letters;
+    if (tier === 't3') {
+      const look = Object.keys(LOOKALIKE);
+      letters = shuffle([...sequence(look, LOOKALIKE_QS, rand), ...sequence(ALPHABET.filter((l) => !look.includes(l)), n - LOOKALIKE_QS, rand)], rand);
+    } else letters = sequence(set, n, rand);
+    const crosses = TAP_CASE[tier] === 'mixed' ? shuffle(Array.from({ length: n }, (_, k) => k % 2 === 0), rand) : null;
+    return letters.map((letter, k) => {
+      const cross = crosses ? crosses[k] : TAP_CASE[tier] === 'other';
+      const pool = set.length > OPTIONS[tier] ? set : ALPHABET;
+      const not = [letter, ...lookalike(letter), ...(cross ? caseClash(letter) : [])];
+      const twin = tier === 't3' && lookalike(letter).length ? [pick(lookalike(letter), 1, [], rand)[0]] : [];
+      const rest = pick(pool, OPTIONS[tier] - 1 - twin.length, not, rand);
+      return { letter, cross, options: shuffle([letter, ...twin, ...rest], rand) };
+    });
   }
   if (mode === 'first') {
     const words = firstWords(lang, tier).map(([w]) => w);
@@ -89,9 +108,22 @@ export function makeRound({ mode, tier, lang = 'nl', seed }) {
   return sequence(words, n, rand).map((word) => {
     const letters = word.split('');
     const extra = pick(ALPHABET, EXTRA_TILES[tier], [...letters, ...letters.flatMap((l) => confusable(lang, l))], rand);
-    return { word, tiles: shuffle([...word.split(''), ...extra], rand) };
+    return { word, hint: BUILD_HINT[tier], tiles: shuffle([...word.split(''), ...extra], rand) };
   });
 }
+
+/**
+ * How a tap question is drawn: the big letter and the tiles. The tiles follow the player's case
+ * option (`upper`); a cross question draws the big letter in the other case.
+ */
+export function tapGlyphs(q, upper = false) {
+  const tile = (l) => (upper ? l.toUpperCase() : l);
+  const other = (l) => (upper ? l : l.toUpperCase());
+  return { big: q.cross ? other(q.letter) : tile(q.letter), tiles: q.options.map(tile) };
+}
+
+/** First letter: the word with its first letter left out, as [gap, rest] ("_", "oon"). */
+export const gapped = (word) => ['_', word.slice(1)];
 
 /** Building a word: is `letter` right as the next letter? (Repeated letters: any matching tile.) */
 export const nextLetterOk = (word, placed, letter) => word[placed.length] === letter;

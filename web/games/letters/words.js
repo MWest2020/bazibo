@@ -1,7 +1,6 @@
-// Letters' words and letters. Every word has a picture (art.js) and a spoken clip per language
-// (voice/<lang>/w-<word>.mp3, made by tools/make_voice.py; keep the lists in step with it).
-// Lowercase throughout: Dutch schools start with lowercase letters. The uppercase option only
-// changes how the letters are drawn.
+// Letters' words and letters. Every word has a picture (art.js), shared by both languages.
+// Lowercase throughout: Dutch schools start with lowercase letters. The capitals option and the
+// case-matching rounds only change how the letters are drawn.
 
 export const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
@@ -47,16 +46,32 @@ BUILD.nl.t3 = BUILD.nl.t2;
 BUILD.en.t3 = BUILD.en.t2;
 
 /**
- * Letters that sound alike at the start of a word, per language. They are never offered as a wrong
- * choice next to each other: "cat" starts with a sound a child could fairly write as k, and Dutch
- * v/f and z/s are hard to hear apart. b, d and p are kept as choices next to each other from tier 2
- * on, on purpose: telling those mirrored shapes apart is part of learning them (tier 1 has none).
+ * Letters that sound alike at the start of a word, per language. In "first letter" they are never
+ * offered as a wrong choice next to each other: "cat" starts with a sound a child could fairly
+ * write as k, and Dutch v/f and z/s are hard to hear apart.
  */
 export const CONFUSABLE = Object.freeze({
   nl: { k: ['c', 'q'], c: ['k', 's'], q: ['k'], v: ['f'], f: ['v'], z: ['s'], s: ['z', 'c'] },
   en: { c: ['k', 's'], k: ['c'], s: ['c'] },
 });
 export const confusable = (lang, letter) => (CONFUSABLE[lang] || CONFUSABLE.nl)[letter] || [];
+
+/**
+ * Small letters that are the same shape turned or mirrored. "Tap the letter" in tier 3 puts one of
+ * them next to the answer on purpose: telling b from d is part of learning them.
+ */
+export const LOOKALIKE = Object.freeze({
+  b: ['d', 'p', 'q'], d: ['b', 'q', 'p'], p: ['q', 'b', 'd'], q: ['p', 'd', 'b'],
+  n: ['u'], u: ['n'], m: ['w'], w: ['m'],
+});
+export const lookalike = (letter) => LOOKALIKE[letter] || [];
+
+/**
+ * Letters that cannot be told apart once one is a capital and the other is not: a capital I and a
+ * small l are the same stroke in most fonts. Never offered together when the cases differ.
+ */
+const CASE_CLASH = Object.freeze({ i: ['l'], l: ['i'] });
+export const caseClash = (letter) => CASE_CLASH[letter] || [];
 
 /** Words that do not start with the sound of their first letter on its own (au, ...). */
 const NOT_FOR_FIRST = Object.freeze({ nl: ['auto'], en: [] });

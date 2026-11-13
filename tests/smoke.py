@@ -1955,24 +1955,30 @@ def transfer_flow(browser, base, problems):
 
 
 def letters_play(browser, base, problems):
-    """Letters: one round of each kind played by taps (Dutch and English), the voice asked for every
-    question, stars saved; then the layouts at 320x568 and sideways stay on screen."""
+    """Letters: one round of each kind played by taps (Dutch and English), with nothing spoken: the
+    big letter matches its tile, the word shows a gap, the build word is traced; stars saved; a
+    gentle wrong tap, a locked tier; then the layouts at 320x568 and sideways stay on screen."""
     for lang, w, h, full in (("nl", 390, 844, True), ("en", 390, 844, True), ("nl", 320, 568, False), ("en", 844, 390, False), ("nl", 568, 320, False)):
         ctx = browser.new_context(bypass_csp=True, locale="en-GB" if lang == "en" else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
         page = ctx.new_page()
         errors = []
+        requests = []
         page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("request", lambda r: requests.append(r.url))
         page.goto(base + "/index.html?test")
         page.wait_for_selector("html[data-ready='1']")
         page.click("#tile-letters")
         page.wait_for_timeout(200)
+        if page.locator("#letters-replay, #letters-muted").count():
+            problems.append(f"letters {lang}: the voice button or the sound-off note is still there")
         for mode in ("tap", "first", "build"):
             page.evaluate(f"window.__bubbels.letters.start('{mode}-t1-1')")
             page.wait_for_timeout(250)
             if page.is_visible("#overlay"):
                 page.click("#ov-buttons button")
                 page.wait_for_timeout(200)
-            for sel in ("#letters-prompt", "#letters-options", "#letters-dots") + (("#letters-pic",) if mode != "tap" else ()):
+            sels = ("#letters-prompt", "#letters-pic", "#letters-options", "#letters-dots") + (("#letters-word",) if mode == "first" else ("#letters-slots",) if mode == "build" else ())
+            for sel in sels:
                 r = page.locator(sel).bounding_box()
                 if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
                     problems.append(f"letters {w}x{h} {lang} {mode}: {sel} off screen ({r})")
@@ -1981,17 +1987,15 @@ def letters_play(browser, base, problems):
             page.screenshot(path=str(SHOTS / f"letters-{w}x{h}-{lang}-{mode}.png"))
             if not full:
                 continue
-            asked = page.evaluate("window.__bubbels.letters.spoken()")
-            st = page.evaluate("window.__bubbels.letters.state()")
-            want = ("p-find+l-" + st["q"]["letter"]) if mode == "tap" else ("w-" + st["q"]["word"] + "+p-first") if mode == "first" else ("p-build+w-" + st["q"]["word"])
-            if not asked or not asked[-1].endswith(want) or not asked[-1].startswith(lang + ":"):
-                problems.append(f"letters {lang} {mode}: voice not asked for the question ({asked[-1:] }, want {want})")
             for _ in range(12):
                 st = page.evaluate("window.__bubbels.letters.state()")
                 if st["done"]:
                     break
                 q = st["q"]
                 if mode == "build":
+                    ghosts = page.evaluate("[...document.querySelectorAll('#letters-slots .ghost')].map((g) => [g.textContent, +getComputedStyle(g).opacity])")
+                    if [g for g, _ in ghosts] != list(q["word"]) or min(o for _, o in ghosts) < 0.15:
+                        problems.append(f"letters {lang} build t1: the word to trace is not shown ({ghosts}, {q['word']})")
                     for letter in q["word"]:
                         tiles = page.locator("#letters-options .letters-tile:not(.used)")
                         n = tiles.count()
@@ -2002,7 +2006,20 @@ def letters_play(browser, base, problems):
                         page.wait_for_timeout(60)
                 else:
                     right = q["letter"] if mode == "tap" else q["word"][0]
+                    if mode == "tap":
+                        big = page.text_content("#letters-pic .letters-big")
+                        tile = page.text_content(f"#letters-options .letters-tile[data-letter='{right}']")
+                        if big != tile:
+                            problems.append(f"letters {lang} tap t1: the big letter {big!r} is not drawn like its tile {tile!r}")
+                    else:
+                        word = page.text_content("#letters-word")
+                        if word != q["word"][1:] or page.text_content("#letters-word .letters-gap") != "":
+                            problems.append(f"letters {lang} first: the word with a gap reads {word!r} for {q['word']!r}")
                     page.locator(f"#letters-options .letters-tile[data-letter='{right}']").click()
+                    if mode == "first":
+                        page.wait_for_timeout(100)
+                        if page.text_content("#letters-word") != q["word"]:
+                            problems.append(f"letters {lang} first: the gap was not filled ({page.text_content('#letters-word')!r})")
                 page.wait_for_timeout(1500)
             st = page.evaluate("window.__bubbels.letters.state()")
             if not st["done"]:
@@ -2010,9 +2027,11 @@ def letters_play(browser, base, problems):
             got = page.evaluate("window.__bubbels.letters.stars()").get(f"{mode}-t1-1")
             if got != 3:
                 problems.append(f"letters {lang} {mode}: stars {got}, want 3")
+            if mode == "build":
+                page.screenshot(path=str(SHOTS / f"letters-{w}x{h}-{lang}-done.png"))
             page.click("#ov-buttons button:last-child")
             page.wait_for_timeout(150)
-        # a wrong tap: gentle, counted once, the voice says try again
+        # a wrong tap: gentle (a shake, "try again", counted once, the same question stays)
         if full:
             page.evaluate("window.__bubbels.letters.start('tap-t1-2')")
             page.wait_for_timeout(250)
@@ -2020,17 +2039,72 @@ def letters_play(browser, base, problems):
             wrong = [o for o in st["q"]["options"] if o != st["q"]["letter"]][0]
             page.locator(f"#letters-options .letters-tile[data-letter='{wrong}']").click()
             page.wait_for_timeout(200)
-            st = page.evaluate("window.__bubbels.letters.state()")
-            if st["mistakes"] != 1 or "p-again" not in page.evaluate("window.__bubbels.letters.spoken()")[-1]:
-                problems.append(f"letters {lang}: a wrong tap was not handled gently ({st['mistakes']})")
+            after = page.evaluate("window.__bubbels.letters.state()")
+            status = page.text_content("#letters-status")
+            shaken = "wrong" in (page.get_attribute(f"#letters-options .letters-tile[data-letter='{wrong}']", "class") or "")
+            if after["mistakes"] != 1 or after["i"] != st["i"] or not shaken or not status or page.is_visible("#overlay"):
+                problems.append(f"letters {lang}: a wrong tap was not handled gently ({after['mistakes']}, {status!r}, {shaken})")
+            page.screenshot(path=str(SHOTS / f"letters-{w}x{h}-{lang}-wrong.png"))
             # locked tiers stay locked without the purchase
             page.evaluate("window.__bubbels.letters.start('tap-t2-1')")
             page.wait_for_timeout(250)
             if page.evaluate("window.__bubbels.letters.state()")["tier"] == "t2":
                 problems.append(f"letters {lang}: a locked tier opened without the purchase")
+            if not page.is_visible("#overlay"):
+                problems.append(f"letters {lang}: a locked tier showed no offer")
+            page.screenshot(path=str(SHOTS / f"letters-{w}x{h}-{lang}-locked.png"))
         if errors:
             problems.append(f"letters {w}x{h} {lang}: page errors {errors[:2]}")
+        clips = [u for u in requests if u.endswith(".mp3") or "/voice" in u]
+        if clips:
+            problems.append(f"letters {w}x{h} {lang}: asked for voice files {clips[:2]}")
         ctx.close()
+    # tiers 2 and 3 (full version): tier 2 matches a capital with its small letter and shows the
+    # build word for a moment (a tap on the picture shows it again)
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(OWNED_APP)
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.wait_for_function("window.__bubbels.full()", timeout=8000)
+    page.click("#tile-letters")
+    page.evaluate("window.__bubbels.letters.start('tap-t2-1')")
+    page.wait_for_timeout(250)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    st = page.evaluate("window.__bubbels.letters.state()")
+    big = page.text_content("#letters-pic .letters-big")
+    if big != st["q"]["letter"].upper() or page.text_content(f"#letters-options .letters-tile[data-letter='{st['q']['letter']}']") != st["q"]["letter"]:
+        problems.append(f"letters t2 tap: big {big!r} for {st['q']['letter']!r}, want a capital over small tiles")
+    page.screenshot(path=str(SHOTS / "letters-390x844-nl-tap-t2.png"))
+    page.evaluate("window.__bubbels.letters.start('tap-t3-1')")
+    page.wait_for_timeout(250)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    page.screenshot(path=str(SHOTS / "letters-390x844-nl-tap-t3.png"))
+    page.evaluate("window.__bubbels.letters.start('build-t2-1')")
+    page.wait_for_timeout(250)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    if not page.evaluate("window.__bubbels.letters.peeking()"):
+        problems.append("letters t2 build: the word is not shown at the start")
+    page.screenshot(path=str(SHOTS / "letters-390x844-nl-build-t2-peek.png"))
+    page.wait_for_timeout(2400)
+    if page.evaluate("window.__bubbels.letters.peeking()"):
+        problems.append("letters t2 build: the word did not hide after a moment")
+    if not page.is_visible("#letters-pic .letters-peek"):
+        problems.append("letters t2 build: no eye on the picture once the word is hidden")
+    page.screenshot(path=str(SHOTS / "letters-390x844-nl-build-t2-hidden.png"))
+    page.click("#letters-pic")
+    page.wait_for_timeout(100)
+    if not page.evaluate("window.__bubbels.letters.peeking()"):
+        problems.append("letters t2 build: a tap on the picture did not show the word again")
+    page.evaluate("window.__bubbels.letters.start('build-t3-1')")
+    page.wait_for_timeout(250)
+    if page.locator("#letters-slots .ghost").count():
+        problems.append("letters t3 build: the word is shown, want the picture only")
+    ctx.close()
     # tier 3 sideways (full version): six tiles in 3x2, each at least 44 px, nothing off screen
     for w, h in ((568, 320), (640, 360)):
         ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
