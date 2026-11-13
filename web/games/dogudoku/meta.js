@@ -2,5 +2,6 @@
 export const meta = Object.freeze({
   id: 'dogudoku',
   titleKey: 'games.dogudoku',
+  group: 'puzzles', // the section on the home screen (GROUPS in js/games.js)
   free: 10, // 10 of the puzzles are free (a few of every size: `free: true` in puzzles.json)
 });

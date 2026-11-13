@@ -4,6 +4,7 @@
 export const meta = Object.freeze({
   id: 'ganzen',
   titleKey: 'games.ganzen',
+  group: 'board', // the section on the home screen (GROUPS in js/games.js)
   freeBoards: Object.freeze(['classic']),
   freePlayers: 2,
   /** Is this game setup behind the full version? `setup`: { board, players: ['kid'|'cpu', ...] }. */
