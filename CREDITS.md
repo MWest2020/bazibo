@@ -1,7 +1,6 @@
 # Credits
 
-The web game (`web/`) ships no third-party code, fonts or images. The only recorded sound is the
-Letters read-aloud voice, made offline with Piper from the open voices listed below. The Android and iOS
+The web game (`web/`) ships no third-party code, fonts, images or recorded sound. The Android and iOS
 apps add the native wrapper and the store plugin listed under "Apps only".
 
 | Asset | Author | Licence | Source |
@@ -21,8 +20,6 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | Sounds | synthesised at runtime with the Web Audio API in `web/js/audio.js` (pops, the Dogudoku woof, the Picturedoku notes and chime, the Vier op een rij token "tok", the Slangetje munch and boop, the Klok kijken tick-tock); no sound files for these effects | MIT | this repository |
 | Letters art: the mode pictures and the letter blocks (SVG drawn in code in `web/games/letters/art.js`); the word pictures reuse the Kleurplaten drawings (coloured in) and the Picturedoku fruit | MWest2020 (with Claude Code) | MIT | this repository |
 | Letters words and rounds (`web/games/letters/words.js`, `round.js`) | MWest2020 (with Claude Code) | MIT | this repository |
-| Letters voice, Dutch (`web/games/letters/voice/nl/*.mp3`, made by `tools/make_voice.py` with Piper 1.8.0): the voice model nl_NL-alex-medium | Piper voice models: Michael Hansen and contributors (rhasspy/piper-voices); dataset: Open Home Foundation voice datasets | model MIT, dataset CC0 1.0; the clips are audio synthesised from that model | https://huggingface.co/rhasspy/piper-voices/tree/main/nl/nl_NL/alex/medium , https://github.com/OHF-Voice/voice-datasets |
-| Letters voice, English (`web/games/letters/voice/en/*.mp3`, made by `tools/make_voice.py` with Piper 1.8.0): the voice model en_GB-cori-medium, the voice of Cori Samuel (LibriVox reader 92) | Piper voice models: rhasspy/piper-voices; dataset: Hi-Fi Multi-Speaker English TTS (Bakhturina, Lavrukhin, Ginsburg and Zhang, NVIDIA, Interspeech 2021) | model MIT, dataset CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); the clips are audio synthesised from that model; the attribution is also shown in the app and on bazibo.nl (privacy pages, voice section) | https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_GB/cori/medium , https://www.openslr.org/109/ |
 | UI icons (inline SVG paths in `web/index.html` and `web/js/main.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Bubble colours | based on the Okabe-Ito colour-blind-safe palette (Masataka Okabe and Kei Ito, "Color Universal Design", 2002), brightened | colour values, not copyrightable | https://jfly.uni-koeln.de/color/ |
 | Font | none bundled; the device's own system font is used | n/a | n/a |
