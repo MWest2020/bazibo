@@ -74,8 +74,8 @@ KLEURPLATEN EN MANDALA'S
 
 TEKENEN
 • Vrij tekenen met je vinger, met alle kleuren, drie kwasten, een gum en ongedaan maken.
-• Spiegelen met 2, 4, 6 of 8 lijnen (elke streep wordt een mandala) en stempels.
-• Tot 100 tekeningen blijven bewaard in Mijn tekeningen.
+• Spiegelen met 2, 4, 6 of 8 lijnen (elke streep wordt een mandala) en stempels (volledige versie).
+• 3 tekeningen bewaren, tot 100 in de volledige versie.
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.

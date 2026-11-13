@@ -73,7 +73,7 @@ COLOURING PAGES AND MANDALAS
 • From age 7: mandalas.
 
 DRAWING
-• Draw with a finger; mirror mode makes every stroke a mandala.
+• Draw with a finger; mirror mode makes every stroke a mandala (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.
