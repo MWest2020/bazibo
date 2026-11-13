@@ -325,3 +325,122 @@ test('free: the 8×8 board together and against easy; locked: medium, hard and t
   for (const variant of ['small', 'big']) for (const level of [1, 2, 3]) assert.equal(meta.isLocked({ variant, mode: 'cpu', level }, true), false);
   assert.equal(winKey({ variant: 'small', level: 2 }), 'cpu-small-2');
 });
+
+// ---------- the worker, safely (think.js) ----------
+
+import { createThinker } from '../web/games/dammen/think.js';
+import { THINK_MS } from '../web/games/dammen/ai.js';
+
+/** A fake worker: records what it was asked; the test answers, errors or stays silent. */
+function fakeWorkers() {
+  const made = [];
+  const makeWorker = () => {
+    const w = { posted: [], terminated: false, onmessage: null, onerror: null, onmessageerror: null };
+    w.postMessage = (m) => w.posted.push(m);
+    w.terminate = () => (w.terminated = true);
+    w.reply = (data) => w.onmessage?.({ data });
+    made.push(w);
+    return w;
+  };
+  return { made, makeWorker };
+}
+/** Manual timers, so a timeout can be fired by hand. */
+function manualTimers() {
+  const timers = new Map();
+  let n = 0;
+  return {
+    setTimer: (fn) => (timers.set(++n, fn), n),
+    clearTimer: (id) => timers.delete(id),
+    fireAll: () => {
+      const fns = [...timers.values()];
+      timers.clear();
+      fns.forEach((f) => f());
+    },
+  };
+}
+const PAGE_MOVE = { from: 1, to: 2, path: [2], captured: [] };
+const WORKER_MOVE = { from: 3, to: 4, path: [4], captured: [] };
+
+test('think: the worker answers', async () => {
+  const { made, makeWorker } = fakeWorkers();
+  const th = createThinker({ makeWorker, onPage: () => PAGE_MOVE, ...manualTimers() });
+  const p = th.ask(7, { level: 3 });
+  assert.equal(made.length, 1);
+  assert.equal(made[0].posted[0].id, 7);
+  made[0].reply({ id: 7, ok: true, move: WORKER_MOVE });
+  assert.deepEqual(await p, WORKER_MOVE);
+  assert.equal(th.busy, false);
+});
+
+test('think: cancelling a search stops that worker; the next job gets a fresh one at once', async () => {
+  const { made, makeWorker } = fakeWorkers();
+  const th = createThinker({ makeWorker, onPage: () => PAGE_MOVE, ...manualTimers() });
+  const first = th.ask(1, {});
+  th.cancel();
+  assert.equal(await first, null);
+  assert.equal(made[0].terminated, true);
+  const second = th.ask(2, {});
+  assert.equal(made.length, 2, 'a fresh worker');
+  made[1].reply({ id: 1, ok: true, move: PAGE_MOVE }); // a stale answer is ignored
+  made[1].reply({ id: 2, ok: true, move: WORKER_MOVE });
+  assert.deepEqual(await second, WORKER_MOVE);
+  assert.equal(th.broken, false);
+});
+
+test('think: a worker error answers from the page at once, and the session stays on the page', async () => {
+  const { made, makeWorker } = fakeWorkers();
+  let pageCalls = 0;
+  const th = createThinker({ makeWorker, onPage: () => (pageCalls++, PAGE_MOVE), ...manualTimers() });
+  const p = th.ask(1, {});
+  made[0].onerror({});
+  assert.deepEqual(await p, PAGE_MOVE);
+  assert.equal(th.broken, true);
+  assert.deepEqual(await th.ask(2, {}), PAGE_MOVE);
+  assert.equal(made.length, 1, 'no new worker after an error');
+  assert.equal(pageCalls, 2);
+  // a message that cannot be read counts as an error too
+  const b = fakeWorkers();
+  const th2 = createThinker({ makeWorker: b.makeWorker, onPage: () => PAGE_MOVE, ...manualTimers() });
+  const q = th2.ask(1, {});
+  b.made[0].onmessageerror({});
+  assert.deepEqual(await q, PAGE_MOVE);
+  assert.equal(th2.broken, true);
+});
+
+test('think: a timeout answers from the page and replaces the worker, without giving up on workers', async () => {
+  const { made, makeWorker } = fakeWorkers();
+  const timers = manualTimers();
+  const th = createThinker({ makeWorker, onPage: () => PAGE_MOVE, ...timers });
+  const p = th.ask(1, {});
+  timers.fireAll();
+  assert.deepEqual(await p, PAGE_MOVE);
+  assert.equal(made[0].terminated, true);
+  assert.equal(th.broken, false);
+  const q = th.ask(2, {});
+  assert.equal(made.length, 2);
+  made[1].reply({ id: 2, ok: true, move: WORKER_MOVE });
+  assert.deepEqual(await q, WORKER_MOVE);
+});
+
+test('think: a reply without a move, a page that throws, and no worker at all', async () => {
+  const { made, makeWorker } = fakeWorkers();
+  const th = createThinker({ makeWorker, onPage: () => PAGE_MOVE, ...manualTimers() });
+  const p = th.ask(1, {});
+  made[0].reply({ id: 1, ok: false, error: 'bad job' });
+  assert.deepEqual(await p, PAGE_MOVE);
+  const throwing = createThinker({ makeWorker: () => null, onPage: () => { throw new Error('boom'); }, ...manualTimers() });
+  assert.equal(await throwing.ask(1, {}), null); // the screen then plays any legal move
+  assert.equal(throwing.broken, true);
+  const noWorker = createThinker({ makeWorker: () => { throw new Error('no workers'); }, onPage: () => PAGE_MOVE, ...manualTimers() });
+  assert.deepEqual(await noWorker.ask(1, {}), PAGE_MOVE);
+});
+
+test('the search stops at its time limit as well as its budget', () => {
+  assert.ok(THINK_MS <= 2500);
+  const board = initialBoard(B);
+  const t0 = performance.now();
+  const m = chooseMove(board, B, 1, 3, mulberry32(1), { nodes: 1e9, ms: 150 });
+  const took = performance.now() - t0;
+  assert.ok(took < 1500, `took ${Math.round(took)} ms`);
+  assert.ok(legalMoves(board, B, 1).some((x) => sameMove(x, m)));
+});

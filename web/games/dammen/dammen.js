@@ -17,6 +17,7 @@
 import { meta } from './meta.js';
 import { VARIANTS, legalMoves, newGame, play, owner, isKing, isDark, sameMove } from './rules.js';
 import { chooseMove, mulberry32, PAGE_NODES } from './ai.js';
+import { createThinker } from './think.js';
 import { pieceSvg, boardSvg, LOOKS } from './art.js';
 import { robotSvg, duoSvg, TROPHY } from '../vier/art.js';
 import * as store from '../../js/storage.js';
@@ -27,7 +28,7 @@ const UNDO = '<path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" str
 
 export const DEFAULT_SETUP = Object.freeze({ variant: 'small', mode: 'cpu', level: 1 });
 const CPU_DELAY = 480; // ms before the computer moves, so it feels like a turn
-const WORKER_TIMEOUT = 6000; // a worker that does not answer: think on the page instead
+const WORKER_TIMEOUT = 6000; // a worker that does not answer: this move is made on the page
 const HOP_MS = 240;
 
 /** The counter key for a result. */
@@ -77,8 +78,6 @@ export function createDammen(shell) {
   let cardTimer = null;
   let plays = 0; // counts games started and take-backs, so a late answer never lands on a newer board
   let squares = []; // index -> the square's element
-  let worker = null;
-  let workerBroken = false;
   let note = ''; // a short message under the turn chips (must capture, crowned...)
 
   const locked = (setup) => meta.isLocked(setup, shell.unlock.owned);
@@ -93,6 +92,7 @@ export function createDammen(shell) {
     if (cpuTimer) clearTimeout(cpuTimer);
     cpuTimer = null;
     cpuJob = 0;
+    thinker.cancel(); // a search still running in the worker is stopped
   }
   function cancelCard() {
     if (cardTimer) clearTimeout(cardTimer);
@@ -320,6 +320,7 @@ export function createDammen(shell) {
     updateBoard();
     shell.show('dammen');
     if (isCpu() && game.g.turn === 2 && !game.g.over) cpuTurn();
+    else autoSelect(); // one piece that must capture is picked up again
   }
 
   function again() {
@@ -673,57 +674,27 @@ export function createDammen(shell) {
 
   // ---------- the computer ----------
 
-  function getWorker() {
-    if (workerBroken || typeof Worker === 'undefined') return null;
-    if (worker) return worker;
+/** The page's own move: a smaller budget; null when it fails (the caller then plays any legal move). */
+  function pageMove({ board, variant, level, seed }) {
     try {
-      worker = new Worker(new URL('./ai-worker.js', import.meta.url), { type: 'module' });
-      worker.onerror = () => {
-        workerBroken = true;
-        worker = null;
-      };
-    } catch {
-      workerBroken = true;
-      worker = null;
+      return chooseMove(board, VARIANTS[variant], 2, level, mulberry32(seed), level > 1 ? { nodes: PAGE_NODES } : {});
+    } catch (err) {
+      console.error(err);
+      return null;
     }
-    return worker;
   }
 
-  /** Ask for the computer's move: in the worker for medium and hard, on the page otherwise. */
+  const thinker = createThinker({
+    makeWorker: () => (typeof Worker === 'undefined' ? null : new Worker(new URL('./ai-worker.js', import.meta.url), { type: 'module' })),
+    onPage: (request) => new Promise((resolve) => setTimeout(() => resolve(pageMove(request)), 0)),
+    timeout: WORKER_TIMEOUT,
+  });
+
+  /** Ask for the computer's move: in the worker for medium and hard, on the page for easy. */
   function think(board, cfg, level, seed) {
-    const onPage = () =>
-      new Promise((resolve) => setTimeout(() => resolve(chooseMove(board, cfg, 2, level, mulberry32(seed), level > 1 ? { nodes: PAGE_NODES } : {})), 0));
-    const w = level > 1 ? getWorker() : null;
-    if (!w) return onPage();
-    return new Promise((resolve) => {
-      const id = seed;
-      let settled = false;
-      const settle = (v) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        w.removeEventListener('message', onMsg);
-        resolve(v);
-      };
-      const onMsg = (e) => {
-        if (e.data?.id !== id) return;
-        if (e.data.ok) settle(e.data.move);
-        else onPage().then(settle);
-      };
-      const timer = setTimeout(() => {
-        // a stuck or broken worker: stop it and think on the page from now on
-        try {
-          w.terminate();
-        } catch {
-          // already gone
-        }
-        worker = null;
-        workerBroken = true;
-        onPage().then(settle);
-      }, WORKER_TIMEOUT);
-      w.addEventListener('message', onMsg);
-      w.postMessage({ id, board, variant: cfg.id, player: 2, level, seed });
-    });
+    const request = { board, variant: cfg.id, player: 2, level, seed };
+    if (level <= 1) return new Promise((resolve) => setTimeout(() => resolve(pageMove(request)), 0));
+    return thinker.ask(seed, request);
   }
 
   function cpuTurn() {
@@ -743,7 +714,15 @@ export function createDammen(shell) {
           updateTurn();
           return; // resume() asks again
         }
-        const move = m && legal().find((x) => sameMove(x, m) && x.captured.join() === (m.captured || []).join());
+        const moves = legal();
+        const same = (x) => (y) => !!y && sameMove(x, y) && x.captured.join() === (y.captured || []).join();
+        // a reply that is no legal move here (or none at all): the page decides, or any legal
+        // move, so the game never hangs on "thinking"
+        let move = m && moves.find((x) => same(x)(m));
+        if (!move) {
+          const p = pageMove({ board: g.g.board, variant: g.cfg.id, level: g.setup.level, seed: job });
+          move = moves.find((x) => same(x)(p)) || moves[0];
+        }
         if (move) playMove(move);
         else updateTurn();
       }, wait);

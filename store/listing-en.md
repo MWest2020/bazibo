@@ -33,7 +33,7 @@ The name comes from "bāzi", the Persian word for play.
 
 BUBBLE SHOOTER
 • Drag to aim and let go to shoot.
-• Three or more of the same colour pop, with a real pop sound.
+• Three of the same colour pop.
 • 30 levels.
 
 DOGUDOKU: HIDE THE PUPPIES
@@ -46,16 +46,16 @@ PICTUREDOKU: SUDOKU WITH PICTURES
 • Every picture goes once in every row, every column and every box.
 • For the youngest (age 3 and up): 4 by 4 with fruit pictures, no numbers, no reading.
 • From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
-• 60 puzzles, each with one solution, solvable without guessing.
+• 60 puzzles, each with one solution.
 
 FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Take turns dropping a token: the first to get four in a row wins.
-• Play together on one screen, or against the computer: Easy, Medium or Hard. On Easy it makes mistakes on purpose.
+• Together on one screen, or against the computer: Easy, Medium or Hard (full version). Easy makes mistakes on purpose.
 • For the youngest (age 3 and up): the little 5 by 4 board, where three in a row wins.
 
 CHECKERS
 • Tap a piece, then a dot; pieces that must jump glow softly. Puppy against kitten, or classic.
-• Together or against the computer, on 8 by 8 or the international 10 by 10 board.
+• Together or against the computer on 8 by 8. A smarter computer and the international 10 by 10 board (full version).
 
 GAME OF THE GOOSE
 • Our own board with the classic squares: goose, bridge, inn, well, maze and prison. Land exactly on 63!
@@ -70,7 +70,7 @@ SNAKE: COUNTING, LETTERS AND COLOURS
 COLOURING PAGES AND MANDALAS
 • Pick a colour and tap a part: done. No reading needed.
 • For the youngest (age 3 and up): 13 pictures, from a sun to an elephant.
-• From age 7: mandalas, with a button that colours all copies at once.
+• From age 7: mandalas.
 
 DRAWING
 • Draw with a finger; mirror mode makes every stroke a mandala.
@@ -78,7 +78,7 @@ DRAWING
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.
 • Daily rhythm for the youngest: breakfast, school, bedtime.
-• From whole hours to single minutes and the 24-hour clock. After a mistake, the clock explains where the hands are.
+• From whole hours to single minutes and the 24-hour clock.
 
 LETTERS
 • Tap the letter: find the same letter, a capital with its small letter too.

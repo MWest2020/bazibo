@@ -35,7 +35,7 @@ De naam komt van "bāzi", het Perzische woord voor spel.
 
 BUBBELS SCHIETEN
 • Sleep om te mikken en laat los om te schieten.
-• Drie of meer van dezelfde kleur knallen kapot, met een echt plopgeluid.
+• Drie van dezelfde kleur knallen kapot.
 • 30 levels.
 
 DOGUDOKU: VERSTOP DE HONDJES
@@ -46,16 +46,16 @@ DOGUDOKU: VERSTOP DE HONDJES
 PICTUREDOKU: SUDOKU MET PLAATJES
 • Voor de kleinsten (vanaf 3 jaar): 4 bij 4 met fruit, zonder cijfers en zonder lezen.
 • Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9, ook met cijfers.
-• 60 puzzels, elk met één oplossing, zonder gokken op te lossen.
+• 60 puzzels, elk met één oplossing.
 
 VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Laat om de beurt een fiche vallen: wie eerst vier op een rij heeft, wint.
-• Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk.
+• Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk (volledige versie).
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij wint.
 
 DAMMEN
 • Tik op een stuk en dan op een stip; stukken die moeten slaan, gloeien zachtjes. Puppy tegen poes, of klassiek.
-• Samen of tegen de computer, op 8 bij 8 of het internationale bord van 10 bij 10.
+• Samen of tegen de computer op 8 bij 8. Een slimmere computer en het internationale bord van 10 bij 10 (volledige versie).
 
 GANZENBORD
 • Ons eigen bord met de klassieke vakjes: gans, brug, herberg, put, doolhof en gevangenis. Precies op 63 eindigen!
@@ -70,7 +70,7 @@ SLANGETJE: TELLEN, LETTERS EN KLEUREN
 KLEURPLATEN EN MANDALA'S
 • Kies een kleur en tik op een vlak: klaar. Zonder lezen.
 • Voor de kleinsten (vanaf 3 jaar): 13 kleurplaten, van een zon tot een olifant.
-• Vanaf 7 jaar: mandala's, met een knop die alle kopieën tegelijk kleurt.
+• Vanaf 7 jaar: mandala's.
 
 TEKENEN
 • Vrij tekenen met je vinger, met alle kleuren, drie kwasten, een gum en ongedaan maken.
@@ -80,7 +80,7 @@ TEKENEN
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.
 • Dagritme voor de kleinsten: ontbijt, school, bedtijd.
-• Van hele uren tot losse minuten en de 24-uursklok. Bij een fout legt de klok uit waar de wijzers staan.
+• Van hele uren tot losse minuten en de 24-uursklok.
 
 LETTERS
 • Tik de letter: zoek dezelfde letter, ook een hoofdletter bij zijn kleine letter.
