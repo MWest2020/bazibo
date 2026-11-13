@@ -19,7 +19,7 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Snake, Colouring, Drawing, Telling Time and Letters: play and learn for ages 3 to 10, no ads.
+Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Snake, Colouring, Drawing, Telling Time and Letters: ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -33,7 +33,7 @@ The name comes from "bāzi", the Persian word for play.
 
 BUBBLE SHOOTER
 • Drag to aim and let go to shoot.
-• Three or more of the same colour pop, with a real pop sound.
+• Three of the same colour pop.
 • 30 levels.
 
 DOGUDOKU: HIDE THE PUPPIES
@@ -44,39 +44,37 @@ DOGUDOKU: HIDE THE PUPPIES
 
 PICTUREDOKU: SUDOKU WITH PICTURES
 • Every picture goes once in every row, every column and every box.
-• For the youngest (age 3 and up): 4 by 4 with an apple, a banana, grapes and a carrot, no numbers and no reading.
+• For the youngest (age 3 and up): 4 by 4 with fruit pictures, no numbers, no reading.
 • From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
-• 60 puzzles, each with one solution, solvable without guessing.
+• 60 puzzles, each with one solution.
 
 FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
 • Take turns dropping a token: the first to get four in a row wins.
-• Play together on one screen, or against the computer: Easy, Medium or Hard. On Easy it makes mistakes on purpose.
-• For the youngest (age 3 and up): the little board, 5 by 4, where three in a row already wins. No reading needed.
+• Together on one screen, or against the computer: Easy, Medium or Hard (full version). Easy makes mistakes on purpose.
+• For the youngest (age 3 and up): the little 5 by 4 board, where three in a row wins.
 
 CHECKERS
 • Tap a piece, then a dot; pieces that must jump glow softly. Puppy against kitten, or classic.
-• Together or against the computer, on 8 by 8 or the international 10 by 10 board.
+• Together or against the computer on 8 by 8. A smarter computer and the international 10 by 10 board (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
 • Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
 • Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
 • Colours: eat only the fruit of the right colour; every colour also has its own shape.
-• A mistake is never game over: the snake just gets a little shorter.
-• 30 levels.
+• 30 levels; a mistake is never game over.
 
 COLOURING PAGES AND MANDALAS
 • Pick a colour and tap a part: done. No reading needed.
-• For the youngest (age 3 and up): 13 pictures, from a sun and a house to a rocket and an elephant.
-• From age 7: mandalas, with a button that colours all copies at once.
+• For the youngest (age 3 and up): 13 pictures, from a sun to an elephant.
+• From age 7: mandalas.
 
 DRAWING
 • Draw with a finger; mirror mode makes every stroke a mandala.
 
 TELLING TIME
-• Set the clock: turn the hands to "half past two" or "quarter to four".
-• What time is it? Pick the right time for the clock.
+• Set the clock to "half past two", or pick what time it is.
 • Daily rhythm for the youngest: breakfast, school, bedtime.
-• From whole hours to single minutes and the 24-hour clock. After a mistake, the clock explains where the hands are.
+• From whole hours to single minutes and the 24-hour clock.
 
 LETTERS
 • Tap the letter: find the same letter, a capital with its small letter too.

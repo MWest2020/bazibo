@@ -5,8 +5,9 @@
 //                    who looks one move ahead beats it
 //   2 medium (full version): alpha-beta search, 3 plies deep, with captures followed to the end
 //   3 hard   (full version): the same search, up to 8 plies deep, deepening step by step until
-//                    its budget of positions is spent
-// The search counts the positions it looks at and stops at a budget, so a move never takes long;
+//                    its budget of positions or its time (THINK_MS) is spent
+// The search counts the positions it looks at and stops at a budget or a deadline, whichever comes
+// first, so a move never takes long, also on a slow phone;
 // in the app it runs in a worker (ai-worker.js), and on the page with a smaller budget when a
 // worker cannot start. `rand` is a function returning [0, 1); tests pass a seeded one.
 import { legalMoves, applyMove, owner, isKing, other } from './rules.js';
@@ -18,6 +19,9 @@ export const SEARCH = Object.freeze({
   2: Object.freeze({ depth: 3, nodes: 30000 }),
   3: Object.freeze({ depth: 8, nodes: 120000 }),
 });
+/** The longest a search may take, in ms (a slow phone stops here before the position budget). */
+export const THINK_MS = 2000;
+const now = () => (globalThis.performance?.now ? globalThis.performance.now() : Date.now());
 /** On the page (no worker) the budget is smaller, so the screen never stalls for long. */
 export const PAGE_NODES = 12000;
 const EASY_SMART = 0.25; // chance that easy picks the best-looking move without looking ahead
@@ -63,6 +67,7 @@ class OutOfNodes extends Error {}
 
 function search(board, cfg, player, depth, alpha, beta, ctx, ply) {
   if (++ctx.nodes > ctx.budget) throw new OutOfNodes();
+  if ((ctx.nodes & 511) === 0 && now() > ctx.deadline) throw new OutOfNodes();
   const moves = legalMoves(board, cfg, player);
   if (!moves.length) return -WIN + ply; // no move: a loss (the sooner, the worse)
   const capturing = moves[0].captured.length > 0;
@@ -85,7 +90,8 @@ function order(moves) {
 
 /**
  * The move the computer plays for `player` at `level`, or null when it has none. Returns the move
- * object from legalMoves(). `opts.nodes` overrides the budget (the page fallback, the tests).
+ * object from legalMoves(). `opts.nodes` overrides the budget (the page fallback, the tests),
+ * `opts.ms` the time limit (THINK_MS).
  */
 export function chooseMove(board, cfg, player, level, rand = Math.random, opts = {}) {
   const moves = legalMoves(board, cfg, player);
@@ -101,7 +107,7 @@ export function chooseMove(board, cfg, player, level, rand = Math.random, opts =
     return moves[Math.floor(rand() * moves.length)];
   }
   const set = SEARCH[level] || SEARCH[3];
-  const ctx = { nodes: 0, budget: opts.nodes ?? set.nodes };
+  const ctx = { nodes: 0, budget: opts.nodes ?? set.nodes, deadline: now() + (opts.ms ?? THINK_MS) };
   const maxDepth = opts.depth ?? set.depth;
   let bestMoves = moves; // before any search finished: any move
   for (let depth = 1; depth <= maxDepth; depth++) {

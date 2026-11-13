@@ -2365,6 +2365,11 @@ def main():
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     problems = []
     only = sorted(set(sys.argv[1:]))  # e.g. `tests/smoke.py dammen`: only that game's parts
+    unknown = [n for n in only if n not in PARTS]
+    if unknown:
+        httpd.shutdown()
+        print(f"unknown part(s): {', '.join(unknown)}; known: {', '.join(sorted(PARTS))}")
+        return 2
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME)
