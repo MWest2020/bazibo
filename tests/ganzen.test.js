@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { END, GEESE, BRIDGE, INN, WELL, MAZE, PRISON, WOODS, WAIT_TURNS, kindOf, walk, newGame, throwDie, rollDie, mulberry32 } from '../web/games/ganzen/rules.js';
 import { meta } from '../web/games/ganzen/meta.js';
-import { spiral, nextTap } from '../web/games/ganzen/board.js';
+import { boardLayout, nextTap, stoneAt, tapRadius, STONES, STONE } from '../web/games/ganzen/board.js';
+import { sceneSvg } from '../web/games/ganzen/scene.js';
 
 /** A game with the geese on these squares, `turn` to throw. */
 function at(positions, turn = 0) {
@@ -170,15 +171,90 @@ test('a whole game with a seeded die always ends with one winner', () => {
   }
 });
 
-test('the board picture: a spiral of 64 cells on an 8x8 grid, each step next to the one before', () => {
-  const cells = spiral();
-  assert.equal(cells.length, 64);
-  assert.equal(new Set(cells.map(([r, c]) => `${r},${c}`)).size, 64);
-  for (let k = 1; k < 64; k++) {
-    const [r0, c0] = cells[k - 1];
-    const [r1, c1] = cells[k];
-    assert.equal(Math.abs(r0 - r1) + Math.abs(c0 - c1), 1, `square ${k} is not next to ${k - 1}`);
+// phones upright and sideways, a tablet, a desktop: the space the board gets on each
+const SPACES = [[308, 330], [300, 300], [260, 300], [378, 520], [540, 370], [330, 420], [700, 700], [1000, 700], [600, 240]];
+
+test('the board: 64 stepping stones on one path, a step apart, with clear space round every stone', () => {
+  for (const [w, h] of SPACES) {
+    const lay = boardLayout(w, h);
+    const tag = `${w}x${h}`;
+    assert.equal(lay.stones.length, STONES, tag);
+    assert.ok(lay.w <= w && lay.h <= h, `${tag}: the board ${lay.w}x${lay.h} is bigger than its space`);
+    assert.ok(lay.step <= 72 + 1e-9, `${tag}: step ${lay.step}`);
+    assert.ok(lay.size <= lay.step * STONE + 1e-9, tag);
+    const r = (lay.size * 1.3) / 2; // the biggest stone (63)
+    for (const [k, [x, y]] of lay.stones.entries()) {
+      assert.ok(x - r >= 0 && y - r >= 0 && x + r <= lay.w && y + r <= lay.h, `${tag}: stone ${k} sticks out of the board`);
+      if (k) {
+        const [px, py] = lay.stones[k - 1];
+        const d = Math.hypot(x - px, y - py);
+        // the step along the path; a bend makes the straight line a little shorter
+        assert.ok(d <= lay.step + 1e-6 && d >= lay.step * 0.9, `${tag}: stone ${k} is ${d.toFixed(1)} from ${k - 1} (step ${lay.step.toFixed(1)})`);
+      }
+      for (let j = 0; j < k - 1; j++) {
+        const d = Math.hypot(x - lay.stones[j][0], y - lay.stones[j][1]);
+        assert.ok(d >= lay.step * 0.98, `${tag}: stones ${j} and ${k} are only ${d.toFixed(1)} apart (step ${lay.step.toFixed(1)})`);
+      }
+    }
+    // there is grass between the stones: a gap of at least a quarter of a stone, never under 6 px
+    assert.ok(lay.step - lay.size >= Math.min(6, lay.size * 0.25), `${tag}: no gap between the stones`);
+    // the start in the bottom-left corner, 63 in the middle, beside the pond
+    assert.ok(lay.stones[0][0] < lay.w / 3 && lay.stones[0][1] > (lay.h * 2) / 3, `${tag}: the start is not bottom-left`);
+    const [ex, ey] = lay.stones[STONES - 1];
+    assert.ok(Math.abs(ex - lay.w / 2) < lay.w / 3 && Math.abs(ey - lay.h / 2) < lay.h / 3, `${tag}: 63 is not in the middle`);
+    assert.ok(lay.pond, `${tag}: no pond`);
+    for (const [k, [x, y]] of lay.stones.entries()) {
+      const p = lay.pond;
+      assert.ok(!(x > p.l && x < p.r && y > p.t && y < p.b), `${tag}: stone ${k} stands in the pond`);
+    }
   }
+});
+
+test('the board: every stone has a round tap area of 44 px or more that never covers the middle of another stone', () => {
+  for (const [w, h] of SPACES) {
+    const lay = boardLayout(w, h);
+    const radius = Math.max(44, lay.step) / 2; // the buttons are circles (ganzen.css)
+    for (const [k, [x, y]] of lay.stones.entries()) {
+      for (const [j, [ox, oy]] of lay.stones.entries()) {
+        if (j !== k) assert.ok(Math.hypot(x - ox, y - oy) >= radius, `${w}x${h}: the button of ${j} covers the middle of ${k}`);
+      }
+    }
+  }
+});
+
+test('a tap goes to the nearest stone: the centre of every stone is that stone, never its neighbour', () => {
+  for (const [w, h] of SPACES) {
+    const lay = boardLayout(w, h);
+    const tag = `${w}x${h}`;
+    assert.ok(tapRadius(lay) >= 22, `${tag}: tap circle under 44 px`);
+    for (const [k, [x, y]] of lay.stones.entries()) {
+      assert.equal(stoneAt(lay, x, y), k, `${tag}: a tap on the centre of ${k}`);
+      // a tap a little off the stone, away from the board's middle, is still that stone
+      const dx = x < lay.w / 2 ? -1 : 1;
+      assert.equal(stoneAt(lay, x + dx * lay.size * 0.45, y), k, `${tag}: a tap just beside ${k}`);
+    }
+    assert.equal(stoneAt(lay, lay.pond.cx, lay.pond.cy), -1, `${tag}: a tap in the pond is no stone`);
+  }
+});
+
+test('the board: the same size gives the same layout, and the step is never above the maximum', () => {
+  assert.equal(boardLayout(308, 330), boardLayout(308, 330));
+  for (const [w, h] of [[2000, 1400], [1600, 1600], [900, 900], [5000, 3000]]) {
+    for (const max of [72, 60, 40]) assert.ok(boardLayout(w, h, max).step <= max, `${w}x${h} max ${max}: ${boardLayout(w, h, max).step}`);
+  }
+});
+
+test('the landscapes: drawn in code for the meadow, winter and the sea, the same every time', () => {
+  const lay = boardLayout(378, 520);
+  for (const theme of ['classic', 'winter', 'sea']) {
+    const svg = sceneSvg(theme, lay);
+    assert.match(svg, /^<svg [^>]*class="ganzen-scene"/);
+    assert.ok(!/href|url\(http|<image|<script/i.test(svg), `${theme}: only drawn shapes`);
+    const plain = (x) => x.replace(/gz-[a-z]+-\d+/g, 'gz');
+    assert.equal(plain(svg), plain(sceneSvg(theme, lay)), `${theme}: not the same twice`);
+    assert.ok(!svg.includes('NaN'), `${theme}: NaN in the picture`);
+  }
+  assert.notEqual(sceneSvg('classic', lay), sceneSvg('winter', lay));
 });
 
 test('count yourself: the next square to tap follows the path, also back after 63', () => {

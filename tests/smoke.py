@@ -2499,7 +2499,8 @@ def ganzen_flow(browser, base, problems):
 
 def ganzen_layouts(browser, base, problems):
     """Ganzenbord at 320x568, sideways 844x390 and 568x320, desktop; the full version with four
-    geese on the winter and sea boards; the die and the squares stay on screen; a near tap counts."""
+    geese on the winter and sea boards; the die and the squares stay on screen; a near tap counts, a
+    tap on the next stone does not."""
     for w, h, owned, board in ((320, 568, False, "classic"), (844, 390, False, "classic"), (568, 320, False, "classic"), (1280, 800, False, "classic"),
                                (390, 844, True, "winter"), (568, 320, True, "sea"), (320, 568, True, "sea")):
         mobile = w < 1000
@@ -2555,6 +2556,12 @@ def ganzen_layouts(browser, base, problems):
         page.click("#ganzen-die")
         gans_wait(page, ("count",))
         st = gans_state(page)
+        # a tap on the middle of the next stone is that stone, never the glowing one (it only wiggles)
+        nb = page.locator(f".gsq[data-sq='{st['next'] + 1}']").bounding_box()
+        page.mouse.click(nb["x"] + nb["width"] / 2, nb["y"] + nb["height"] / 2)
+        page.wait_for_timeout(150)
+        if gans_state(page)["next"] != st["next"]:
+            problems.append(f"ganzen {label}: a tap on stone {st['next'] + 1} counted for {st['next']}")
         # a tap half a square away from the glowing square still counts
         box = page.locator(f".gsq[data-sq='{st['next']}']").bounding_box()
         page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 1.0)

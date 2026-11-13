@@ -1,7 +1,8 @@
-// Ganzenbord (the game of the goose): throw the die and walk your goose along the spiral to 63.
-// The rules live in rules.js (special squares, waiting, the bounce at 63), the spiral in board.js,
-// the pictures in art.js; the shell (web/js/main.js) owns the overlay card, the sound settings and
-// the purchase, and passes them in as `shell`.
+// Ganzenbord (the game of the goose): throw the die and walk your goose along the path to 63.
+// The rules live in rules.js (special squares, waiting, the bounce at 63), where the stepping
+// stones sit in board.js, the landscape under them in scene.js, the other pictures in art.js; the
+// shell (web/js/main.js) owns the overlay card, the sound settings and the purchase, and passes
+// them in as `shell`.
 //
 // "Zelf tellen" (count yourself): after the throw the child taps every square the goose walks to,
 // one by one; each tap makes the goose hop and shows the count big on that square. Without it the
@@ -13,13 +14,13 @@
 // `stars` { 'won-<board>': games a child's goose won } (a counter that only goes up).
 import { meta } from './meta.js';
 import { END, MAX_PLAYERS, kindOf, newGame, throwDie, rollDie } from './rules.js';
-import { spiral, nextTap, GRID } from './board.js';
+import { boardLayout, nextTap, stoneAt, STONES } from './board.js';
+import { sceneSvg } from './scene.js';
 import { gooseSvg, iconSvg, dieSvg, boardThumb, kidSvg, robotBadge, THEMES, BOARDS, GEESE_LOOK } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
-const CELLS = spiral();
 // two arrows going round: tap to change
 const SWAP = '<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 0 0-13.5-2M5 16a8 8 0 0 0 13.5 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 2.5v4h4M19 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -55,7 +56,9 @@ export function createGanzen(shell) {
   let plays = 0; // bumps on start / leave: every running animation checks it and stops
   let speed = 1; // tests make it faster
   let forced = []; // tests: the next throws
-  let cells = []; // square -> its element
+  let cells = []; // square -> its element (a button round its stepping stone)
+  let lay = null; // where the stones sit (board.js), for the board's current size
+  let drawn = ''; // the size and look the landscape was drawn for
   let pawns = [];
   let cpuTimer = null;
 
@@ -283,22 +286,25 @@ export function createGanzen(shell) {
     el.style.setProperty('--tile-end', th.end);
     el.style.setProperty('--board-ink', th.ink);
     el.style.setProperty('--board-bg', th.bg);
-    const grid = document.createElement('div');
-    grid.className = 'ganzen-grid';
+    // the landscape (drawn in fitBoard, when the size is known) and the stepping stones over it
+    const land = document.createElement('div');
+    land.className = 'ganzen-land';
+    el.appendChild(land);
+    const stones = document.createElement('div');
+    stones.className = 'ganzen-stones';
     cells = [];
-    CELLS.forEach(([r, c], sq) => {
+    for (let sq = 0; sq < STONES; sq++) {
       const kind = kindOf(sq);
       const b = document.createElement('button');
       b.type = 'button';
       b.className = `gsq ${kind ? `special k-${kind}` : sq % 2 ? 'odd' : 'even'}`;
       b.dataset.sq = String(sq);
-      b.style.gridRow = String(r + 1);
-      b.style.gridColumn = String(c + 1);
-      b.innerHTML = `${kind ? iconSvg(kind === 'goose' ? 'goose' : kind) : ''}<span class="num">${sq || ''}</span>`;
-      grid.appendChild(b);
+      b.innerHTML = `<span class="stone">${kind ? iconSvg(kind === 'goose' ? 'goose' : kind) : ''}<span class="num">${sq || ''}</span></span>`;
+      stones.appendChild(b);
       cells.push(b);
-    });
-    el.appendChild(grid);
+    }
+    el.appendChild(stones);
+    drawn = '';
     const layer = document.createElement('div');
     layer.className = 'ganzen-pawns';
     pawns = game.setup.players.map((_, k) => {
@@ -330,23 +336,21 @@ export function createGanzen(shell) {
   }
 
   function placePawns() {
-    if (!game || !pawns.length) return;
-    const board = $('#ganzen-board');
-    const b = board.getBoundingClientRect();
-    if (!b.width) return;
+    if (!game || !pawns.length || !lay) return;
+    const step = lay.step;
     game.shown.forEach((sq, k) => {
-      const r = cells[sq].getBoundingClientRect();
+      const [x, y] = lay.stones[sq];
       const same = game.shown.map((s, j) => (s === sq ? j : -1)).filter((j) => j >= 0);
       const n = same.length;
       const i = same.indexOf(k);
-      // one goose in the middle; more share the square in a little cluster
-      const size = r.width * (n === 1 ? 0.92 : 0.62);
-      const ox = n === 1 ? 0 : (i % 2 ? 1 : -1) * r.width * 0.2;
-      const oy = n === 1 ? 0 : (n > 2 ? (i < 2 ? -1 : 1) : i ? 1 : -1) * r.height * (n > 2 ? 0.2 : 0.14);
+      // one goose stands on the stone; more share it in a little cluster
+      const size = step * (n === 1 ? 1.02 : 0.7);
+      const ox = n === 1 ? 0 : (i % 2 ? 1 : -1) * step * 0.24;
+      const oy = (n === 1 ? -0.12 : (n > 2 ? (i < 2 ? -1 : 1) : i ? 1 : -1) * (n > 2 ? 0.22 : 0.16)) * step;
       const p = pawns[k];
       p.style.width = `${size}px`;
       p.style.height = `${size}px`;
-      p.style.transform = `translate(${r.left - b.left + r.width / 2 - size / 2 + ox}px, ${r.top - b.top + r.height / 2 - size / 2 + oy}px)`;
+      p.style.transform = `translate(${x - size / 2 + ox}px, ${y - size / 2 + oy}px)`;
       p.classList.toggle('turn', !game.over && game.state.turn === k);
     });
   }
@@ -492,16 +496,19 @@ export function createGanzen(shell) {
   /** A big number that pops up on the square: the count so far. */
   function countPop(sq, n) {
     const layer = $('#ganzen-board .ganzen-pawns');
-    const r = cells[sq].getBoundingClientRect();
-    const b = $('#ganzen-board').getBoundingClientRect();
-    // one count at a time, as a round badge just above the square, clear of the geese on it
+    if (!layer || !lay) return;
+    const [x, y] = lay.stones[sq];
+    // one count at a time, as a round badge just above the stone, clear of the geese on it
     for (const old of layer.querySelectorAll('.count-pop')) old.remove();
     const pop = document.createElement('span');
     pop.className = 'count-pop';
     pop.textContent = String(n);
-    const size = Math.max(30, Math.min(64, r.width * 0.78));
-    pop.style.left = `${r.left - b.left + r.width / 2}px`;
-    pop.style.top = `${r.top - b.top}px`;
+    const size = Math.max(30, Math.min(64, lay.step * 0.9));
+    // above the stone; below it when above would leave the board (the top lap)
+    const below = y - lay.step * 0.42 - size * 1.12 < 0;
+    pop.classList.toggle('below', below);
+    pop.style.left = `${x}px`;
+    pop.style.top = `${below ? y + lay.step * 0.42 : y - lay.step * 0.42}px`;
     pop.style.width = `${size}px`;
     pop.style.height = `${size}px`;
     pop.style.fontSize = `${size * 0.62}px`;
@@ -616,19 +623,19 @@ export function createGanzen(shell) {
     tap();
     throwNow();
   });
-  /** A tap near the square to count goes to it (the squares are small on a phone). */
+  /** A tap goes to the NEAREST stone (within a generous circle, board.js stoneAt), so a small
+   *  finger need not hit the stone itself, and a tap on a neighbour is never taken for the
+   *  glowing stone: that only makes the glowing one wiggle (tapSquare). */
   $('#ganzen-board').addEventListener('click', (e) => {
-    if (!game || game.phase !== 'count' || !game.pending) return;
+    if (!game || game.phase !== 'count' || !game.pending || !lay) return;
     const btn = e.target.closest('.gsq');
-    const want = nextTap(game.pending.path, game.pending.taps);
     if (e.detail === 0 && btn) {
-      tapSquare(Number(btn.dataset.sq));
+      tapSquare(Number(btn.dataset.sq)); // the keyboard: the focused stone
       return;
     }
-    const r = cells[want].getBoundingClientRect();
-    const d = Math.hypot(r.left + r.width / 2 - e.clientX, r.top + r.height / 2 - e.clientY);
-    if (d <= Math.max(r.width * 0.85, 30)) tapSquare(want);
-    else if (btn) tapSquare(Number(btn.dataset.sq));
+    const land = $('#ganzen-board .ganzen-stones').getBoundingClientRect();
+    const sq = stoneAt(lay, e.clientX - land.left, e.clientY - land.top);
+    if (sq >= 0) tapSquare(sq);
   });
   $('#ganzen-back').addEventListener('click', () => {
     tap();
@@ -656,12 +663,29 @@ export function createGanzen(shell) {
     const side = window.innerWidth > window.innerHeight * 1.15;
     stage.classList.toggle('side', side);
     const panel = $('#ganzen-stage .ganzen-side');
-    const w = stage.clientWidth - 12 - (side ? panel.offsetWidth + 12 : 0);
-    const h = stage.clientHeight - 10 - (side ? 0 : panel.offsetHeight + 10);
-    const frame = 0.22; // the frame around the squares, in squares
-    const gaps = (GRID - 1) * 2 + 4; // the 2 px gaps between the squares and around them
-    const cell = Math.max(20, Math.floor(Math.min((w - gaps) / (GRID + frame * 2), (h - gaps) / (GRID + frame * 2), 92)));
-    $('#ganzen-board').style.setProperty('--cell', `${cell}px`);
+    const el = $('#ganzen-board');
+    const border = 2 * (parseFloat(getComputedStyle(el).borderLeftWidth) || 0);
+    const w = stage.clientWidth - 12 - border - (side ? panel.offsetWidth + 12 : 0);
+    const h = stage.clientHeight - 10 - border - (side ? 0 : panel.offsetHeight + 10);
+    // the stones sit on a winding path that fills the space (board.js), at most 72 px apart
+    lay = boardLayout(Math.floor(w), Math.floor(h), 72);
+    const key = `${game.setup.board} ${lay.w}x${lay.h}`;
+    if (key !== drawn) {
+      drawn = key;
+      el.style.width = `${lay.w + border}px`;
+      el.style.height = `${lay.h + border}px`;
+      el.style.setProperty('--step', `${lay.step}px`);
+      el.style.setProperty('--stone', `${lay.size}px`);
+      // every stone's button is at least 44 px (and a step) wide, centred on its stone
+      const hit = Math.max(44, lay.step);
+      el.style.setProperty('--hit', `${hit}px`);
+      cells.forEach((b, sq) => {
+        const [x, y] = lay.stones[sq];
+        b.style.left = `${x - hit / 2}px`;
+        b.style.top = `${y - hit / 2}px`;
+      });
+      el.querySelector('.ganzen-land').innerHTML = sceneSvg(game.setup.board, lay);
+    }
     requestAnimationFrame(placePawns);
   }
 
