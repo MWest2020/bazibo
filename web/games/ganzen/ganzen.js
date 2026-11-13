@@ -20,6 +20,11 @@ import * as sfx from '../../js/audio.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const CELLS = spiral();
+// two arrows going round: tap to change
+const SWAP = '<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 0 0-13.5-2M5 16a8 8 0 0 0 13.5 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 2.5v4h4M19 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/** Messages with a second-person form for the one child playing ("Je zit in de put"), in strings.js as `<key>.you`. */
+export const YOU_KEYS = Object.freeze(['ganzen.ev.inn', 'ganzen.ev.well', 'ganzen.ev.prison', 'ganzen.ev.skip.inn', 'ganzen.ev.skip.well', 'ganzen.ev.skip.prison', 'ganzen.threw']);
 
 export const DEFAULT_SETUP = Object.freeze({ board: 'classic', players: Object.freeze(['kid', 'cpu']), count: true });
 const HOP = 260; // ms per step
@@ -61,7 +66,11 @@ export function createGanzen(shell) {
   const isCpu = (k) => game?.setup.players[k] === 'cpu';
   const kids = () => game.setup.players.filter((p) => p === 'kid').length;
   /** "Jij" when one child plays against computer geese; else the goose's colour. */
-  const whoName = (k) => (!isCpu(k) && kids() === 1 ? t('ganzen.you') : nameOf(k));
+  /** One child against computer geese: that child's goose is "you". */
+  const isYou = (k) => !isCpu(k) && kids() === 1;
+  const whoName = (k) => (isYou(k) ? t('ganzen.you') : nameOf(k));
+  /** A message about goose k: the ".you" wording when it is the child's ("Je zit in de put"). */
+  const about = (key, k, params = {}) => t(isYou(k) && YOU_KEYS.includes(key) ? `${key}.you` : key, { name: nameOf(k), ...params });
 
   shell.unlock.onChange(() => {
     if (onScreen('ganzen-menu')) renderMenu();
@@ -137,7 +146,7 @@ export function createGanzen(shell) {
       b.className = `ganzen-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(k);
       const who = kind === 'kid' ? kidSvg() : kind === 'cpu' ? robotBadge() : '';
-      b.innerHTML = `<span class="slot-goose">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : '<span class="swap" aria-hidden="true">⟳</span>'}`;
+      b.innerHTML = `<span class="slot-goose">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
       b.querySelector('.slot-name').textContent = nameOf(k);
       b.querySelector('.slot-kind > span').textContent = t(`ganzen.kind.${kind}`);
       b.setAttribute('aria-label', isLocked ? t('ganzen.slotLocked', { name: nameOf(k) }) : t('ganzen.slotLabel', { name: nameOf(k), kind: t(`ganzen.kind.${kind}`) }));
@@ -249,14 +258,17 @@ export function createGanzen(shell) {
     start();
   }
 
-  /** Finish a throw at once (leaving the board halfway): the goose stands where the rules say. */
+  /**
+   * Finish a throw at once (leaving the board halfway): the goose stands where the rules put it.
+   * Returns the winner when that throw won the game (the caller records it and shows the card), else -1.
+   */
   function settle() {
-    if (!game?.pending) return;
+    if (!game?.pending) return -1;
     game.state = game.pending.result.game;
     game.shown = game.state.players.map((p) => p.pos);
     game.pending = null;
     game.phase = 'roll';
-    if (game.state.winner >= 0) game.over = true;
+    return game.state.winner;
   }
 
   function buildBoard() {
@@ -379,7 +391,8 @@ export function createGanzen(shell) {
     placePawns();
   }
 
-  function say(text) {
+  /** The line under the board (shown, never spoken: this game has no voice). */
+  function setMsg(text) {
     game.msg = text;
     updateTurn();
   }
@@ -422,7 +435,7 @@ export function createGanzen(shell) {
     const result = throwDie(game.state, roll);
     const move = result.events[0];
     game.pending = { roll, result, path: move.path, taps: 0, player: cur };
-    say(t('ganzen.threw', { name: whoName(cur), n: roll }));
+    setMsg(about('ganzen.threw', cur, { n: roll }));
     await sleep(450);
     if (token !== plays) return;
     if (game.setup.count && !isCpu(cur)) {
@@ -457,7 +470,7 @@ export function createGanzen(shell) {
       cells[want]?.classList.remove('wiggle');
       void cells[want]?.offsetWidth;
       cells[want]?.classList.add('wiggle');
-      say(t('ganzen.tapHere', { n: p.taps + 1 }));
+      setMsg(t('ganzen.tapHere', { n: p.taps + 1 }));
       return;
     }
     const token = plays;
@@ -481,14 +494,19 @@ export function createGanzen(shell) {
     const layer = $('#ganzen-board .ganzen-pawns');
     const r = cells[sq].getBoundingClientRect();
     const b = $('#ganzen-board').getBoundingClientRect();
+    // one count at a time, as a round badge just above the square, clear of the geese on it
+    for (const old of layer.querySelectorAll('.count-pop')) old.remove();
     const pop = document.createElement('span');
     pop.className = 'count-pop';
     pop.textContent = String(n);
+    const size = Math.max(30, Math.min(64, r.width * 0.78));
     pop.style.left = `${r.left - b.left + r.width / 2}px`;
-    pop.style.top = `${r.top - b.top + r.height / 2}px`;
-    pop.style.fontSize = `${Math.max(28, r.width * 0.9)}px`;
+    pop.style.top = `${r.top - b.top}px`;
+    pop.style.width = `${size}px`;
+    pop.style.height = `${size}px`;
+    pop.style.fontSize = `${size * 0.62}px`;
     layer.appendChild(pop);
-    setTimeout(() => pop.remove(), 900);
+    setTimeout(() => pop.remove(), 1100);
   }
 
   /** The goose hops square by square; `counting`: show the big numbers. */
@@ -513,15 +531,15 @@ export function createGanzen(shell) {
     for (const e of p.result.events.slice(1)) {
       if (token !== plays) return;
       if (e.type === 'bounce') {
-        say(t('ganzen.ev.bounce', { name: whoName(cur) }));
+        setMsg(t('ganzen.ev.bounce'));
         await sleep(PAUSE * 0.6);
       } else if (e.type === 'goose') {
-        say(t('ganzen.ev.goose', { n: p.roll }));
+        setMsg(t('ganzen.ev.goose', { n: p.roll }));
         sfx.chime();
         await sleep(PAUSE * 0.6);
         await hopAlong(cur, e.path, token, true);
       } else if (e.type === 'bridge' || e.type === 'maze' || e.type === 'woods') {
-        say(t(`ganzen.ev.${e.type}`, { name: whoName(cur), n: e.to }));
+        setMsg(t(`ganzen.ev.${e.type}`, { n: e.to }));
         if (e.type === 'woods') sfx.boop();
         else sfx.chime();
         await sleep(PAUSE * 0.5);
@@ -531,11 +549,13 @@ export function createGanzen(shell) {
         await sleep(PAUSE * 0.8);
         pawns[cur]?.classList.remove('slide');
       } else if (e.type === 'inn' || e.type === 'well' || e.type === 'prison') {
-        say(t(`ganzen.ev.${e.type}`, { name: whoName(cur) }));
+        setMsg(about(`ganzen.ev.${e.type}`, cur));
         sfx.lid();
         await sleep(PAUSE);
       } else if (e.type === 'freed') {
-        say(t('ganzen.ev.freed', { name: whoName(e.player), by: whoName(e.by) }));
+        // "Gele gans haalt je eruit!" / "Je haalt Gele gans eruit!" / "Gele gans haalt Blauwe gans eruit!"
+        const key = isYou(e.player) ? 'ganzen.ev.freed.you' : isYou(e.by) ? 'ganzen.ev.freed.byYou' : 'ganzen.ev.freed';
+        setMsg(t(key, { name: nameOf(e.player), by: nameOf(e.by) }));
         sfx.chime();
         await sleep(PAUSE);
       } else if (e.type === 'win') {
@@ -544,7 +564,7 @@ export function createGanzen(shell) {
         finish(cur);
         return;
       } else if (e.type === 'skip') {
-        say(t(`ganzen.ev.skip.${e.reason}`, { name: whoName(e.player) }));
+        setMsg(about(`ganzen.ev.skip.${e.reason}`, e.player));
         await sleep(PAUSE);
       }
     }
@@ -556,7 +576,9 @@ export function createGanzen(shell) {
     beginTurn();
   }
 
-  function finish(winner) {
+  /** The game is won: count a child's win, cheer, and show the card (`now`: at once, wherever we are). */
+  function finish(winner, { now = false } = {}) {
+    if (game.over) return; // counted once
     game.over = true;
     game.phase = 'over';
     game.shown[winner] = END;
@@ -569,8 +591,8 @@ export function createGanzen(shell) {
     } else sfx.lose();
     pawns[winner]?.classList.add('won');
     const done = game;
-    setTimeout(() => {
-      if (game !== done || !onScreen('ganzen')) return;
+    const card = () => {
+      if (game !== done) return;
       const title = isCpu(winner) ? t('ganzen.cpuWins', { name: nameOf(winner) }) : kids() === 1 ? t('ganzen.youWin') : t('ganzen.nameWins', { name: nameOf(winner) });
       shell.showOverlay({
         art: `<span class="ganzen-ov">${gooseSvg(winner, { num: winner + 1 })}${iconSvg('end')}</span>`,
@@ -581,7 +603,9 @@ export function createGanzen(shell) {
           [t('ganzen.menuBtn'), 'big secondary', () => shell.show('ganzen-menu')],
         ],
       });
-    }, 1000 * speed);
+    };
+    if (now) card();
+    else setTimeout(() => onScreen('ganzen') && card(), 1000 * speed);
   }
 
   // ---------- input ----------
@@ -616,9 +640,14 @@ export function createGanzen(shell) {
     shell.hideOverlay();
     plays++;
     clearTimeout(cpuTimer);
-    settle();
+    const winner = settle();
     $('#ganzen-die')?.classList.remove('tumble');
     shell.show('ganzen-menu');
+    if (winner >= 0) {
+      // left during the winning throw: still a win, with its card (and no "keep playing" behind it)
+      finish(winner, { now: true });
+      renderMenu();
+    }
   }
 
   function fitBoard() {

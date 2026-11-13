@@ -58,11 +58,11 @@ DAMMEN
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en het internationale bord van 10 bij 10 (volledige versie).
 
 GANZENBORD
-• Ons eigen bord met de klassieke vakjes: gans, brug, herberg, put, doolhof en gevangenis. Precies op 63 eindigen!
-• Zelf tellen: je kind tikt elk vakje aan en ziet het getal groot. Samen of tegen een computergans, tot vier spelers.
+• Ons eigen bord met de klassieke vakjes, van de gans tot de put. Precies op 63 eindigen!
+• Zelf tellen: je kind tikt elk vakje aan. Samen of tegen een computergans; tot vier spelers en een winter- en zeebord (volledige versie).
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
-• Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
+• Tellen: eet de getallen op volgorde, tot 20.
 • Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
 • Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
 • 30 levels; een fout is nooit game over.

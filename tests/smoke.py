@@ -2429,6 +2429,9 @@ def ganzen_flow(browser, base, problems):
             break
         page.click(f".gsq[data-sq='{st['next']}']")
         taps += 1
+        pops = page.evaluate("document.querySelectorAll('#ganzen-board .count-pop').length")
+        if pops > 1:
+            problems.append(f"ganzen: {pops} count badges at once")
         if taps == 2:
             page.wait_for_timeout(120)
             page.screenshot(path=str(SHOTS / "ganzen-3-count.png"))
@@ -2457,6 +2460,36 @@ def ganzen_flow(browser, base, problems):
     page.wait_for_timeout(200)
     if not page.is_visible("#screen-ganzen-menu"):
         problems.append("ganzen: the back button did not lead to the menu")
+
+    # leaving during the winning throw still wins: the counter goes up and the card shows
+    page.click(".ganzen-count.count-off")
+    page.evaluate("window.__bubbels.gans.rolls([1, 1, 4, 1, 5, 1, 4, 1, 5, 1, 4])")
+    page.click("#ganzen-play")
+    left = False
+    for turn in range(30):
+        gans_wait(page, ("roll", "over"))
+        st = gans_state(page)
+        if st["phase"] == "over":
+            break
+        last = st["players"][0]["pos"] == 55
+        page.click("#ganzen-die")
+        if last:
+            page.wait_for_function("window.__bubbels.gans.state().phase === 'moving'", timeout=5000, polling=20)
+            page.click("#ganzen-back")
+            left = True
+            break
+    page.wait_for_timeout(300)
+    if not left:
+        problems.append("ganzen: never reached the winning throw to leave during it")
+    elif not page.is_visible("#overlay") or page.inner_text("#ov-title").strip() != "Jij wint!":
+        problems.append("ganzen: leaving during the winning throw showed no win card")
+    elif page.locator("#ganzen-continue").count():
+        problems.append("ganzen: 'keep playing' offered for a game that was won")
+    if page.evaluate("window.__bubbels.gans.wins()").get("won-classic") != 2:
+        problems.append(f"ganzen: a win left halfway was not counted: {page.evaluate('window.__bubbels.gans.wins()')}")
+    page.screenshot(path=str(SHOTS / "ganzen-5-left-win.png"))
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(150)
     if audio:
         problems.append(f"ganzen: a voice clip was loaded: {audio[:2]}")
     if errors:
@@ -2490,6 +2523,19 @@ def ganzen_layouts(browser, base, problems):
         page.evaluate(f"window.__bubbels.gans.choose({{ board: '{board}', players: {players}, count: true }})")
         page.wait_for_timeout(150)
         page.screenshot(path=str(SHOTS / f"ganzen-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        # every player button keeps its texts and its swap icon inside, without overlap
+        bad = page.evaluate("""[...document.querySelectorAll('.ganzen-slot')].filter((b) => {
+            const r = b.getBoundingClientRect();
+            const swap = b.querySelector('.swap, .lock');
+            const s = swap ? swap.getBoundingClientRect() : null;
+            return [...b.querySelectorAll('.slot-name, .slot-kind > span')].some((t) => {
+                const range = document.createRange();
+                range.selectNodeContents(t);
+                return [...range.getClientRects()].some((q) => q.right > r.right - 2 || (s && !b.classList.contains('locked') && q.right > s.left && q.left < s.right && q.top < s.bottom && q.bottom > s.top));
+            }) || [...b.querySelectorAll('.slot-kind > span')].some((t) => t.getClientRects().length > 2); // "een kind" broken over 3+ lines
+        }).map((b) => b.dataset.slot)""")
+        if bad:
+            problems.append(f"ganzen {label}: menu slots {bad} overflow or overlap the swap icon")
         page.evaluate("window.__bubbels.gans.fast(true)")
         page.evaluate("window.__bubbels.gans.rolls([3])")
         page.click("#ganzen-play")

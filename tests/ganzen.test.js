@@ -205,3 +205,25 @@ test('a saved setup is made safe before use', async () => {
   assert.deepEqual(cleanSetup({ players: ['kid', 'kid', 'kid', 'kid', 'kid'] }).players, ['kid', 'cpu']);
   assert.deepEqual(cleanSetup({ players: ['kid', 'dog'] }).players, ['kid', 'cpu']);
 });
+
+test('messages about the one child playing say "je"/"you", never "Jij slaat"/"You misses"', async () => {
+  await import('../web/games/ganzen/strings.js');
+  const { allStrings } = await import('../web/js/i18n.js');
+  const { YOU_KEYS } = await import('../web/games/ganzen/ganzen.js');
+  const tables = allStrings();
+  const freed = ['ganzen.ev.freed.you', 'ganzen.ev.freed.byYou'];
+  for (const lang of ['nl', 'en']) {
+    for (const key of [...YOU_KEYS.map((k) => `${k}.you`), ...freed]) {
+      const text = tables[lang][key];
+      assert.equal(typeof text, 'string', `${key} is missing in ${lang}`);
+      assert.ok(!/\bJij\b|: [A-Z]/.test(text), `${lang} ${key}: ${text}`);
+      if (lang === 'en') assert.ok(!/\bYou (is|misses|waits|gets|rests|throws)\b/.test(text), `${key}: ${text}`);
+    }
+    // the third-person messages start with the goose's name, never "X: name" with a capital after a colon
+    for (const key of YOU_KEYS) assert.ok(!/: \{name\}/.test(tables[lang][key]), `${lang} ${key}: ${tables[lang][key]}`);
+    assert.ok(!tables[lang]['ganzen.ev.freed.you'].includes('{name}'));
+  }
+  // the hint while counting names the count, not a square number
+  assert.match(tables.nl['ganzen.tapHere'], /gloeit: tel \{n\}/);
+  assert.match(tables.en['ganzen.tapHere'], /glowing square: count \{n\}/);
+});

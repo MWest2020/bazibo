@@ -58,11 +58,11 @@ CHECKERS
 • Together or against the computer on 8 by 8. A smarter computer and the international 10 by 10 board (full version).
 
 GAME OF THE GOOSE
-• Our own board with the classic squares: goose, bridge, inn, well, maze and prison. Land exactly on 63!
-• Count yourself: your child taps every square and sees the number big. Together or against a computer goose, up to four players.
+• Our own board with the classic squares, from the goose to the well. Land exactly on 63!
+• Count yourself: your child taps every square. Together or against a computer goose; up to four players and winter and sea boards (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
-• Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
+• Counting: eat the numbers in order, up to 20.
 • Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
 • Colours: eat only the fruit of the right colour; every colour also has its own shape.
 • 30 levels; a mistake is never game over.
