@@ -21,7 +21,7 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters: spelen en leren, 3-10 jaar.
+Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Ganzenbord, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters: spelen en leren, 3-10 jaar.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ bubble shooter,sudoku,vier op een rij,slang,tellen,letters,kleurplaat,mandala,kl
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu tien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu elf spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Ganzenbord, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters. Er komen meer spellen bij.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -57,8 +57,12 @@ DAMMEN
 • Tik op een stuk en dan op een stip; stukken die moeten slaan, gloeien zachtjes. Puppy tegen poes, of klassiek.
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en het internationale bord van 10 bij 10 (volledige versie).
 
+GANZENBORD
+• Ons eigen bord met de klassieke vakjes, van de gans tot de put. Precies op 63 eindigen!
+• Zelf tellen: je kind tikt elk vakje aan. Samen of tegen een computergans; tot vier spelers en een winter- en zeebord (volledige versie).
+
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
-• Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
+• Tellen: eet de getallen op volgorde, tot 20.
 • Letters: eet de letters van een woord met een plaatje, zoals ZON en APPEL.
 • Kleuren: eet alleen het fruit met de goede kleur (elke kleur heeft een eigen vorm).
 • 30 levels; een fout is nooit game over.
@@ -91,7 +95,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel om echt mee te spelen: bijvoorbeeld level 1 tot en met 10 bij Bubbels schieten, 10 puzzels bij Dogudoku en bij Picturedoku, samen spelen bij Vier op een rij en Dammen, 6 kleurplaten en 3 bewaarde tekeningen. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel om echt mee te spelen: bijvoorbeeld level 1 tot en met 10 bij Bubbels schieten, 10 puzzels bij Dogudoku en bij Picturedoku, samen spelen bij Vier op een rij, Dammen en Ganzenbord, 6 kleurplaten en 3 bewaarde tekeningen. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

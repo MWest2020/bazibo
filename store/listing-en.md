@@ -19,7 +19,7 @@ Games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Snake, Colouring, Drawing, Telling Time and Letters: ages 3 to 10, no ads.
+Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Game of the Goose, Snake, Colouring, Drawing, Telling Time and Letters: ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,drawing,puz
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has ten games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Snake, Colouring, Drawing, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has eleven games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Game of the Goose, Snake, Colouring, Drawing, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -57,8 +57,12 @@ CHECKERS
 • Tap a piece, then a dot; pieces that must jump glow softly. Puppy against kitten, or classic.
 • Together or against the computer on 8 by 8. A smarter computer and the international 10 by 10 board (full version).
 
+GAME OF THE GOOSE
+• Our own board with the classic squares, from the goose to the well. Land exactly on 63!
+• Count yourself: your child taps every square. Together or against a computer goose; up to four players and winter and sea boards (full version).
+
 SNAKE: COUNTING, LETTERS AND COLOURS
-• Counting: eat the numbers in order, from 1 to 3 for the youngest up to 20, in twos or counting down for older children.
+• Counting: eat the numbers in order, up to 20.
 • Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
 • Colours: eat only the fruit of the right colour; every colour also has its own shape.
 • 30 levels; a mistake is never game over.
@@ -89,7 +93,7 @@ MADE FOR CHILDREN
 NO ADS, EVER
 • No adverts, not even in the free part.
 • No account and no trackers: the app collects nothing.
-• Every game has a free part to really play: for example levels 1 to 10 in Bubble Shooter, 10 puzzles in Dogudoku and in Picturedoku, playing together in Four in a Row and Checkers, 6 colouring pages and 3 kept drawings. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part to really play: for example levels 1 to 10 in Bubble Shooter, 10 puzzles in Dogudoku and in Picturedoku, playing together in Four in a Row, Checkers and Game of the Goose, 6 colouring pages and 3 kept drawings. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/

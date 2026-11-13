@@ -307,3 +307,11 @@ test('Dammen: its wins, board choice and look travel; odd values are dropped', (
   assert.equal(out.games.dammen.look, 'pets');
   assert.deepEqual(out.games.dammen.setup, { variant: 'big', mode: 'cpu', level: 3 });
 });
+
+test('Ganzenbord: its wins and setup (players as a list) travel; odd values are dropped', () => {
+  const clean = sanitizePayload({
+    v: 1,
+    games: { ganzen: { stars: { 'won-classic': 2, 'won-sea': -4 }, setup: { board: 'sea', players: ['kid', 'cpu', 'kid'], count: true, extra: { no: 1 } } } },
+  });
+  assert.deepEqual(clean.games.ganzen, { stars: { 'won-classic': 2 }, setup: { board: 'sea', players: ['kid', 'cpu', 'kid'], count: true } });
+});

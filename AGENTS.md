@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, checkers `dammen`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -42,6 +42,7 @@ native config) and `uv run --with playwright python tests/smoke.py` (home → Do
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Dammen: medium, hard and the 10×10 board offer only OK on the web, a two-player 8×8 game played to a win by taps, a move against easy with the take-back and "keep playing", the glow on the pieces that must capture and a double jump by taps; the layout at 320x568, sideways and on desktop, the 10×10 board with near taps, and the hard computer thinking in a worker while the page keeps drawing (run only these with `tests/smoke.py dammen`);
+home → Ganzenbord: the winter and sea boards and a 3rd and 4th goose offer only OK on the web, a game against the computer goose played to a win by "count yourself" taps (a wrong tap only shows where), the goose chain and the win card, back + keep playing halfway a throw, the Android back button, no voice clip loaded; the layout at 320x568, sideways and on desktop, four geese on the winter and sea boards, a near tap counts (`tests/smoke.py ganzen`);
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
@@ -97,6 +98,16 @@ never give a piece away for nothing); medium and hard search with a node budget 
 freezes. A tap goes to the nearest square that can be tapped right now (the 10×10 squares are
 under 44 px on a phone). Free: 8×8, together or against easy; the full version adds medium, hard
 and 10×10. Puppies keep floppy ears, kittens pointy ones.
+Ganzenbord: rules in `web/games/ganzen/rules.js` (pure, tested with a seeded die: every special
+square, the goose chain, the bounce at 63, waiting in the inn, the well and the prison, 200 whole
+games that always end). The well and prison follow the classic rule (wait until another goose
+lands there and takes your place) made kind: never more than `WAIT_TURNS` (2) missed turns. One
+die, no special first throws; 58 is "lost in the woods" (back to the start), never "death"; geese
+may share a square. The board is our own, drawn in code (`art.js`, the spiral in `board.js`);
+never copy a publisher's board. No voice in this game (Mark, 13 Nov: the child does not like the
+robot voice): "count yourself" is visual only (the square to tap glows, the count pops up big),
+and the only sounds are the shell's effects, which follow the sound setting. Free: the classic
+board with 2 players; the full version adds 3-4 players and the winter and sea boards.
 Slangetje: rules in `web/games/slang/rules.js` (pure; `pathDirection` is the path finder the tests
 and the smoke test play with), 30 levels in `levels.json` (`size` is [short, long]; walls are
 given for the upright board and turned on a sideways one). `npm test` plays every level to the
