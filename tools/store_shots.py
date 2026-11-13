@@ -209,7 +209,6 @@ def shoot(browser, base, name, viewport, dpr, lang):
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
-    page.evaluate("document.querySelector('#letters-muted').hidden = true")  # the shots run muted; players with sound on never see this note
     page.wait_for_timeout(300)
     shots.append(out / "7-letters.png")
     page.screenshot(path=str(shots[-1]))

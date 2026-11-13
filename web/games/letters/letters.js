@@ -1,20 +1,20 @@
-// Letters: learn the letters by ear (ages 4-7). Everything that matters is spoken, so no reading
-// is needed.
-//   Tik de letter   hear a letter, tap it
-//   Beginletter     see a picture and hear its word, tap the letter it starts with
-//   Woordje maken   hear a word, tap its letters in order
+// Letters: learn the letters by sight (ages 4-7). Nothing is spoken: every question is a big
+// letter, a picture or a word to look at.
+//   Tik de letter   a big letter: tap the same one (tier 2 a capital and its small letter)
+//   Beginletter     a picture with its word, the first letter left out: tap that letter
+//   Woordje maken   a picture: tap its word's letters in order (traced, seen for a moment, or not)
 // Three tiers (first letters, more letters, the whole alphabet); a round earns stars by mistakes.
-// The voice is recorded clips (voice.js); the rounds are pure (round.js); the pictures are the
-// app's own drawings (art.js). The shell (web/js/main.js) owns the overlay, sound and purchase.
+// The rounds are pure (round.js); the pictures are the app's own drawings (art.js). The shell
+// (web/js/main.js) owns the overlay, sound and purchase.
 //
 // Saved (games.letters): stars per round (only ever raised), random rounds done per mode and
-// tier, which how-to cards were seen, the last tier per mode and the capitals option. All read from
+// tier, which how-to cards were seen ("tap2": the cards of the rounds without a voice), the last
+// tier per mode and the capitals option. All read from
 // the save each time. An unfinished round is kept while the app stays open ("keep playing").
 import { meta } from './meta.js';
-import { MODES, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, makeRound, starsFor, hashSeed, nextLetterOk } from './round.js';
+import { MODES, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, makeRound, starsFor, hashSeed, nextLetterOk, tapGlyphs, gapped } from './round.js';
 import { pictureOf } from './words.js';
 import { wordPictureSvg, modeSvg } from './art.js';
-import * as voice from './voice.js';
 import { getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
@@ -23,9 +23,10 @@ import * as sfx from '../../js/audio.js';
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
-const SPEAKER = '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
+const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="#fff" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/>';
 const AGES = Object.freeze({ t1: '4-5', t2: '5-6', t3: '6-7' });
 const MAX_TRIES = 2; // wrong taps on one question before the right letter is shown
+const PEEK_MS = 2000; // build, tier 2: how long the word stays in view
 
 export function createLetters(shell) {
   const { t, tap } = shell;
@@ -40,6 +41,7 @@ export function createLetters(shell) {
   let game = null;
   let plays = 0; // counts rounds started, so a late timer never acts on a newer round
   let timer = null;
+  let peekTimer = null;
   let menuMode = null;
 
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
@@ -53,10 +55,7 @@ export function createLetters(shell) {
   });
   shell.onShow((name) => {
     if (name === 'letters-menu') renderMenu();
-    if (name !== 'letters') {
-      clearTimer();
-      voice.stop();
-    }
+    if (name !== 'letters') clearTimer();
   });
   shell.onLangChange(() => {
     if (onScreen('letters-menu')) renderMenu();
@@ -68,10 +67,14 @@ export function createLetters(shell) {
   function clearTimer() {
     if (timer) clearTimeout(timer);
     timer = null;
+    if (peekTimer) clearTimeout(peekTimer);
+    peekTimer = null;
   }
 
+  /** One step of the round after `ms` (only `timer`: the tier-2 word keeps its own timer). */
   function later(ms, fn) {
-    clearTimer();
+    if (timer) clearTimeout(timer);
+    timer = null;
     const token = plays;
     timer = setTimeout(() => {
       timer = null;
@@ -231,15 +234,15 @@ export function createLetters(shell) {
   function begin({ mode, tier, roundId, seed }) {
     plays++;
     clearTimer();
-    voice.stop();
     menuMode = mode; // "Rounds" and the back button land on this kind of round
     if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     const lang = getLang();
-    const qs = makeRound({ mode, tier, lang, seed });
-    game = { mode, tier, roundId, seed, lang, qs, i: 0, mistakes: 0, results: [], tries: 0, placed: [], waiting: false, done: false };
+    const caps = upper(); // the case is fixed for the round (tap's tier 3 depends on it)
+    const qs = makeRound({ mode, tier, lang, seed, upper: caps });
+    game = { mode, tier, roundId, seed, lang, upper: caps, qs, i: 0, mistakes: 0, results: [], tries: 0, placed: [], waiting: false, done: false };
     shell.show('letters');
     render();
-    if (!seenHow()[mode]) {
+    if (!seenHow()[`${mode}2`]) {
       shell.showOverlay({
         art: `<span class="klok-ov">${modeSvg(mode)}</span>`,
         title: t('letters.howTitle'),
@@ -249,14 +252,14 @@ export function createLetters(shell) {
             t('common.ok'),
             'big primary',
             () => {
-              store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [mode]: true });
+              store.saveGameOption(meta.id, 'howSeen', { ...seenHow(), [`${mode}2`]: true });
               shell.hideOverlay();
-              speakQuestion();
+              startQuestion();
             },
           ],
         ],
       });
-    } else speakQuestion();
+    } else startQuestion();
   }
 
   function resume() {
@@ -265,46 +268,46 @@ export function createLetters(shell) {
     if (game.waiting) nextQuestion();
     else {
       render();
-      speakQuestion();
+      startQuestion();
     }
   }
 
   /** Android back and the menu button: to the menu, the round is kept ("keep playing"). */
   function leave() {
     clearTimer();
-    voice.stop();
     shell.hideOverlay();
     shell.show('letters-menu');
   }
 
-  // ---------- speaking ----------
+  // ---------- showing the word (build, tier 2) ----------
 
-  function questionKeys() {
-    const it = q();
-    if (game.mode === 'tap') return ['p-find', `l-${it.letter}`];
-    if (game.mode === 'first') return [`w-${it.word}`, 'p-first'];
-    return ['p-build', `w-${it.word}`];
+  /** A question is on screen and the card is gone: tier 2 builds show their word for a moment. */
+  function startQuestion() {
+    if (!game || game.done || game.mode !== 'build') return;
+    if (q().hint === 'flash') peek();
   }
 
-  function speakQuestion() {
-    if (!game || game.done) return;
-    voice.say(game.lang, questionKeys());
-    // load the rest of this round's clips meanwhile, so the next questions speak without a pause
-    if (game.i === 0) {
-      const keys = new Set(['p-good', 'p-again', 'p-thisIs', 'p-done']);
-      for (const it of game.qs) {
-        if (it.letter) keys.add(`l-${it.letter}`);
-        if (it.word) keys.add(`w-${it.word}`);
-      }
-      voice.warm(game.lang, [...keys]);
-    }
+  /** Show the word in the slots for PEEK_MS, then hide it again. */
+  function peek() {
+    const box = $('#letters-slots');
+    box.classList.add('peek');
+    $('#letters-pic').classList.remove('can-peek');
+    if (peekTimer) clearTimeout(peekTimer);
+    const token = plays;
+    const at = game.i;
+    peekTimer = setTimeout(() => {
+      peekTimer = null;
+      if (token !== plays || !game || game.i !== at) return;
+      box.classList.remove('peek');
+      $('#letters-pic').classList.toggle('can-peek', !game.done && game.mode === 'build' && q().hint === 'flash');
+    }, PEEK_MS);
   }
 
-  $('#letters-replay').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${SPEAKER}</svg>`;
-  $('#letters-replay').addEventListener('click', () => {
-    if (!game || game.done || overlayUp()) return;
+  $('#letters-pic').addEventListener('click', (e) => {
+    if (!e.target.closest?.('.letters-peekbtn')) return;
+    if (!game || game.done || game.mode !== 'build' || q().hint !== 'flash' || overlayUp()) return;
     sfx.unlock();
-    speakQuestion();
+    peek();
   });
 
   // ---------- one question ----------
@@ -314,10 +317,10 @@ export function createLetters(shell) {
     $('#letters-sub').textContent = t(`letters.mode.${game.mode}`);
     $('#letters-title').textContent = game.roundId ? t('letters.round', { n: game.roundId.split('-')[2] }) : t('random.title');
     $('#screen-letters').dataset.mode = game.mode;
-    $('#letters-muted').hidden = !sfx.isMuted();
-    $('#letters-muted').textContent = t('letters.muted');
+    $('#letters-slots').classList.remove('peek');
     renderPrompt();
     renderPicture();
+    renderWord();
     renderSlots();
     renderOptions();
     renderDots();
@@ -325,19 +328,59 @@ export function createLetters(shell) {
   }
 
   function renderPrompt() {
-    $('#letters-prompt').textContent = t(game.mode === 'tap' ? 'letters.find' : game.mode === 'first' ? 'letters.first' : 'letters.build');
+    const it = q();
+    let key;
+    if (game.mode === 'tap') key = !it.cross ? 'letters.findSame' : game.upper ? 'letters.findCapital' : 'letters.findSmall';
+    else if (game.mode === 'first') key = 'letters.first';
+    else key = it.hint === 'ghost' ? 'letters.buildGhost' : it.hint === 'flash' ? 'letters.buildFlash' : 'letters.build';
+    $('#letters-prompt').textContent = t(key);
   }
 
+  /** The big letter (tap) or the picture (first, build). In a tier 2 build the picture shows the word. */
   function renderPicture() {
     const box = $('#letters-pic');
+    box.hidden = false;
+    box.classList.toggle('big-letter', game.mode === 'tap');
+    box.classList.remove('can-peek');
     if (game.mode === 'tap') {
+      const { big } = tapGlyphs(q(), game.upper);
+      box.innerHTML = `<span class="letters-big">${big}</span>`;
+      box.setAttribute('role', 'img');
+      box.setAttribute('aria-label', t('letters.tile', { l: big }));
+      return;
+    }
+    const word = q().word;
+    const flash = game.mode === 'build' && q().hint === 'flash';
+    const pic = wordPictureSvg(pictureOf(game.lang, word));
+    if (flash) {
+      // tier 2: the picture is a button that shows the word again
+      box.innerHTML = `<button type="button" class="letters-peekbtn">${pic}<span class="letters-peek" aria-hidden="true"><svg viewBox="0 0 24 24">${EYE}</svg></span></button>`;
+      box.querySelector('button').setAttribute('aria-label', t('letters.peek'));
+      box.removeAttribute('role');
+      box.removeAttribute('aria-label');
+      return;
+    }
+    box.innerHTML = pic;
+    box.setAttribute('role', 'img');
+    box.setAttribute('aria-label', t('letters.picture'));
+  }
+
+  /** First letter: the word below the picture with a gap for its first letter. */
+  function renderWord(filled = false) {
+    const box = $('#letters-word');
+    box.textContent = '';
+    if (game.mode !== 'first') {
       box.hidden = true;
-      box.textContent = '';
       return;
     }
     box.hidden = false;
-    box.innerHTML = wordPictureSvg(pictureOf(game.lang, q().word));
-    box.setAttribute('aria-label', q().word);
+    const [, rest] = gapped(q().word);
+    const gap = document.createElement('span');
+    gap.className = `letters-gap${filled ? ' filled' : ''}`;
+    gap.textContent = filled ? show(q().letter) : '';
+    box.append(gap, document.createTextNode(show(rest)));
+    box.style.setProperty('--n', String(q().word.length));
+    box.setAttribute('aria-label', filled ? show(q().word) : t('letters.gapWord', { rest: show(rest) }));
   }
 
   function renderSlots() {
@@ -349,10 +392,18 @@ export function createLetters(shell) {
     }
     box.hidden = false;
     const word = q().word;
+    box.dataset.hint = q().hint;
     for (let k = 0; k < word.length; k++) {
       const s = document.createElement('span');
       s.className = `letters-slot${k < game.placed.length ? ' filled' : ''}${k === game.placed.length ? ' next' : ''}`;
-      s.textContent = k < game.placed.length ? show(word[k]) : '';
+      if (k < game.placed.length) s.textContent = show(word[k]);
+      else if (q().hint !== 'none') {
+        const g = document.createElement('span'); // the word to trace, or to see for a moment
+        g.className = 'ghost';
+        g.setAttribute('aria-hidden', 'true');
+        g.textContent = show(word[k]);
+        s.appendChild(g);
+      }
       box.appendChild(s);
     }
   }
@@ -362,6 +413,7 @@ export function createLetters(shell) {
     box.textContent = '';
     const it = q();
     const list = game.mode === 'build' ? it.tiles : it.options;
+    const glyphs = game.mode === 'tap' ? tapGlyphs(it, game.upper).tiles : list.map(show);
     box.className = `letters-options n${list.length}`;
     list.forEach((l, k) => {
       const b = document.createElement('button');
@@ -369,8 +421,8 @@ export function createLetters(shell) {
       b.className = 'letters-tile';
       b.dataset.k = String(k);
       b.dataset.letter = l;
-      b.textContent = show(l);
-      b.setAttribute('aria-label', t('letters.tile', { l: show(l) }));
+      b.textContent = glyphs[k];
+      b.setAttribute('aria-label', t('letters.tile', { l: glyphs[k] }));
       if (game.mode === 'build' && usedTiles().has(k)) b.classList.add('used');
       b.addEventListener('click', () => {
         if (!game || game.waiting || overlayUp() || b.classList.contains('used') || b.disabled) return;
@@ -417,6 +469,7 @@ export function createLetters(shell) {
     const tiles = [...document.querySelectorAll('#letters-options .letters-tile')];
     if (it.options[k] === it.letter) {
       tiles[k]?.classList.add('right');
+      if (game.mode === 'first') renderWord(true);
       correct();
       return;
     }
@@ -425,7 +478,7 @@ export function createLetters(shell) {
     oops(() => {
       const right = it.options.indexOf(it.letter);
       tiles[right]?.classList.add('right');
-      voice.say(game.lang, ['p-thisIs', `l-${it.letter}`]);
+      if (game.mode === 'first') renderWord(true);
     });
   }
 
@@ -441,7 +494,7 @@ export function createLetters(shell) {
       renderOptions();
       if (game.placed.length === it.word.length) {
         $('#letters-slots').classList.add('done');
-        correct([`w-${it.word}`, 'p-good']);
+        correct();
       }
       return;
     }
@@ -456,14 +509,13 @@ export function createLetters(shell) {
       game.waiting = false;
       renderSlots();
       renderOptions();
-      if (game.placed.length === it.word.length) correct([`w-${it.word}`]);
+      if (game.placed.length === it.word.length) correct();
     }, true);
   }
 
-  function correct(keys = ['p-good']) {
+  function correct() {
     if (game.results[game.i] === undefined) game.results[game.i] = true;
     game.waiting = true;
-    voice.say(game.lang, keys);
     setStatus(t('letters.good'));
     $('#letters-stage').classList.add('happy');
     renderDots();
@@ -484,11 +536,7 @@ export function createLetters(shell) {
     game.tries++;
     sfx.boop();
     setStatus(t('letters.again'));
-    if (game.tries < MAX_TRIES) {
-      const it = q();
-      voice.say(game.lang, ['p-again', game.mode === 'tap' ? `l-${it.letter}` : `w-${it.word}`]);
-      return;
-    }
+    if (game.tries < MAX_TRIES) return;
     game.waiting = true;
     later(build ? 500 : 300, () => {
       showRight();
@@ -507,7 +555,7 @@ export function createLetters(shell) {
       return;
     }
     render();
-    speakQuestion();
+    startQuestion();
   }
 
   function finish() {
@@ -517,7 +565,6 @@ export function createLetters(shell) {
     else store.recordRandomSolved(meta.id, `${game.mode}-${game.tier}`);
     renderDots();
     sfx.chime();
-    voice.say(game.lang, ['p-done']);
     const right = game.results.filter(Boolean).length;
     const g = game;
     const buttons = [];
@@ -573,7 +620,7 @@ export function createLetters(shell) {
 
   return {
     async init() {
-      return true; // the clips load on first use
+      return true;
     },
     open() {
       menuMode = null;
@@ -601,7 +648,7 @@ export function createLetters(shell) {
         random: (mode, tier) => playRandom(mode, tier),
         answer: (k) => answer(k),
         place: (k) => placeTile(k),
-        spoken: () => [...voice.spoken],
+        peeking: () => $('#letters-slots').classList.contains('peek'),
         stars: () => stars(),
       };
     },

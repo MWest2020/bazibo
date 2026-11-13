@@ -1,6 +1,5 @@
-/* Letters: big letter tiles, a picture, slots for building a word. The menu reuses Klok kijken's
-   menu cards and round grid (klok.css). */
-#letters-replay svg { width: 30px; height: 30px; color: var(--primary-dark); }
+/* Letters: a big letter or a picture, a word with a gap, slots for building a word, big letter
+   tiles. The menu reuses Klok kijken's menu cards and round grid (klok.css). */
 .letters-case { font: 900 1.15rem/1 var(--font); color: var(--primary-dark); }
 .letters-case[aria-pressed="true"] { background: var(--primary-light); }
 
@@ -14,16 +13,6 @@
   gap: 12px;
   padding: 4px 12px 14px;
 }
-.letters-muted {
-  width: min(100%, 520px);
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 14px;
-  background: #fff4d6;
-  color: #7a4b00;
-  font-weight: 800;
-  text-align: center;
-}
 .letters-prompt { margin: 0; text-align: center; font-size: clamp(1.05rem, 4.6vw, 1.3rem); font-weight: 900; color: var(--primary); text-wrap: balance; }
 .letters-picbox {
   flex: none; /* never squashed by the column: it shrinks with the screen height instead */
@@ -34,8 +23,53 @@
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 5px 0 #d6cff7;
 }
+.letters-picbox { position: relative; }
 .letters-picbox svg { width: 100%; height: 100%; display: block; }
 #letters-stage.happy .letters-picbox { animation: klok-hop 0.5s ease-out; }
+/* tap: the big letter to match, in the picture's place */
+.letters-picbox.big-letter { display: grid; place-items: center; background: #fff; box-shadow: 0 5px 0 #c9c0f2; }
+.letters-big { font: 900 calc(min(60vw, 230px, 34vh) * 0.62)/1 var(--font); color: var(--primary-dark); }
+#letters-stage.happy .letters-picbox.big-letter { background: #eaffdc; box-shadow: 0 5px 0 #9be15d; }
+/* build, tier 2: an eye in the corner once the word is hidden; a tap on the picture shows it again */
+.letters-peek {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 44px;
+  height: 44px;
+  display: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-light, #ece8ff);
+  color: var(--primary-dark);
+  box-shadow: 0 3px 0 #c9c0f2;
+}
+.letters-peek svg { width: 28px; height: 28px; }
+.letters-peekbtn { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; touch-action: manipulation; }
+.letters-peekbtn:focus-visible { outline: 4px solid var(--gold); outline-offset: 6px; border-radius: 22px; }
+.letters-picbox.can-peek .letters-peek { display: grid; }
+
+/* first letter: the word under the picture, its first letter a gap */
+.letters-word {
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.08em;
+  font: 900 min(2.6rem, calc(min(100vw, 520px) * 0.85 / (var(--n, 4) * 0.66 + 0.6)))/1.1 var(--font);
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.letters-gap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 0.9em;
+  height: 1.15em;
+  border-bottom: 0.12em solid var(--primary);
+  border-radius: 0.12em;
+  background: rgba(255, 255, 255, 0.7);
+  color: #3c8a12;
+}
+.letters-gap.filled { background: #eaffdc; border-color: #9be15d; }
 
 .letters-slots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .letters-slot {
@@ -50,6 +84,10 @@
   color: var(--ink);
 }
 .letters-slot.next { border-color: var(--primary); border-style: solid; }
+/* build: the word in the empty slots, faint to trace (tier 1) or for a moment (tier 2) */
+.letters-slot .ghost { opacity: 0; color: var(--primary); transition: opacity 0.35s; }
+.letters-slots[data-hint="ghost"] .ghost { opacity: 0.3; }
+.letters-slots.peek .ghost { opacity: 0.8; transition: none; }
 .letters-slot.filled { border-style: solid; border-color: #9be15d; background: #eaffdc; }
 .letters-slots.done .letters-slot { animation: klok-hop 0.5s ease-out; }
 
@@ -87,6 +125,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .letters-tile.wrong, #letters-stage.happy .letters-picbox, .letters-slots.done .letters-slot { animation: none; }
+  .letters-slot .ghost { transition: none; }
 }
 @media (max-width: 360px) {
   .letters-options { gap: 9px; }
@@ -102,17 +141,17 @@
     height: 100%;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas: "muted muted" "pic prompt" "pic slots" "pic options" "pic dots" "pic status";
+    grid-template-areas: "pic prompt" "pic word" "pic slots" "pic options" "pic dots" "pic status";
     grid-template-rows: auto auto auto 1fr auto auto;
     align-items: center;
     justify-items: center;
     gap: 6px 16px;
     padding: 6px 12px;
   }
-  #screen-letters[data-mode="tap"] #letters-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "muted" "prompt" "slots" "options" "dots" "status"; }
-  .letters-muted { grid-area: muted; }
   .letters-prompt { grid-area: prompt; font-size: 1rem; }
   .letters-picbox { grid-area: pic; width: auto; height: min(calc(100vh - 24px), 30vw); max-height: calc(100vh - 24px); }
+  .letters-big { font-size: calc(min(100vh - 24px, 30vw) * 0.62); }
+  .letters-word { grid-area: word; font-size: min(2.2rem, 11vh, calc(55vw / (var(--n, 4) * 0.66 + 0.6))); }
   .letters-slots { grid-area: slots; flex-wrap: nowrap; gap: 6px; }
   .letters-options { grid-area: options; }
   #letters-dots { grid-area: dots; }

@@ -40,9 +40,9 @@ export function modeSvg(mode) {
     `<rect x="${x}" y="${y}" width="30" height="30" rx="8" fill="${fill}" stroke="#3a2f6b" stroke-width="2.4"/>` +
     `<text x="${x + 15}" y="${y + 16}" text-anchor="middle" dominant-baseline="central" font-size="21" font-weight="800" fill="#3a2f6b">${ch}</text>`;
   if (mode === 'tap') {
-    return `<svg viewBox="0 0 100 70" aria-hidden="true">${tile(4, 20, 'a', '#ffe9a8')}${tile(35, 20, 'b', '#c9f0d8')}${tile(66, 20, 'k', '#d8e6ff')}
-      <path d="M50 64c6-1 10-6 9-12" fill="none" stroke="#3a2f6b" stroke-width="3" stroke-linecap="round"/>
-      <path d="M44 6c4 2 6 6 6 10M56 6c-4 2-6 6-6 10" fill="none" stroke="#5b4bd6" stroke-width="3" stroke-linecap="round"/></svg>`;
+    // the big letter above, the same letter among the tiles below
+    return `<svg viewBox="0 0 100 70" aria-hidden="true"><text x="50" y="15" text-anchor="middle" dominant-baseline="central" font-size="26" font-weight="900" fill="#5b4bd6">a</text>
+      ${tile(4, 36, 'b', '#c9f0d8')}${tile(35, 36, 'a', '#9be15d')}${tile(66, 36, 'k', '#d8e6ff')}</svg>`;
   }
   if (mode === 'first') {
     return `<svg viewBox="0 0 100 70" aria-hidden="true"><g transform="translate(2 6) scale(.29)">${(wordPictureSvg('sun').match(/<g[\s\S]*<\/g>/) || [''])[0]}</g>${tile(64, 20, 'z', '#ffe9a8')}</svg>`;
