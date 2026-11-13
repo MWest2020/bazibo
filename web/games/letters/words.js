@@ -73,6 +73,41 @@ export const lookalike = (letter) => LOOKALIKE[letter] || [];
 const CASE_CLASH = Object.freeze({ i: ['l'], l: ['i'] });
 export const caseClash = (letter) => CASE_CLASH[letter] || [];
 
+/**
+ * "First letter": other common words a wrong letter in the gap would spell (kat -> mat). Those
+ * letters are never offered for that word, or a wrong tap would be a fair answer. Every listed
+ * word differs from its key in the first letter only (tested).
+ */
+export const ALSO_A_WORD = Object.freeze({
+  nl: {
+    zon: ['bon', 'kon', 'ton', 'won'],
+    huis: ['muis', 'luis', 'buis', 'ruis'],
+    hond: ['mond', 'bond', 'rond', 'pond'],
+    kat: ['mat', 'lat', 'rat', 'zat', 'wat', 'nat', 'gat', 'vat', 'dat', 'pat'],
+    vogel: ['kogel'],
+    boot: ['noot', 'poot', 'goot', 'loot'],
+    peer: ['beer', 'meer', 'veer', 'keer', 'heer', 'weer', 'teer', 'leer'],
+    bal: ['aal', 'dal', 'mal', 'val', 'zal', 'wal', 'hal', 'pal'],
+  },
+  en: {
+    sun: ['bun', 'fun', 'gun', 'nun', 'run', 'pun'],
+    house: ['mouse', 'louse', 'rouse'],
+    fish: ['dish', 'wish'],
+    flower: ['glower', 'slower'],
+    dog: ['log', 'fog', 'hog', 'jog', 'bog', 'cog'],
+    car: ['bar', 'ear', 'far', 'jar', 'mar', 'oar', 'par', 'tar', 'war'],
+    cat: ['bat', 'eat', 'fat', 'hat', 'mat', 'oat', 'pat', 'rat', 'sat', 'vat'],
+    boat: ['coat', 'goat', 'moat'],
+    rocket: ['locket', 'pocket', 'socket', 'docket'],
+    grapes: ['drapes'],
+    carrot: ['parrot'],
+    pear: ['bear', 'dear', 'fear', 'gear', 'hear', 'near', 'rear', 'sear', 'tear', 'wear', 'year'],
+    ball: ['call', 'fall', 'gall', 'hall', 'mall', 'tall', 'wall'],
+  },
+});
+/** The letters that would turn `word` into another word on the list. */
+export const alsoAWord = (lang, word) => ((ALSO_A_WORD[lang] || ALSO_A_WORD.nl)[word] || []).map((w) => w[0]);
+
 /** Words that do not start with the sound of their first letter on its own (au, ...). */
 const NOT_FOR_FIRST = Object.freeze({ nl: ['auto'], en: [] });
 

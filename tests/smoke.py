@@ -2096,10 +2096,24 @@ def letters_play(browser, base, problems):
     if not page.is_visible("#letters-pic .letters-peek"):
         problems.append("letters t2 build: no eye on the picture once the word is hidden")
     page.screenshot(path=str(SHOTS / "letters-390x844-nl-build-t2-hidden.png"))
-    page.click("#letters-pic")
+    peek_btn = page.locator("#letters-pic button.letters-peekbtn")
+    if peek_btn.count() != 1 or not peek_btn.get_attribute("aria-label"):
+        problems.append("letters t2 build: the picture is not a named button")
+    peek_btn.click()
     page.wait_for_timeout(100)
     if not page.evaluate("window.__bubbels.letters.peeking()"):
         problems.append("letters t2 build: a tap on the picture did not show the word again")
+    # two quick wrong taps while the word shows must not keep it on screen for good
+    page.evaluate("window.__bubbels.letters.start('build-t2-2')")
+    page.wait_for_timeout(200)
+    st = page.evaluate("window.__bubbels.letters.state()")
+    wrong = [k for k, l in enumerate(st["q"]["tiles"]) if l != st["q"]["word"][0]]
+    for _ in range(2):
+        page.locator(f"#letters-options .letters-tile[data-k='{wrong[0]}']").click()
+        page.wait_for_timeout(120)
+    page.wait_for_timeout(2400)
+    if page.evaluate("window.__bubbels.letters.peeking()") or not page.is_visible("#letters-pic .letters-peek"):
+        problems.append("letters t2 build: after two quick wrong taps the word stayed or the eye did not come")
     page.evaluate("window.__bubbels.letters.start('build-t3-1')")
     page.wait_for_timeout(250)
     if page.locator("#letters-slots .ghost").count():

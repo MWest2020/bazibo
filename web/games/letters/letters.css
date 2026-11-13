@@ -45,7 +45,8 @@
   box-shadow: 0 3px 0 #c9c0f2;
 }
 .letters-peek svg { width: 28px; height: 28px; }
-.letters-picbox.can-peek { cursor: pointer; }
+.letters-peekbtn { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; touch-action: manipulation; }
+.letters-peekbtn:focus-visible { outline: 4px solid var(--gold); outline-offset: 6px; border-radius: 22px; }
 .letters-picbox.can-peek .letters-peek { display: grid; }
 
 /* first letter: the word under the picture, its first letter a gap */

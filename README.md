@@ -214,8 +214,9 @@ the questions aloud; Mark dropped it because children did not like the robot voi
   - **Tik de letter / Tap the letter**: one big letter, tap the same one among 3-6 tiles. Tier 1
     draws it exactly like its tile; tier 2 shows the capital, find the small letter (with the
     capitals option on, the other way round); tier 3 mixes both and puts a mirrored look-alike
-    next to b, d, p, q, n, u, m and w (`LOOKALIKE` in `words.js`). A capital I is never offered
-    next to a small l.
+    next to b, d, p, q, n, u, m and w (`LOOKALIKE` in `words.js`), only when the tiles are small
+    letters (capital B, D, P and Q are not mirror images, so with capitals on there is no twin).
+    A capital I is never offered next to a small l. The case is fixed when a round starts.
   - **Beginletter / First letter**: a picture with its word underneath, the first letter left
     out ("_on"); tap the missing letter. The word is shown in every tier, so a picture that could
     be two words (puppy or dog) is never a guess.
@@ -225,7 +226,13 @@ the questions aloud; Mark dropped it because children did not like the robot voi
 - Three tiers: the first letters (a i o m s k), more letters, the whole alphabet. Lowercase by
   default, as Dutch schools start; the "aA" button in the menu bar switches to capitals.
 - "First letter" never offers letters that sound alike at the start of a word (`CONFUSABLE` in
-  `words.js`: English c/k/s, Dutch k/c/q, v/f, z/s): the child spells a word there.
+  `words.js`: English c/k/s, Dutch k/c/q, v/f, z/s), nor a letter that would spell another word in
+  the gap (`ALSO_A_WORD`: kat/mat, huis/muis, pear/bear). A new word goes on that list too. The
+  wrong choices come from the tier's letters plus the first letters of its words, so in tier 1
+  the answer is not simply the one letter from outside a i o m s k.
+- Sounds are ambient (`AVAudioSession` `.ambient` in `ios/App/App/AppDelegate.swift`,
+  `audioSession.type = 'ambient'` in `audio.js`): the iPhone's silent switch mutes them and a
+  parent's music keeps playing.
 - A wrong tap is gentle: the tile shakes and fades, "Probeer het nog eens"; after two wrong tries
   the right letter lights up (building: the next letter goes in by itself). Stars by mistakes per
   question (counted once). The only sounds are the app's own effects (a plink per placed letter, a

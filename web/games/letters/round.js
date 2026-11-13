@@ -5,7 +5,7 @@
 //   first  a picture with its word below it, the first letter left out ("_oon"): tap that letter
 //   build  a picture: put the word's letters in order. Tier 1 traces a faint word, tier 2 sees the
 //          word for a moment (a tap on the picture shows it again), tier 3 has the picture only
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, confusable, lookalike, caseClash, LOOKALIKE } from './words.js';
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, confusable, lookalike, caseClash, alsoAWord, LOOKALIKE } from './words.js';
 
 export const MODES = Object.freeze(['tap', 'first', 'build']);
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
@@ -68,12 +68,13 @@ function sequence(list, n, rand) {
 }
 
 /**
- * A round: ROUND_LEN[mode] questions, the same for the same seed.
+ * A round: ROUND_LEN[mode] questions, the same for the same seed (and capitals option: with
+ * capitals on, tap's tier 3 adds no mirrored twin, since capital B, D, P and Q are not mirrors).
  *   tap:   { letter, cross, options }   cross: the big letter is in the other case than the tiles
  *   first: { word, letter, options }
  *   build: { word, hint, tiles }         hint: BUILD_HINT of the tier
  */
-export function makeRound({ mode, tier, lang = 'nl', seed }) {
+export function makeRound({ mode, tier, lang = 'nl', seed, upper = false }) {
   const rand = rng(seed);
   const n = ROUND_LEN[mode];
   if (mode === 'tap') {
@@ -88,7 +89,8 @@ export function makeRound({ mode, tier, lang = 'nl', seed }) {
       const cross = crosses ? crosses[k] : TAP_CASE[tier] === 'other';
       const pool = set.length > OPTIONS[tier] ? set : ALPHABET;
       const not = [letter, ...lookalike(letter), ...(cross ? caseClash(letter) : [])];
-      const twin = tier === 't3' && lookalike(letter).length ? [pick(lookalike(letter), 1, [], rand)[0]] : [];
+      // the mirrored twin only when the tiles are small letters: B/D/P/Q are not mirror images
+      const twin = tier === 't3' && !upper && lookalike(letter).length ? [pick(lookalike(letter), 1, [], rand)[0]] : [];
       const rest = pick(pool, OPTIONS[tier] - 1 - twin.length, not, rand);
       return { letter, cross, options: shuffle([letter, ...twin, ...rest], rand) };
     });
@@ -97,16 +99,19 @@ export function makeRound({ mode, tier, lang = 'nl', seed }) {
     const words = firstWords(lang, tier).map(([w]) => w);
     return sequence(words, n, rand).map((word) => {
       const letter = word[0];
-      // tier 1: only the tier-1 letters around the answer; tier 2: the tier-2 letters and the
-      // first letters of its words; tier 3: the alphabet. Never a letter that sounds the same.
-      const pool = tier === 't3' ? ALPHABET : tier === 't1' ? LETTER_SETS.t1 : LETTER_SETS.t2.concat(words.map((w) => w[0]));
+      // tiers 1 and 2: the tier's letters and the first letters of its words (so the answer is not
+      // the only letter from outside the set); tier 3: the alphabet. Never a letter that sounds the
+      // same, and never one that spells another word in the gap (kat: no m for "mat").
+      const pool = tier === 't3' ? ALPHABET : LETTER_SETS[tier].concat(words.map((w) => w[0]));
       const uniq = [...new Set(pool)];
-      return { word, letter, options: shuffle([letter, ...pick(uniq, OPTIONS[tier] - 1, [letter, ...confusable(lang, letter)], rand)], rand) };
+      const not = [letter, ...confusable(lang, letter), ...alsoAWord(lang, word)];
+      return { word, letter, options: shuffle([letter, ...pick(uniq, OPTIONS[tier] - 1, not, rand)], rand) };
     });
   }
   const words = (BUILD[lang] || BUILD.nl)[tier];
   return sequence(words, n, rand).map((word) => {
     const letters = word.split('');
+    // tier 3's extra letters may be mirror letters (a d next to "bal"): on purpose, as in tap
     const extra = pick(ALPHABET, EXTRA_TILES[tier], [...letters, ...letters.flatMap((l) => confusable(lang, l))], rand);
     return { word, hint: BUILD_HINT[tier], tiles: shuffle([...word.split(''), ...extra], rand) };
   });

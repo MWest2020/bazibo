@@ -18,8 +18,8 @@ export function isMuted() {
 
 export function unlock() {
   try {
-    // iOS (16.4+): play as media, so the ringer switch does not silence the game sounds
-    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    // iOS (16.4+): ambient, so the ring/silent switch mutes the game sounds and other audio keeps playing
+    if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
     if (!ac) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;

@@ -71,8 +71,10 @@ export function createLetters(shell) {
     peekTimer = null;
   }
 
+  /** One step of the round after `ms` (only `timer`: the tier-2 word keeps its own timer). */
   function later(ms, fn) {
-    clearTimer();
+    if (timer) clearTimeout(timer);
+    timer = null;
     const token = plays;
     timer = setTimeout(() => {
       timer = null;
@@ -235,8 +237,9 @@ export function createLetters(shell) {
     menuMode = mode; // "Rounds" and the back button land on this kind of round
     if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     const lang = getLang();
-    const qs = makeRound({ mode, tier, lang, seed });
-    game = { mode, tier, roundId, seed, lang, qs, i: 0, mistakes: 0, results: [], tries: 0, placed: [], waiting: false, done: false };
+    const caps = upper(); // the case is fixed for the round (tap's tier 3 depends on it)
+    const qs = makeRound({ mode, tier, lang, seed, upper: caps });
+    game = { mode, tier, roundId, seed, lang, upper: caps, qs, i: 0, mistakes: 0, results: [], tries: 0, placed: [], waiting: false, done: false };
     shell.show('letters');
     render();
     if (!seenHow()[`${mode}2`]) {
@@ -300,7 +303,8 @@ export function createLetters(shell) {
     }, PEEK_MS);
   }
 
-  $('#letters-pic').addEventListener('click', () => {
+  $('#letters-pic').addEventListener('click', (e) => {
+    if (!e.target.closest?.('.letters-peekbtn')) return;
     if (!game || game.done || game.mode !== 'build' || q().hint !== 'flash' || overlayUp()) return;
     sfx.unlock();
     peek();
@@ -326,7 +330,7 @@ export function createLetters(shell) {
   function renderPrompt() {
     const it = q();
     let key;
-    if (game.mode === 'tap') key = !it.cross ? 'letters.findSame' : upper() ? 'letters.findCapital' : 'letters.findSmall';
+    if (game.mode === 'tap') key = !it.cross ? 'letters.findSame' : game.upper ? 'letters.findCapital' : 'letters.findSmall';
     else if (game.mode === 'first') key = 'letters.first';
     else key = it.hint === 'ghost' ? 'letters.buildGhost' : it.hint === 'flash' ? 'letters.buildFlash' : 'letters.build';
     $('#letters-prompt').textContent = t(key);
@@ -339,7 +343,7 @@ export function createLetters(shell) {
     box.classList.toggle('big-letter', game.mode === 'tap');
     box.classList.remove('can-peek');
     if (game.mode === 'tap') {
-      const { big } = tapGlyphs(q(), upper());
+      const { big } = tapGlyphs(q(), game.upper);
       box.innerHTML = `<span class="letters-big">${big}</span>`;
       box.setAttribute('role', 'img');
       box.setAttribute('aria-label', t('letters.tile', { l: big }));
@@ -347,9 +351,18 @@ export function createLetters(shell) {
     }
     const word = q().word;
     const flash = game.mode === 'build' && q().hint === 'flash';
-    box.innerHTML = wordPictureSvg(pictureOf(game.lang, word)) + (flash ? `<span class="letters-peek" aria-hidden="true"><svg viewBox="0 0 24 24">${EYE}</svg></span>` : '');
+    const pic = wordPictureSvg(pictureOf(game.lang, word));
+    if (flash) {
+      // tier 2: the picture is a button that shows the word again
+      box.innerHTML = `<button type="button" class="letters-peekbtn">${pic}<span class="letters-peek" aria-hidden="true"><svg viewBox="0 0 24 24">${EYE}</svg></span></button>`;
+      box.querySelector('button').setAttribute('aria-label', t('letters.peek'));
+      box.removeAttribute('role');
+      box.removeAttribute('aria-label');
+      return;
+    }
+    box.innerHTML = pic;
     box.setAttribute('role', 'img');
-    box.setAttribute('aria-label', flash ? t('letters.peek') : t('letters.picture'));
+    box.setAttribute('aria-label', t('letters.picture'));
   }
 
   /** First letter: the word below the picture with a gap for its first letter. */
@@ -400,7 +413,7 @@ export function createLetters(shell) {
     box.textContent = '';
     const it = q();
     const list = game.mode === 'build' ? it.tiles : it.options;
-    const glyphs = game.mode === 'tap' ? tapGlyphs(it, upper()).tiles : list.map(show);
+    const glyphs = game.mode === 'tap' ? tapGlyphs(it, game.upper).tiles : list.map(show);
     box.className = `letters-options n${list.length}`;
     list.forEach((l, k) => {
       const b = document.createElement('button');

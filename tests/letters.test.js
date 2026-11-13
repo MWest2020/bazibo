@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf, confusable, lookalike, caseClash, LOOKALIKE } from '../web/games/letters/words.js';
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf, confusable, lookalike, caseClash, LOOKALIKE, ALSO_A_WORD, alsoAWord } from '../web/games/letters/words.js';
 import { MODES, TIER_IDS, ROUND_LEN, OPTIONS, EXTRA_TILES, TAP_CASE, BUILD_HINT, LOOKALIKE_QS, makeRound, starsFor, nextLetterOk, hashSeed, tapGlyphs, gapped } from '../web/games/letters/round.js';
 import { PICTURE_IDS, wordPictureSvg } from '../web/games/letters/art.js';
 import { meta } from '../web/games/letters/meta.js';
@@ -197,23 +197,55 @@ test('old saves still load: stars per round stay, the old how-to flags and optio
   assert.equal(store.loadProgress('letters').stars['tap-t1-1'], 3);
 });
 
-test('choices in "first letter" never pair letters that sound alike, and tier 1 stays within its letters', () => {
+test('choices in "first letter" never pair letters that sound alike, and tier 1 does not give the answer away', () => {
   for (const lang of ['nl', 'en']) {
-    for (const mode of ['first']) {
-      for (const tier of TIER_IDS) {
-        for (let s = 0; s < 200; s++) {
-          for (const q of makeRound({ mode, tier, lang, seed: hashSeed(`c${lang}${mode}${tier}${s}`) })) {
-            const answer = mode === 'tap' ? q.letter : q.word[0];
-            for (const o of q.options) {
-              if (o !== answer) assert.ok(!confusable(lang, answer).includes(o), `${lang} ${mode} ${tier}: ${answer} next to ${o}`);
-            }
-            if (mode === 'first' && tier === 't1') {
-              for (const o of q.options) assert.ok(o === answer || LETTER_SETS.t1.includes(o), `${lang} t1 first: ${o} is not a tier-1 letter`);
-            }
+    for (const tier of TIER_IDS) {
+      const starts = new Set(firstWords(lang, tier).map(([w]) => w[0]));
+      let outside = 0; // tier 1: questions where a wrong choice is a first letter from outside the tier-1 set
+      for (let s = 0; s < 200; s++) {
+        for (const q of makeRound({ mode: 'first', tier, lang, seed: hashSeed(`c${lang}first${tier}${s}`) })) {
+          for (const o of q.options) {
+            if (o !== q.letter) assert.ok(!confusable(lang, q.letter).includes(o), `${lang} first ${tier}: ${q.letter} next to ${o}`);
+          }
+          if (tier === 't1') {
+            for (const o of q.options) assert.ok(LETTER_SETS.t1.includes(o) || starts.has(o), `${lang} t1 first: ${o} is not a tier-1 letter or first letter`);
+            if (q.options.some((o) => o !== q.letter && !LETTER_SETS.t1.includes(o))) outside++;
+          }
+        }
+      }
+      if (tier === 't1') assert.ok(outside > 200, `${lang} t1: the answer is too often the only letter from outside a i o m s k (${outside})`);
+    }
+  }
+  assert.ok(!firstWords('nl', 't3').some(([w]) => w === 'auto'), '"auto" does not start with the a sound');
+});
+
+test('"first letter" never offers a letter that spells another word in the gap (kat: no m for "mat")', () => {
+  for (const lang of ['nl', 'en']) {
+    const words = new Set(WORDS[lang].map(([w]) => w));
+    for (const [word, others] of Object.entries(ALSO_A_WORD[lang])) {
+      assert.ok(words.has(word), `${lang}: ${word} is not a Letters word`);
+      for (const w of others) assert.equal(w.slice(1), word.slice(1), `${lang}: ${w} must differ from ${word} in the first letter only`);
+    }
+    for (const tier of TIER_IDS) {
+      for (let s = 0; s < 300; s++) {
+        for (const q of makeRound({ mode: 'first', tier, lang, seed: hashSeed(`w${lang}${tier}${s}`) })) {
+          const others = ALSO_A_WORD[lang][q.word] || [];
+          for (const o of q.options) {
+            if (o !== q.letter) assert.ok(!others.includes(o + q.word.slice(1)), `${lang} ${tier}: ${o} in "_${q.word.slice(1)}" spells ${o + q.word.slice(1)}`);
           }
         }
       }
     }
   }
-  assert.ok(!firstWords('nl', 't3').some(([w]) => w === 'auto'), '"auto" does not start with the a sound');
+  assert.deepEqual(alsoAWord('nl', 'kat').slice(0, 2), ['m', 'l']);
+});
+
+test('with capitals on, tap tier 3 adds no mirrored twin (capital B, D, P and Q are not mirrors)', () => {
+  for (const lang of ['nl', 'en']) {
+    for (let s = 0; s < 100; s++) {
+      for (const q of makeRound({ mode: 'tap', tier: 't3', lang, seed: hashSeed(`u${lang}${s}`), upper: true })) {
+        assert.ok(!q.options.some((o) => lookalike(q.letter).includes(o)), `capitals: ${q.letter} next to ${q.options}`);
+      }
+    }
+  }
 });
