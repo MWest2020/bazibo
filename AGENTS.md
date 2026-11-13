@@ -103,8 +103,10 @@ square, the goose chain, the bounce at 63, waiting in the inn, the well and the 
 games that always end). The well and prison follow the classic rule (wait until another goose
 lands there and takes your place) made kind: never more than `WAIT_TURNS` (2) missed turns. One
 die, no special first throws; 58 is "lost in the woods" (back to the start), never "death"; geese
-may share a square. The board is our own, drawn in code (`art.js`, the spiral in `board.js`);
-never copy a publisher's board. No voice in this game (Mark, 13 Nov: the child does not like the
+may share a square. The board is our own, drawn in code: 64 round stepping stones on a winding path
+(a rounded spiral to a pond in the middle; `board.js`, pure and tested: a step apart, clear space
+between all stones, round tap areas of 44 px or more) over a landscape per board (`scene.js`: the
+meadow, winter, the sea); never copy a publisher's board. No voice in this game (Mark, 13 Nov: the child does not like the
 robot voice): "count yourself" is visual only (the square to tap glows, the count pops up big),
 and the only sounds are the shell's effects, which follow the sound setting. Free: the classic
 board with 2 players; the full version adds 3-4 players and the winter and sea boards.

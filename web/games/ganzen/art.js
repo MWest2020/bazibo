@@ -1,5 +1,9 @@
 // Ganzenbord's pictures, all our own and drawn in code (SVG): the geese, the special squares, the
 // die and the three boards' looks (classic meadow, winter, sea). No publisher's art is copied.
+import { boardLayout } from './board.js';
+import { sceneSvg } from './scene.js';
+import { kindOf } from './rules.js';
+
 const INK = '#2b2370';
 
 /** The geese a player can be: body colour, scarf colour and the number on the scarf. */
@@ -139,29 +143,34 @@ export const THEMES = Object.freeze({
 });
 export const BOARDS = Object.freeze(['classic', 'winter', 'sea']);
 
-/** A little picture of a board for the menu. */
-export function boardThumb(theme) {
-  const th = THEMES[theme] || THEMES.classic;
-  let cells = '';
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) cells += `<rect x="${5 + c * 12}" y="${5 + r * 12}" width="11" height="11" rx="3" fill="${(r + c) % 2 ? th.b : th.a}"/>`;
-  const deco =
-    th.deco === 'snow'
-      ? '<path d="M44 8v8M40 12h8M41 9l6 6M47 9l-6 6" stroke="#fff" stroke-width="1.6"/>'
-      : th.deco === 'waves'
-        ? '<path d="M4 50c4-3 6-3 10 0s6 3 10 0 6-3 10 0 6 3 10 0" fill="none" stroke="#fff" stroke-width="2"/>'
-        : '<circle cx="46" cy="10" r="3" fill="#ff8fab"/><circle cx="46" cy="10" r="1.2" fill="#ffc531"/>';
-  return `<svg class="mini-ganzen" viewBox="0 0 58 58" aria-hidden="true"><rect x="0" y="0" width="58" height="58" rx="9" fill="${th.frame}"/>${cells}${deco}<rect x="29" y="29" width="11" height="11" rx="3" fill="${th.end}"/></svg>`;
+/** The stones of a little board picture: circles in the board's colours, 63 the golden egg. */
+function miniStones(lay, th, kindOf) {
+  return lay.stones
+    .map(([x, y], sq) => {
+      const kind = kindOf(sq);
+      const fill = kind === 'end' || kind === 'start' ? th.end : kind ? th.special : sq % 2 ? th.b : th.a;
+      const r = (lay.size / 2) * (kind === 'end' ? 1.3 : kind ? 1.1 : 1);
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${th.ink}" stroke-opacity=".5" stroke-width="${(lay.size * 0.08).toFixed(1)}"/>`;
+    })
+    .join('');
 }
 
-/** The home tile: a corner of the spiral with a goose on it. */
+let mini = null; // the little pictures: the real path, small (worked out once, when first drawn)
+const miniLayout = () => (mini ||= boardLayout(240, 240, Infinity));
+
+/** A little picture of a board for the menu: its landscape with the path of stones. */
+export function boardThumb(theme) {
+  const th = THEMES[theme] || THEMES.classic;
+  const lay = miniLayout();
+  return sceneSvg(theme, lay, { cls: 'mini-ganzen', sized: false, extra: miniStones(lay, th, kindOf) });
+}
+
+/** The home tile: the meadow board with a goose on it. */
 export function tileSvg() {
   const th = THEMES.classic;
-  let cells = '';
-  const order = [[3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1], [0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [1, 2], [1, 1]];
-  order.forEach(([r, c], k) => {
-    const fill = k === 15 ? th.end : k === 5 || k === 9 ? th.special : k % 2 ? th.b : th.a;
-    cells += `<rect x="${4 + c * 23}" y="${4 + r * 23}" width="21" height="21" rx="5" fill="${fill}"/>`;
-  });
-  const goose = gooseSvg(0).replace('<svg ', '<svg x="22" y="20" width="58" height="58" ');
-  return `<svg class="ganzen-tile" viewBox="0 0 100 100" aria-hidden="true"><rect x="0" y="0" width="100" height="100" rx="16" fill="${th.frame}"/>${cells}${goose}</svg>`;
+  const lay = miniLayout();
+  // a big goose in the middle, so the tile reads at a glance
+  const s = lay.w * 0.56;
+  const goose = gooseSvg(0).replace('<svg ', `<svg x="${(lay.w / 2 - s / 2).toFixed(1)}" y="${(lay.h / 2 - s * 0.55).toFixed(1)}" width="${s.toFixed(1)}" height="${s.toFixed(1)}" `);
+  return sceneSvg('classic', lay, { cls: 'ganzen-tile', sized: false, extra: miniStones(lay, th, kindOf) + goose });
 }
