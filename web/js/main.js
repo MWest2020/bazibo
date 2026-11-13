@@ -2,7 +2,7 @@
 // the one purchase that opens every game. Each game lives in web/games/<id>/.
 import { BRAND } from './brand.js';
 import { gazeboSvg } from './logo.js';
-import { GAMES, GROUPS } from './games.js';
+import { GAMES, GROUPS, OTHER_GROUP } from './games.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
 import { COLORS, getSprite, drawBubble } from './bubble-art.js';
 import * as store from './storage.js';
@@ -157,8 +157,12 @@ $('#btn-transfer').addEventListener('click', () => {
  *  drawn into each `.tile-art` later (drawTileArt and friends); the texts come from translateDom. */
 function buildTiles() {
   const box = $('#tile-groups');
-  for (const group of GROUPS) {
-    const list = GAMES.filter((g) => g.group === group.id);
+  // a game whose group is not in GROUPS still gets a tile, in an "Overig" section at the end
+  const known = new Set(GROUPS.map((g) => g.id));
+  const lost = GAMES.filter((g) => !known.has(g.group));
+  for (const g of lost) console.error(`home: game ${g.id} has an unknown group ${JSON.stringify(g.group)}; shown under ${OTHER_GROUP.id}`);
+  for (const group of [...GROUPS, OTHER_GROUP]) {
+    const list = group === OTHER_GROUP ? lost : GAMES.filter((g) => g.group === group.id);
     if (!list.length) continue;
     const section = document.createElement('section');
     section.className = 'tile-group';

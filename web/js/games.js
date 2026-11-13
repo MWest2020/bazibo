@@ -23,6 +23,8 @@ export const GROUPS = [
   { id: 'learning', titleKey: 'home.group.learning' },
   { id: 'action', titleKey: 'home.group.action' },
 ];
+// Where a game with an unknown `group` lands (with an error in the console), so it never disappears.
+export const OTHER_GROUP = Object.freeze({ id: 'other', titleKey: 'home.group.other' });
 
 export const GAMES = [
   { ...bubbels, status: 'ready' },

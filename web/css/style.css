@@ -197,12 +197,14 @@ html, body {
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
+  container-type: inline-size; /* the name's size follows the tile's width (cqi) */
 }
 .tile:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9c1ff, 0 3px 8px rgba(59, 47, 168, 0.18); }
 .tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
 .tile-art { width: 92px; height: 92px; display: block; flex: none; zoom: var(--art); }
 .tile-art > span { flex: none; } /* the drawn mini boards keep their shape */
-.tile-name { font-size: 0.92rem; font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
+/* the longest single words ("Kleurplaten", "Ganzenbord") must fit whole in a 3-column tile at 360 px */
+.tile-name { font-size: min(0.92rem, 13.4cqi); font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
 .tile.soon { background: rgba(255, 255, 255, 0.72); color: var(--ink-soft); }
 .tile.soon .tile-art { opacity: 0.6; }
 .badge {
@@ -428,7 +430,7 @@ html, body {
   .promise { display: none; }
   .tile-groups { --tile-min: 92px; --tile-gap: 8px; --group-pad: 8px; --art: 0.62; }
   .tile { min-height: 108px; padding: 8px 4px; }
-  .tile-name { font-size: 0.86rem; }
+  .tile-name { font-size: min(0.86rem, 13.4cqi); }
   .group-name { margin-bottom: 6px; font-size: 1rem; }
 }
 
