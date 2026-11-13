@@ -7,6 +7,7 @@ import '../web/games/bubbels/strings.js';
 import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
 import '../web/games/vier/strings.js';
+import '../web/games/dammen/strings.js';
 import '../web/games/slang/strings.js';
 import '../web/games/kleuren/strings.js';
 import { PICTURES } from '../web/games/kleuren/pictures.js';
@@ -59,6 +60,9 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);
   for (const id of ['pup', 'bubble', 'apple', 'flower', 'fish', 'pug']) used.add(`vier.tok.${id}`);
+  for (const n of [1, 2, 3]) used.add(`dam.level${n}`);
+  for (const id of ['small', 'big']) used.add(`dam.${id}`).add(`dam.${id}Sub`);
+  for (const look of ['pets', 'classic']) used.add(`dam.look.${look}`).add(`dam.look.${look}Sub`).add(`dam.name.${look}1`).add(`dam.name.${look}2`);
   for (const m of ['count', 'letters', 'colors']) used.add(`slang.mode.${m}`).add(`slang.mode.${m}Sub`).add(`slang.how.${m}`);
   used.add('slang.how.bump');
   for (const k of ['easy', 'medium', 'hard']) used.add(`bubbels.tier.${k}`);

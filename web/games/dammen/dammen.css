@@ -1,0 +1,168 @@
+/* Dammen: home tile, menu extras, board and hints. The menu, HUD and turn chips reuse Vier op een
+   rij's classes (games/vier/vier.css); shared look lives in css/style.css. */
+
+/* ---------- home tile ---------- */
+#tile-dammen .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-dammen .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
+
+/* ---------- menu ---------- */
+.dam-opt { position: relative; }
+.dam-opt.locked { color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); }
+.dam-opt.locked .vier-opt-title { color: #8a82c8; }
+.dam-opt .lock,
+.dam-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.dam-opt .mini-dam { width: 58px; height: 58px; }
+.dam-pair { display: flex; align-items: center; }
+.dam-pair svg { width: 38px; height: 38px; }
+.dam-pair svg + svg { margin-left: -12px; }
+#screen-dammen-menu .levels-scroll { padding-bottom: 0; }
+
+/* ---------- HUD ---------- */
+#dammen-undo.off { visibility: hidden; }
+#dammen-undo:disabled { opacity: 0.45; }
+#dammen-undo svg { width: 30px; height: 30px; }
+
+/* ---------- board ---------- */
+#dammen-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 6px 6px;
+}
+#dammen-stage.side { flex-direction: row; gap: 12px; }
+.dam-board {
+  --size: 8;
+  --cell: 44px;
+  position: relative;
+  flex: none;
+  padding: calc(var(--cell) * 0.18);
+  border-radius: calc(var(--cell) * 0.24);
+  background: #6f5fe6;
+  box-shadow: inset 0 -5px 0 rgba(43, 35, 112, 0.25), 0 7px 0 #c9c1ff, 0 14px 30px rgba(59, 47, 168, 0.22);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.dam-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--size), var(--cell));
+  grid-template-rows: repeat(var(--size), var(--cell));
+  border-radius: calc(var(--cell) * 0.12);
+  overflow: hidden;
+}
+.dsq { position: relative; display: block; margin: 0; padding: 0; border: 0; }
+.dsq.light { background: #fdf3e1; }
+.dsq.dark { background: #8f7fe6; cursor: pointer; -webkit-tap-highlight-color: transparent; font: inherit; }
+.dsq.dark:disabled { cursor: default; }
+.dsq.dark:focus-visible { outline: 4px solid var(--gold); outline-offset: -4px; z-index: 1; }
+.dsq.last { background: #a597ee; }
+.dsq > svg.piece { position: absolute; inset: 7%; width: 86%; height: 86%; display: block; transition: opacity 0.18s ease; }
+.dfly { position: absolute; pointer-events: none; z-index: 3; }
+.dfly > svg.piece { position: absolute; inset: 7%; width: 86%; height: 86%; display: block; filter: drop-shadow(0 6px 4px rgba(43, 35, 112, 0.3)); }
+
+/* the pieces that must capture: a gentle golden glow around the piece */
+.dsq.must::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  z-index: 1;
+  border-radius: 50%;
+  border: max(2px, calc(var(--cell) * 0.06)) solid #ffc531;
+  box-shadow: 0 0 calc(var(--cell) * 0.16) calc(var(--cell) * 0.05) rgba(255, 197, 49, 0.85), inset 0 0 calc(var(--cell) * 0.1) rgba(255, 214, 92, 0.8);
+  animation: dam-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+/* the chosen piece */
+.dsq.sel::after {
+  content: "";
+  position: absolute;
+  inset: 2%;
+  border-radius: 50%;
+  border: calc(var(--cell) * 0.08) solid var(--gold);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+.dsq.sel > svg.piece { transform: translateY(-6%) scale(1.06); }
+/* where it can go: a round dot */
+.dsq.target::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42%;
+  height: 42%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: calc(var(--cell) * 0.06) solid var(--gold);
+  box-shadow: 0 2px 0 rgba(43, 35, 112, 0.25);
+  animation: dam-dot 1s ease-in-out infinite;
+  pointer-events: none;
+}
+.dsq.jumped > svg.piece { opacity: 0.4; }
+.dsq.taken > svg.piece { opacity: 0; transform: scale(0.6); transition: opacity 0.18s ease, transform 0.18s ease; }
+.dsq.wiggle > svg.piece { animation: dam-wiggle 0.4s ease; }
+
+/* ---------- turn chips ---------- */
+#dammen-stage.side .vier-side { width: 236px; flex: none; }
+#dammen-stage.side .vier-turn { flex-direction: column; align-self: stretch; }
+#dammen-stage.side .dam-chip { box-sizing: border-box; width: 100%; }
+#dammen-stage.side .dam-chip.on, #dammen-stage.side .dam-chip.winner { transform: none; }
+.dam-chip .piece { width: 44px; height: 44px; flex: none; }
+.dam-chip .count { min-width: 1.6em; padding: 0 6px; border-radius: 999px; background: #efeafe; color: var(--primary-dark); text-align: center; font-size: 0.9rem; }
+.dam-chip.thinking .piece { animation: vier-think 1s ease-in-out infinite; }
+.ov-art .dam-ov svg { width: 84px; height: 84px; }
+.ov-art .dam-ov.won svg { width: 104px; height: 104px; }
+
+/* short sideways phones: the HUD becomes a column on the left */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-dammen { flex-direction: row; }
+  .dam-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; }
+  .dam-hud { flex: none; width: 116px; }
+  .dam-hud .hud-mid { flex: 0; min-width: 0; text-align: center; }
+  .dam-hud .hud-level { font-size: 0.8rem; line-height: 1.15; white-space: normal; }
+  .dam-hud .dogu-title { font-size: 1.05rem; line-height: 1.15; white-space: normal; }
+  .dam-chip .count { display: none; }
+  .dam-hud .btn.icon { width: 54px; height: 54px; }
+  #dammen-stage { padding: 5px 6px; }
+  #dammen-stage.side .vier-side { width: 136px; }
+  #dammen-stage.side .vier-turn { gap: 10px; align-self: stretch; }
+  .dam-chip { gap: 5px; padding: 3px 8px 3px 3px; font-size: 0.85rem; min-width: 0; }
+  .dam-chip .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .dam-chip .name .robot { display: none; }
+  .dam-chip .piece { width: 34px; height: 34px; }
+  .dam-chip.on, .dam-chip.winner { transform: none; }
+  .dam-chip.on .arrow { left: 10px; top: -12px; }
+  #dammen-status { font-size: 0.85rem; }
+}
+/* phones: both chips (name, robot and piece count) fit side by side */
+@media (max-width: 420px) {
+  .dam-chip { gap: 6px; padding: 4px 10px 4px 4px; font-size: 0.95rem; }
+  .dam-chip .piece { width: 38px; height: 38px; }
+  .dam-chip .name .robot { display: none; }
+  #dammen-stage .vier-turn { gap: 10px; }
+}
+@media (max-width: 360px) {
+  .dam-chip { padding: 4px 8px 4px 4px; font-size: 0.9rem; }
+  .dam-chip .piece { width: 34px; height: 34px; }
+  .dam-chip.on, .dam-chip.winner { transform: none; }
+  #dammen-stage .vier-turn { gap: 8px; }
+}
+@media (max-height: 600px) {
+  .ov-art .dam-ov svg { width: 60px; height: 60px; }
+  .ov-art .dam-ov.won svg { width: 72px; height: 72px; }
+}
+
+@keyframes dam-glow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes dam-dot { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.15); } }
+@keyframes dam-wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8%); } 75% { transform: translateX(8%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dsq.must::before, .dsq.target::after, .dsq.wiggle > svg.piece, .dam-chip.thinking .piece { animation: none !important; }
+  .dsq.must::before { opacity: 1; }
+}

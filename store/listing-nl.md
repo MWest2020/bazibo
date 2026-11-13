@@ -21,7 +21,7 @@ Spellen voor kinderen van 3 tot 10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters: spelen en leren, 3 tot 10 jaar.
+Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters: spelen en leren, 3-10 jaar.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ bubble shooter,sudoku,vier op een rij,slang,tellen,letters,kleurplaat,mandala,kl
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu negen spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu tien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Vier op een rij, Dammen, Slangetje, Kleurplaten, Tekenen, Klok kijken en Letters. Er komen meer spellen bij.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -52,6 +52,10 @@ VIER OP EEN RIJ: SAMEN OF TEGEN DE COMPUTER
 • Laat om de beurt een fiche vallen: wie eerst vier op een rij heeft, wint.
 • Samen op één scherm, of tegen de computer: Makkelijk, Gemiddeld of Moeilijk.
 • Voor de kleinsten (vanaf 3 jaar): het kleuterbord van 5 bij 4, waar drie op een rij al wint. Zonder lezen.
+
+DAMMEN
+• Tik op een stuk en dan op een stip; stukken die moeten slaan, gloeien zachtjes. Puppy tegen poes, of klassiek.
+• Samen of tegen de computer, op 8 bij 8 of het internationale bord van 10 bij 10.
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
 • Tellen: eet de getallen op volgorde, tot 20, ook in sprongen van twee of terugtellend.
@@ -90,7 +94,7 @@ GEMAAKT VOOR KINDEREN
 GEEN RECLAME, NOOIT
 • Geen advertenties, ook niet in het gratis deel.
 • Geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel: bij Bubbels schieten level 1 tot en met 10, bij Dogudoku en bij Picturedoku elk 10 gratis puzzels, verdeeld over alle groottes, bij Vier op een rij samen spelen en de computer op Makkelijk en Gemiddeld, bij Slangetje 10 van de 30 levels, bij Kleurplaten 6 kleurplaten en 3 mandala's, bij Tekenen vrij tekenen met alle kleuren en 3 bewaarde tekeningen, bij Klok kijken de hele en halve uren en het dagritme, en bij Letters de eerste letters. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel om echt mee te spelen: bijvoorbeeld level 1 tot en met 10 bij Bubbels schieten, 10 puzzels bij Dogudoku en bij Picturedoku, samen spelen bij Vier op een rij en Dammen, 6 kleurplaten en 3 bewaarde tekeningen. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

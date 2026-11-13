@@ -23,6 +23,9 @@ import { pictureSvg } from '../games/picturedoku/art.js';
 import '../games/vier/strings.js';
 import { createVier } from '../games/vier/vier.js';
 import { tokenSvg } from '../games/vier/art.js';
+import '../games/dammen/strings.js';
+import { createDammen } from '../games/dammen/dammen.js';
+import { tileSvg as dammenTileSvg } from '../games/dammen/art.js';
 import '../games/slang/strings.js';
 import { createSlang } from '../games/slang/slang.js';
 import { snakeSvg } from '../games/slang/art.js';
@@ -187,6 +190,10 @@ function drawVierTile() {
   spots[11] = tokenSvg('bubble');
   spots[7] = tokenSvg('bubble');
   box.innerHTML = `<span class="mini-vier-tile">${spots.map((s) => `<span>${s}</span>`).join('')}</span>`;
+}
+
+function drawDammenTile() {
+  $('#tile-dammen .tile-art').innerHTML = dammenTileSvg();
 }
 
 function drawSlangTile() {
@@ -492,6 +499,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.dammen = createDammen({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.kleuren = createKleuren({
     t,
     show,
@@ -553,6 +571,7 @@ async function boot() {
   drawDoguTile();
   drawPicturedokuTile();
   drawVierTile();
+  drawDammenTile();
   drawSlangTile();
   drawKleurenTile();
   drawTekenenTile();
@@ -561,7 +580,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.dammen.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -570,6 +589,7 @@ async function boot() {
       dogu: games.dogudoku.testHook(),
       pdoku: games.picturedoku.testHook(),
       vier: games.vier.testHook(),
+      dam: games.dammen.testHook(),
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
       teken: games.tekenen.testHook(),
@@ -608,6 +628,7 @@ function onBack() {
   else if (action === 'dogudoku-levels') games.dogudoku.leave();
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
   else if (action === 'vier-menu') games.vier.leave();
+  else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'tekenen-list') games.tekenen.back();
