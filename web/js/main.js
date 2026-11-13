@@ -2,7 +2,7 @@
 // the one purchase that opens every game. Each game lives in web/games/<id>/.
 import { BRAND } from './brand.js';
 import { gazeboSvg } from './logo.js';
-import { GAMES } from './games.js';
+import { GAMES, GROUPS, OTHER_GROUP } from './games.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
 import { COLORS, getSprite, drawBubble } from './bubble-art.js';
 import * as store from './storage.js';
@@ -152,6 +152,53 @@ $('#btn-transfer').addEventListener('click', () => {
 });
 
 // ---------- home tiles ----------
+
+/** One section per group (GROUPS in games.js) with its games' tiles, in GAMES order. The art is
+ *  drawn into each `.tile-art` later (drawTileArt and friends); the texts come from translateDom. */
+function buildTiles() {
+  const box = $('#tile-groups');
+  // a game whose group is not in GROUPS still gets a tile, in an "Overig" section at the end
+  const known = new Set(GROUPS.map((g) => g.id));
+  const lost = GAMES.filter((g) => !known.has(g.group));
+  for (const g of lost) console.error(`home: game ${g.id} has an unknown group ${JSON.stringify(g.group)}; shown under ${OTHER_GROUP.id}`);
+  for (const group of [...GROUPS, OTHER_GROUP]) {
+    const list = group === OTHER_GROUP ? lost : GAMES.filter((g) => g.group === group.id);
+    if (!list.length) continue;
+    const section = document.createElement('section');
+    section.className = 'tile-group';
+    section.style.setProperty('--n', list.length);
+    const head = document.createElement('h2');
+    head.className = 'group-name';
+    head.id = `group-${group.id}`;
+    head.dataset.i18n = group.titleKey;
+    head.textContent = t(group.titleKey);
+    const tiles = document.createElement('div');
+    tiles.className = 'tiles';
+    tiles.setAttribute('role', 'group');
+    tiles.setAttribute('aria-labelledby', head.id);
+    for (const game of list) {
+      const tile = document.createElement('button');
+      tile.id = `tile-${game.id}`;
+      tile.className = game.status === 'ready' ? 'tile' : 'tile soon';
+      tile.type = 'button';
+      tile.dataset.game = game.id;
+      // Bubbels paints its bubbles on a canvas; the other games put their own drawing in a span
+      const art = document.createElement(game.id === 'bubbels' ? 'canvas' : 'span');
+      if (art instanceof HTMLCanvasElement) art.width = art.height = 160;
+      art.className = 'tile-art';
+      art.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span');
+      name.className = 'tile-name';
+      name.dataset.i18n = game.titleKey;
+      name.textContent = t(game.titleKey);
+      tile.append(art, name);
+      tiles.append(tile);
+    }
+    section.append(head, tiles);
+    box.append(section);
+  }
+}
+buildTiles();
 
 function drawTileArt() {
   const c = $('#tile-bubbels .tile-art');
@@ -391,7 +438,7 @@ const homeAnim = {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       const base = canvas.getBoundingClientRect();
-      keepOut = ['.logo', '.tagline', '.tiles'].map((sel) => {
+      keepOut = ['.logo', '.tagline', '.tile-groups'].map((sel) => {
         const r = $(sel).getBoundingClientRect();
         return { x0: r.left - base.left, x1: r.right - base.left, y0: r.top - base.top, y1: r.bottom - base.top };
       });

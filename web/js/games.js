@@ -1,6 +1,7 @@
 // The games in the app, in the order of the tiles on the home screen. A game that is not ready
 // yet shows as a "coming soon" tile. Adding a game: web/games/<id>/ with meta.js (id, titleKey,
-// free tier), strings.js and a controller, then an entry here and a tile in index.html.
+// group, free tier), strings.js and a controller, then an entry here; the shell builds its tile
+// in the section of its `group` (main.js) and draws its art.
 import { meta as bubbels } from '../games/bubbels/meta.js';
 import { meta as dogudoku } from '../games/dogudoku/meta.js';
 import { meta as picturedoku } from '../games/picturedoku/meta.js';
@@ -12,6 +13,18 @@ import { meta as kleuren } from '../games/kleuren/meta.js';
 import { meta as tekenen } from '../games/tekenen/meta.js';
 import { meta as klok } from '../games/klok/meta.js';
 import { meta as letters } from '../games/letters/meta.js';
+
+// The sections of the home screen, in order. A game picks one with `group` in its meta.js; within
+// a section the tiles follow the order of GAMES.
+export const GROUPS = [
+  { id: 'puzzles', titleKey: 'home.group.puzzles' },
+  { id: 'board', titleKey: 'home.group.board' },
+  { id: 'creative', titleKey: 'home.group.creative' },
+  { id: 'learning', titleKey: 'home.group.learning' },
+  { id: 'action', titleKey: 'home.group.action' },
+];
+// Where a game with an unknown `group` lands (with an error in the console), so it never disappears.
+export const OTHER_GROUP = Object.freeze({ id: 'other', titleKey: 'home.group.other' });
 
 export const GAMES = [
   { ...bubbels, status: 'ready' },

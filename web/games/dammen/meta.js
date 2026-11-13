@@ -4,6 +4,7 @@
 export const meta = Object.freeze({
   id: 'dammen',
   titleKey: 'games.dammen',
+  group: 'board', // the section on the home screen (GROUPS in js/games.js)
   freeLevels: Object.freeze([1]),
   freeVariants: Object.freeze(['small']),
   /** Is this game setup behind the full version? `setup`: { variant, mode: 'duo'|'cpu', level }. */

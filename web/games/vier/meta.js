@@ -4,6 +4,7 @@
 export const meta = Object.freeze({
   id: 'vier',
   titleKey: 'games.vier',
+  group: 'board', // the section on the home screen (GROUPS in js/games.js)
   freeLevels: Object.freeze([1, 2]),
   /** Is this game setup behind the full version? `setup`: { mode: 'duo'|'cpu', level }. */
   isLocked(setup, owned) {
