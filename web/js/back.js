@@ -8,6 +8,7 @@
 //   a Dogudoku or Picturedoku puzzle   -> its puzzle list (the board is kept for this session)
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Dammen game                      -> its menu (the game is kept: "keep playing")
+//   a Ganzenbord game                  -> its menu (the game is kept: "keep playing")
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
 //   a colouring page                   -> the list of pages (the page is saved)
 //   a drawing                          -> an open row of stamps or mirror choices closes; else
@@ -27,6 +28,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'picturedoku') return 'picturedoku-levels';
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'dammen') return 'dammen-menu';
+  if (screen === 'ganzen') return 'ganzen-menu';
   if (screen === 'slang') return 'slang-menu';
   if (screen === 'kleuren') return 'kleuren-list';
   if (screen === 'tekenen') return 'tekenen-list';
