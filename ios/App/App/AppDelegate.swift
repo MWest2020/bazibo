@@ -8,9 +8,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Play sounds as media (the Letters voice), so the ring/silent switch does not mute them;
-        // mix with other audio instead of stopping a parent's music. Failure only means the default.
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        // Game sounds are ambient: the ring/silent switch mutes them and a parent's music keeps
+        // playing alongside. Failure only means the default.
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
         return true
     }
 

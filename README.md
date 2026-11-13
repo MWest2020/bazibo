@@ -7,8 +7,8 @@ wrapped with Capacitor as an Android and an iOS app. The games: the bubble shoot
 sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
-kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by ear,
-with a read-aloud voice); more
+kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by sight:
+match a letter, the first letter of a word, build a word); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
 gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
@@ -227,33 +227,39 @@ blue minute hand that are easy to tell apart.
 
 ### Letters
 
-Learn the letters by ear, in `web/games/letters/` (ages 4-7; the rounds in `round.js` and the
+Learn the letters by sight, in `web/games/letters/` (ages 4-7; the rounds in `round.js` and the
 words in `words.js`, pure and tested; the pictures in `art.js`, which colours in the Kleurplaten
-drawings and reuses the Picturedoku fruit; the voice in `voice.js`; the screens in `letters.js`).
-Everything that matters is spoken, so a child who cannot read yet can play.
+drawings and reuses the Picturedoku fruit; the screens in `letters.js`). Nothing is spoken: every
+question is a big letter, a picture or a word to look at. (Until 13 Nov 2026 a Piper voice read
+the questions aloud; Mark dropped it because children did not like the robot voice.)
 
-- Three kinds of round: **Tik de letter / Tap the letter** (hear a letter, tap it among 3-6 big
-  tiles), **Beginletter / First letter** (a picture and its spoken word, tap the letter it starts
-  with) and **Woordje maken / Build a word** (hear a word, tap its letters in order).
+- Three kinds of round:
+  - **Tik de letter / Tap the letter**: one big letter, tap the same one among 3-6 tiles. Tier 1
+    draws it exactly like its tile; tier 2 shows the capital, find the small letter (with the
+    capitals option on, the other way round); tier 3 mixes both and puts a mirrored look-alike
+    next to b, d, p, q, n, u, m and w (`LOOKALIKE` in `words.js`), only when the tiles are small
+    letters (capital B, D, P and Q are not mirror images, so with capitals on there is no twin).
+    A capital I is never offered next to a small l. The case is fixed when a round starts.
+  - **Beginletter / First letter**: a picture with its word underneath, the first letter left
+    out ("_on"); tap the missing letter. The word is shown in every tier, so a picture that could
+    be two words (puppy or dog) is never a guess.
+  - **Woordje maken / Build a word**: a picture, tap the word's letters in order. Tier 1 traces
+    the word, drawn faintly in the slots; tier 2 shows it for 2 seconds, and a tap on the picture
+    (the eye) shows it again; tier 3 has the picture only, with two extra letters.
 - Three tiers: the first letters (a i o m s k), more letters, the whole alphabet. Lowercase by
   default, as Dutch schools start; the "aA" button in the menu bar switches to capitals.
-- The voice says letter **names** ("bee", "kaa"), not letter sounds ("buh"); many schools teach the
-  sounds first. That is the default of issue #23 until Mark decides; switching means new clips and
-  a test change, the game itself stays the same.
-- Choices never put letters that sound alike next to each other at the start of a word (`CONFUSABLE`
-  in `words.js`: English c/k/s, Dutch k/c/q, v/f, z/s). b, d and p do appear together from tier 2 on,
-  on purpose: telling those mirrored shapes apart is part of learning them.
-- A wrong tap is gentle: the voice says "Probeer het nog eens" and repeats the question; after two
-  wrong tries the right letter is shown and said (building: the next letter goes in by itself).
-  Stars by mistakes per question (counted once).
-- **The voice** is recorded, not generated on the phone: `tools/make_voice.py` makes every clip once
-  with Piper, offline (Dutch nl_NL-alex, dataset CC0; English en_GB-cori, dataset CC BY 4.0; see
-  CREDITS.md), trims and levels it and writes small MP3s (about 140 KiB per language) plus
-  `voice/manifest.json`. The clips play through the app's own sound bus, so the sound setting
-  mutes them; with sound off the game says so. They are in the offline cache like every file.
-  Regenerate after changing the words or phrases: `uv run --no-project --with piper-tts==1.8.0
-  --with numpy --with lameenc==1.8.1 python tools/make_voice.py` (the English model is pinned by
-  sha256 in `tools/voice-pins.json`).
+- "First letter" never offers letters that sound alike at the start of a word (`CONFUSABLE` in
+  `words.js`: English c/k/s, Dutch k/c/q, v/f, z/s), nor a letter that would spell another word in
+  the gap (`ALSO_A_WORD`: kat/mat, huis/muis, pear/bear). A new word goes on that list too. The
+  wrong choices come from the tier's letters plus the first letters of its words, so in tier 1
+  the answer is not simply the one letter from outside a i o m s k.
+- Sounds are ambient (`AVAudioSession` `.ambient` in `ios/App/App/AppDelegate.swift`,
+  `audioSession.type = 'ambient'` in `audio.js`): the iPhone's silent switch mutes them and a
+  parent's music keeps playing.
+- A wrong tap is gentle: the tile shakes and fades, "Probeer het nog eens"; after two wrong tries
+  the right letter lights up (building: the next letter goes in by itself). Stars by mistakes per
+  question (counted once). The only sounds are the app's own effects (a plink per placed letter, a
+  soft boop, the end chime), muted by the sound setting.
 - Free: every round of the first tier, in all three kinds. The other tiers and random practice are
   in the full version (`meta.js`).
 - Saved under `games.letters`: stars per round, random rounds done, how-to cards seen, the last

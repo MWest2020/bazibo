@@ -78,10 +78,10 @@ TELLING TIME
 • Daily rhythm for the youngest: breakfast, school, bedtime.
 • From whole hours to single minutes and the 24-hour clock. After a mistake, the clock explains where the hands are.
 
-LETTERS WITH A READ-ALOUD VOICE
-• A voice says a letter or a word; your child taps the right letter. No reading needed.
-• Tap the letter, First letter and Build a word; small or capital letters.
-• The voice was made beforehand on our own computer and is inside the app.
+LETTERS
+• Tap the letter: find the same letter, a capital with its small letter too.
+• First letter: which letter is missing from the word under the picture?
+• Build a word: copy it first, then from memory; small or capital letters.
 
 MADE FOR CHILDREN
 • Colours each have their own symbol or pattern, so colour-blind children can play too.

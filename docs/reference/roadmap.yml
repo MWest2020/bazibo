@@ -27,7 +27,7 @@ phases:
       - {item: "A roadmap page for parents (bazibo.nl/nl/plannen, /en/roadmap): what is in Bazibo now and what comes next, in order and without dates", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/18"}
       - {item: "Move progress between devices with a QR code, without the internet", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/20"}
       - {item: "Tel & Plop: shoot the bubble with the right number of dots, or the answer to a sum", status: open, evidence: "https://github.com/MWest2020/bazibo/issues/2"}
-      - {item: "Letters with a read-aloud voice: tap the letter you hear, the first letter of a pictured word, build a word; clips made offline with Piper (Dutch CC0, English CC BY 4.0), slower for children, no cloud and no runtime TTS", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/21 + https://github.com/MWest2020/bazibo/pull/24"}
+      - {item: "Letters without a voice (the Piper voice removed on Mark's word, 13 Nov): find the same letter (a capital with its small letter, mirrored look-alikes), the missing first letter of a pictured word, build a word (traced, seen for a moment, then from the picture)", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/21 + https://github.com/MWest2020/bazibo/pull/28"}
 done_means:
   - {item: "Bubbels finished: 30 levels, sounds, offline, Dutch and English", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}
   - {item: "Brand shell: home screen with game tiles, settings, one purchase for every game", status: done, evidence: "https://github.com/MWest2020/bazibo/pull/3"}

@@ -81,10 +81,10 @@ KLOK KIJKEN
 • Dagritme voor de kleinsten: ontbijt, school, bedtijd.
 • Van hele uren tot losse minuten en de 24-uursklok. Bij een fout legt de klok uit waar de wijzers staan.
 
-LETTERS MET EEN VOORLEESSTEM
-• Een stem zegt een letter of een woord; je kind tikt de goede letter. Zonder lezen.
-• Tik de letter, Beginletter en Woordje maken; kleine letters of hoofdletters.
-• De stem is vooraf lokaal gemaakt en zit in de app.
+LETTERS
+• Tik de letter: zoek dezelfde letter, ook een hoofdletter bij zijn kleine letter.
+• Beginletter: welke letter mist er in het woord bij het plaatje?
+• Woordje maken: eerst natekenen, dan uit je hoofd; kleine letters of hoofdletters.
 
 GEMAAKT VOOR KINDEREN
 • Kleuren met elk een eigen symbool of patroon, zodat ook kleurenblinde kinderen kunnen meespelen.

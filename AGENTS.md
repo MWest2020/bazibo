@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, checkers `dammen`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, letters with a read-aloud voice `letters`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, four in a row `vier`, checkers `dammen`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -15,7 +15,7 @@ evidence, in the same PR).
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
   Only CC0, MIT, BSD, Apache-2.0, or CC BY 4.0 with attribution shown in the app and on bazibo.nl
-  (the privacy pages' voice section; issue #22).
+  (on the privacy pages; issue #22).
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
   `web/games/<id>/strings.js`) in Dutch and English; `npm test` fails on a missing key. Short and
   friendly. Big touch targets. Brand name and tagline only in `web/js/brand.js`.
@@ -46,7 +46,7 @@ home → Slangetje: a locked level offers only OK on the web, counting level 1 a
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
-home → Letters: one round of each kind played by taps in Dutch and English, the voice asked for every question, a gentle wrong tap, a locked tier stays locked; the layout at 320x568 and sideways;
+home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap, the traced word), a gentle wrong tap, a locked tier stays locked, tier 2 shows the build word for a moment and again on a tap on the picture; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
@@ -125,10 +125,10 @@ half hour ("vijf voor half drie" = 2:25); every 5-minute step of every hour is t
 languages, so a change to `phrase()` must keep those tests green. Answer options stay on the
 tier's grid and never show the same clock twice. Stars through `recordStars`, random rounds
 through `recordRandomSolved`.
-Letters: everything a child needs is spoken. The only recorded audio in the app is the voice in
-`web/games/letters/voice/`, made offline by `tools/make_voice.py` (Piper); never add a runtime
-TTS, a cloud voice or a voice whose licence forbids commercial use. New words go in `WORDS` (both
-languages, with a picture that exists in `art.js`) and in `tools/make_voice.py`; `npm test` checks
-that every word, letter and phrase has a clip.
+Letters: nothing is spoken, every question is seen (a big letter, a picture with its word and a
+gap, a word to build); the rounds are pure in `web/games/letters/round.js`, tested per mode and
+tier. The Piper voice was removed on Mark's word (13 Nov 2026: children did not like the robot
+voice); do not add speech back, recorded or generated, without him. New words go in `WORDS` (both
+languages, with a picture that exists in `art.js`).
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.

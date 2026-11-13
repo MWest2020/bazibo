@@ -535,7 +535,7 @@
       <div class="levels-scroll"><div id="letters-menu" class="klok-menu"></div></div>
     </section>
 
-    <!-- Letters: one question at a time, spoken -->
+    <!-- Letters: one question at a time, all shown (no voice) -->
     <section id="screen-letters" class="screen" data-i18n-aria="games.letters" aria-label="Letters">
       <header class="bar dogu-hud klok-hud">
         <button id="letters-back" class="btn icon" type="button" data-i18n-aria="letters.menuBtn" aria-label="Menu">
@@ -545,12 +545,12 @@
           <div id="letters-sub" class="hud-level"></div>
           <div id="letters-title" class="dogu-title"></div>
         </div>
-        <button id="letters-replay" class="btn icon" type="button" data-i18n-aria="letters.replay" aria-label="Nog eens horen"></button>
+        <span class="bar-spacer"></span>
       </header>
       <div id="letters-stage">
-        <p id="letters-muted" class="letters-muted" hidden></p>
         <p id="letters-prompt" class="letters-prompt"></p>
         <div id="letters-pic" class="letters-picbox" role="img" hidden></div>
+        <p id="letters-word" class="letters-word" hidden></p>
         <div id="letters-slots" class="letters-slots" role="group" data-i18n-aria="letters.slots" aria-label="Het woord" hidden></div>
         <div id="letters-options" class="letters-options" role="group" data-i18n-aria="letters.options" aria-label="Kies een letter"></div>
         <div id="letters-dots" class="klok-dots" role="img"></div>
