@@ -127,18 +127,8 @@ function pondBox(stones, w, h, clear) {
   return { l, t, r, b, cx, cy };
 }
 
-/**
- * The board for a space of `w`×`h` px: the biggest step that fits 64 stones on the spiral and
- * leaves a pond in the middle, no more than `maxStep`. Returns { w, h, step, size (a stone's
- * diameter), stones: [[x, y], ...] (centres, 0..63), trail: [[x, y], ...] (the path from the start
- * to 63, for drawing), pond: { l, t, r, b, cx, cy } }.
- */
-export function boardLayout(w, h, maxStep = 72) {
-  w = Math.max(120, w);
-  h = Math.max(120, h);
-  // a very long, thin space makes long thin laps: keep the board between 3:5 and 5:3
-  w = Math.min(w, Math.floor(h * 1.67));
-  h = Math.min(h, Math.floor(w * 1.67));
+/** The biggest step that fits 64 stones and a pond in exactly `w`×`h`: { a, pond }. */
+function fit(w, h) {
   let lo = 4;
   let hi = Math.min(w, h) / 4;
   let best = null;
@@ -151,25 +141,66 @@ export function boardLayout(w, h, maxStep = 72) {
       lo = p;
     } else hi = p;
   }
-  if (!best) {
-    // too small for a pond: stones only (never happens at phone sizes)
-    for (let p = Math.min(w, h) / 4; p > 2; p *= 0.97) {
-      const a = attempt(w, h, p);
-      if (a) {
-        best = { a, pond: null };
-        break;
-      }
-    }
+  if (best) return best;
+  // too small for a pond: stones only (never happens at phone sizes)
+  for (let p = Math.min(w, h) / 4; p > 2; p *= 0.97) {
+    const a = attempt(w, h, p);
+    if (a) return { a, pond: null };
   }
-  let { a, pond } = best;
-  if (a.p > maxStep) {
-    // a big screen: keep the steps at most maxStep and make the board smaller instead
-    const k = maxStep / a.p;
-    return boardLayout(Math.floor(w * k), Math.floor(h * k), Infinity);
+  return { a: attempt(w, h, 2), pond: null };
+}
+
+const cache = new Map(); // `w h maxStep` -> layout: a phone's address bar fires many resizes
+const CACHE_SIZE = 24;
+
+/**
+ * The board for a space of `w`×`h` px: the biggest step that fits 64 stones on the spiral and
+ * leaves a pond in the middle, never more than `maxStep` (a big screen gets a smaller board
+ * instead). Returns { w, h, step, size (a stone's diameter), stones: [[x, y], ...] (centres,
+ * 0..63), trail: [[x, y], ...] (the path from the start to 63, for drawing), pond: { l, t, r, b,
+ * cx, cy } }. The same size gives the same (cached, frozen) layout.
+ */
+export function boardLayout(w, h, maxStep = 72) {
+  w = Math.max(120, Math.floor(w));
+  h = Math.max(120, Math.floor(h));
+  // a very long, thin space makes long thin laps: keep the board between 3:5 and 5:3
+  w = Math.min(w, Math.floor(h * 1.67));
+  h = Math.min(h, Math.floor(w * 1.67));
+  const key = `${w} ${h} ${maxStep}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  let bw = w;
+  let bh = h;
+  let { a, pond } = fit(bw, bh);
+  // a big screen: shrink the board until the step is at most maxStep
+  for (let k = maxStep / a.p, tries = 0; a.p > maxStep && tries < 12; tries++, k *= 0.985) {
+    bw = Math.max(120, Math.floor(w * k));
+    bh = Math.max(120, Math.floor(h * k));
+    ({ a, pond } = fit(bw, bh));
   }
   const trail = a.path.filter((pt) => pt[2] <= a.need).map(([x, y]) => [x, y]);
   trail.push(a.stones[STONES - 1].slice());
-  return { w, h, step: a.p, size: a.p * STONE, stones: a.stones, trail, pond };
+  const lay = Object.freeze({ w: bw, h: bh, step: a.p, size: a.p * STONE, stones: a.stones, trail, pond });
+  if (cache.size >= CACHE_SIZE) cache.delete(cache.keys().next().value);
+  cache.set(key, lay);
+  return lay;
+}
+
+/** How far from a stone's centre a tap still counts for it: generous, never under 22 px (a 44 px circle). */
+export const tapRadius = (lay) => Math.max(22, lay.step * 0.85);
+
+/**
+ * The stone a tap at (x, y) (board px) means: the NEAREST stone centre, if the tap is within
+ * tapRadius of it; else -1. So a tap on a neighbour's stone is that neighbour, never the one next to it.
+ */
+export function stoneAt(lay, x, y) {
+  let best = -1;
+  let bd = Infinity;
+  lay.stones.forEach(([sx, sy], k) => {
+    const d = Math.hypot(sx - x, sy - y);
+    if (d < bd) (bd = d), (best = k);
+  });
+  return bd <= tapRadius(lay) ? best : -1;
 }
 
 /** Count yourself: the next square to tap after `done` taps along `path`, or -1 when all are done. */

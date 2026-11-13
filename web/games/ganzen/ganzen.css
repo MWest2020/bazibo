@@ -65,7 +65,6 @@
   flex: none;
   border: 4px solid var(--frame);
   border-radius: 22px;
-  overflow: hidden;
   background: var(--board-bg);
   box-shadow: 0 7px 0 rgba(43, 35, 112, 0.18), 0 14px 30px rgba(59, 47, 168, 0.18);
   touch-action: manipulation;
@@ -73,7 +72,7 @@
   user-select: none;
 }
 /* the landscape: grass, snow or sand, the trail and the pond (scene.js) */
-.ganzen-land { position: absolute; inset: 0; pointer-events: none; }
+.ganzen-land { position: absolute; inset: 0; pointer-events: none; border-radius: 18px; overflow: hidden; } /* only the picture is clipped: geese and counts may stand over the edge */
 .ganzen-land svg { display: block; width: 100%; height: 100%; }
 .ganzen-stones { position: absolute; inset: 0; }
 /* a stone's button is a clear square of --hit round the stone; the stone is drawn inside it */
@@ -137,7 +136,15 @@
 
 /* count yourself: the stone to tap glows; a wrong tap makes it wiggle */
 .gsq.next { cursor: pointer; z-index: 1; }
-.gsq.next .stone { animation: ganzen-next 1.1s ease-in-out infinite; }
+.gsq.next .stone::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px #ffc531, 0 0 calc(var(--step) * 0.4) 4px rgba(255, 197, 49, 0.95);
+  pointer-events: none;
+  animation: ganzen-next 1.1s ease-in-out infinite; /* opacity and scale only: cheap to draw */
+}
 .gsq.wiggle .stone { animation: ganzen-wiggle 0.45s ease; }
 
 /* the geese stand on a layer over the stones */
@@ -167,6 +174,7 @@
   pointer-events: none;
   animation: ganzen-pop 1.1s ease-out forwards;
 }
+.count-pop.below { transform: translate(-50%, 0); animation-name: ganzen-pop-below; }
 
 /* ---------- the die and whose turn ---------- */
 .ganzen-side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -249,14 +257,14 @@
 
 @keyframes ganzen-hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-28%); } }
 @keyframes ganzen-pop { 0% { opacity: 0; transform: translate(-50%, -60%) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, -88%) scale(1.12); } 35%, 75% { opacity: 1; transform: translate(-50%, -88%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -110%) scale(0.95); } }
-@keyframes ganzen-next { 0%, 100% { box-shadow: 0 0 0 3px #ffc531, 0 0 calc(var(--step) * 0.2) 2px rgba(255, 197, 49, 0.8); } 50% { box-shadow: 0 0 0 5px #ffc531, 0 0 calc(var(--step) * 0.45) 4px rgba(255, 197, 49, 1); } }
+@keyframes ganzen-pop-below { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.12); } 35%, 75% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, 20%) scale(0.95); } }
+@keyframes ganzen-next { 0%, 100% { opacity: 0.6; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes ganzen-wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10%); } 75% { transform: translateX(10%); } }
 @keyframes ganzen-ready { 0%, 100% { box-shadow: 0 5px 0 var(--primary-dark), 0 0 0 0 rgba(255, 197, 49, 0.9); } 50% { box-shadow: 0 5px 0 var(--primary-dark), 0 0 0 7px rgba(255, 197, 49, 0.55); } }
 @keyframes ganzen-tumble { 0% { transform: rotate(0); } 50% { transform: rotate(14deg) scale(0.92); } 100% { transform: rotate(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .gsq.next .stone, .gsq.wiggle .stone, .gpawn.hop svg, .gpawn.won svg, .count-pop, .ganzen-die.ready, .ganzen-die.tumble .face { animation: none !important; }
+  .gsq.next .stone::before, .gsq.wiggle .stone, .gpawn.hop svg, .gpawn.won svg, .count-pop, .ganzen-die.ready, .ganzen-die.tumble .face { animation: none !important; }
   .count-pop { opacity: 0.95; }
-  .gsq.next .stone { box-shadow: 0 0 0 5px #ffc531, 0 0 calc(var(--step) * 0.4) 4px rgba(255, 197, 49, 1); }
   .gpawn, .gpawn.slide { transition: none; }
 }

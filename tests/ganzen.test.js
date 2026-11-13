@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { END, GEESE, BRIDGE, INN, WELL, MAZE, PRISON, WOODS, WAIT_TURNS, kindOf, walk, newGame, throwDie, rollDie, mulberry32 } from '../web/games/ganzen/rules.js';
 import { meta } from '../web/games/ganzen/meta.js';
-import { boardLayout, nextTap, STONES, STONE } from '../web/games/ganzen/board.js';
+import { boardLayout, nextTap, stoneAt, tapRadius, STONES, STONE } from '../web/games/ganzen/board.js';
 import { sceneSvg } from '../web/games/ganzen/scene.js';
 
 /** A game with the geese on these squares, `turn` to throw. */
@@ -219,6 +219,28 @@ test('the board: every stone has a round tap area of 44 px or more that never co
         if (j !== k) assert.ok(Math.hypot(x - ox, y - oy) >= radius, `${w}x${h}: the button of ${j} covers the middle of ${k}`);
       }
     }
+  }
+});
+
+test('a tap goes to the nearest stone: the centre of every stone is that stone, never its neighbour', () => {
+  for (const [w, h] of SPACES) {
+    const lay = boardLayout(w, h);
+    const tag = `${w}x${h}`;
+    assert.ok(tapRadius(lay) >= 22, `${tag}: tap circle under 44 px`);
+    for (const [k, [x, y]] of lay.stones.entries()) {
+      assert.equal(stoneAt(lay, x, y), k, `${tag}: a tap on the centre of ${k}`);
+      // a tap a little off the stone, away from the board's middle, is still that stone
+      const dx = x < lay.w / 2 ? -1 : 1;
+      assert.equal(stoneAt(lay, x + dx * lay.size * 0.45, y), k, `${tag}: a tap just beside ${k}`);
+    }
+    assert.equal(stoneAt(lay, lay.pond.cx, lay.pond.cy), -1, `${tag}: a tap in the pond is no stone`);
+  }
+});
+
+test('the board: the same size gives the same layout, and the step is never above the maximum', () => {
+  assert.equal(boardLayout(308, 330), boardLayout(308, 330));
+  for (const [w, h] of [[2000, 1400], [1600, 1600], [900, 900], [5000, 3000]]) {
+    for (const max of [72, 60, 40]) assert.ok(boardLayout(w, h, max).step <= max, `${w}x${h} max ${max}: ${boardLayout(w, h, max).step}`);
   }
 });
 

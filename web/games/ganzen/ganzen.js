@@ -14,7 +14,7 @@
 // `stars` { 'won-<board>': games a child's goose won } (a counter that only goes up).
 import { meta } from './meta.js';
 import { END, MAX_PLAYERS, kindOf, newGame, throwDie, rollDie } from './rules.js';
-import { boardLayout, nextTap, STONES } from './board.js';
+import { boardLayout, nextTap, stoneAt, STONES } from './board.js';
 import { sceneSvg } from './scene.js';
 import { gooseSvg, iconSvg, dieSvg, boardThumb, kidSvg, robotBadge, THEMES, BOARDS, GEESE_LOOK } from './art.js';
 import * as store from '../../js/storage.js';
@@ -504,8 +504,11 @@ export function createGanzen(shell) {
     pop.className = 'count-pop';
     pop.textContent = String(n);
     const size = Math.max(30, Math.min(64, lay.step * 0.9));
+    // above the stone; below it when above would leave the board (the top lap)
+    const below = y - lay.step * 0.42 - size * 1.12 < 0;
+    pop.classList.toggle('below', below);
     pop.style.left = `${x}px`;
-    pop.style.top = `${y - lay.step * 0.42}px`;
+    pop.style.top = `${below ? y + lay.step * 0.42 : y - lay.step * 0.42}px`;
     pop.style.width = `${size}px`;
     pop.style.height = `${size}px`;
     pop.style.fontSize = `${size * 0.62}px`;
@@ -620,20 +623,19 @@ export function createGanzen(shell) {
     tap();
     throwNow();
   });
-  /** A tap near the stone to count goes to it: a generous circle round the glowing stone, so a
-   *  small finger on a small phone never has to hit the stone itself. */
+  /** A tap goes to the NEAREST stone (within a generous circle, board.js stoneAt), so a small
+   *  finger need not hit the stone itself, and a tap on a neighbour is never taken for the
+   *  glowing stone: that only makes the glowing one wiggle (tapSquare). */
   $('#ganzen-board').addEventListener('click', (e) => {
-    if (!game || game.phase !== 'count' || !game.pending) return;
+    if (!game || game.phase !== 'count' || !game.pending || !lay) return;
     const btn = e.target.closest('.gsq');
-    const want = nextTap(game.pending.path, game.pending.taps);
     if (e.detail === 0 && btn) {
-      tapSquare(Number(btn.dataset.sq));
+      tapSquare(Number(btn.dataset.sq)); // the keyboard: the focused stone
       return;
     }
-    const r = cells[want].getBoundingClientRect();
-    const d = Math.hypot(r.left + r.width / 2 - e.clientX, r.top + r.height / 2 - e.clientY);
-    if (d <= Math.max((lay?.step || 0) * 0.85, 30)) tapSquare(want);
-    else if (btn) tapSquare(Number(btn.dataset.sq));
+    const land = $('#ganzen-board .ganzen-stones').getBoundingClientRect();
+    const sq = stoneAt(lay, e.clientX - land.left, e.clientY - land.top);
+    if (sq >= 0) tapSquare(sq);
   });
   $('#ganzen-back').addEventListener('click', () => {
     tap();

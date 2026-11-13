@@ -159,14 +159,23 @@ let mini = null; // the little pictures: the real path, small (worked out once, 
 const miniLayout = () => (mini ||= boardLayout(240, 240, Infinity));
 
 /** A little picture of a board for the menu: its landscape with the path of stones. */
+const thumbs = new Map(); // theme -> svg: the menu is drawn again on every visit and language change
 export function boardThumb(theme) {
+  if (!thumbs.has(theme)) thumbs.set(theme, drawThumb(theme));
+  return thumbs.get(theme);
+}
+function drawThumb(theme) {
   const th = THEMES[theme] || THEMES.classic;
   const lay = miniLayout();
   return sceneSvg(theme, lay, { cls: 'mini-ganzen', sized: false, extra: miniStones(lay, th, kindOf) });
 }
 
 /** The home tile: the meadow board with a goose on it. */
+let tile = '';
 export function tileSvg() {
+  return (tile ||= drawTile());
+}
+function drawTile() {
   const th = THEMES.classic;
   const lay = miniLayout();
   // a big goose in the middle, so the tile reads at a glance
