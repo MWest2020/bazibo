@@ -128,7 +128,7 @@ geese, the special squares, a die face and the three boards drawn as SVG in `art
   (miss a turn); the well 31 and the prison 52 (wait until another goose lands there and takes
   your place, but never more than two turns); the maze 42 → 37; 58 "lost in the woods", back to
   the start; 63 exactly, the rest bounces back. Two dice, added up (Mark, 2026-11-14), with the
-  classic first throw: 6 and 3 goes to 26, 5 and 4 to 53. Geese may share a square.
+  classic first throw: 6 and 3 from the start goes to 26, 5 and 4 to 53 (also after the woods). Geese may share a square.
 - "Zelf tellen" / "Count yourself": after the throw the child taps every square the goose walks
   to; the square to tap glows and the count pops up big. Otherwise the goose walks by itself with
   the same big numbers. No voice.

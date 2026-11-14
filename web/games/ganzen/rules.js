@@ -1,8 +1,9 @@
 // Ganzenbord's rules, pure so they can be tested with a seeded die and used by the screens.
 // The classic game of the goose, made kind for children:
 //   - two dice, as in the classic game (Mark, 2026-11-14): the pips added up are the steps
-//   - the classic first throw: 6 and 3 on your very first throw goes to 26, 5 and 4 to 53
-//     (without it a first 9 would run along the geese 9, 18, 27 ... straight to 63)
+//   - the classic first throw: 6 and 3 from the start goes to 26, 5 and 4 to 53 (without it a 9
+//     from the start would run along the geese 9, 18, 27 ... straight to 63). It also holds for a
+//     goose the woods sent back to the start, for the same reason.
 //   - geese on 5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54 and 59: move again by the same amount,
 //     in the same direction (a goose chain goes on as long as it lands on geese)
 //   - the bridge 6 → 12; the maze 42 → 37
@@ -25,7 +26,7 @@ export const PRISON = 52;
 export const WOODS = 58;
 export const WAIT_TURNS = 2; // the well and the prison: at most this many missed turns
 export const MAX_PLAYERS = 4;
-export const FIRST_THROW = Object.freeze({ '6+3': 26, '5+4': 53 }); // the very first throw only
+export const FIRST_THROW = Object.freeze({ '6+3': 26, '5+4': 53 }); // a throw from the start only
 
 /** What a square is: 'goose', 'bridge', 'inn', 'well', 'maze', 'prison', 'woods', 'end', 'start' or ''. */
 export function kindOf(sq) {
@@ -57,7 +58,7 @@ export const rollDie = (rand = Math.random) => 1 + Math.floor(rand() * 6);
 /** One throw of the two dice: [a, b], each 1 to 6. */
 export const rollDice = (rand = Math.random) => [rollDie(rand), rollDie(rand)];
 
-/** Where a player's very first throw sends them, or 0: 6+3 → 26, 5+4 → 53 (either order). */
+/** Where a throw from the start sends a goose, or 0: 6+3 → 26, 5+4 → 53 (either order). */
 export function firstThrowJump(dice) {
   const [a, b] = [...dice].sort((x, y) => y - x);
   return FIRST_THROW[`${a}+${b}`] || 0;
@@ -93,22 +94,23 @@ const clone = (game) => ({ ...game, players: game.players.map((p) => ({ ...p }))
 
 /**
  * The current player throws the two dice `dice` ([a, b], each 1 to 6): the pips added up are the
- * steps, and a very first throw of 6+3 or 5+4 jumps to 26 or 53 (event 'first'). See `play`.
+ * steps, and a throw of 6+3 or 5+4 from the start (square 0) jumps to 26 or 53 (event 'first').
  */
 export function throwDice(game, dice) {
   if (!Array.isArray(dice) || dice.length !== 2 || !dice.every((d) => Number.isInteger(d) && d >= 1 && d <= 6)) {
     throw new Error(`two dice of 1 to 6, not ${JSON.stringify(dice)}`);
   }
-  const first = !game.players[game.turn].thrown;
-  return play(game, dice[0] + dice[1], first ? firstThrowJump(dice) : 0);
+  const fromStart = game.players[game.turn].pos === 0;
+  return play(game, dice[0] + dice[1], fromStart ? firstThrowJump(dice) : 0);
 }
 
 /**
  * The current player moves `roll` steps (the two dice added up; 1 to 12, so the rules can be tested
  * square by square). `jump`, when not 0, is the classic first throw: after the counted steps the
- * goose goes straight there (event { type: 'first', player, from, to }) instead of on the geese. Returns { game: the new state, events } (the old state is left
+ * goose goes straight there instead of on along the geese. Returns { game: the new state, events } (the old state is left
  * as it was). Events, in order, for the screens to show:
  *   { type: 'move', player, from, path, to }       the counted steps (a bounce included)
+ *   { type: 'first', player, from, to }            6+3 or 5+4 from the start: straight to 26 or 53
  *   { type: 'bounce', player }                     63 was passed: the rest went back
  *   { type: 'goose', player, from, path, to }      a goose: the same amount again
  *   { type: 'bridge' | 'maze' | 'woods', player, from, to }

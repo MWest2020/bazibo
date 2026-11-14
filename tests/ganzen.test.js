@@ -57,7 +57,7 @@ test('two dice: the pips added up are the steps, 2 to 12', () => {
   assert.equal(game.players[0].pos, 7);
 });
 
-test('the classic first throw: 6+3 goes to 26, 5+4 to 53, in either order', () => {
+test('the classic first throw: 6+3 from the start goes to 26, 5+4 to 53, in either order', () => {
   assert.equal(firstThrowJump([6, 3]), 26);
   assert.equal(firstThrowJump([3, 6]), 26);
   assert.equal(firstThrowJump([5, 4]), 53);
@@ -72,12 +72,22 @@ test('the classic first throw: 6+3 goes to 26, 5+4 to 53, in either order', () =
   assert.equal(r.game.winner, -1);
 });
 
-test('only the very first throw: a later 6+3 is just nine steps', () => {
+test('only from the start: a later 6+3 is just nine steps', () => {
   let g = throwDice(newGame(2), [1, 2]).game; // goose 0 to 3
   g = throwDice(g, [1, 1]).game; // goose 1 to 2
   const r = throwDice(g, [6, 3]); // goose 0: 3 + 9 = 12, nothing special
   assert.ok(!r.events.some((e) => e.type === 'first'));
   assert.equal(r.game.players[0].pos, 12);
+});
+
+test('back at the start after the woods, a 9 jumps too and never runs the geese to 63', () => {
+  let r = play(at([55, 0]), 3); // 58: lost in the woods, back to 0
+  assert.equal(r.game.players[0].pos, 0);
+  r = throwDice(r.game, [1, 1]); // goose 1
+  r = throwDice(r.game, [6, 3]); // goose 0 from the start again
+  assert.deepEqual(r.events[1], { type: 'first', player: 0, from: 9, to: 26 });
+  assert.equal(r.game.players[0].pos, 26);
+  assert.equal(r.game.winner, -1);
 });
 
 test('a plain move: every step counted, then the next player', () => {

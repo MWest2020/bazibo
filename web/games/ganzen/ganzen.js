@@ -708,7 +708,13 @@ export function createGanzen(shell) {
           if (onScreen('ganzen-menu')) renderMenu();
         },
         start: () => start(),
-        rolls: (list) => (forced = list.slice()),
+        rolls: (list) => {
+          // each throw is a pair of dice, [a, b] with 1 to 6 (an old single number is refused)
+          if (!list.every((d) => Array.isArray(d) && d.length === 2 && d.every((x) => Number.isInteger(x) && x >= 1 && x <= 6))) {
+            throw new Error('rolls: every throw is a pair [a, b] of 1 to 6');
+          }
+          forced = list.map((d) => d.slice());
+        },
         fast: (on) => (speed = on ? 0.2 : 1),
         tap: (sq) => tapSquare(sq),
         state: () =>
