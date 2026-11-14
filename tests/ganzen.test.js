@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { END, GEESE, BRIDGE, INN, WELL, MAZE, PRISON, WOODS, WAIT_TURNS, kindOf, walk, newGame, throwDie, rollDie, mulberry32 } from '../web/games/ganzen/rules.js';
+import { END, GEESE, BRIDGE, INN, WELL, MAZE, PRISON, WOODS, WAIT_TURNS, kindOf, walk, newGame, play, throwDice, rollDie, rollDice, firstThrowJump, mulberry32 } from '../web/games/ganzen/rules.js';
 import { meta } from '../web/games/ganzen/meta.js';
 import { boardLayout, nextTap, stoneAt, tapRadius, STONES, STONE } from '../web/games/ganzen/board.js';
 import { sceneSvg } from '../web/games/ganzen/scene.js';
@@ -37,12 +37,61 @@ test('the die only shows 1 to 6, and every face comes up', () => {
     seen.add(r);
   }
   assert.equal(seen.size, 6);
-  assert.throws(() => throwDie(newGame(2), 7));
-  assert.throws(() => throwDie(newGame(2), 0));
+  assert.throws(() => throwDice(newGame(2), [7, 1]));
+  assert.throws(() => throwDice(newGame(2), [0, 3]));
+  assert.throws(() => throwDice(newGame(2), 4));
+  assert.throws(() => play(newGame(2), 13));
+});
+
+test('two dice: the pips added up are the steps, 2 to 12', () => {
+  const rand = mulberry32(11);
+  const sums = new Set();
+  for (let k = 0; k < 2000; k++) {
+    const d = rollDice(rand);
+    assert.equal(d.length, 2);
+    sums.add(d[0] + d[1]);
+  }
+  assert.deepEqual([...sums].sort((a, b) => a - b), [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const { game, events } = throwDice(newGame(2), [3, 4]);
+  assert.deepEqual(events[0].path, [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(game.players[0].pos, 7);
+});
+
+test('the classic first throw: 6+3 from the start goes to 26, 5+4 to 53, in either order', () => {
+  assert.equal(firstThrowJump([6, 3]), 26);
+  assert.equal(firstThrowJump([3, 6]), 26);
+  assert.equal(firstThrowJump([5, 4]), 53);
+  assert.equal(firstThrowJump([4, 5]), 53);
+  assert.equal(firstThrowJump([6, 2]), 0);
+  let r = throwDice(newGame(2), [3, 6]);
+  assert.deepEqual(r.events[1], { type: 'first', player: 0, from: 9, to: 26 });
+  assert.equal(r.game.players[0].pos, 26);
+  assert.ok(!r.events.some((e) => e.type === 'goose')); // not along the geese to 63
+  r = throwDice(r.game, [4, 5]); // the second player's first throw
+  assert.equal(r.game.players[1].pos, 53);
+  assert.equal(r.game.winner, -1);
+});
+
+test('only from the start: a later 6+3 is just nine steps', () => {
+  let g = throwDice(newGame(2), [1, 2]).game; // goose 0 to 3
+  g = throwDice(g, [1, 1]).game; // goose 1 to 2
+  const r = throwDice(g, [6, 3]); // goose 0: 3 + 9 = 12, nothing special
+  assert.ok(!r.events.some((e) => e.type === 'first'));
+  assert.equal(r.game.players[0].pos, 12);
+});
+
+test('back at the start after the woods, a 9 jumps too and never runs the geese to 63', () => {
+  let r = play(at([55, 0]), 3); // 58: lost in the woods, back to 0
+  assert.equal(r.game.players[0].pos, 0);
+  r = throwDice(r.game, [1, 1]); // goose 1
+  r = throwDice(r.game, [6, 3]); // goose 0 from the start again
+  assert.deepEqual(r.events[1], { type: 'first', player: 0, from: 9, to: 26 });
+  assert.equal(r.game.players[0].pos, 26);
+  assert.equal(r.game.winner, -1);
 });
 
 test('a plain move: every step counted, then the next player', () => {
-  const { game, events } = throwDie(newGame(2), 3);
+  const { game, events } = play(newGame(2), 3);
   assert.deepEqual(events[0], { type: 'move', player: 0, from: 0, path: [1, 2, 3], to: 3 });
   assert.equal(game.players[0].pos, 3);
   assert.equal(game.turn, 1);
@@ -50,7 +99,7 @@ test('a plain move: every step counted, then the next player', () => {
 });
 
 test('a goose: move again by the same amount', () => {
-  const { game, events } = throwDie(at([1, 0]), 4); // 1 + 4 = 5 (goose), + 4 = 9 (goose), + 4 = 13
+  const { game, events } = play(at([1, 0]), 4); // 1 + 4 = 5 (goose), + 4 = 9 (goose), + 4 = 13
   assert.deepEqual(types(events).slice(0, 3), ['move', 'goose', 'goose']);
   assert.deepEqual(events[1].path, [6, 7, 8, 9]);
   assert.equal(game.players[0].pos, 13);
@@ -58,60 +107,60 @@ test('a goose: move again by the same amount', () => {
 
 test('a goose chain: 18, 23 and 27 are five apart... and 9 to 14 too', () => {
   // from 4, a 5: 9 (goose) -> 14 (goose) -> 19? no: 14 + 5 = 19, the inn
-  const { game, events } = throwDie(at([4, 0]), 5);
+  const { game, events } = play(at([4, 0]), 5);
   assert.deepEqual(types(events), ['move', 'goose', 'goose', 'inn']);
   assert.equal(game.players[0].pos, INN);
   // from 13, a 5: 18 -> 23 -> 28
-  const r = throwDie(at([13, 0]), 5);
+  const r = play(at([13, 0]), 5);
   assert.equal(r.game.players[0].pos, 28);
   assert.deepEqual(types(r.events), ['move', 'goose', 'goose']);
 });
 
 test('the bridge 6 -> 12, the maze 42 -> 37', () => {
-  let r = throwDie(at([2, 0]), 4);
+  let r = play(at([2, 0]), 4);
   assert.deepEqual(types(r.events).slice(0, 2), ['move', 'bridge']);
   assert.equal(r.game.players[0].pos, BRIDGE.to);
-  r = throwDie(at([39, 0]), 3);
+  r = play(at([39, 0]), 3);
   assert.deepEqual(types(r.events).slice(0, 2), ['move', 'maze']);
   assert.equal(r.game.players[0].pos, MAZE.to);
 });
 
 test('lost in the woods (58): back to the start', () => {
-  const r = throwDie(at([55, 0]), 3);
+  const r = play(at([55, 0]), 3);
   assert.deepEqual(types(r.events).slice(0, 2), ['move', 'woods']);
   assert.equal(r.game.players[0].pos, 0);
   assert.equal(kindOf(WOODS), 'woods');
 });
 
 test('the inn (19): miss one turn', () => {
-  let g = throwDie(at([16, 10]), 3).game; // goose 0 to the inn
+  let g = play(at([16, 10]), 3).game; // goose 0 to the inn
   assert.equal(g.players[0].pos, INN);
   assert.equal(g.turn, 1);
-  const r = throwDie(g, 1); // goose 1 throws; goose 0 misses its turn
+  const r = play(g, 1); // goose 1 throws; goose 0 misses its turn
   assert.deepEqual(types(r.events).slice(-2), ['skip', 'released']);
   assert.equal(r.game.turn, 1);
-  g = throwDie(r.game, 1).game; // goose 1 again; now goose 0 may throw
+  g = play(r.game, 1).game; // goose 1 again; now goose 0 may throw
   assert.equal(g.turn, 0);
 });
 
 for (const [square, name] of [[WELL, 'well'], [PRISON, 'prison']]) {
   test(`the ${name} (${square}): wait until another goose lands there, never more than ${WAIT_TURNS} turns`, () => {
     // on its own: two missed turns, then free
-    let g = throwDie(at([square - 2, 0]), 2).game;
+    let g = play(at([square - 2, 0]), 2).game;
     assert.equal(g.players[0].stuck, name);
-    let r = throwDie(g, 1);
+    let r = play(g, 1);
     assert.deepEqual(r.events.slice(-1)[0], { type: 'skip', player: 0, reason: name, left: 1 });
     assert.equal(r.game.turn, 1);
-    r = throwDie(r.game, 1);
+    r = play(r.game, 1);
     assert.deepEqual(types(r.events).slice(-2), ['skip', 'released']);
     assert.equal(r.game.turn, 1);
-    r = throwDie(r.game, 1);
+    r = play(r.game, 1);
     assert.equal(r.game.turn, 0);
     assert.equal(r.game.players[0].pos, square);
 
     // freed: the other goose lands there and takes its place
-    g = throwDie(at([square - 2, square - 3]), 2).game;
-    r = throwDie(g, 3);
+    g = play(at([square - 2, square - 3]), 2).game;
+    r = play(g, 3);
     assert.ok(r.events.some((e) => e.type === 'freed' && e.player === 0 && e.by === 1));
     assert.equal(r.game.players[0].stuck, '');
     assert.equal(r.game.players[1].stuck, name);
@@ -124,7 +173,7 @@ test('two geese waiting at once never block the game', () => {
   g.players[0].wait = WAIT_TURNS;
   g.players[0].stuck = 'well';
   g.turn = 1;
-  const r = throwDie(g, 3); // goose 1 into the prison
+  const r = play(g, 3); // goose 1 into the prison
   assert.ok(r.events.some((e) => e.type === 'prison' && e.player === 1));
   // both wait at once: the turns go round, each misses two, then goose 0 throws again
   assert.equal(r.events.filter((e) => e.type === 'skip').length, 4);
@@ -133,37 +182,37 @@ test('two geese waiting at once never block the game', () => {
   let game = r.game;
   for (let k = 0; k < 6 && game.winner < 0; k++) {
     assert.ok(game.players[game.turn].wait === 0, 'a waiting goose was asked to throw');
-    game = throwDie(game, 1).game;
+    game = play(game, 1).game;
   }
 });
 
 test('63 exactly: the rest bounces back', () => {
-  let r = throwDie(at([60, 0]), 3);
+  let r = play(at([60, 0]), 3);
   assert.equal(r.game.winner, 0);
   assert.deepEqual(types(r.events), ['move', 'win']);
-  r = throwDie(at([60, 0]), 5); // 61 62 63 62 61
+  r = play(at([60, 0]), 5); // 61 62 63 62 61
   assert.deepEqual(r.events[0].path, [61, 62, 63, 62, 61]);
   assert.ok(types(r.events).includes('bounce'));
   assert.equal(r.game.players[0].pos, 61);
   assert.equal(r.game.winner, -1);
   // bouncing back onto a goose goes on backwards by the same amount
-  r = throwDie(at([61, 0]), 6); // 62 63 62 61 60 59 (goose) -> 58 ... 53
+  r = play(at([61, 0]), 6); // 62 63 62 61 60 59 (goose) -> 58 ... 53
   assert.deepEqual(r.events.find((e) => e.type === 'goose').path, [58, 57, 56, 55, 54, 53]);
   assert.equal(r.game.players[0].pos, 53);
   // a goose forwards that overshoots 63 bounces too: 53 + 6 = 59 (goose) -> 60 61 62 63 62 61
-  r = throwDie(at([53, 0]), 6);
+  r = play(at([53, 0]), 6);
   assert.equal(r.game.players[0].pos, 61);
   assert.equal(walk(62, 3).to, 61);
 });
 
-test('a whole game with a seeded die always ends with one winner', () => {
+test('a whole game with seeded dice always ends with one winner', () => {
   for (let seed = 1; seed <= 200; seed++) {
     const rand = mulberry32(seed);
     let game = newGame(2 + (seed % 3));
     let throws = 0;
     while (game.winner < 0) {
       assert.equal(game.players[game.turn].wait, 0);
-      game = throwDie(game, rollDie(rand)).game;
+      game = throwDice(game, rollDice(rand)).game;
       assert.ok(++throws < 2000, `seed ${seed} never ends`);
       for (const p of game.players) assert.ok(p.pos >= 0 && p.pos <= END);
     }

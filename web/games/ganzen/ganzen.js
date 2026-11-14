@@ -1,4 +1,4 @@
-// Ganzenbord (the game of the goose): throw the die and walk your goose along the path to 63.
+// Ganzenbord (the game of the goose): throw the two dice and walk your goose along the path to 63.
 // The rules live in rules.js (special squares, waiting, the bounce at 63), where the stepping
 // stones sit in board.js, the landscape under them in scene.js, the other pictures in art.js; the
 // shell (web/js/main.js) owns the overlay card, the sound settings and the purchase, and passes
@@ -13,7 +13,7 @@
 // walks by itself. Saved (games.ganzen): `setup` { board, players: ['kid'|'cpu', ...], count } and
 // `stars` { 'won-<board>': games a child's goose won } (a counter that only goes up).
 import { meta } from './meta.js';
-import { END, MAX_PLAYERS, kindOf, newGame, throwDie, rollDie } from './rules.js';
+import { END, MAX_PLAYERS, kindOf, newGame, throwDice, rollDice } from './rules.js';
 import { boardLayout, nextTap, stoneAt, STONES } from './board.js';
 import { sceneSvg } from './scene.js';
 import { gooseSvg, iconSvg, dieSvg, boardThumb, kidSvg, robotBadge, THEMES, BOARDS, GEESE_LOOK } from './art.js';
@@ -416,30 +416,34 @@ export function createGanzen(shell) {
     }
   }
 
-  /** Throw the die: it tumbles, then shows the throw; then the goose walks. */
+  /** Throw the two dice: they tumble, then show the throw; then the goose walks the sum. */
   async function throwNow() {
     if (!game || game.over || game.phase !== 'roll') return;
     const token = plays;
     const cur = game.state.turn;
-    const roll = forced.length ? forced.shift() : rollDie();
+    const dice = forced.length ? forced.shift() : rollDice();
+    const roll = dice[0] + dice[1];
     game.phase = 'rolling';
     game.msg = '';
     updateTurn();
     sfx.unlock();
     const die = $('#ganzen-die');
+    const faces = die.querySelectorAll('.face');
     die.classList.add('tumble');
     for (let k = 0; k < 6; k++) {
-      $('#ganzen-die .face').innerHTML = dieSvg(k === 5 ? roll : 1 + ((roll + k * 4) % 6));
+      faces.forEach((f, i) => {
+        f.innerHTML = dieSvg(k === 5 ? dice[i] : 1 + ((dice[i] + k * (4 + i)) % 6));
+      });
       sfx.tick();
       await sleep(80 + k * 14);
       if (token !== plays) return;
     }
     die.classList.remove('tumble');
-    die.setAttribute('aria-label', t('ganzen.dieShows', { n: roll }));
-    const result = throwDie(game.state, roll);
+    die.setAttribute('aria-label', t('ganzen.dieShows', { a: dice[0], b: dice[1], n: roll }));
+    const result = throwDice(game.state, dice);
     const move = result.events[0];
     game.pending = { roll, result, path: move.path, taps: 0, player: cur };
-    setMsg(about('ganzen.threw', cur, { n: roll }));
+    setMsg(about('ganzen.threw', cur, { a: dice[0], b: dice[1], n: roll }));
     await sleep(450);
     if (token !== plays) return;
     if (game.setup.count && !isCpu(cur)) {
@@ -545,7 +549,7 @@ export function createGanzen(shell) {
         sfx.chime();
         await sleep(PAUSE * 0.6);
         await hopAlong(cur, e.path, token, true);
-      } else if (e.type === 'bridge' || e.type === 'maze' || e.type === 'woods') {
+      } else if (e.type === 'bridge' || e.type === 'maze' || e.type === 'woods' || e.type === 'first') {
         setMsg(t(`ganzen.ev.${e.type}`, { n: e.to }));
         if (e.type === 'woods') sfx.boop();
         else sfx.chime();
@@ -617,7 +621,7 @@ export function createGanzen(shell) {
 
   // ---------- input ----------
 
-  $('#ganzen-die').innerHTML = `<span class="face">${dieSvg(6)}</span><span class="die-label"></span>`;
+  $('#ganzen-die').innerHTML = `<span class="faces"><span class="face">${dieSvg(6)}</span><span class="face">${dieSvg(3)}</span></span><span class="die-label"></span>`;
   $('#ganzen-die').addEventListener('click', () => {
     if (!game || game.phase !== 'roll' || isCpu(game.state.turn)) return;
     tap();
@@ -704,7 +708,13 @@ export function createGanzen(shell) {
           if (onScreen('ganzen-menu')) renderMenu();
         },
         start: () => start(),
-        rolls: (list) => (forced = list.slice()),
+        rolls: (list) => {
+          // each throw is a pair of dice, [a, b] with 1 to 6 (an old single number is refused)
+          if (!list.every((d) => Array.isArray(d) && d.length === 2 && d.every((x) => Number.isInteger(x) && x >= 1 && x <= 6))) {
+            throw new Error('rolls: every throw is a pair [a, b] of 1 to 6');
+          }
+          forced = list.map((d) => d.slice());
+        },
         fast: (on) => (speed = on ? 0.2 : 1),
         tap: (sq) => tapSquare(sq),
         state: () =>
