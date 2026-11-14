@@ -191,9 +191,11 @@ export function createBubbels(shell) {
     if (next && !locked(next.id)) {
       buttons.push([t('bubbels.next'), 'big primary', () => play(index + 1)]);
     } else if (next) {
-      // the end of the free part: the next step is the offer (the buy button sits behind the gate)
+      // the end of the free part: the next step is the offer (the buy button sits behind the gate),
+      // shown over the level list, so whatever happens to it (OK, Later, the gate, the store) ends
+      // there and never on the finished board, which has no way out (Mark's level 10 report, 15 Nov 2026)
       text = allFreeDone(levels, progress.stars, meta.free) ? t('bubbels.allFree', { score }) : t('bubbels.lastFree', { score });
-      buttons.push([t('bubbels.more'), 'big primary', offer]);
+      buttons.push([t('bubbels.more'), 'big primary', () => (shell.show('levels'), offer())]);
     } else {
       buttons.push([t('bubbels.levels'), 'big primary', () => shell.show('levels')]);
     }
@@ -224,6 +226,12 @@ export function createBubbels(shell) {
   }
 
   function pause() {
+    // a finished board without its card (it was closed somehow): the pause button, and the Android
+    // back button that presses it, lead to the level list instead of doing nothing
+    if (game?.active && (game.phase === 'won' || game.phase === 'lost') && game.endTimer <= 0 && $('#overlay').hidden) {
+      shell.show('levels');
+      return;
+    }
     if (!game || !game.active || game.phase === 'won' || game.phase === 'lost' || game.paused) return;
     game.paused = true;
     shell.showOverlay({
@@ -303,6 +311,7 @@ export function createBubbels(shell) {
         randomSolved: () => store.loadRandomSolved(meta.id),
         locked: () => offer(),
         win: (stars = 3) => onWin({ stars, score: 100 }),
+        clear: (shots = 0) => game.testClear(shots), // ends the level for real (see Game.testClear)
         setIndex: (i) => (index = i),
       };
     },

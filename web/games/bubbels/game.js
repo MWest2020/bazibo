@@ -845,6 +845,16 @@ export class Game {
       effects: this.effects.length + this.falling.length,
     };
   }
+
+  /** Tests: pop every bubble at once, so the level ends the way a real last shot ends it (the
+   *  win card after the same short wait, over the game screen). `shots` decides the stars. */
+  testClear(shots = 0) {
+    if (this.phase !== 'aim') return false;
+    this.grid.cells.forEach((row) => row.fill(null));
+    this.shots = shots;
+    this._end('won');
+    return true;
+  }
 }
 
 function makeBackground(k) {

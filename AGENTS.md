@@ -55,7 +55,10 @@ home → Klok kijken: a locked round offers only OK on the web, a set-the-clock 
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap, the traced word), a gentle wrong tap, a locked tier stays locked, tier 2 shows the build word for a moment and again on a tap on the picture; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
-offer, a returning player, a sideways 844x390 check, screenshots in `shots/`). Look at the screenshots before claiming something looks
+offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
+the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Ganzenbord, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`).
+CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
+offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
 right. The test hook `window.__bubbels` only exists with `?test` in the address.
 
 **Apps:** `. ~/.local/opt/android-env.sh`, then `npx cap sync` after every change in `web/`
@@ -69,7 +72,7 @@ Backup: `android/app/src/main/res/xml/backup_rules.xml` (Android 6-11) and
 `data_extraction_rules.xml` (12+, cloud backup and device transfer) must keep including the
 `sharedpref` domain, where Capacitor Preferences keeps the save; `tests/native.test.js` checks it.
 
-**Release and CI:** `.github/workflows/ci.yml` runs `npm test` and a fastlane check on every push
+**Release and CI:** `.github/workflows/ci.yml` runs `npm test`, the Playwright smoke test and a fastlane check on every push
 and PR, and on `main` publishes `web/` to GitHub Pages. Store releases go through the lanes in
 `fastlane/Fastfile` (table in `docs/release.md`, section 6); store texts and images stay in
 `store/`, `tools/store-to-fastlane.mjs` converts them and `npm test` checks the store limits.

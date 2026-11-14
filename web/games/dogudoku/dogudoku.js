@@ -534,9 +534,10 @@ export function createDogudoku(shell) {
     if (sameSize && !locked(nextAny)) {
       buttons.push([t('dogudoku.next'), 'big primary', () => play(nextAny.id)]);
     } else if (sameSize) {
-      // the next one of this size is in the full version
+      // the next one of this size is in the full version; the offer over the puzzle list, so
+      // "Later" (or the gate, or the store) lands there and not on the solved board
       text = `${t('dogudoku.winText')} ${t('dogudoku.lastFree')}`;
-      buttons.push([t('dogudoku.more'), 'big primary', offer]);
+      buttons.push([t('dogudoku.more'), 'big primary', () => (shell.show('dogudoku-levels'), offer())]);
     }
     buttons.push([t('dogudoku.puzzles'), buttons.length ? 'big secondary' : 'big primary', () => shell.show('dogudoku-levels')]);
     shell.showOverlay({
