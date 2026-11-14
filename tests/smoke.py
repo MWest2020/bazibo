@@ -2397,10 +2397,10 @@ def ganzen_flow(browser, base, problems):
         page.wait_for_timeout(150)
     page.screenshot(path=str(SHOTS / "ganzen-1-menu.png"), full_page=True)
 
-    # a child against the computer goose, counting yourself; the die is set for a short game
+    # a child against the computer goose, counting yourself; the two dice are set for a short game
     page.click(".ganzen-count.count-on")
     page.evaluate("window.__bubbels.gans.fast(true)")
-    page.evaluate("window.__bubbels.gans.rolls([1, 1, 4, 1, 5, 1, 4, 1, 5, 1, 4])")
+    page.evaluate("window.__bubbels.gans.rolls([[2, 3], [1, 1], [2, 2], [1, 1], [1, 4], [1, 1], [2, 2], [1, 1], [3, 3], [1, 1], [2, 2]])")
     page.click("#ganzen-play")
     page.wait_for_timeout(400)
     page.screenshot(path=str(SHOTS / "ganzen-2-start.png"))
@@ -2463,7 +2463,7 @@ def ganzen_flow(browser, base, problems):
 
     # leaving during the winning throw still wins: the counter goes up and the card shows
     page.click(".ganzen-count.count-off")
-    page.evaluate("window.__bubbels.gans.rolls([1, 1, 4, 1, 5, 1, 4, 1, 5, 1, 4])")
+    page.evaluate("window.__bubbels.gans.rolls([[2, 3], [1, 1], [2, 2], [1, 1], [1, 4], [1, 1], [2, 2], [1, 1], [3, 3], [1, 1], [2, 2]])")
     page.click("#ganzen-play")
     left = False
     for turn in range(30):
@@ -2538,7 +2538,7 @@ def ganzen_layouts(browser, base, problems):
         if bad:
             problems.append(f"ganzen {label}: menu slots {bad} overflow or overlap the swap icon")
         page.evaluate("window.__bubbels.gans.fast(true)")
-        page.evaluate("window.__bubbels.gans.rolls([3])")
+        page.evaluate("window.__bubbels.gans.rolls([[1, 2]])")
         page.click("#ganzen-play")
         page.wait_for_timeout(400)
         for sel in ("#ganzen-board", "#ganzen-die", "#ganzen-turn", "#ganzen-status", "#ganzen-back"):

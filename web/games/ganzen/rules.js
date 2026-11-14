@@ -1,6 +1,8 @@
 // Ganzenbord's rules, pure so they can be tested with a seeded die and used by the screens.
 // The classic game of the goose, made kind for children:
-//   - one die (1 to 6), so the youngest count small numbers; no special first throws
+//   - two dice, as in the classic game (Mark, 2026-11-14): the pips added up are the steps
+//   - the classic first throw: 6 and 3 on your very first throw goes to 26, 5 and 4 to 53
+//     (without it a first 9 would run along the geese 9, 18, 27 ... straight to 63)
 //   - geese on 5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54 and 59: move again by the same amount,
 //     in the same direction (a goose chain goes on as long as it lands on geese)
 //   - the bridge 6 → 12; the maze 42 → 37
@@ -23,6 +25,7 @@ export const PRISON = 52;
 export const WOODS = 58;
 export const WAIT_TURNS = 2; // the well and the prison: at most this many missed turns
 export const MAX_PLAYERS = 4;
+export const FIRST_THROW = Object.freeze({ '6+3': 26, '5+4': 53 }); // the very first throw only
 
 /** What a square is: 'goose', 'bridge', 'inn', 'well', 'maze', 'prison', 'woods', 'end', 'start' or ''. */
 export function kindOf(sq) {
@@ -51,6 +54,15 @@ export function mulberry32(seed) {
 /** One throw of the die: 1 to 6. */
 export const rollDie = (rand = Math.random) => 1 + Math.floor(rand() * 6);
 
+/** One throw of the two dice: [a, b], each 1 to 6. */
+export const rollDice = (rand = Math.random) => [rollDie(rand), rollDie(rand)];
+
+/** Where a player's very first throw sends them, or 0: 6+3 → 26, 5+4 → 53 (either order). */
+export function firstThrowJump(dice) {
+  const [a, b] = [...dice].sort((x, y) => y - x);
+  return FIRST_THROW[`${a}+${b}`] || 0;
+}
+
 /**
  * Walk `steps` squares from `from` in direction `dir` (1 forward, -1 back), bouncing back from 63.
  * Returns { path: every square stepped on, in order, to: the last one, dir: the last direction }.
@@ -74,13 +86,27 @@ export function walk(from, steps, dir = 1) {
 /** A new game: every goose on the start, player 0 to throw. */
 export function newGame(players) {
   if (!Number.isInteger(players) || players < 2 || players > MAX_PLAYERS) throw new Error(`2 to ${MAX_PLAYERS} players`);
-  return { players: Array.from({ length: players }, () => ({ pos: 0, wait: 0, stuck: '' })), turn: 0, winner: -1 };
+  return { players: Array.from({ length: players }, () => ({ pos: 0, wait: 0, stuck: '', thrown: false })), turn: 0, winner: -1 };
 }
 
 const clone = (game) => ({ ...game, players: game.players.map((p) => ({ ...p })) });
 
 /**
- * The current player throws `roll`. Returns { game: the new state, events } (the old state is left
+ * The current player throws the two dice `dice` ([a, b], each 1 to 6): the pips added up are the
+ * steps, and a very first throw of 6+3 or 5+4 jumps to 26 or 53 (event 'first'). See `play`.
+ */
+export function throwDice(game, dice) {
+  if (!Array.isArray(dice) || dice.length !== 2 || !dice.every((d) => Number.isInteger(d) && d >= 1 && d <= 6)) {
+    throw new Error(`two dice of 1 to 6, not ${JSON.stringify(dice)}`);
+  }
+  const first = !game.players[game.turn].thrown;
+  return play(game, dice[0] + dice[1], first ? firstThrowJump(dice) : 0);
+}
+
+/**
+ * The current player moves `roll` steps (the two dice added up; 1 to 12, so the rules can be tested
+ * square by square). `jump`, when not 0, is the classic first throw: after the counted steps the
+ * goose goes straight there (event { type: 'first', player, from, to }) instead of on the geese. Returns { game: the new state, events } (the old state is left
  * as it was). Events, in order, for the screens to show:
  *   { type: 'move', player, from, path, to }       the counted steps (a bounce included)
  *   { type: 'bounce', player }                     63 was passed: the rest went back
@@ -92,17 +118,22 @@ const clone = (game) => ({ ...game, players: game.players.map((p) => ({ ...p }))
  *   { type: 'skip', player, reason, left }         after the turn: a waiting player misses a turn
  *   { type: 'released', player }                  that player may throw again next time
  */
-export function throwDie(game, roll) {
+export function play(game, roll, jump = 0) {
   if (game.winner >= 0) throw new Error('the game is over');
-  if (!Number.isInteger(roll) || roll < 1 || roll > 6) throw new Error(`a die shows 1 to 6, not ${roll}`);
+  if (!Number.isInteger(roll) || roll < 1 || roll > 12) throw new Error(`a throw is 1 to 12 steps, not ${roll}`);
   const g = clone(game);
   const me = g.turn;
   const p = g.players[me];
+  p.thrown = true;
   const events = [];
   let w = walk(p.pos, roll, 1);
   events.push({ type: 'move', player: me, from: p.pos, path: w.path, to: w.to });
   if (w.path.includes(END) && w.to !== END) events.push({ type: 'bounce', player: me });
   let pos = w.to;
+  if (jump) {
+    events.push({ type: 'first', player: me, from: pos, to: jump });
+    pos = jump;
+  }
   for (let guard = 0; guard < 20; guard++) {
     const kind = kindOf(pos);
     if (kind === 'goose') {

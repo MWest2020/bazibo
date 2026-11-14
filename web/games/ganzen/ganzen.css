@@ -196,7 +196,8 @@
   cursor: pointer;
   touch-action: manipulation;
 }
-.ganzen-die .face { display: block; width: 58px; height: 58px; }
+.ganzen-die .faces { display: flex; gap: 6px; }
+.ganzen-die .face { display: block; width: 52px; height: 52px; }
 .ganzen-die .face svg { width: 100%; height: 100%; display: block; }
 .ganzen-die:disabled { background: #b9b1f0; box-shadow: 0 5px 0 #9a90e6; cursor: default; }
 .ganzen-die.ready { animation: ganzen-ready 1.4s ease-in-out infinite; }
@@ -223,7 +224,7 @@
   .ganzen-hud .btn.icon { width: 54px; height: 54px; }
   #ganzen-stage.side .ganzen-side { width: 168px; }
   .ganzen-die { min-height: 60px; padding: 6px 16px 6px 8px; font-size: 1.1rem; }
-  .ganzen-die .face { width: 46px; height: 46px; }
+  .ganzen-die .face { width: 38px; height: 38px; }
   .ganzen-chip { gap: 5px; padding: 3px 8px 3px 3px; font-size: 0.85rem; }
   .ganzen-chip .goose { width: 30px; height: 30px; }
   .ganzen-chip .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
@@ -237,7 +238,7 @@
   .ganzen-chip.on, .ganzen-chip.winner { transform: none; }
   .ganzen-chip.on .arrow { display: none; }
   .ganzen-die { min-height: 64px; }
-  .ganzen-die .face { width: 50px; height: 50px; }
+  .ganzen-die .face { width: 46px; height: 46px; }
   /* one goose per row: room for "Blauwe gans" and "de computer" side by side */
   .ganzen-players { grid-template-columns: 1fr; gap: 8px; }
   .ganzen-slot { min-height: 60px; padding: 4px 34px 4px 8px; gap: 8px; }
