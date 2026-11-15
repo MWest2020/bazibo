@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="games/dogudoku/dogudoku.css">
   <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
   <link rel="stylesheet" href="games/memory/memory.css">
+  <link rel="stylesheet" href="games/legpuzzel/legpuzzel.css">
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/dammen/dammen.css">
   <link rel="stylesheet" href="games/ganzen/ganzen.css">
@@ -291,6 +292,38 @@
           <div id="memory-turn" class="vier-turn memory-turn" role="group" data-i18n-aria="memory.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="memory-status" class="vier-status memory-status" aria-live="polite"></p>
         </div>
+      </div>
+    </section>
+
+    <!-- Legpuzzel: how many pieces, and a picture -->
+    <section id="screen-legpuzzel-menu" class="screen" data-i18n-aria="games.legpuzzel" aria-label="Legpuzzel">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="puzzel.menu">Legpuzzel</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="legpuzzel-menu" class="vier-menu puzzel-menu"></div></div>
+    </section>
+
+    <!-- Legpuzzel: the board and the loose pieces -->
+    <section id="screen-legpuzzel" class="screen" data-i18n-aria="games.legpuzzel" aria-label="Legpuzzel">
+      <header class="bar dogu-hud puzzel-hud">
+        <button id="legpuzzel-back" class="btn icon" type="button" data-i18n-aria="puzzel.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="legpuzzel-sub" class="hud-level"></div>
+          <div id="legpuzzel-title" class="dogu-title"></div>
+        </div>
+        <button id="legpuzzel-ghost" class="btn icon" type="button" data-i18n-aria="puzzel.ghost" aria-label="Voorbeeld aan of uit" aria-pressed="true"></button>
+      </header>
+      <div class="puzzel-wrap">
+        <div id="legpuzzel-stage" class="puzzel-stage" role="group" data-i18n-aria="puzzel.boardLabel" aria-label="De puzzel: sleep de stukjes naar hun plek">
+          <div id="legpuzzel-board" class="puzzel-board"></div>
+        </div>
+        <p id="legpuzzel-status" class="puzzel-status" aria-live="polite"></p>
       </div>
     </section>
 

@@ -8,6 +8,8 @@ import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
 import '../web/games/memory/strings.js';
 import { THEMES as MEMORY_THEMES, THEME_IDS as MEMORY_THEME_IDS } from '../web/games/memory/art.js';
+import '../web/games/legpuzzel/strings.js';
+import { PICTURE_IDS as PUZZEL_PICTURES } from '../web/games/legpuzzel/pictures.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/ganzen/strings.js';
@@ -65,6 +67,7 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of MEMORY_THEME_IDS) used.add(`memory.theme.${id}`).add(`memory.theme.${id}Sub`);
   for (const id of ['solo', 'duo', 'cpu']) used.add(`memory.mode.${id}`).add(`memory.mode.${id}Sub`);
   for (const id of Object.values(MEMORY_THEMES).flat()) used.add(`memory.pic.${id}`);
+  for (const id of PUZZEL_PICTURES) used.add(`puzzel.pic.${id}`);
   for (const n of [1, 2, 3]) used.add(`vier.level${n}`);
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);

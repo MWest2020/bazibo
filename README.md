@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 4 to 30 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by sight:
@@ -92,6 +92,37 @@ Ravensburger trademark, as "Connect Four" is for Vier op een rij).
 - Saved under `games.memory`: the best stars alone per board and set, the child's wins against the
   computer per board (counters that only go up), and the last menu choice. A game in progress is
   kept while the app stays open ("keep playing").
+
+### Legpuzzel
+
+A jigsaw puzzle, in `web/games/legpuzzel/` (rules and geometry in `rules.js`, the pictures in
+`pictures.js`, the screens in `legpuzzel.js`). Chosen over a sliding puzzle because it works from
+age 3 (4 big pieces) up to 10 (30 pieces). A sliding puzzle is hard below about 7.
+
+- Six sizes: 4 pieces (2×2, age 3+), 6 (4+), 9 (5+), 12 (6+), 20 (7+), 30 (6×5, 9+). Square pieces
+  with round tabs (`piecePath`). A tab on one piece is a hole in its neighbour; the border is
+  straight. No turning.
+- Eight pictures, whole scenes drawn in code, so every piece shows something: the house in the
+  garden, the boat at sea, the fruit bowl (free), the rocket, the elephant, six puppies, the street
+  and the meadow (full version). They are made from the app's own drawings (Kleurplaten pictures,
+  Picturedoku fruit, Dogudoku puppies) on a sky, grass, sea, space or table-cloth background. A
+  scene fills any board shape, from 1:1 to 6:5.
+- The loose pieces lie scattered on a tray under the board (beside it on a sideways screen;
+  `layout`, `scatter`). Drag a piece; dropped within 0.4 of a piece of its own place it snaps in
+  with a soft note (one higher for each piece) and stays. It never snaps into another piece's
+  place, and a drop anywhere else leaves it there. A touch on the see-through corner of a piece's
+  drawing goes to the piece underneath.
+- A faint example picture on the board helps; the eye button turns it off (remembered). When the
+  last piece is in, the board glows and a chime plays, then the end card: next picture, again,
+  menu.
+- The picture is drawn once into an image the size of the board. Every piece is its own small
+  canvas cut out with a `Path2D`, moved with a CSS transform, so dragging redraws nothing.
+- Free: 4, 6 and 9 pieces with the first three pictures. The full version adds 12, 20 and 30
+  pieces and five more pictures (`meta.js`). The end card of a 9-piece puzzle offers "More
+  puzzles".
+- Saved under `games.legpuzzel`: every picture and size laid at least once (a tick in the menu),
+  the last size, and the example picture on or off. A puzzle in progress is kept while the app
+  stays open ("keep puzzling").
 
 ### Vier op een rij
 
@@ -411,6 +442,7 @@ an artifact when it fails).
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |
 | `web/games/kwartet/` | Kwartet: `meta.js` (free part), `rules.js` (pure), `ai.js` (the computer players), `art.js` (the sets and cards), `kwartet.js` (the screens) |
+| `web/games/legpuzzel/` | Legpuzzel (jigsaw): `meta.js` (free part), `rules.js` (pure geometry and layout), `pictures.js` (the scenes), `legpuzzel.js` (the screens) |
 | `web/games/bubbels/` | the bubble shooter: `meta.js` (free tier), `strings.js`, `bubbels.js` (levels, HUD), `game.js` (state, input, physics, drawing), `grid.js` (pure hex-grid logic), `levels.json`, `bubbels.css` |
 | `web/nl/privacy/`, `web/en/privacy/` | privacy policy, Dutch and English |
 | `web/nl/voorwaarden/`, `web/en/terms/` | terms of service, Dutch and English; linked from Settings and the privacy pages |

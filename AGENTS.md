@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -46,6 +46,7 @@ phones, 2 at 320 px, the sections side by side on wider screens.
 native config) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Paartjes: the bigger boards and the other cards offer only OK on the web, a game alone on 2×3 with one miss (a third tap does nothing) won with 3 stars saved, a game together on 3×4 won by player 1 with back + keep playing during a miss and "More cards" at the end of the free part, a game against the computer whose turn is slow and visible, won and counted; the layout at 320x568, sideways and on desktop with 12 and 20 cards (`tests/smoke.py memory`);
+home → Legpuzzel: 12, 20 and 30 pieces and the other pictures offer only OK on the web, the 4-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 9-piece sea with the example picture off and back + keep puzzling halfway, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 6 to 30 pieces, every piece on screen and 44 px or more with its tabs (`tests/smoke.py legpuzzel`);
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Dammen: medium, hard and the 10×10 board offer only OK on the web, a two-player 8×8 game played to a win by taps, a move against easy with the take-back and "keep playing", the glow on the pieces that must capture and a double jump by taps; the layout at 320x568, sideways and on desktop, the 10×10 board with near taps, and the hard computer thinking in a worker while the page keeps drawing (run only these with `tests/smoke.py dammen`);
 home → Ganzenbord: the winter and sea boards and a 3rd and 4th goose offer only OK on the web, a game against the computer goose played to a win by "count yourself" taps (a wrong tap only shows where), the goose chain and the win card, back + keep playing halfway a throw, the Android back button, no voice clip loaded; the layout at 320x568, sideways and on desktop, four geese on the winter and sea boards, a near tap counts and a tap on the next stone does not (`tests/smoke.py ganzen`);
@@ -107,6 +108,14 @@ who remembers a third of the cards in at least 30%); keep it gentle. Cards in `a
 needs at least as many pictures as the biggest board has pairs, each different by shape and colour
 within its set, with a name `memory.pic.<id>` in both languages. Free: 2×3 and 3×4 with the fruit;
 the full version adds 4×4, 4×5 and the picture-book and shapes cards.
+Legpuzzel (jigsaw): geometry and rules in `web/games/legpuzzel/rules.js` (pure, tested: neighbouring
+pieces fit, the border is straight, an outline stays inside its drawing, the layout fits board
+and tray on every screen with a piece of 44 px or more with its tabs, the scatter stays on the
+tray, a piece snaps only near its own place). Pictures in `pictures.js`: whole scenes so every
+piece shows something, no `id`s or `url(#)` (they go into a canvas through a `data:` URL, which
+the CSP allows; `blob:` is not allowed). The pieces are canvases moved with transforms; keep
+dragging free of redraws. Free: 4, 6 and 9 pieces with the first three pictures; the full version
+adds 12, 20 and 30 pieces and five more pictures.
 Dammen: rules in `web/games/dammen/rules.js` (pure, with a test for every rule: compulsory capture,
 men capturing backwards, multi-captures that must go on, crowning only when a move ends on the far
 row, one-step kings on 8×8, flying kings and "take the most" on 10×10, a draw by repetition or by

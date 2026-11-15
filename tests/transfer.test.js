@@ -30,6 +30,7 @@ const typical = () => ({
     vier: { stars: { 'cpu-big-1': 5 }, setup: { board: 'big', mode: 'cpu', level: 1 }, tokens: ['pup', 'bubble'] },
     memory: { stars: { '3x4-fruit': 3, 'cpu-2x3': 4 }, setup: { size: '3x4', theme: 'fruit', mode: 'cpu' } },
     kwartet: { stars: { 'won-4': 2 }, setup: { sets: 4, players: ['kid', 'cpu', 'cpu'] } },
+    legpuzzel: { stars: { 'garden-p9': 1, 'sea-p4': 1 }, size: 'p9', ghost: false },
     kleuren: { art: { 'p:zon': { f: { face: 7, ray0: 2 }, t: 1000, done: true }, 'm:m1:1101': { t: 2000, gone: true, c: 1 } } },
     klok: { stars: { 'set-t1-1': 3 } },
   },
@@ -82,6 +83,11 @@ test('Paartjes (Memory) travels whole: stars, wins and the menu choice', async (
 test('Kwartet travels whole: the wins and the players in the menu', async () => {
   const back = await decodeText(await encodeSave(typical()));
   assert.deepEqual(back.games.kwartet, typical().games.kwartet);
+});
+
+test('Legpuzzel travels whole: the puzzles laid, the size and the example picture', async () => {
+  const back = await decodeText(await encodeSave(typical()));
+  assert.deepEqual(back.games.legpuzzel, typical().games.legpuzzel);
 });
 
 test('a save is split into parts and joined again in any order', async () => {
@@ -229,6 +235,7 @@ test('the summary counts levels, pages and random rounds per game', () => {
     { id: 'vier', n: 1 },
     { id: 'memory', n: 2 },
     { id: 'kwartet', n: 1 },
+    { id: 'legpuzzel', n: 2 },
     { id: 'kleuren', n: 1 },
     { id: 'klok', n: 1 },
   ]);

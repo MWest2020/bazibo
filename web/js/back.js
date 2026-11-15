@@ -7,6 +7,7 @@
 //   playing a level                    -> pause it (a second press then leaves the level)
 //   a Dogudoku or Picturedoku puzzle   -> its puzzle list (the board is kept for this session)
 //   a Paartjes (Memory) game           -> its menu (the game is kept: "keep playing")
+//   a jigsaw (Legpuzzel)               -> its menu (the puzzle is kept: "keep puzzling")
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Dammen game                      -> its menu (the game is kept: "keep playing")
 //   a Ganzenbord game                  -> its menu (the game is kept: "keep playing")
@@ -29,6 +30,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'dogudoku') return 'dogudoku-levels';
   if (screen === 'picturedoku') return 'picturedoku-levels';
   if (screen === 'memory') return 'memory-menu';
+  if (screen === 'legpuzzel') return 'legpuzzel-menu';
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'dammen') return 'dammen-menu';
   if (screen === 'ganzen') return 'ganzen-menu';

@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -3443,6 +3443,207 @@ def kwartet_layouts(browser, base, problems):
         ctx.close()
 
 
+def pz_state(page):
+    return page.evaluate("window.__bubbels.puzzel.state()")
+
+
+def pz_drag(page, a, b, steps=8):
+    page.mouse.move(a["x"], a["y"])
+    page.mouse.down()
+    page.mouse.move(b["x"], b["y"], steps=steps)
+    page.mouse.up()
+
+
+def legpuzzel_flow(browser, base, problems):
+    """Legpuzzel on the web build: 12, 20 and 30 pieces and the five other pictures offer only OK;
+    the 4-piece garden laid by real drags (a drop on another piece's place does not snap, a drop
+    near its own place does), saved as laid, the end card; the 9-piece sea with back + keep
+    puzzling halfway and the example picture turned off, "More puzzles" at the end of the free
+    part; the Android back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-legpuzzel .tile-name").strip() != "Legpuzzel":
+        problems.append(f"legpuzzel: tile says {page.inner_text('#tile-legpuzzel .tile-name')!r}")
+    group = page.evaluate("document.querySelector('#tile-legpuzzel').closest('.tile-group').querySelector('.group-name').textContent")
+    if group != "Puzzels":
+        problems.append(f"legpuzzel: tile sits under {group!r}")
+    page.click("#tile-legpuzzel")
+    page.wait_for_timeout(250)
+    for sel in (".puzzel-opt.size-p12", ".puzzel-opt.size-p20", ".puzzel-opt.size-p30", ".puzzel-pic.pic-space", ".puzzel-pic.pic-puppies"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"legpuzzel: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "legpuzzel-1-menu.png"), full_page=True)
+
+    # 4 pieces, the garden: one wrong drop, then every piece by a real drag
+    page.click(".puzzel-opt.size-p4")
+    page.click(".puzzel-pic.pic-garden")
+    page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
+    page.wait_for_timeout(200)
+    page.screenshot(path=str(SHOTS / "legpuzzel-2-start.png"))
+    st = pz_state(page)
+    pz_drag(page, st["at"][0], st["home"][3])
+    page.wait_for_timeout(150)
+    if pz_state(page)["placed"][0]:
+        problems.append("legpuzzel: a piece snapped into another piece's place")
+    for _ in range(4):
+        st = pz_state(page)
+        if st["over"]:
+            break
+        i = page.evaluate("window.__bubbels.puzzel.free()")[0]
+        near = {"x": st["home"][i]["x"] + st["s"] * 0.2, "y": st["home"][i]["y"] - st["s"] * 0.15}  # a little off: it still snaps
+        pz_drag(page, st["at"][i], near)
+        page.wait_for_timeout(200)
+        if not pz_state(page)["placed"][i]:
+            problems.append(f"legpuzzel: piece {i} dropped near its place did not snap ({pz_state(page)['at'][i]} vs {pz_state(page)['home'][i]})")
+        if sum(pz_state(page)["placed"]) == 2:
+            page.screenshot(path=str(SHOTS / "legpuzzel-3-half.png"))
+    st = pz_state(page)
+    if not st["over"]:
+        problems.append(f"legpuzzel: the 4-piece puzzle is not done: {st['placed']}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "legpuzzel-4-done.png"))
+    if page.inner_text("#ov-title").strip() != "Klaar!":
+        problems.append(f"legpuzzel: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("window.__bubbels.puzzel.done()").get("garden-p4") != 1:
+        problems.append(f"legpuzzel: the puzzle was not saved as laid: {page.evaluate('window.__bubbels.puzzel.done()')}")
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Volgende plaatje", "Nog een keer", "Menu"]:
+        problems.append(f"legpuzzel: end card on 4 pieces offers {labels}")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+    if not page.locator(".puzzel-pic.pic-garden.done .check").count():
+        problems.append("legpuzzel: the menu does not tick off the laid picture")
+
+    # 9 pieces, the sea: the example picture off, back + keep puzzling halfway
+    page.click(".puzzel-opt.size-p9")
+    page.click(".puzzel-pic.pic-sea")
+    page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
+    page.click("#legpuzzel-ghost")
+    page.wait_for_timeout(250)
+    if page.evaluate("getComputedStyle(document.querySelector('#legpuzzel-board canvas')).opacity") != "0":
+        problems.append("legpuzzel: the example picture did not turn off")
+    for i in range(9):
+        st = pz_state(page)
+        k = page.evaluate("window.__bubbels.puzzel.free()")[0]
+        pz_drag(page, st["at"][k], st["home"][k], steps=5)
+        page.wait_for_timeout(120)
+        if i == 4:
+            page.click("#legpuzzel-back")
+            page.wait_for_timeout(200)
+            if not page.is_visible("#legpuzzel-continue"):
+                problems.append("legpuzzel: no 'keep puzzling' halfway a puzzle")
+            page.click("#legpuzzel-continue")
+            page.wait_for_timeout(300)
+            if sum(pz_state(page)["placed"]) != 5:
+                problems.append(f"legpuzzel: keep puzzling lost pieces: {pz_state(page)['placed']}")
+            # a browser toolbar slides in (the stage a little shorter): the loose pieces stay put
+            before = pz_state(page)
+            page.set_viewport_size({"width": 390, "height": 824})
+            page.wait_for_timeout(400)
+            after = pz_state(page)
+            if after["s"] == before["s"]:
+                moved = [k for k in range(9) if not before["placed"][k] and abs(after["at"][k]["x"] - before["at"][k]["x"]) + abs(after["at"][k]["y"] - before["at"][k]["y"]) > 1
+                         and before["at"][k]["y"] + before["s"] < 790]
+                if moved:
+                    problems.append(f"legpuzzel: a small resize moved loose pieces {moved}")
+            page.set_viewport_size({"width": 390, "height": 844})
+            page.wait_for_timeout(400)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "legpuzzel-5-sea-done.png"))
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Volgende plaatje", "Nog een keer", "Meer puzzels", "Menu"]:
+        problems.append(f"legpuzzel: the end of the free part offers {labels}")
+    page.click("#ov-buttons button >> text=Meer puzzels")
+    page.wait_for_timeout(200)
+    if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"]:
+        problems.append("legpuzzel: 'More puzzles' on the web offers more than OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-legpuzzel-menu"):
+        problems.append("legpuzzel: OK on the offer did not land on the menu")
+    # the Android back button from a puzzle: its menu
+    page.click(".puzzel-pic.pic-fruit")
+    page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-legpuzzel-menu"):
+        problems.append("legpuzzel: the back button did not lead to the menu")
+    if errors:
+        problems.append(f"legpuzzel: page errors {errors[:3]}")
+    ctx.close()
+
+
+def legpuzzel_layouts(browser, base, problems):
+    """Legpuzzel at 320x568, sideways 568x320 and 844x390, desktop, in English at 390x844; the full
+    version with 20 and 30 pieces: the board, every piece and the back button on screen, a piece
+    with its tabs 44 px or more, the board and the tray apart, no sideways scroll; the last piece
+    laid by a drag on each."""
+    for w, h, owned, size, pic in ((320, 568, False, "p9", "fruit"), (568, 320, False, "p9", "garden"), (844, 390, False, "p6", "sea"), (1280, 800, False, "p9", "fruit"),
+                                   (320, 568, True, "p30", "puppies"), (568, 320, True, "p30", "space"), (390, 844, True, "p20", "zoo"), (1280, 800, True, "p30", "meadow")):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h} {size} {pic}"
+        if english and page.inner_text("#tile-legpuzzel .tile-name").strip() != "Jigsaw":
+            problems.append(f"legpuzzel {label}: English tile says {page.inner_text('#tile-legpuzzel .tile-name')!r}")
+        page.click("#tile-legpuzzel")
+        page.wait_for_timeout(200)
+        page.evaluate(f"window.__bubbels.puzzel.chooseSize('{size}')")
+        page.wait_for_timeout(100)
+        page.screenshot(path=str(SHOTS / f"legpuzzel-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        page.click(f".puzzel-pic.pic-{pic}")
+        page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
+        page.wait_for_timeout(250)
+        for sel in ("#legpuzzel-board", "#legpuzzel-back", "#legpuzzel-ghost", "#legpuzzel-status"):
+            r = page.locator(sel).bounding_box()
+            if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"legpuzzel {label}: {sel} off screen ({r})")
+        boxes = page.evaluate("[...document.querySelectorAll('.ppiece')].map((c) => { const r = c.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
+        off = [i for i, (l, t_, r, b) in enumerate(boxes) if l < -0.5 or t_ < -0.5 or r > w + 0.5 or b > h + 0.5]
+        if off:
+            problems.append(f"legpuzzel {label}: pieces {off} off screen")
+        small = min(r - l for l, t_, r, b in boxes)
+        if small < 44:
+            problems.append(f"legpuzzel {label}: a piece is only {small:.0f} px")
+        board = page.locator("#legpuzzel-board").bounding_box()
+        st = pz_state(page)
+        half = st["s"] / 2
+        on_board = [i for i, p in enumerate(st["at"]) if board["x"] + 2 < p["x"] < board["x"] + board["width"] - 2 and board["y"] + 2 < p["y"] < board["y"] + board["height"] - 2]
+        if on_board:
+            problems.append(f"legpuzzel {label}: pieces {on_board} start on the board")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"legpuzzel {label}: sideways scroll")
+        print(f"[legpuzzel {label}] piece {st['s']} px ({small:.0f} with tabs), {'side' if st['side'] else 'upright'}")
+        page.screenshot(path=str(SHOTS / f"legpuzzel-{w}x{h}{'-full' if owned else ''}.png"))
+        k = page.evaluate("window.__bubbels.puzzel.free()")[0]
+        pz_drag(page, st["at"][k], st["home"][k])
+        page.wait_for_timeout(200)
+        if not pz_state(page)["placed"][k]:
+            problems.append(f"legpuzzel {label}: a drag to its place did not snap")
+        if errors:
+            problems.append(f"legpuzzel {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -3506,6 +3707,8 @@ def main():
             memory_layouts(browser, base, problems)
             kwartet_flow(browser, base, problems)
             kwartet_layouts(browser, base, problems)
+            legpuzzel_flow(browser, base, problems)
+            legpuzzel_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -3516,7 +3719,8 @@ def main():
 PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),
-         "kwartet": (kwartet_flow, kwartet_layouts)}
+         "kwartet": (kwartet_flow, kwartet_layouts),
+         "legpuzzel": (legpuzzel_flow, legpuzzel_layouts)}
 
 
 def report(problems):

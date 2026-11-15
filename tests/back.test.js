@@ -38,6 +38,9 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'memory' }), 'memory-menu');
   assert.equal(backAction({ screen: 'memory-menu' }), 'home');
   assert.equal(backAction({ screen: 'memory', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'legpuzzel' }), 'legpuzzel-menu');
+  assert.equal(backAction({ screen: 'legpuzzel-menu' }), 'home');
+  assert.equal(backAction({ screen: 'legpuzzel', overlay: 'card' }), 'close');
   assert.equal(backAction({ screen: 'vier' }), 'vier-menu');
   assert.equal(backAction({ screen: 'vier-menu' }), 'home');
   assert.equal(backAction({ screen: 'vier', overlay: 'card' }), 'close');

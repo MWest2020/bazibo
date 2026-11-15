@@ -1,0 +1,88 @@
+/* Legpuzzel: home tile, menu (sizes and pictures), the board and the loose pieces. The menu reuses
+   the Vier op een rij and Dammen option classes. */
+
+/* ---------- home tile ---------- */
+#tile-legpuzzel .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-legpuzzel .tile-art > svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- menu ---------- */
+.puzzel-opt .psize { width: 58px; height: 58px; }
+.puzzel-sizes .vier-opt { flex: 1 1 150px; min-height: 76px; }
+.puzzel-keep { display: flex; justify-content: center; margin: 4px 0 6px; }
+.puzzel-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding-bottom: 24px; }
+.puzzel-pic {
+  font: inherit;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 10px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary-dark);
+  box-shadow: 0 5px 0 #d6cff7;
+  font-weight: 900;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.puzzel-pic:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.puzzel-thumb { display: block; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; box-shadow: 0 0 0 2px rgba(43, 35, 112, 0.15); }
+.puzzel-thumb svg { width: 100%; height: 100%; display: block; }
+.puzzel-pic-name { font-size: 0.92rem; line-height: 1.2; text-align: center; }
+.puzzel-pic.locked { color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); }
+.puzzel-pic.locked .puzzel-thumb { opacity: 0.55; filter: saturate(0.5); }
+.puzzel-pic .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.puzzel-pic .check { position: absolute; top: -8px; right: -6px; width: 28px; height: 28px; padding: 3px; border-radius: 50%; background: #2f9e5b; color: #fff; box-shadow: 0 2px 0 #1f6e3f; }
+.puzzel-pic.done { border-color: #9be0b4; }
+
+/* ---------- the puzzle ---------- */
+.puzzel-hud .btn.icon svg { width: 30px; height: 30px; }
+#legpuzzel-ghost[aria-pressed="false"] { opacity: 0.55; }
+.puzzel-wrap { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; padding: 4px 12px 8px; }
+.puzzel-stage { position: relative; flex: 1; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.puzzel-board {
+  position: absolute;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 7px #c9c1ff, 0 10px 24px rgba(59, 47, 168, 0.18);
+}
+.puzzel-board canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.28; border-radius: 6px; transition: opacity 0.2s; }
+.puzzel-board.ghost-off canvas { opacity: 0; }
+.puzzel-board.done { animation: puzzel-glow 1.2s ease 2; }
+.ppiece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(0 3px 2px rgba(43, 35, 112, 0.3));
+  -webkit-tap-highlight-color: transparent;
+}
+.ppiece.lift { cursor: grabbing; filter: drop-shadow(0 10px 8px rgba(43, 35, 112, 0.35)); scale: 1.06; }
+.ppiece.placed { z-index: 1; filter: none; cursor: default; }
+.ppiece.snap { transition: transform 0.15s ease-out; animation: puzzel-snap 0.35s ease-out; }
+.puzzel-status { flex: none; margin: 6px 0 0; min-height: 1.4em; font-weight: 800; color: var(--primary-dark); text-align: center; }
+.puzzel-ov svg { width: 180px; height: 135px; display: block; border-radius: 14px; box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--gold); }
+
+/* short sideways phones: the HUD a column on the left */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-legpuzzel { flex-direction: row; }
+  .puzzel-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; width: 100px; flex: none; }
+  .puzzel-hud .hud-mid { flex: 0; max-width: 92px; text-align: center; }
+  .puzzel-hud .dogu-title { white-space: normal; font-size: 0.95rem; }
+  .puzzel-hud .btn.icon { width: 54px; height: 54px; }
+  .puzzel-wrap { padding: 8px 10px 4px 4px; }
+  .puzzel-status { font-size: 0.85rem; margin-top: 2px; }
+}
+@media (max-height: 600px) {
+  .puzzel-ov svg { width: 120px; height: 90px; }
+}
+
+@keyframes puzzel-snap { 0% { scale: 1.08; } 60% { scale: 0.97; } 100% { scale: 1; } }
+@keyframes puzzel-glow { 0%, 100% { box-shadow: 0 0 0 4px #fff, 0 0 0 7px #c9c1ff, 0 10px 24px rgba(59, 47, 168, 0.18); } 50% { box-shadow: 0 0 0 4px #fff, 0 0 0 9px var(--gold), 0 0 30px rgba(255, 197, 49, 0.6); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ppiece.snap, .puzzel-board.done { animation: none !important; transition: none; }
+}
