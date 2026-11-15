@@ -2999,6 +2999,18 @@ def legpuzzel_flow(browser, base, problems):
             page.wait_for_timeout(300)
             if sum(pz_state(page)["placed"]) != 5:
                 problems.append(f"legpuzzel: keep puzzling lost pieces: {pz_state(page)['placed']}")
+            # a browser toolbar slides in (the stage a little shorter): the loose pieces stay put
+            before = pz_state(page)
+            page.set_viewport_size({"width": 390, "height": 824})
+            page.wait_for_timeout(400)
+            after = pz_state(page)
+            if after["s"] == before["s"]:
+                moved = [k for k in range(9) if not before["placed"][k] and abs(after["at"][k]["x"] - before["at"][k]["x"]) + abs(after["at"][k]["y"] - before["at"][k]["y"]) > 1
+                         and before["at"][k]["y"] + before["s"] < 790]
+                if moved:
+                    problems.append(f"legpuzzel: a small resize moved loose pieces {moved}")
+            page.set_viewport_size({"width": 390, "height": 844})
+            page.wait_for_timeout(400)
     page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
     page.screenshot(path=str(SHOTS / "legpuzzel-5-sea-done.png"))
     labels = page.locator("#ov-buttons button").all_inner_texts()

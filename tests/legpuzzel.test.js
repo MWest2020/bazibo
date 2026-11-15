@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, mulberry32, TAB, SNAP } from '../web/games/legpuzzel/rules.js';
+import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, isComplete, rearrange, mulberry32, TAB, SNAP } from '../web/games/legpuzzel/rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from '../web/games/legpuzzel/pictures.js';
 import { meta } from '../web/games/legpuzzel/meta.js';
 
@@ -99,6 +99,33 @@ test('a piece snaps in only near its own place', () => {
   // the place of the piece next to it is not its place
   const next = home(5, 3, board, s, m);
   assert.equal(snaps(next.x, next.y, at, s), false);
+});
+
+test('the puzzle is done only when every piece is in its place', () => {
+  assert.equal(isComplete([true, true, true, true]), true);
+  assert.equal(isComplete([true, false, true, true]), false);
+  assert.equal(isComplete([false, false]), false);
+  assert.equal(isComplete([]), false);
+});
+
+test('a resize keeps the arrangement of the child unless the pieces change size', () => {
+  const s = 60;
+  const m = margin(s);
+  const board = { x: 0, y: 0, w: 120, h: 120 };
+  const pos = [{ x: 5, y: 5 }, { x: 40, y: 300 }, { x: 250, y: 410 }, { x: -20, y: 200 }];
+  const placed = [true, false, false, false];
+  const spread = [0, 1, 2, 3].map((i) => ({ x: i, y: 999 }));
+  // a toolbar slides in: the stage is a little shorter, the pieces the same size
+  const kept = rearrange({ pos, placed, cols: 2, board, s, m, w: 296, h: 440, resized: false, spread });
+  assert.deepEqual(kept[0], home(0, 2, board, s, m)); // placed: on its place
+  assert.deepEqual(kept[1], { x: 40, y: 300 }); // left where it was
+  assert.deepEqual(kept[2], { x: 296 - s - 2 * m, y: 440 - s - 2 * m }); // moved back inside the stage
+  assert.deepEqual(kept[3], { x: 0, y: 200 });
+  // the phone turned and the pieces are bigger: spread on the tray again
+  const again = rearrange({ pos, placed, cols: 2, board, s, m, w: 600, h: 300, resized: true, spread });
+  assert.deepEqual(again.slice(1), spread.slice(1));
+  // no positions yet (the first build): spread
+  assert.deepEqual(rearrange({ pos: null, placed: [false, false], cols: 2, board, s, m, w: 300, h: 300, resized: false, spread }), spread.slice(0, 2));
 });
 
 test('eight pictures, each a whole scene for every board shape; the first three free', () => {

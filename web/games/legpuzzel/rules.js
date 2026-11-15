@@ -169,5 +169,23 @@ export function home(i, cols, board, s, m) {
   return { x: board.x + (i % cols) * s - m, y: board.y + Math.floor(i / cols) * s - m };
 }
 
+/** Is the puzzle done: every piece in its place? */
+export const isComplete = (placed) => placed.length > 0 && placed.every(Boolean);
+
+/**
+ * After the stage changed size (a phone turned, a browser toolbar sliding in), where every piece
+ * goes: placed pieces to their place on the new board; loose pieces stay where the child left them,
+ * only moved back inside the stage, unless the pieces changed size (`resized`): then they are
+ * spread on the tray again (`spread`). `w`, `h`: the stage; returns the new top-left corners.
+ */
+export function rearrange({ pos, placed, cols, board, s, m, w, h, resized, spread }) {
+  const size = s + 2 * m;
+  return placed.map((done, i) => {
+    if (done) return home(i, cols, board, s, m);
+    if (resized || !pos?.[i]) return spread[i];
+    return { x: Math.min(Math.max(pos[i].x, 0), Math.max(0, w - size)), y: Math.min(Math.max(pos[i].y, 0), Math.max(0, h - size)) };
+  });
+}
+
 /** Does a piece dropped with its drawing at (x, y) snap into its place at `at`? */
 export const snaps = (x, y, at, s) => Math.hypot(x - at.x, y - at.y) <= s * SNAP;

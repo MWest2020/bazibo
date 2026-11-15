@@ -12,7 +12,7 @@
 // ('<picture>-<size>'); the last size ('size') and the example picture on or off ('ghost'). A puzzle
 // in progress is kept while the app stays open ("keep puzzling").
 import { meta } from './meta.js';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps } from './rules.js';
+import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps, isComplete, rearrange } from './rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from './pictures.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -209,7 +209,9 @@ export function createLegpuzzel(shell) {
     const same = lay && lay.s === next.s && lay.board.x === next.board.x && lay.board.y === next.board.y && lay.tray.w === next.tray.w && lay.tray.h === next.tray.h && pieces.length;
     if (same && game.pos) return;
     const token = ++builds;
-    const fresh = !game.pos || !lay || !same;
+    // loose pieces are spread again only when the pieces change size; a toolbar sliding in or out
+    // must not undo the child's own arrangement
+    const resized = !game.pos || !lay || lay.s !== next.s;
     lay = next;
     const { s, m, board } = lay;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -240,8 +242,8 @@ export function createLegpuzzel(shell) {
     // the pieces
     for (const p of pieces) p.remove();
     const loose = game.placed.map((x) => !x);
-    const spread = scatter(piecesOf(game.size), lay.tray, s, m);
-    if (fresh) game.pos = game.placed.map((x, i) => (x ? home(i, game.cols, board, s, m) : spread[i]));
+    const spread = resized ? scatter(piecesOf(game.size), lay.tray, s, m) : null;
+    game.pos = rearrange({ pos: game.pos, placed: game.placed, cols: game.cols, board, s, m, w, h, resized, spread });
     pieces = game.pos.map((_, i) => makePiece(i, s, m, dpr));
     pieces.forEach((p, i) => {
       p.classList.toggle('placed', !loose[i]);
@@ -303,6 +305,7 @@ export function createLegpuzzel(shell) {
 
   function grab(e, tapped) {
     if (!game || game.over || drag) return;
+    if (!game.pos) return; // the pieces are still being cut
     const i = pieceAt(e.clientX, e.clientY);
     if (i < 0 || (game.placed[i] && i === tapped)) return;
     e.preventDefault();
@@ -342,7 +345,7 @@ export function createLegpuzzel(shell) {
       moveTo(i, at);
       sfx.plink(1 + ((game.placed.filter(Boolean).length - 1) % 9)); // a note higher with every piece
       renderStatus();
-      if (game.placed.every(Boolean)) finish();
+      if (isComplete(game.placed)) finish();
     } else {
       // a drop somewhere else: it stays where it was let go, gently back onto the stage
       const stage = $('#legpuzzel-stage');
