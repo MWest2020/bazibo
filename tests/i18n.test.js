@@ -9,6 +9,8 @@ import '../web/games/picturedoku/strings.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/ganzen/strings.js';
+import '../web/games/kwartet/strings.js';
+import { SETS as KWARTET_SETS } from '../web/games/kwartet/art.js';
 import '../web/games/slang/strings.js';
 import '../web/games/kleuren/strings.js';
 import { PICTURES } from '../web/games/kleuren/pictures.js';
@@ -63,6 +65,12 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [3, 4]) used.add(`vier.row${n}`);
   for (const id of ['pup', 'bubble', 'apple', 'flower', 'fish', 'pug']) used.add(`vier.tok.${id}`);
   for (const n of [1, 2, 3]) used.add(`dam.level${n}`);
+  for (const s of KWARTET_SETS) {
+    used.add(`kwartet.set.${s.id}`);
+    for (const c of s.cards) used.add(`kwartet.card.${c}`).add(`kwartet.the.${c}`);
+  }
+  for (const k of ['kid', 'cpu', 'off']) used.add(`kwartet.kind.${k}`);
+  for (const n of [1, 2, 3]) used.add(`kwartet.cpu${n}`);
   for (const b of ['classic', 'winter', 'sea']) used.add(`ganzen.board.${b}`).add(`ganzen.board.${b}Sub`);
   for (const g of ['white', 'yellow', 'blue', 'pink']) used.add(`ganzen.goose.${g}`);
   for (const k of ['kid', 'cpu', 'off']) used.add(`ganzen.kind.${k}`);

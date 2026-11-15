@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Ganzenbord ("Game of the Goose"),
+sudoku with pictures), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock) and Letters (learn the letters by sight:
@@ -134,6 +134,38 @@ geese, the special squares, a die face and the three boards drawn as SVG in `art
   the same big numbers. No voice.
 - Free: the classic meadow board with 2 players (a child against a computer goose, or two
   children). Full version: up to 4 players in any mix, and a winter and a sea board.
+### Kwartet
+
+The Dutch quartets card game, in `web/games/kwartet/` (rules in `rules.js`, the computer players in
+`ai.js`, the cards in `art.js`, the screens in `kwartet.js`).
+
+- Eight sets of four cards, each card with its picture and its name: fruit, pets, vehicles, the
+  garden, puppies, the zoo, the weather and toys. The pictures are the app's own: the Picturedoku
+  fruit, the coloured-in Kleurplaten drawings, the Dogudoku puppies, and ten new ones drawn in the
+  Picturedoku style (train, ladybird, lion, giraffe, cloud, rainbow, snowman, teddy bear, kite,
+  blocks). Every set has its own colour, and its name above its row.
+- All cards are dealt. On your turn you ask another player for a card of a set you hold. You get
+  it: ask again. You do not: the turn goes to the next player round the table. Four of a set are
+  laid down at once as a kwartet (also straight after the deal). A player without cards sits out.
+  When every set is down, the most kwartetten wins (the same number is a draw).
+- Readable for young children: your hand is shown per set as its four places, and the missing
+  ones are the big buttons to ask with. Tap a player first when there is more than one. Every
+  question and answer is a speech bubble with the card's picture ("Robo, heb jij de trein?", "Ja!
+  Alsjeblieft."). The computers take their turns slowly, one question at a time, with the asking
+  robot wobbling.
+- The computers (`ai.js`) only use what everyone at the table could know (who asked for what, who
+  gave what, who said no). They remember each of those things only now and then. A child who pays
+  attention wins or shares more than half of the games against two of them (`npm test`).
+- Children together on one phone: a "pass the phone" card comes between their turns and hides
+  every hand until the next child taps "Show my cards". While a computer plays, no hand is shown.
+- Free: 4 sets (fruit, pets, vehicles, garden) with up to 3 players, any mix of children and
+  computers. The full version adds a 4th player and games with 6 and 8 sets, picked from all eight
+  sets. The end card offers "More sets" on a device without the full version.
+- Saved under `games.kwartet`: the child's wins against the computer per number of sets (only
+  games with one child, counters that only go up) and the last menu choice. A game in progress is
+  kept while the app stays open ("keep playing"); a question on screen when the child leaves is
+  answered at once on return.
+
 ### Kleurplaten
 
 Colouring pages in `web/games/kleuren/`: pick a colour, tap a part, and it is coloured. Everything
@@ -348,6 +380,7 @@ an artifact when it fails).
 | `web/js/parental-gate.js` | the adult question before buying or restoring |
 | `web/js/random.js`, `web/js/gen-worker.js` | random play: seeds, the "Random" cards, running a game's generator in a worker |
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
+| `web/games/kwartet/` | Kwartet: `meta.js` (free part), `rules.js` (pure), `ai.js` (the computer players), `art.js` (the sets and cards), `kwartet.js` (the screens) |
 | `web/games/bubbels/` | the bubble shooter: `meta.js` (free tier), `strings.js`, `bubbels.js` (levels, HUD), `game.js` (state, input, physics, drawing), `grid.js` (pure hex-grid logic), `levels.json`, `bubbels.css` |
 | `web/nl/privacy/`, `web/en/privacy/` | privacy policy, Dutch and English |
 | `web/nl/voorwaarden/`, `web/en/terms/` | terms of service, Dutch and English; linked from Settings and the privacy pages |
