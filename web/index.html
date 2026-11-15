@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/dammen/dammen.css">
   <link rel="stylesheet" href="games/ganzen/ganzen.css">
+  <link rel="stylesheet" href="games/kwartet/kwartet.css">
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
   <link rel="stylesheet" href="games/tekenen/tekenen.css">
@@ -389,6 +390,43 @@
           <button id="ganzen-die" class="ganzen-die" type="button" data-i18n-aria="ganzen.dieLabel" aria-label="Gooi de dobbelstenen"></button>
           <div id="ganzen-turn" class="vier-turn ganzen-turn" role="group" data-i18n-aria="ganzen.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="ganzen-status" class="ganzen-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kwartet: how many sets and who plays -->
+    <section id="screen-kwartet-menu" class="screen" data-i18n-aria="games.kwartet" aria-label="Kwartet">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="kwartet.menu">Kwartet</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="kwartet-menu" class="vier-menu kwartet-menu"></div></div>
+    </section>
+
+    <!-- Kwartet: the table -->
+    <section id="screen-kwartet" class="screen" data-i18n-aria="games.kwartet" aria-label="Kwartet">
+      <header class="bar dogu-hud vier-hud kwartet-hud">
+        <button id="kwartet-back" class="btn icon" type="button" data-i18n-aria="kwartet.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="kwartet-sub" class="hud-level"></div>
+          <div id="kwartet-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="kwartet-stage">
+        <div class="kwartet-top">
+          <div id="kwartet-seats" class="kwartet-seats" role="group" data-i18n-aria="kwartet.seatsLabel" aria-label="De spelers"></div>
+          <p id="kwartet-status" class="kwartet-status" aria-live="polite"></p>
+        </div>
+        <div class="kwartet-table">
+          <div id="kwartet-own" class="kwartet-own"></div>
+          <div id="kwartet-hand" class="kwartet-hand" role="group" data-i18n-aria="kwartet.handLabel" aria-label="Jouw kaarten, per kwartet"></div>
+          <div id="kwartet-mine" class="kwartet-mine" role="group" data-i18n-aria="kwartet.mine" aria-label="Jouw kwartetten"></div>
         </div>
       </div>
     </section>

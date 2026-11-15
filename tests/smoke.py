@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -3178,6 +3178,271 @@ def memory_layouts(browser, base, problems):
         ctx.close()
 
 
+def kw_state(page):
+    return page.evaluate("window.__bubbels.kwartet.state()")
+
+
+def kw_wait(page, phases=("ask", "pass", "over"), timeout=30000):
+    """Until a child has to do something (ask, or take the phone), or the game is over."""
+    page.wait_for_function("(() => { const s = window.__bubbels.kwartet.state(); return s && %s.includes(s.phase) && !s.busy; })()" % json.dumps(list(phases)), timeout=timeout)
+
+
+def kw_holder(st, card):
+    for p, h in enumerate(st["hands"]):
+        if card in h:
+            return p
+    return -1
+
+
+def kw_ask(page, target, card):
+    if page.locator(f".kseat[data-player='{target}']:not([disabled])").count():
+        page.click(f".kseat[data-player='{target}']")
+    page.click(f"button.kcard.missing[data-card='{card}']")
+
+
+def kwartet_flow(browser, base, problems):
+    """Kwartet on the web build: 6 and 8 sets and a 4th player offer only OK; a game against two
+    computers (seeded deal): a question that gets "no", the computers' turns visible and slow, then
+    the child asks well and wins, the win counted, "More sets" offers only OK; back + keep playing
+    while a question is on screen; two children: the pass-the-phone card hides each child's cards;
+    the Android back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-kwartet .tile-name").strip() != "Kwartet":
+        problems.append(f"kwartet: tile says {page.inner_text('#tile-kwartet .tile-name')!r}")
+    group = page.evaluate("document.querySelector('#tile-kwartet').closest('.tile-group').querySelector('.group-name').textContent")
+    if group != "Bordspellen":
+        problems.append(f"kwartet: tile sits under {group!r}")
+    page.click("#tile-kwartet")
+    page.wait_for_timeout(250)
+    for sel in (".kwartet-opt.sets-6", ".kwartet-opt.sets-8", ".kwartet-slot.slot-3"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"kwartet: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "kwartet-1-menu.png"), full_page=True)
+
+    # against two computers, 4 sets, a seeded deal
+    page.evaluate("window.__bubbels.kwartet.choose({ sets: 4, players: ['kid', 'cpu', 'cpu'] })")
+    page.evaluate(f"window.__bubbels.kwartet.seed({KW_SEED})")
+    page.click("#kwartet-play")
+    kw_wait(page)
+    st = kw_state(page)
+    page.screenshot(path=str(SHOTS / "kwartet-2-start.png"))
+    if st["phase"] != "ask" or st["viewer"] != 0:
+        problems.append(f"kwartet: the game does not start with the child asking: {st['phase']} {st['viewer']}")
+    rows = page.locator("#kwartet-hand .krow").count()
+    if rows != len({c.rsplit(':', 1)[0] for c in st["hands"][0]}):
+        problems.append(f"kwartet: {rows} rows for the child's hand {st['hands'][0]}")
+    if page.locator("button.kcard.missing:not([disabled])").count() != len(st["askable"]):
+        problems.append("kwartet: not every card the child may ask for is a button")
+    # a question that gets "no": a card the chosen player does not have
+    miss = next(((p, c) for c in st["askable"] for p in (1, 2) if kw_holder(st, c) not in (p, 0) and st["hands"][p]), None)
+    kw_ask(page, miss[0], miss[1])
+    page.wait_for_timeout(300)
+    bubble = page.inner_text(".kwartet-own .kbubble") if page.locator(".kwartet-own .kbubble").count() else ""
+    if "heb jij" not in bubble:
+        problems.append(f"kwartet: the child's question bubble says {bubble!r}")
+    page.screenshot(path=str(SHOTS / "kwartet-3-question.png"))
+    page.wait_for_selector(f".kseat[data-player='{miss[0]}'] .kbubble.no", timeout=4000)
+    page.screenshot(path=str(SHOTS / "kwartet-4-no.png"))
+    t0 = time.time()
+    page.wait_for_function("window.__bubbels.kwartet.state().phase === 'cpu'", timeout=6000, polling=20)
+    if not page.locator(".kseat.thinking").count():
+        problems.append("kwartet: the computer's turn is not shown")
+    page.wait_for_function("window.__bubbels.kwartet.state().phase === 'question'", timeout=6000, polling=20)
+    if time.time() - t0 < 0.8:
+        problems.append(f"kwartet: the computer asked after only {time.time() - t0:.1f} s")
+    page.wait_for_timeout(200)
+    if not page.locator(".kseat .kbubble").count():
+        problems.append("kwartet: the computer's question has no speech bubble")
+    page.screenshot(path=str(SHOTS / "kwartet-5-cpu-asks.png"))
+
+    # back + keep playing while a question is on screen: it is answered at once
+    page.click("#kwartet-back")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#kwartet-continue"):
+        problems.append("kwartet: no 'keep playing' halfway a game")
+    page.click("#kwartet-continue")
+    page.wait_for_timeout(100)
+    if kw_state(page)["phase"] == "question":
+        problems.append("kwartet: the question was still waiting after keep playing")
+
+    # the child asks well from now on
+    page.evaluate("window.__bubbels.kwartet.fast(true)")
+    asked = 0
+    for _ in range(80):
+        kw_wait(page)
+        st = kw_state(page)
+        if st["phase"] == "over":
+            break
+        card = st["askable"][0]
+        kw_ask(page, kw_holder(st, card), card)
+        asked += 1
+        if asked == 3:
+            page.wait_for_timeout(10)
+            page.screenshot(path=str(SHOTS / "kwartet-6-yes.png"))
+    st = kw_state(page)
+    if not st["over"] or st["over"]["winners"] != [0]:
+        problems.append(f"kwartet: the child did not win: {st['over']} {st['quartets']} (try another KW_SEED)")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=5000)
+    page.screenshot(path=str(SHOTS / "kwartet-7-win.png"))
+    if page.inner_text("#ov-title").strip() != "Jij wint!":
+        problems.append(f"kwartet: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("window.__bubbels.kwartet.wins()").get("won-4") != 1:
+        problems.append(f"kwartet: the win was not counted: {page.evaluate('window.__bubbels.kwartet.wins()')}")
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Nog een keer", "Meer kwartetten", "Menu"]:
+        problems.append(f"kwartet: end card offers {labels}")
+    page.click("#ov-buttons button >> text=Meer kwartetten")
+    page.wait_for_timeout(200)
+    if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"]:
+        problems.append("kwartet: 'More sets' on the web offers more than OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-kwartet-menu"):
+        problems.append("kwartet: OK on the offer did not land on the menu")
+
+    # two children on one phone: the pass card hides each child's cards
+    page.evaluate("window.__bubbels.kwartet.seed(null)")
+    page.evaluate("window.__bubbels.kwartet.fast(false)")
+    page.evaluate("window.__bubbels.kwartet.choose({ sets: 4, players: ['kid', 'kid'] })")
+    page.click("#kwartet-play")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=3000)
+    if page.inner_text("#ov-title").strip() != "Speler 1 is aan de beurt" or page.locator("#kwartet-hand .krow").count():
+        problems.append(f"kwartet: two children: no pass card first, or the cards show: {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / "kwartet-8-pass.png"))
+    page.click("#ov-buttons button >> text=Laat mijn kaarten zien")
+    page.wait_for_timeout(200)
+    st = kw_state(page)
+    if st["viewer"] != 0 or not page.locator("#kwartet-hand .krow").count():
+        problems.append("kwartet: two children: player 1's cards do not show")
+    # with two players everything is in one of two hands, so a "no" is impossible: ask for a card player 2 has
+    kw_ask(page, 1, st["askable"][0])
+    page.evaluate("window.__bubbels.kwartet.fast(true)")
+    kw_wait(page, ("ask", "pass", "over"))
+    st = kw_state(page)
+    if st["viewer"] != 0 or st["turn"] != 0:
+        problems.append(f"kwartet: two children: after a yes player 1 should ask again: {st['phase']} {st['turn']}")
+    page.click("#kwartet-back")
+    page.wait_for_timeout(200)
+    page.click("#kwartet-continue")
+    page.wait_for_timeout(300)
+    if not page.is_visible("#overlay") or page.locator("#kwartet-hand .krow").count():
+        problems.append("kwartet: two children: keep playing shows the cards without the pass card")
+    page.click("#ov-buttons button >> text=Laat mijn kaarten zien")
+    page.wait_for_timeout(150)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-kwartet-menu"):
+        problems.append("kwartet: the back button did not lead to the menu")
+
+    # two children and a computer: after a "no" the asker's cards are hidden at once, while the
+    # answer is still on screen
+    page.evaluate("window.__bubbels.kwartet.fast(false)")
+    page.evaluate("window.__bubbels.kwartet.choose({ sets: 4, players: ['kid', 'kid', 'cpu'] })")
+    page.click("#kwartet-play")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=3000)
+    page.click("#ov-buttons button >> text=Laat mijn kaarten zien")
+    page.wait_for_timeout(200)
+    st = kw_state(page)
+    miss = next(((p, c) for c in st["askable"] for p in (1, 2) if kw_holder(st, c) not in (p, 0) and st["hands"][p]), None)
+    if miss:
+        kw_ask(page, miss[0], miss[1])
+        page.wait_for_selector(f".kseat[data-player='{miss[0]}'] .kbubble.no", timeout=4000)
+        if page.locator("#kwartet-hand .krow").count() or kw_state(page)["viewer"] != -1:
+            problems.append("kwartet: two children: the asker's cards stay on screen after a no")
+    else:
+        problems.append("kwartet: two children and a computer: no card to ask that gets a no")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if errors:
+        problems.append(f"kwartet: page errors {errors[:3]}")
+    ctx.close()
+
+
+KW_SEED = 3
+
+
+def kwartet_layouts(browser, base, problems):
+    """Kwartet at 320x568, sideways 568x320 and 844x390, desktop; the full version with 8 sets and
+    four players on small and sideways phones, 6 sets in English: the players, the status, the hand
+    and the back button on screen, the cards you may ask for 44 px or more, a speech bubble inside
+    the screen, no sideways scroll, menu texts inside their buttons."""
+    for w, h, owned, sets, players in ((320, 568, False, 4, "['kid', 'cpu', 'cpu']"), (568, 320, False, 4, "['kid', 'cpu', 'cpu']"), (844, 390, False, 4, "['kid', 'cpu']"), (1280, 800, False, 4, "['kid', 'cpu', 'cpu']"),
+                                       (320, 568, True, 8, "['kid', 'cpu', 'cpu', 'cpu']"), (568, 320, True, 8, "['kid', 'cpu', 'cpu', 'cpu']"), (390, 844, True, 6, "['kid', 'cpu', 'cpu', 'cpu']")):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h} {sets} sets {players.count(',') + 1}p"
+        if english and page.inner_text("#tile-kwartet .tile-name").strip() != "Quartets":
+            problems.append(f"kwartet {label}: English tile says {page.inner_text('#tile-kwartet .tile-name')!r}")
+        page.click("#tile-kwartet")
+        page.wait_for_timeout(200)
+        page.evaluate(f"window.__bubbels.kwartet.choose({{ sets: {sets}, players: {players} }})")
+        page.wait_for_timeout(150)
+        page.screenshot(path=str(SHOTS / f"kwartet-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        bad = page.evaluate("""[...document.querySelectorAll('.kwartet-opt, .kwartet-slot')].filter((b) => {
+            const r = b.getBoundingClientRect();
+            return [...b.querySelectorAll('.vier-opt-title, .vier-opt-sub, .slot-name, .slot-kind')].some((t) => {
+                const range = document.createRange();
+                range.selectNodeContents(t);
+                return [...range.getClientRects()].some((q) => q.right > r.right - 2);
+            });
+        }).map((b) => b.className)""")
+        if bad:
+            problems.append(f"kwartet {label}: menu texts overflow {bad}")
+        page.evaluate("window.__bubbels.kwartet.seed(5)")
+        page.click("#kwartet-play")
+        kw_wait(page, ("ask",))
+        for sel in ("#kwartet-seats", "#kwartet-status", "#kwartet-hand", "#kwartet-back"):
+            r = page.locator(sel).bounding_box()
+            if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                # the hand may be taller than the screen: it scrolls inside the table
+                if not (sel == "#kwartet-hand" and r and r["x"] >= -0.5 and r["x"] + r["width"] <= w + 0.5 and r["y"] < h):
+                    problems.append(f"kwartet {label}: {sel} off screen ({r})")
+        b = page.locator("button.kcard.missing:not([disabled]) >> nth=0").bounding_box()
+        if not b or min(b["width"], b["height"]) < 44 or b["y"] + b["height"] > h + 0.5:
+            problems.append(f"kwartet {label}: the first card to ask for is {b}")
+        seats = page.evaluate("[...document.querySelectorAll('.kseat')].map((s) => { const r = s.getBoundingClientRect(); return [r.left, r.right, r.width, r.height]; })")
+        if any(l < -0.5 or r > w + 0.5 or min(sw, sh) < 44 for l, r, sw, sh in seats):
+            problems.append(f"kwartet {label}: seats {seats}")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"kwartet {label}: sideways scroll")
+        print(f"[kwartet {label}] card {b['width']:.0f}x{b['height']:.0f} px")
+        page.screenshot(path=str(SHOTS / f"kwartet-{w}x{h}{'-full' if owned else ''}.png"))
+        # a question to the last player: its answer bubble stays inside the screen
+        st = kw_state(page)
+        last = max(p for p in range(len(st["kinds"])) if p != 0 and st["hands"][p])
+        kw_ask(page, last, st["askable"][-1])
+        page.wait_for_selector(f".kseat[data-player='{last}'] .kbubble", timeout=5000)
+        page.wait_for_timeout(300)
+        for r in page.evaluate("[...document.querySelectorAll('.kbubble')].map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom]; })"):
+            if r[0] < -0.5 or r[1] > w + 0.5 or r[3] > h + 0.5:
+                problems.append(f"kwartet {label}: a speech bubble is off screen {r}")
+        page.screenshot(path=str(SHOTS / f"kwartet-{w}x{h}{'-full' if owned else ''}-answer.png"))
+        if errors:
+            problems.append(f"kwartet {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -3239,6 +3504,8 @@ def main():
             offers_others(browser, base, problems)
             memory_flow(browser, base, problems)
             memory_layouts(browser, base, problems)
+            kwartet_flow(browser, base, problems)
+            kwartet_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -3248,7 +3515,8 @@ def main():
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
 PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
-         "memory": (memory_flow, memory_layouts)}
+         "memory": (memory_flow, memory_layouts),
+         "kwartet": (kwartet_flow, kwartet_layouts)}
 
 
 def report(problems):
