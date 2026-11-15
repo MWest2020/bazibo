@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-096b8a5e54';
+const VERSION = 'bubbels-532fa280ab';
 const ASSETS = [
   './',
   'index.html',
@@ -55,6 +55,13 @@ const ASSETS = [
   'games/picturedoku/puzzles.json',
   'games/picturedoku/rules.js',
   'games/picturedoku/strings.js',
+  'games/memory/ai.js',
+  'games/memory/art.js',
+  'games/memory/memory.css',
+  'games/memory/memory.js',
+  'games/memory/meta.js',
+  'games/memory/rules.js',
+  'games/memory/strings.js',
   'games/vier/ai.js',
   'games/vier/art.js',
   'games/vier/meta.js',

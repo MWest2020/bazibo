@@ -20,6 +20,9 @@ import { dogSvg } from '../games/dogudoku/art.js';
 import '../games/picturedoku/strings.js';
 import { createPicturedoku } from '../games/picturedoku/picturedoku.js';
 import { pictureSvg } from '../games/picturedoku/art.js';
+import '../games/memory/strings.js';
+import { createMemory } from '../games/memory/memory.js';
+import { tileSvg as memoryTileSvg } from '../games/memory/art.js';
 import '../games/vier/strings.js';
 import { createVier } from '../games/vier/vier.js';
 import { tokenSvg } from '../games/vier/art.js';
@@ -227,6 +230,10 @@ function drawPicturedokuTile() {
   // a little 2×2 sudoku with four of the game's pictures
   const box = $('#tile-picturedoku .tile-art');
   box.innerHTML = `<span class="mini-sudoku">${[1, 2, 3, 4].map((v) => `<span>${pictureSvg(v)}</span>`).join('')}</span>`;
+}
+
+function drawMemoryTile() {
+  $('#tile-memory .tile-art').innerHTML = memoryTileSvg();
 }
 
 function drawVierTile() {
@@ -542,6 +549,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.memory = createMemory({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.vier = createVier({
     t,
     show,
@@ -635,6 +653,7 @@ async function boot() {
   drawTileArt();
   drawDoguTile();
   drawPicturedokuTile();
+  drawMemoryTile();
   drawVierTile();
   drawDammenTile();
   drawGanzenTile();
@@ -646,7 +665,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -654,6 +673,7 @@ async function boot() {
       ...games.bubbels.testHook(),
       dogu: games.dogudoku.testHook(),
       pdoku: games.picturedoku.testHook(),
+      memory: games.memory.testHook(),
       vier: games.vier.testHook(),
       dam: games.dammen.testHook(),
       gans: games.ganzen.testHook(),
@@ -694,6 +714,7 @@ function onBack() {
   else if (action === 'levels') show('levels');
   else if (action === 'dogudoku-levels') games.dogudoku.leave();
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
+  else if (action === 'memory-menu') games.memory.leave();
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'ganzen-menu') games.ganzen.leave();
