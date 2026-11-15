@@ -403,6 +403,9 @@ export function createKwartet(shell) {
     } else if (r.got && !game.over && game.turn === q.asker) {
       status += ` ${t('kwartet.askAgain')}`;
     }
+    // children together: the moment the turn leaves a child (a "no", or no cards left), its cards
+    // are hidden, not only once the answer has been on screen for a while
+    if (kids() > 1 && game.turn !== viewer) viewer = -1;
     render();
     if (quick) {
       nextStep();

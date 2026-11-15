@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="games/bubbels/bubbels.css">
   <link rel="stylesheet" href="games/dogudoku/dogudoku.css">
   <link rel="stylesheet" href="games/picturedoku/picturedoku.css">
+  <link rel="stylesheet" href="games/memory/memory.css">
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/dammen/dammen.css">
   <link rel="stylesheet" href="games/ganzen/ganzen.css">
@@ -256,6 +257,39 @@
             <button id="pdoku-undo" class="btn icon tool" type="button" data-i18n-aria="pdoku.undo" aria-label="Ongedaan maken"></button>
           </div>
           <ul id="pdoku-rules" class="dogu-rules" data-i18n-aria="pdoku.rules" aria-label="De regels"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Paartjes (Memory): choose the cards, the pictures and who plays -->
+    <section id="screen-memory-menu" class="screen" data-i18n-aria="games.memory" aria-label="Paartjes">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="memory.menu">Paartjes</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="memory-menu" class="vier-menu memory-menu"></div></div>
+    </section>
+
+    <!-- Paartjes (Memory): the cards -->
+    <section id="screen-memory" class="screen" data-i18n-aria="games.memory" aria-label="Paartjes">
+      <header class="bar dogu-hud vier-hud memory-hud">
+        <button id="memory-back" class="btn icon" type="button" data-i18n-aria="memory.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="memory-sub" class="hud-level"></div>
+          <div id="memory-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="memory-stage">
+        <div id="memory-board" class="memory-board" role="group" data-i18n-aria="memory.boardLabel" aria-label="De kaarten: tik op twee kaarten"></div>
+        <div class="memory-side">
+          <div id="memory-turn" class="vier-turn memory-turn" role="group" data-i18n-aria="memory.turnAria" aria-label="Wie is aan de beurt"></div>
+          <p id="memory-status" class="vier-status memory-status" aria-live="polite"></p>
         </div>
       </div>
     </section>

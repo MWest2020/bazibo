@@ -3,6 +3,7 @@
 //   { version: 1,
 //     games:    { bubbels: { stars: {1: 3, ...} },
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
+//                 memory: { stars: {'3x4-fruit': 1-3 stars alone, 'cpu-3x4': wins}, setup: {size, theme, mode} },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 dammen: { stars: {'cpu-small-1': wins}, setup: {variant, mode, level}, look },
 //                 ganzen: { stars: {'won-classic': wins}, setup: {board, players: ['kid', 'cpu'], count} },

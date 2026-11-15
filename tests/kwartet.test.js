@@ -93,6 +93,12 @@ test('got it: the card moves and you ask again; not: the turn passes round the t
   assert.equal(r.got, false);
   assert.equal(r.game.turn, 1);
   assert.deepEqual(g.hands[0], ['fruit:0', 'pets:1']); // the old state is untouched
+  // a "no" from player 2 passes the turn to the next player round the table (player 1, who still
+  // has cards), not to the player who was asked
+  const far = ask(g, 2, 'fruit:2');
+  assert.equal(far.got, false);
+  assert.equal(far.game.turn, 1);
+  assert.deepEqual(opponents(g, 0), [1, 2]);
 });
 
 test('four of a set are laid down as a kwartet; a player without cards is skipped', () => {

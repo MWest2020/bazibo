@@ -6,6 +6,8 @@ import { LANGS, allStrings, pickLang, setLang, t, getLang } from '../web/js/i18n
 import '../web/games/bubbels/strings.js';
 import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
+import '../web/games/memory/strings.js';
+import { THEMES as MEMORY_THEMES, THEME_IDS as MEMORY_THEME_IDS } from '../web/games/memory/art.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/ganzen/strings.js';
@@ -60,6 +62,9 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [1, 2, 3]) used.add(`pdoku.win${n}`);
   for (const r of ['row', 'col', 'box']) used.add(`pdoku.rule.${r}`).add(`pdoku.oops.${r}`);
   for (let v = 1; v <= 9; v++) used.add(`pdoku.pic.${v}`);
+  for (const id of MEMORY_THEME_IDS) used.add(`memory.theme.${id}`).add(`memory.theme.${id}Sub`);
+  for (const id of ['solo', 'duo', 'cpu']) used.add(`memory.mode.${id}`).add(`memory.mode.${id}Sub`);
+  for (const id of Object.values(MEMORY_THEMES).flat()) used.add(`memory.pic.${id}`);
   for (const n of [1, 2, 3]) used.add(`vier.level${n}`);
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);
