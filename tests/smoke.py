@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -2896,6 +2896,288 @@ def offers_others(browser, base, problems):
     print(f"[offers] other games: {time.time() - t0:.1f}s")
 
 
+def mem_state(page):
+    return page.evaluate("window.__bubbels.memory.state()")
+
+
+def mem_pairs(st):
+    """Index pairs of the cards still in play, by picture."""
+    where = {}
+    for i, f in enumerate(st["faces"]):
+        if not st["found"][i]:
+            where.setdefault(f, []).append(i)
+    return list(where.values())
+
+
+def mem_wait(page, timeout=8000):
+    """Until nothing happens by itself any more: no miss on show, not the computer's turn."""
+    page.wait_for_function("(() => { const s = window.__bubbels.memory.state(); return s && !s.busy && (s.over || s.setup.mode !== 'cpu' || s.turn === 0) && s.open.length < 2; })()", timeout=timeout)
+
+
+def mem_tap(page, i):
+    page.click(f".mcard[data-i='{i}']")
+
+
+def memory_flow(browser, base, problems):
+    """Paartjes (Memory) on the web build: the bigger boards and the other pictures offer only OK; a
+    game alone on 2×3 with one miss (the cards stay up for a moment, a third tap changes nothing)
+    played to a win with 3 stars saved; a game together on 3×4 won by player 1, with back + keep
+    playing during a miss, nothing counted, and "More cards" at the end of the free part; a game
+    against the computer whose turn is visible and slow, won by the child and counted; the Android
+    back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-memory .tile-name").strip() != "Paartjes":
+        problems.append(f"memory: tile says {page.inner_text('#tile-memory .tile-name')!r}")
+    group = page.evaluate("document.querySelector('#tile-memory').closest('.tile-group').querySelector('.group-name').textContent")
+    if group != "Puzzels":
+        problems.append(f"memory: tile sits under {group!r}")
+    page.click("#tile-memory")
+    page.wait_for_timeout(250)
+    for sel in (".memory-opt.size-4x4", ".memory-opt.size-4x5", ".memory-opt.theme-book", ".memory-opt.theme-shapes"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"memory: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "memory-1-menu.png"), full_page=True)
+
+    # alone, 2×3, real timing: one miss first, then every pair
+    page.click(".memory-opt.size-2x3")
+    page.click(".memory-opt.theme-fruit")
+    page.click(".memory-opt.mode-solo")
+    page.click("#memory-play")
+    page.wait_for_timeout(400)
+    st = mem_state(page)
+    pairs = mem_pairs(st)
+    a, b = pairs[0][0], pairs[1][0]
+    mem_tap(page, a)
+    page.wait_for_timeout(500)
+    page.screenshot(path=str(SHOTS / "memory-2-first.png"))
+    mem_tap(page, b)
+    page.wait_for_timeout(300)
+    mem_tap(page, pairs[2][0])  # a third card while two are shown: nothing happens
+    page.wait_for_timeout(200)
+    st = mem_state(page)
+    if not (st["up"][a] and st["up"][b]) or st["up"][pairs[2][0]] or st["turns"] != 1:
+        problems.append(f"memory: after a miss the cards are {st['up']}, turns {st['turns']}")
+    page.screenshot(path=str(SHOTS / "memory-3-miss.png"))
+    mem_wait(page)
+    st = mem_state(page)
+    if any(st["up"]):
+        problems.append("memory: the missed cards were not turned back")
+    for p in mem_pairs(st):
+        mem_tap(page, p[0])
+        page.wait_for_timeout(120)
+        mem_tap(page, p[1])
+        page.wait_for_timeout(250)
+        if not mem_state(page)["over"]:
+            page.screenshot(path=str(SHOTS / "memory-4-pair.png"))
+    page.wait_for_selector("#overlay:not([hidden])", timeout=5000)
+    page.screenshot(path=str(SHOTS / "memory-5-solo-win.png"))
+    if page.inner_text("#ov-title").strip() != "Alle paartjes!":
+        problems.append(f"memory: solo end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("window.__bubbels.memory.progress()").get("2x3-fruit") != 3:
+        problems.append(f"memory: 3 stars not saved: {page.evaluate('window.__bubbels.memory.progress()')}")
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Nog een keer", "Menu"]:
+        problems.append(f"memory: solo end card on 2×3 offers {labels}")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+
+    # together, 3×4: player 1 finds two pairs, misses; back + keep playing during the miss passes the turn
+    page.evaluate("window.__bubbels.memory.fast(true)")
+    page.click(".memory-opt.size-3x4")
+    page.click(".memory-opt.mode-duo")
+    page.click("#memory-play")
+    page.wait_for_timeout(300)
+    st = mem_state(page)
+    if st["turn"] != 0:
+        problems.append(f"memory: the first game together starts with player {st['turn'] + 1}")
+    pairs = mem_pairs(st)
+    for p in pairs[:2]:
+        mem_tap(page, p[0])
+        mem_tap(page, p[1])
+        page.wait_for_timeout(80)
+    page.evaluate("window.__bubbels.memory.fast(false)")
+    mem_tap(page, pairs[2][0])
+    mem_tap(page, pairs[3][0])
+    page.wait_for_timeout(100)
+    page.click("#memory-back")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#memory-continue"):
+        problems.append("memory: no 'keep playing' halfway a game")
+    page.click("#memory-continue")
+    page.wait_for_timeout(200)
+    st = mem_state(page)
+    if any(st["up"][i] and not st["found"][i] for i in range(len(st["up"]))) or st["turn"] != 1:
+        problems.append(f"memory: keep playing after a miss: turn {st['turn']}, up {st['up']}")
+    page.evaluate("window.__bubbels.memory.fast(true)")
+    page.screenshot(path=str(SHOTS / "memory-6-duo.png"))
+    # player 2 finds one pair and misses; player 1 finds the rest
+    pairs = mem_pairs(st)
+    mem_tap(page, pairs[0][0])
+    mem_tap(page, pairs[0][1])
+    page.wait_for_timeout(80)
+    mem_tap(page, pairs[1][0])
+    mem_tap(page, pairs[2][0])
+    mem_wait(page)
+    for p in mem_pairs(mem_state(page)):
+        mem_tap(page, p[0])
+        mem_tap(page, p[1])
+        page.wait_for_timeout(80)
+    st = mem_state(page)
+    if not st["over"] or st["over"]["winners"] != [0] or st["scores"] != [5, 1]:
+        problems.append(f"memory: the game together ended {st['over']} with {st['scores']}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "memory-7-duo-win.png"))
+    if page.inner_text("#ov-title").strip() != "Speler 1 wint!":
+        problems.append(f"memory: duo end card says {page.inner_text('#ov-title')!r}")
+    if [k for k in page.evaluate("window.__bubbels.memory.progress()") if k.startswith("cpu") or k.startswith("3x4")]:
+        problems.append(f"memory: a game together was counted: {page.evaluate('window.__bubbels.memory.progress()')}")
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Nog een keer", "Meer kaarten", "Menu"]:
+        problems.append(f"memory: the end of the free part offers {labels}")
+    page.click("#ov-buttons button >> text=Meer kaarten")
+    page.wait_for_timeout(200)
+    if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"]:
+        problems.append("memory: 'More cards' on the web offers more than OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-memory-menu"):
+        problems.append("memory: OK on the offer did not land on the menu")
+    if page.locator("#memory-continue").count():
+        problems.append("memory: 'keep playing' offered for a game that is over")
+
+    # against the computer, 3×4: four pairs, a miss, the computer's turn (visible, slow), then the rest
+    page.click(".memory-opt.mode-cpu")
+    page.click("#memory-play")
+    page.wait_for_timeout(300)
+    st = mem_state(page)
+    if st["turn"] != 0:
+        problems.append("memory: the first game against the computer does not start with the child")
+    pairs = mem_pairs(st)
+    for p in pairs[:4]:
+        mem_tap(page, p[0])
+        mem_tap(page, p[1])
+        page.wait_for_timeout(80)
+    page.evaluate("window.__bubbels.memory.fast(false)")
+    mem_tap(page, pairs[4][0])
+    mem_tap(page, pairs[5][0])
+    t0 = time.time()
+    page.wait_for_function("(() => { const s = window.__bubbels.memory.state(); return s.turn === 1 && s.open.length === 1; })()", timeout=8000, polling=20)
+    waited = time.time() - t0
+    if waited < 1.5:
+        problems.append(f"memory: the computer's first card came after only {waited:.1f} s")
+    if not page.locator(".memory-chip.thinking").count() or "computer" not in page.inner_text("#memory-status").lower():
+        problems.append(f"memory: the computer's turn is not shown: {page.inner_text('#memory-status')!r}")
+    page.screenshot(path=str(SHOTS / "memory-8-cpu-turn.png"))
+    mem_tap(page, mem_pairs(mem_state(page))[0][0])  # a tap during the computer's turn: nothing
+    page.evaluate("window.__bubbels.memory.fast(true)")
+    for _ in range(12):
+        mem_wait(page, 15000)
+        st = mem_state(page)
+        if st["over"]:
+            break
+        p = mem_pairs(st)[0]
+        mem_tap(page, p[0])
+        mem_tap(page, p[1])
+        page.wait_for_timeout(60)
+    st = mem_state(page)
+    if not st["over"] or st["over"]["winners"] != [0]:
+        problems.append(f"memory: the child did not win against the computer: {st['over']} {st['scores']}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "memory-9-cpu-win.png"))
+    if page.inner_text("#ov-title").strip() != "Jij wint!":
+        problems.append(f"memory: end card against the computer says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("window.__bubbels.memory.progress()").get("cpu-3x4") != 1:
+        problems.append(f"memory: the win was not counted: {page.evaluate('window.__bubbels.memory.progress()')}")
+    page.click("#ov-buttons button >> text=Nog een keer")
+    page.wait_for_timeout(300)
+    if mem_state(page)["starter"] != 1:
+        problems.append("memory: the computer does not start the second game")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-memory-menu"):
+        problems.append("memory: the back button did not lead to the menu")
+    page.screenshot(path=str(SHOTS / "memory-10-menu-after.png"), full_page=True)
+    if errors:
+        problems.append(f"memory: page errors {errors[:3]}")
+    ctx.close()
+
+
+def memory_layouts(browser, base, problems):
+    """Paartjes at 320x568, sideways 568x320 and 844x390, desktop; the full version with 20 cards on
+    small and sideways phones and in English: every card on screen and 44 px or more, the players
+    and the back button on screen, no sideways scroll, menu texts inside their buttons."""
+    for w, h, owned, size, mode in ((320, 568, False, "3x4", "duo"), (568, 320, False, "3x4", "cpu"), (844, 390, False, "3x4", "solo"), (1280, 800, False, "3x4", "duo"),
+                                    (320, 568, True, "4x5", "cpu"), (568, 320, True, "4x5", "duo"), (390, 844, True, "4x5", "solo"), (1280, 800, True, "4x5", "cpu")):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h} {size} {mode}"
+        if english and page.inner_text("#tile-memory .tile-name").strip() != "Pairs":
+            problems.append(f"memory {label}: English tile says {page.inner_text('#tile-memory .tile-name')!r}")
+        page.click("#tile-memory")
+        page.wait_for_timeout(200)
+        theme = "shapes" if owned and english else "book" if owned else "fruit"
+        page.evaluate(f"window.__bubbels.memory.choose({{ size: '{size}', theme: '{theme}', mode: '{mode}' }})")
+        page.wait_for_timeout(150)
+        page.screenshot(path=str(SHOTS / f"memory-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        bad = page.evaluate("""[...document.querySelectorAll('.memory-opt')].filter((b) => {
+            const r = b.getBoundingClientRect();
+            return [...b.querySelectorAll('.vier-opt-title, .vier-opt-sub')].some((t) => {
+                const range = document.createRange();
+                range.selectNodeContents(t);
+                return [...range.getClientRects()].some((q) => q.right > r.right - 2);
+            }) || r.height < 44;
+        }).map((b) => b.className)""")
+        if bad:
+            problems.append(f"memory {label}: menu options overflow {bad}")
+        page.evaluate("window.__bubbels.memory.fast(true)")
+        page.click("#memory-play")
+        page.wait_for_timeout(500)
+        st = mem_state(page)
+        # turn two cards so the screenshot shows pictures
+        p = mem_pairs(st)
+        mem_tap(page, p[0][0])
+        page.wait_for_timeout(450)
+        for sel in ("#memory-board", "#memory-turn", "#memory-status", "#memory-back"):
+            r = page.locator(sel).bounding_box()
+            if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"memory {label}: {sel} off screen ({r})")
+        boxes = page.evaluate("[...document.querySelectorAll('.mcard')].map((c) => { const r = c.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
+        off = [i for i, (l, t_, r, b) in enumerate(boxes) if l < -0.5 or t_ < -0.5 or r > w + 0.5 or b > h + 0.5]
+        if off:
+            problems.append(f"memory {label}: cards {off} off screen")
+        small = min(min(r - l, b - t_) for l, t_, r, b in boxes)
+        if small < 44:
+            problems.append(f"memory {label}: cards only {small:.0f} px")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"memory {label}: sideways scroll")
+        print(f"[memory {label}] card {small:.0f} px, grid {st['grid']['cols']}x{st['grid']['rows']}")
+        page.screenshot(path=str(SHOTS / f"memory-{w}x{h}{'-full' if owned else ''}.png"))
+        if errors:
+            problems.append(f"memory {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -2955,6 +3237,8 @@ def main():
             ganzen_layouts(browser, base, problems)
             offers_bubbels(browser, base, problems)
             offers_others(browser, base, problems)
+            memory_flow(browser, base, problems)
+            memory_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -2963,7 +3247,8 @@ def main():
 
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
 PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts),
-         "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,)}
+         "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
+         "memory": (memory_flow, memory_layouts)}
 
 
 def report(problems):
