@@ -603,9 +603,10 @@ export function createPicturedoku(shell) {
     if (sameSize && !locked(nextAny)) {
       buttons.push([t('pdoku.next'), 'big primary', () => play(nextAny.id)]);
     } else if (sameSize) {
-      // the next one of this size is in the full version
+      // the next one of this size is in the full version; the offer over the puzzle list, so
+      // "Later" (or the gate, or the store) lands there and not on the solved board
       text = `${t('pdoku.winText')} ${t('pdoku.lastFree')}`;
-      buttons.push([t('pdoku.more'), 'big primary', offer]);
+      buttons.push([t('pdoku.more'), 'big primary', () => (shell.show('picturedoku-levels'), offer())]);
     }
     buttons.push([t('pdoku.puzzles'), buttons.length ? 'big secondary' : 'big primary', () => shell.show('picturedoku-levels')]);
     shell.showOverlay({

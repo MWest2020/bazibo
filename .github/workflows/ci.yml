@@ -1,4 +1,5 @@
-# Tests on every push and PR; on main, also the website (web/ to GitHub Pages) after the tests.
+# Tests (npm test, the Playwright smoke test, the fastlane checks) on every push and PR; on main,
+# also the website (web/ to GitHub Pages) after the tests.
 name: ci
 on:
   push:
@@ -18,6 +19,26 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+  smoke:
+    # the Playwright smoke test (tests/smoke.py): every game played in a real headless Chromium
+    # against web/ served on 127.0.0.1; it fails on any request from the page outside that server.
+    # Only the runner downloads the test tools (Playwright and its browser), the app stays vendored.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.65.2
+      - run: python -m playwright install --with-deps --only-shell chromium
+      - run: python tests/smoke.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-shots
+          path: shots/
+          retention-days: 7
   fastlane:
     # the release lanes parse, and the store texts fit the limits (no keys needed)
     runs-on: ubuntu-latest
@@ -38,7 +59,7 @@ jobs:
           grep -q "No Play key yet" out.txt
   pages:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    needs: [test, fastlane]
+    needs: [test, smoke, fastlane]
     runs-on: ubuntu-latest
     permissions:
       contents: read

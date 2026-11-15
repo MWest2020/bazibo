@@ -11,7 +11,10 @@ real stroke, undo, mirror mode and stamps locked on the web, done, "my drawings"
 reload; mirror mode with 8 lines and a stamp on small and sideways phones), play Klok kijken (a "set the clock"
 round by dragging, a "what time is it" round with one mistake, a daily-rhythm round, + and -, the
 hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and Ganzenbord (see
-dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), check that nothing went to the network and nothing threw, that the
+dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
+part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
+`bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
+board), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -36,10 +39,13 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 SHOTS = ROOT / "shots"
+# the headless shell installed on the dev host; elsewhere (CI) Playwright's own browser is used
 CHROME = os.environ.get(
     "CHROME",
     "/home/agent/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell",
 )
+if not os.path.exists(CHROME):
+    CHROME = None
 W, H = 400, 760
 SHOOTER = (200, H - 86)
 ANGLES = [90, 68, 112, 50, 32]  # the last one goes off the right wall
@@ -2574,6 +2580,322 @@ def ganzen_layouts(browser, base, problems):
         ctx.close()
 
 
+# A stand-in for the app's store plugin for the offer tests: nothing is owned until a purchase, and
+# `window.__storeNext` says what the next purchase does: 'cancel' (the child or parent backs out in
+# the store's own sheet), 'error', 'pending' (paid later) or 'buy'. A restore finds nothing.
+STORE_APP = """
+window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };
+(() => {
+  let owned = false;
+  const done = [];
+  window.__storeNext = 'cancel';
+  window.CdvPurchase = { LogLevel: {WARNING: 1}, Platform: {GOOGLE_PLAY: 'gp', APPLE_APPSTORE: 'as'},
+    ProductType: {NON_CONSUMABLE: 'nc'}, ErrorCode: {PAYMENT_CANCELLED: 1},
+    store: { verbosity: 0, register() {},
+      when() { const o = { approved: () => o, finished: (fn) => (done.push(fn), o), receiptUpdated: () => o }; return o; },
+      initialize: async () => [], owned: () => owned, get: () => ({ pricing: { price: '€ 1,00' }, getOffer: () => ({}) }),
+      order: async () => {
+        const next = window.__storeNext;
+        if (next === 'cancel') return { code: 1 };
+        if (next === 'error') return { code: 99 };
+        if (next === 'buy') { owned = true; done.forEach((fn) => fn()); }
+        return null;
+      },
+      restorePurchases: async () => null } };
+})();
+"""
+
+
+def where(page):
+    """[the screen being shown, is a card open]"""
+    return page.evaluate("[document.querySelector('.screen.active').id.replace('screen-', ''), !document.querySelector('#overlay').hidden]")
+
+
+def card_buttons(page):
+    return page.locator("#ov-buttons button").all_inner_texts() if where(page)[1] else []
+
+
+def landed(page, label, want, problems):
+    """After the offer: on screen `want`, with no card left open."""
+    try:
+        page.wait_for_selector("#overlay", state="hidden", timeout=4000)
+    except Exception:
+        pass
+    got = where(page)
+    if got != [want, False]:
+        problems.append(f"offers: {label}: landed on {got[0]} (card open: {got[1]}), expected the {want} screen")
+        page.screenshot(path=str(SHOTS / f"offers-{re.sub(r'[^a-z0-9]+', '-', label.lower())}.png"))
+        return False
+    return True
+
+
+def web_offer_ok(page, label, want, problems):
+    """On a win card at the end of a free part: its first button is the offer; on the web that card
+    has only OK; after OK the player is on the `want` list with no card."""
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=8000)
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(150)
+    labels = card_buttons(page)
+    if labels != ["Oké"]:
+        problems.append(f"offers: {label}: the offer after the last free one is {labels}, not the web card")
+    page.click("#ov-buttons button >> nth=0")
+    return landed(page, label, want, problems)
+
+
+def offer_context(browser, base, app=False, save=None):
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844},
+                              device_scale_factor=2, is_mobile=True, has_touch=True)
+    if app:
+        ctx.add_init_script(STORE_APP)
+    if save:
+        ctx.add_init_script(seeded(save))
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    return ctx, page, errors
+
+
+# Levels 1-9 won before, so level 10 is the last one of the free part, as for Mark on 15 Nov 2026
+BUBBELS_NINE = {"version": 1, "games": {"bubbels": {"stars": {str(i): 2 for i in range(1, 10)}}}, "settings": {"muted": True, "lang": "nl"}}
+
+
+def bubbels_level10_won(page, label, problems):
+    """Play level 10 and end it for real on the game screen (every bubble popped, the normal win
+    path with its short wait), then wait for the win card. True when its first button is the offer."""
+    page.evaluate("window.__bubbels.play(9)")
+    page.wait_for_function("window.__bubbels.state().phase === 'aim'", timeout=4000)
+    if where(page)[0] != "game" or page.inner_text("#hud-level") != "Level 10":
+        problems.append(f"offers: bubbels {label}: level 10 did not start ({where(page)}, {page.inner_text('#hud-level')!r})")
+    page.evaluate("window.__bubbels.clear()")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=6000)
+    labels = card_buttons(page)
+    if not labels or labels[0] != "Meer levels":
+        problems.append(f"offers: bubbels {label}: the level 10 win card offers {labels}")
+        return False
+    return True
+
+
+def bubbels_list(page, label, problems, owned=False):
+    """The level list after the offer: level 10 won with 3 stars, the save kept, and level 11 locked
+    (or, once bought, open and the next one to play); the board's loop has stopped."""
+    stars = (page.evaluate("window.__bubbels.save()").get("games", {}).get("bubbels") or {}).get("stars", {})
+    if stars.get("10") != 3 or any(stars.get(str(i)) != 2 for i in range(1, 10)):
+        problems.append(f"offers: bubbels {label}: save after level 10 is {stars}")
+    ten = page.locator("#levels-free .level-btn >> nth=9").get_attribute("aria-label") or ""
+    if "10" not in ten or "3 van 3" not in ten:
+        problems.append(f"offers: bubbels {label}: level 10 on the list reads {ten!r}")
+    full = page.locator("#levels-full .level-btn").count()
+    nxt = page.locator("#levels-free .level-btn.next .num").all_inner_texts()
+    if owned and (full or nxt != ["11"]):
+        problems.append(f"offers: bubbels {label}: after the purchase {full} levels still locked, next {nxt}")
+    if not owned and (page.locator("#levels-full .level-btn >> nth=0").inner_text().split()[0] != "11" or nxt):
+        problems.append(f"offers: bubbels {label}: level 11 is not the first locked one (next: {nxt})")
+    if page.evaluate("window.__bubbels.state().loop"):
+        problems.append(f"offers: bubbels {label}: the game loop still runs on the level list")
+
+
+def offers_bubbels(browser, base, problems):
+    """Mark's report (15 Nov 2026): after the offer at the end of level 10 the player was left on the
+    finished board, where even the pause button did nothing. Every way the offer can end must land
+    on the level list with level 10 done and level 11 locked (or open, once bought)."""
+    t0 = time.time()
+    # the website: the offer only has OK
+    ctx, page, errors = offer_context(browser, base, save=BUBBELS_NINE)
+    page.click("#tile-bubbels")
+    if bubbels_level10_won(page, "web", problems):
+        page.screenshot(path=str(SHOTS / "offers-bubbels-1-win.png"))
+        if web_offer_ok(page, "bubbels web OK", "levels", problems):
+            page.screenshot(path=str(SHOTS / "offers-bubbels-2-list.png"))
+            bubbels_list(page, "web", problems)
+    # a finished board whose card is gone some other way: the pause button leads to the list
+    page.evaluate("window.__bubbels.play(9)")
+    page.wait_for_function("window.__bubbels.state().phase === 'aim'", timeout=4000)
+    page.evaluate("window.__bubbels.clear()")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=6000)
+    page.evaluate("document.querySelector('#overlay').hidden = true")
+    page.click("#btn-pause")
+    landed(page, "bubbels pause on a finished board", "levels", problems)
+    if errors:
+        problems.append(f"offers: bubbels web: page errors {errors[:2]}")
+    ctx.close()
+
+    # the app: every way out of the offer card (buttons: buy, restore, later)
+    ctx, page, errors = offer_context(browser, base, app=True, save=BUBBELS_NINE)
+    page.click("#tile-bubbels")
+
+    def to_offer(label):
+        if not bubbels_level10_won(page, label, problems):
+            return False
+        page.click("#ov-buttons button >> nth=0")
+        page.wait_for_timeout(150)
+        labels = card_buttons(page)
+        if len(labels) != 3:
+            problems.append(f"offers: bubbels app {label}: the offer card shows {labels}")
+            return False
+        return True
+
+    def gate_pass():
+        # by the gate's OK button: an Enter key would also press the button of the card that the
+        # quick stand-in store puts up before the key is let go
+        page.wait_for_selector(".gate-input")
+        m = re.search(TEXT["nl"]["ask"], page.inner_text("#ov-text"))
+        page.fill(".gate-input", str(WORDS["nl"].index(m.group(1)) * WORDS["nl"].index(m.group(2))))
+        page.click("#ov-buttons button >> nth=0")
+
+    def gate_wrong_until_closed():
+        for _ in range(3):
+            page.wait_for_selector(".gate-input")
+            page.fill(".gate-input", "999")
+            page.click("#ov-buttons button >> nth=0")
+            page.wait_for_timeout(80)
+
+    steps = [
+        ("later", lambda: page.click("#ov-buttons button >> nth=2")),
+        ("gate cancelled", lambda: (page.click("#ov-buttons button >> nth=0"), page.wait_for_selector(".gate-input"), page.click("#ov-buttons button >> nth=1"))),
+        ("gate failed", lambda: (page.click("#ov-buttons button >> nth=0"), gate_wrong_until_closed())),
+        ("purchase cancelled", lambda: (page.evaluate("window.__storeNext = 'cancel'"), page.click("#ov-buttons button >> nth=0"), gate_pass())),
+        ("store error", lambda: (page.evaluate("window.__storeNext = 'error'"), page.click("#ov-buttons button >> nth=0"), gate_pass(),
+                                 page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button"), page.click("#ov-buttons button >> nth=0"))),
+        ("purchase pending", lambda: (page.evaluate("window.__storeNext = 'pending'"), page.click("#ov-buttons button >> nth=0"), gate_pass(),
+                                      page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button"), page.click("#ov-buttons button >> nth=0"))),
+        ("restore finds nothing", lambda: (page.click("#ov-buttons button >> nth=1"), gate_pass(),
+                                           page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button"), page.click("#ov-buttons button >> nth=0"))),
+    ]
+    for label, act in steps:
+        if not to_offer(label):
+            continue
+        act()
+        if landed(page, f"bubbels app {label}", "levels", problems):
+            bubbels_list(page, f"app {label}", problems)
+    # bought: the "unlocked" card, then the list with level 11 open and next
+    if to_offer("bought"):
+        page.evaluate("window.__storeNext = 'buy'")
+        page.click("#ov-buttons button >> nth=0")
+        gate_pass()
+        page.wait_for_function("!!window.__bubbels.full()", timeout=4000)
+        page.wait_for_timeout(150)
+        page.click("#ov-buttons button >> nth=0")
+        if landed(page, "bubbels app bought", "levels", problems):
+            page.screenshot(path=str(SHOTS / "offers-bubbels-3-bought.png"))
+            bubbels_list(page, "app bought", problems, owned=True)
+    if errors:
+        problems.append(f"offers: bubbels app: page errors {errors[:2]}")
+    ctx.close()
+    print(f"[offers] bubbels: {time.time() - t0:.1f}s")
+
+
+def offers_others(browser, base, problems):
+    """The same at the end of the free part of every other game with a win card (the offer over the
+    list, so OK lands there with the save kept), and for the games whose locked parts sit in a
+    menu: OK leaves the player on that menu."""
+    t0 = time.time()
+    ctx, page, errors = offer_context(browser, base)
+
+    def reload_home():  # the save stays; a fresh page is the shortest way home from any screen
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+    # Dogudoku and Picturedoku: puzzle 4 is the last free 4×4, solved by taps
+    page.click("#tile-dogudoku")
+    page.click("#dogu-levels .level-btn[data-puzzle='4']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.dogu.puzzle()")
+    for r, c in enumerate(pz["solution"]):
+        page.click(f"#dogu-board .dcell[data-r='{r}'][data-c='{c}']")
+    if web_offer_ok(page, "dogudoku puzzle 4", "dogudoku-levels", problems):
+        stars = page.evaluate("window.__bubbels.save().games.dogudoku.stars")
+        locked = "locked" in (page.get_attribute("#dogu-levels .level-btn[data-puzzle='5']", "class") or "")
+        if stars.get("4") != 3 or not locked:
+            problems.append(f"offers: dogudoku: after puzzle 4 the save is {stars}, puzzle 5 locked: {locked}")
+    reload_home()
+
+    page.click("#tile-picturedoku")
+    page.click("#pdoku-levels .level-btn[data-puzzle='4']")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+    for i, ch in enumerate(pz["givens"]):
+        if ch == ".":
+            page.click(f"#pdoku-board .pcell[data-i='{i}']")
+            page.click(f"#pdoku-palette .pick[data-v='{pz['solution'][i]}']")
+    if web_offer_ok(page, "picturedoku puzzle 4", "picturedoku-levels", problems):
+        stars = page.evaluate("window.__bubbels.save().games.picturedoku.stars")
+        locked = "locked" in (page.get_attribute("#pdoku-levels .level-btn[data-puzzle='5']", "class") or "")
+        if stars.get("4") != 3 or not locked:
+            problems.append(f"offers: picturedoku: after puzzle 4 the save is {stars}, puzzle 5 locked: {locked}")
+    reload_home()
+
+    # Slangetje: counting level 4 is the last free one of its kind
+    page.click("#tile-slang")
+    page.click(".slang-grid .level-btn[data-level='4']")
+    close_card_if_any(page)
+    slang_round(page, "offers", problems)
+    if web_offer_ok(page, "slang level 4", "slang-menu", problems):
+        stars = page.evaluate("window.__bubbels.save().games.slang.stars")
+        if not stars.get("4"):
+            problems.append(f"offers: slang: level 4 not saved ({stars})")
+    reload_home()
+
+    # Klok kijken: read-t2-3 is the last free "what time is it" round
+    page.click("#tile-klok")
+    page.evaluate("window.__bubbels.klok.start('read-t2-3')")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    for i in range(10):
+        klok_answer(page)
+        klok_next(page, i)
+    if web_offer_ok(page, "klok read-t2-3", "klok-menu", problems):
+        if page.evaluate("window.__bubbels.klok.stars()").get("read-t2-3") != 3:
+            problems.append(f"offers: klok: read-t2-3 not saved ({page.evaluate('window.__bubbels.klok.stars()')})")
+    reload_home()
+
+    # Letters: tap-t1-3 is the last free round of its kind
+    page.click("#tile-letters")
+    page.evaluate("window.__bubbels.letters.start('tap-t1-3')")
+    page.wait_for_timeout(300)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+    for _ in range(12):
+        st = page.evaluate("window.__bubbels.letters.state()")
+        if st["done"]:
+            break
+        page.locator(f"#letters-options .letters-tile[data-letter='{st['q']['letter']}']").click()
+        page.wait_for_function(f"window.__bubbels.letters.state().i > {st['i']} || window.__bubbels.letters.state().done", timeout=5000)
+    if web_offer_ok(page, "letters tap-t1-3", "letters-menu", problems):
+        if page.evaluate("window.__bubbels.letters.stars()").get("tap-t1-3") != 3:
+            problems.append(f"offers: letters: tap-t1-3 not saved ({page.evaluate('window.__bubbels.letters.stars()')})")
+    reload_home()
+
+    # locked parts in a menu: OK leaves the player where they were
+    for tile, sel, screen in (("vier", ".vier-level[data-level='3']", "vier-menu"),
+                              ("dammen", ".dam-opt.board-big", "dammen-menu"),
+                              ("ganzen", ".ganzen-boardopt.board-winter", "ganzen-menu"),
+                              ("kleuren", "#kleur-list .kleur-card.locked >> nth=0", "kleuren-list"),
+                              ("tekenen", "#teken-mirror", "tekenen")):
+        page.click(f"#tile-{tile}")
+        page.wait_for_timeout(200)
+        if tile == "tekenen":
+            page.evaluate("window.__bubbels.teken.open()")
+            page.wait_for_timeout(200)
+        page.click(sel)
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+        if card_buttons(page) != ["Oké"]:
+            problems.append(f"offers: {tile}: the locked {sel} offers {card_buttons(page)}")
+        page.click("#ov-buttons button >> nth=0")
+        landed(page, f"{tile} locked part", screen, problems)
+        reload_home()
+    if errors:
+        problems.append(f"offers: page errors {errors[:2]}")
+    ctx.close()
+    print(f"[offers] other games: {time.time() - t0:.1f}s")
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -2631,6 +2953,8 @@ def main():
             dammen_layouts(browser, base, problems)
             ganzen_flow(browser, base, problems)
             ganzen_layouts(browser, base, problems)
+            offers_bubbels(browser, base, problems)
+            offers_others(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -2638,7 +2962,8 @@ def main():
 
 
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
-PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts)}
+PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts),
+         "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,)}
 
 
 def report(problems):
