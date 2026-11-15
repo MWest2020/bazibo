@@ -5,6 +5,7 @@
 import { meta as bubbels } from '../games/bubbels/meta.js';
 import { meta as dogudoku } from '../games/dogudoku/meta.js';
 import { meta as picturedoku } from '../games/picturedoku/meta.js';
+import { meta as legpuzzel } from '../games/legpuzzel/meta.js';
 import { meta as vier } from '../games/vier/meta.js';
 import { meta as dammen } from '../games/dammen/meta.js';
 import { meta as ganzen } from '../games/ganzen/meta.js';
@@ -30,6 +31,7 @@ export const GAMES = [
   { ...bubbels, status: 'ready' },
   { ...dogudoku, status: 'ready' },
   { ...picturedoku, status: 'ready' },
+  { ...legpuzzel, status: 'ready' },
   { ...vier, status: 'ready' },
   { ...dammen, status: 'ready' },
   { ...ganzen, status: 'ready' },

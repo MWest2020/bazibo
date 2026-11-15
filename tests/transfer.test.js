@@ -28,6 +28,7 @@ const typical = () => ({
     bubbels: { stars: { 1: 3, 2: 2, 3: 1 }, random: { easy: 4 } },
     dogudoku: { stars: { 1: 3, 13: 2 }, autoCross: true, howSeen: { tiny: true } },
     vier: { stars: { 'cpu-big-1': 5 }, setup: { board: 'big', mode: 'cpu', level: 1 }, tokens: ['pup', 'bubble'] },
+    legpuzzel: { stars: { 'garden-p9': 1, 'sea-p4': 1 }, size: 'p9', ghost: false },
     kleuren: { art: { 'p:zon': { f: { face: 7, ray0: 2 }, t: 1000, done: true }, 'm:m1:1101': { t: 2000, gone: true, c: 1 } } },
     klok: { stars: { 'set-t1-1': 3 } },
   },
@@ -70,6 +71,11 @@ test('empty, typical and large saves survive the trip; the purchase never travel
     assert.deepEqual(back.games, sanitizePayload(payloadOf(save)).games);
     assert.equal('purchase' in back, false);
   }
+});
+
+test('Legpuzzel travels whole: the puzzles laid, the size and the example picture', async () => {
+  const back = await decodeText(await encodeSave(typical()));
+  assert.deepEqual(back.games.legpuzzel, typical().games.legpuzzel);
 });
 
 test('a save is split into parts and joined again in any order', async () => {
@@ -215,6 +221,7 @@ test('the summary counts levels, pages and random rounds per game', () => {
     { id: 'bubbels', n: 7 },
     { id: 'dogudoku', n: 2 },
     { id: 'vier', n: 1 },
+    { id: 'legpuzzel', n: 2 },
     { id: 'kleuren', n: 1 },
     { id: 'klok', n: 1 },
   ]);

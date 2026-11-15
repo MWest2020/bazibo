@@ -6,6 +6,8 @@ import { LANGS, allStrings, pickLang, setLang, t, getLang } from '../web/js/i18n
 import '../web/games/bubbels/strings.js';
 import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
+import '../web/games/legpuzzel/strings.js';
+import { PICTURE_IDS as PUZZEL_PICTURES } from '../web/games/legpuzzel/pictures.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/ganzen/strings.js';
@@ -58,6 +60,7 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [1, 2, 3]) used.add(`pdoku.win${n}`);
   for (const r of ['row', 'col', 'box']) used.add(`pdoku.rule.${r}`).add(`pdoku.oops.${r}`);
   for (let v = 1; v <= 9; v++) used.add(`pdoku.pic.${v}`);
+  for (const id of PUZZEL_PICTURES) used.add(`puzzel.pic.${id}`);
   for (const n of [1, 2, 3]) used.add(`vier.level${n}`);
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);
