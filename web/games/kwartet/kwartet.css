@@ -1,0 +1,240 @@
+/* Kwartet: home tile, menu extras, the table (the other players, speech bubbles, your hand by set,
+   your kwartetten). The menu reuses Vier op een rij's and Dammen's option classes. */
+
+/* ---------- home tile ---------- */
+#tile-kwartet .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-kwartet .tile-art > svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- menu ---------- */
+.kwartet-stack { position: relative; width: 58px; height: 58px; display: block; }
+.kwartet-stack i { position: absolute; top: 8px; left: 14px; width: 30px; height: 42px; border-radius: 6px; background: #fff; border: 3px solid var(--c); box-shadow: inset 0 9px 0 var(--c); }
+.kwartet-stack i:nth-child(1) { transform: rotate(-18deg) translateX(-8px); }
+.kwartet-stack i:nth-child(2) { transform: rotate(-6deg) translateX(-2px); }
+.kwartet-stack i:nth-child(3) { transform: rotate(6deg) translateX(4px); }
+.kwartet-stack i:nth-child(4) { transform: rotate(18deg) translateX(10px); }
+.kwartet-setcounts .vier-opt { flex: 1 1 150px; }
+.kwartet-seatpick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.kwartet-slot {
+  font: inherit;
+  position: relative;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 30px 8px 10px;
+  border: 3px solid var(--primary);
+  border-radius: 22px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 5px 0 var(--primary-dark);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.kwartet-slot:disabled { cursor: default; opacity: 1; }
+.kwartet-slot:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kwartet-slot.kind-off { border-color: transparent; background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
+.kwartet-slot.locked { border-color: transparent; color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
+.kwartet-slot .slot-face { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+.kwartet-slot .slot-face svg { width: 100%; height: 100%; display: block; }
+.kwartet-empty { width: 40px; height: 40px; border-radius: 50%; border: 3px dashed #c9c1ff; color: #a59fd0; font-size: 1.6rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.kwartet-slot .slot-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kwartet-slot .slot-name { font-weight: 900; color: var(--primary); font-size: 1.02rem; line-height: 1.15; }
+.kwartet-slot .slot-kind { font-weight: 800; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.15; }
+.kwartet-slot .swap { position: absolute; top: 8px; right: 10px; color: var(--primary); font-size: 1.1rem; }
+.kwartet-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+#screen-kwartet-menu .levels-scroll { padding-bottom: 0; }
+
+/* ---------- HUD ---------- */
+.kwartet-hud .bar-spacer { width: 60px; flex: none; }
+
+/* ---------- the table ---------- */
+#kwartet-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 12px 10px;
+  box-sizing: border-box;
+}
+.kwartet-top { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.kwartet-seats { display: flex; justify-content: center; gap: 8px; position: relative; z-index: 3; }
+.kseat {
+  font: inherit;
+  position: relative;
+  flex: 0 1 112px;
+  min-width: 0;
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  column-gap: 4px;
+  row-gap: 2px;
+  padding: 6px 6px 8px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--ink);
+  box-shadow: 0 4px 0 #d6cff7;
+  touch-action: manipulation;
+}
+.kseat:disabled { cursor: default; opacity: 1; color: var(--ink); }
+.kseat.pickable { cursor: pointer; background: #fff; }
+.kseat.target { border-color: var(--primary); background: #fff; box-shadow: 0 4px 0 var(--primary-dark); }
+.kseat.turn { border-color: var(--gold); background: #fff; box-shadow: 0 4px 0 #f0d98a; }
+.kseat.out { opacity: 0.55; }
+.kseat .ks-face { grid-column: 1 / -1; justify-self: center; width: 44px; height: 44px; }
+.kseat .ks-face svg { width: 100%; height: 100%; display: block; }
+.kseat.thinking .ks-face { animation: kwartet-think 1s ease-in-out infinite; }
+.kseat .ks-name { grid-column: 1 / -1; font-weight: 900; font-size: 0.92rem; color: var(--primary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ks-count { display: inline-flex; align-items: center; gap: 2px; font-weight: 900; font-size: 0.9rem; }
+.ks-count .kback { width: 14px; height: 19px; }
+.ks-quartets { display: inline-flex; gap: 2px; min-height: 12px; }
+.ks-quartets i { width: 10px; height: 13px; border-radius: 3px; background: var(--c); display: block; }
+
+/* speech bubbles: under a player at the top, or beside your own face */
+.kbubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: max-content;
+  max-width: 190px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: #fff;
+  border: 3px solid var(--primary);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  text-align: left;
+  box-shadow: 0 6px 16px rgba(59, 47, 168, 0.22);
+  animation: kwartet-pop 0.25s ease-out;
+  pointer-events: none;
+}
+.kbubble::before { content: ""; position: absolute; top: -10px; left: 50%; margin-left: -8px; border: 8px solid transparent; border-bottom-color: var(--primary); border-top: 0; }
+.kseat:first-child .kbubble { left: 0; transform: none; }
+.kseat:first-child .kbubble::before { left: 40px; }
+.kseat:last-child:not(:first-child) .kbubble { left: auto; right: 0; transform: none; }
+.kseat:last-child:not(:first-child) .kbubble::before { left: auto; right: 32px; }
+.kbubble.yes { border-color: #2f9e5b; background: #eafbef; }
+.kbubble.no { border-color: #e5484d; background: #fff0f0; }
+.kbubble .kb-pic { flex: none; width: 34px; height: 34px; }
+.kbubble .kb-pic svg { width: 100%; height: 100%; display: block; }
+.kwartet-status { margin: 0; min-height: 2.5em; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-dark); text-align: center; line-height: 1.25; }
+
+.kwartet-table { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 8px; }
+.kwartet-own { flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px; }
+.kwartet-own:empty { display: none; }
+.kwartet-own .ks-face { width: 40px; height: 40px; flex: none; }
+.kwartet-own .ks-face svg { width: 100%; height: 100%; display: block; }
+.kwartet-own .ks-name { font-weight: 900; color: var(--primary-dark); }
+.kwartet-own.turn .ks-face { filter: drop-shadow(0 0 4px var(--gold)); }
+.kwartet-own .kbubble { position: relative; top: auto; left: auto; transform: none; max-width: none; flex: 1 1 auto; }
+.kwartet-own .kbubble::before { top: 50%; left: -10px; margin: -8px 0 0; border: 8px solid transparent; border-right-color: var(--primary); border-left: 0; }
+.kwartet-own .kbubble.yes::before { border-right-color: #2f9e5b; }
+.kwartet-own .kbubble.no::before { border-right-color: #e5484d; }
+.kwartet-hidden { margin: 24px 0; text-align: center; font-weight: 800; color: var(--ink-soft); }
+
+/* your hand: one row per set you hold, the four places of the set; the missing ones are buttons */
+.kwartet-hand { display: flex; flex-direction: column; gap: 8px; }
+.krow { display: grid; grid-template-columns: repeat(4, minmax(0, 92px)); justify-content: center; gap: 8px; }
+.kcard {
+  font: inherit;
+  position: relative;
+  aspect-ratio: 4 / 5;
+  min-height: 58px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border: 3px solid var(--c);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 3px 0 rgba(43, 35, 112, 0.18);
+}
+.kc-band { flex: none; align-self: stretch; height: 9px; background: var(--c); }
+.kset { display: flex; flex-direction: column; gap: 2px; }
+.kset-name { align-self: center; width: min(100%, 392px); padding-left: 2px; font-size: 0.85rem; font-weight: 900; color: var(--c); line-height: 1.2; }
+.kc-pic { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box; }
+.kc-pic svg { width: 100%; height: 100%; max-width: 64px; display: block; }
+.kc-name { align-self: stretch; padding: 0 2px 3px; font-size: 0.72rem; font-weight: 900; text-align: center; line-height: 1.1; overflow-wrap: anywhere; hyphens: manual; }
+.kcard.missing { border-style: dashed; background: rgba(255, 255, 255, 0.55); box-shadow: none; }
+.kcard.missing .kc-pic, .kcard.missing .kc-name { opacity: 0.5; }
+.kcard.missing .kc-band { opacity: 0.6; }
+button.kcard.missing:not(:disabled) { cursor: pointer; touch-action: manipulation; background: #fff; box-shadow: 0 4px 0 var(--c); animation: kwartet-breathe 1.8s ease-in-out infinite; }
+button.kcard.missing:not(:disabled)::after { content: "?"; position: absolute; top: 13px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--c); color: #fff; font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; }
+button.kcard.missing:not(:disabled) .kc-pic, button.kcard.missing:not(:disabled) .kc-name { opacity: 0.75; }
+button.kcard.missing:disabled { cursor: default; }
+button.kcard:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.kcard.fresh { animation: kwartet-arrive 0.6s ease-out; }
+.kcard.leaving { opacity: 0.25; transform: scale(0.9); transition: opacity 0.6s, transform 0.6s; }
+
+/* your kwartetten */
+.kwartet-mine { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.kwartet-mine:empty { display: none; }
+.kbadge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 4px; border-radius: 999px; background: #fff; border: 3px solid var(--c); font-weight: 900; font-size: 0.85rem; color: var(--ink); }
+.kbadge .kb-pic { width: 26px; height: 26px; }
+.kbadge .kb-pic svg { width: 100%; height: 100%; display: block; }
+.kbadge.hop { animation: kwartet-hop 0.6s ease 2; }
+.kwartet-ov { display: inline-flex; }
+.ov-art .kwartet-ov svg, .ov-art .vier-ov .robot { width: 84px; height: 84px; }
+
+/* short sideways phones: the HUD a column on the left, the players beside the hand */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-kwartet { flex-direction: row; }
+  .kwartet-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; width: 100px; flex: none; }
+  .kwartet-hud .hud-mid { flex: 0; max-width: 92px; text-align: center; }
+  .kwartet-hud .dogu-title { white-space: normal; font-size: 1rem; }
+  .kwartet-hud .btn.icon { width: 54px; height: 54px; }
+  .kwartet-hud .bar-spacer { display: none; }
+  #kwartet-stage { flex-direction: row; gap: 10px; padding: 8px 10px 8px 4px; max-width: none; }
+  .kwartet-top { width: 42%; max-width: 300px; }
+  .kwartet-seats { flex-wrap: wrap; }
+  .kseat { flex-basis: 86px; min-height: 80px; }
+  .kseat .ks-face { width: 34px; height: 34px; }
+  .krow { grid-template-columns: repeat(4, minmax(0, 66px)); gap: 6px; }
+  .kc-name { font-size: 0.62rem; }
+  .kwartet-status { font-size: 0.9rem; margin-top: auto; }
+  .kset-name { width: min(100%, 288px); font-size: 0.78rem; }
+}
+@media (max-width: 360px) {
+  .kseat { flex-basis: 96px; padding: 4px 4px 6px; }
+  .kseat .ks-name { font-size: 0.84rem; }
+  .krow { gap: 6px; }
+  .kc-name { font-size: 0.66rem; }
+  .kwartet-seatpick { gap: 10px; }
+  .kwartet-slot { padding: 6px 22px 6px 6px; gap: 5px; }
+  .kwartet-slot .slot-face { width: 34px; height: 34px; }
+  .kwartet-slot .slot-name { font-size: 0.95rem; }
+  .kwartet-slot .slot-kind { font-size: 0.8rem; }
+  .kwartet-slot .swap { right: 6px; }
+}
+@media (max-height: 600px) {
+  .ov-art .kwartet-ov svg, .ov-art .vier-ov .robot { width: 60px; height: 60px; }
+}
+
+@keyframes kwartet-think { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+@keyframes kwartet-pop { 0% { opacity: 0; scale: 0.8; } 100% { opacity: 1; scale: 1; } }
+@keyframes kwartet-arrive { 0% { transform: translateY(-30px) scale(0.6); opacity: 0; } 70% { transform: translateY(4px) scale(1.05); opacity: 1; } 100% { transform: none; } }
+@keyframes kwartet-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+@keyframes kwartet-breathe { 0%, 100% { box-shadow: 0 4px 0 var(--c); } 50% { box-shadow: 0 4px 0 var(--c), 0 0 0 4px rgba(255, 197, 49, 0.45); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .kseat.thinking .ks-face, .kbubble, .kcard.fresh, .kbadge.hop, button.kcard.missing:not(:disabled) { animation: none !important; }
+  .kcard.leaving { transition: none; }
+}

@@ -3,10 +3,12 @@
 //   { version: 1,
 //     games:    { bubbels: { stars: {1: 3, ...} },
 //                 dogudoku: { stars: {puzzle id: 1-3}, autoCross: false, howSeen: {tiny: true} },
+//                 memory: { stars: {'3x4-fruit': 1-3 stars alone, 'cpu-3x4': wins}, setup: {size, theme, mode} },
 //                 legpuzzel: { stars: {'garden-p9': 1 (laid once)}, size: 'p9', ghost: true },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 dammen: { stars: {'cpu-small-1': wins}, setup: {variant, mode, level}, look },
 //                 ganzen: { stars: {'won-classic': wins}, setup: {board, players: ['kid', 'cpu'], count} },
+//                 kwartet: { stars: {'won-4': wins against the computer}, setup: {sets: 4|6|8, players: ['kid', 'cpu', ...]} },
 //                 <any game>: { random: {tier: solved count} }   // random play, full version
 //                 kleuren: { art: {'p:zon': {f: {region: colour}, t, done, c?}, 'm:m1:1101': ...} },
 //                                    (a cleared page stays as {t, gone: true} so a merge carries the delete over)

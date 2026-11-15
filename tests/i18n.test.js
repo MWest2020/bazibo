@@ -6,11 +6,15 @@ import { LANGS, allStrings, pickLang, setLang, t, getLang } from '../web/js/i18n
 import '../web/games/bubbels/strings.js';
 import '../web/games/dogudoku/strings.js';
 import '../web/games/picturedoku/strings.js';
+import '../web/games/memory/strings.js';
+import { THEMES as MEMORY_THEMES, THEME_IDS as MEMORY_THEME_IDS } from '../web/games/memory/art.js';
 import '../web/games/legpuzzel/strings.js';
 import { PICTURE_IDS as PUZZEL_PICTURES } from '../web/games/legpuzzel/pictures.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/ganzen/strings.js';
+import '../web/games/kwartet/strings.js';
+import { SETS as KWARTET_SETS } from '../web/games/kwartet/art.js';
 import '../web/games/slang/strings.js';
 import '../web/games/kleuren/strings.js';
 import { PICTURES } from '../web/games/kleuren/pictures.js';
@@ -60,12 +64,21 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [1, 2, 3]) used.add(`pdoku.win${n}`);
   for (const r of ['row', 'col', 'box']) used.add(`pdoku.rule.${r}`).add(`pdoku.oops.${r}`);
   for (let v = 1; v <= 9; v++) used.add(`pdoku.pic.${v}`);
+  for (const id of MEMORY_THEME_IDS) used.add(`memory.theme.${id}`).add(`memory.theme.${id}Sub`);
+  for (const id of ['solo', 'duo', 'cpu']) used.add(`memory.mode.${id}`).add(`memory.mode.${id}Sub`);
+  for (const id of Object.values(MEMORY_THEMES).flat()) used.add(`memory.pic.${id}`);
   for (const id of PUZZEL_PICTURES) used.add(`puzzel.pic.${id}`);
   for (const n of [1, 2, 3]) used.add(`vier.level${n}`);
   for (const id of ['big', 'small']) used.add(`vier.${id}`).add(`vier.${id}Sub`);
   for (const n of [3, 4]) used.add(`vier.row${n}`);
   for (const id of ['pup', 'bubble', 'apple', 'flower', 'fish', 'pug']) used.add(`vier.tok.${id}`);
   for (const n of [1, 2, 3]) used.add(`dam.level${n}`);
+  for (const s of KWARTET_SETS) {
+    used.add(`kwartet.set.${s.id}`);
+    for (const c of s.cards) used.add(`kwartet.card.${c}`).add(`kwartet.the.${c}`);
+  }
+  for (const k of ['kid', 'cpu', 'off']) used.add(`kwartet.kind.${k}`);
+  for (const n of [1, 2, 3]) used.add(`kwartet.cpu${n}`);
   for (const b of ['classic', 'winter', 'sea']) used.add(`ganzen.board.${b}`).add(`ganzen.board.${b}Sub`);
   for (const g of ['white', 'yellow', 'blue', 'pink']) used.add(`ganzen.goose.${g}`);
   for (const k of ['kid', 'cpu', 'off']) used.add(`ganzen.kind.${k}`);

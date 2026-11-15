@@ -20,6 +20,9 @@ import { dogSvg } from '../games/dogudoku/art.js';
 import '../games/picturedoku/strings.js';
 import { createPicturedoku } from '../games/picturedoku/picturedoku.js';
 import { pictureSvg } from '../games/picturedoku/art.js';
+import '../games/memory/strings.js';
+import { createMemory } from '../games/memory/memory.js';
+import { tileSvg as memoryTileSvg } from '../games/memory/art.js';
 import '../games/legpuzzel/strings.js';
 import { createLegpuzzel } from '../games/legpuzzel/legpuzzel.js';
 import { tileSvg as puzzelTileSvg } from '../games/legpuzzel/art.js';
@@ -32,6 +35,9 @@ import { tileSvg as dammenTileSvg } from '../games/dammen/art.js';
 import '../games/ganzen/strings.js';
 import { createGanzen } from '../games/ganzen/ganzen.js';
 import { tileSvg as ganzenTileSvg } from '../games/ganzen/art.js';
+import '../games/kwartet/strings.js';
+import { createKwartet } from '../games/kwartet/kwartet.js';
+import { tileSvg as kwartetTileSvg } from '../games/kwartet/art.js';
 import '../games/slang/strings.js';
 import { createSlang } from '../games/slang/slang.js';
 import { snakeSvg } from '../games/slang/art.js';
@@ -232,6 +238,10 @@ function drawPicturedokuTile() {
   box.innerHTML = `<span class="mini-sudoku">${[1, 2, 3, 4].map((v) => `<span>${pictureSvg(v)}</span>`).join('')}</span>`;
 }
 
+function drawMemoryTile() {
+  $('#tile-memory .tile-art').innerHTML = memoryTileSvg();
+}
+
 function drawPuzzelTile() {
   $('#tile-legpuzzel .tile-art').innerHTML = puzzelTileSvg();
 }
@@ -255,6 +265,10 @@ function drawDammenTile() {
 
 function drawGanzenTile() {
   $('#tile-ganzen .tile-art').innerHTML = ganzenTileSvg();
+}
+
+function drawKwartetTile() {
+  $('#tile-kwartet .tile-art').innerHTML = kwartetTileSvg();
 }
 
 function drawSlangTile() {
@@ -549,6 +563,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.memory = createMemory({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.legpuzzel = createLegpuzzel({
     t,
     show,
@@ -583,6 +608,17 @@ async function boot() {
     tap,
   });
   games.ganzen = createGanzen({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
+  games.kwartet = createKwartet({
     t,
     show,
     showOverlay,
@@ -653,10 +689,12 @@ async function boot() {
   drawTileArt();
   drawDoguTile();
   drawPicturedokuTile();
+  drawMemoryTile();
   drawPuzzelTile();
   drawVierTile();
   drawDammenTile();
   drawGanzenTile();
+  drawKwartetTile();
   drawSlangTile();
   drawKleurenTile();
   drawTekenenTile();
@@ -665,7 +703,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -673,10 +711,12 @@ async function boot() {
       ...games.bubbels.testHook(),
       dogu: games.dogudoku.testHook(),
       pdoku: games.picturedoku.testHook(),
+      memory: games.memory.testHook(),
       puzzel: games.legpuzzel.testHook(),
       vier: games.vier.testHook(),
       dam: games.dammen.testHook(),
       gans: games.ganzen.testHook(),
+      kwartet: games.kwartet.testHook(),
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
       teken: games.tekenen.testHook(),
@@ -714,10 +754,12 @@ function onBack() {
   else if (action === 'levels') show('levels');
   else if (action === 'dogudoku-levels') games.dogudoku.leave();
   else if (action === 'picturedoku-levels') games.picturedoku.leave();
+  else if (action === 'memory-menu') games.memory.leave();
   else if (action === 'legpuzzel-menu') games.legpuzzel.leave();
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'ganzen-menu') games.ganzen.leave();
+  else if (action === 'kwartet-menu') games.kwartet.leave();
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();
   else if (action === 'tekenen-list') games.tekenen.back();

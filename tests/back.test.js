@@ -35,6 +35,9 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'picturedoku-levels' }), 'home');
   assert.equal(backAction({ screen: 'picturedoku', overlay: 'card' }), 'close');
   // Vier op een rij: the board goes to its menu (the game is kept), the menu goes home
+  assert.equal(backAction({ screen: 'memory' }), 'memory-menu');
+  assert.equal(backAction({ screen: 'memory-menu' }), 'home');
+  assert.equal(backAction({ screen: 'memory', overlay: 'card' }), 'close');
   assert.equal(backAction({ screen: 'legpuzzel' }), 'legpuzzel-menu');
   assert.equal(backAction({ screen: 'legpuzzel-menu' }), 'home');
   assert.equal(backAction({ screen: 'legpuzzel', overlay: 'card' }), 'close');
@@ -46,6 +49,9 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'dammen', overlay: 'card' }), 'close');
   assert.equal(backAction({ screen: 'dammen', overlay: 'busy' }), 'ignore');
   assert.equal(backAction({ screen: 'ganzen' }), 'ganzen-menu');
+  assert.equal(backAction({ screen: 'kwartet' }), 'kwartet-menu');
+  assert.equal(backAction({ screen: 'kwartet-menu' }), 'home');
+  assert.equal(backAction({ screen: 'kwartet', overlay: 'card' }), 'kwartet-menu'); // the pass card or the end card
   assert.equal(backAction({ screen: 'ganzen-menu' }), 'home');
   assert.equal(backAction({ screen: 'ganzen', overlay: 'card' }), 'close');
 });
