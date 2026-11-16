@@ -23,6 +23,8 @@ import '../web/games/tekenen/strings.js';
 import { STAMPS } from '../web/games/tekenen/drawing.js';
 import '../web/games/klok/strings.js';
 import '../web/games/letters/strings.js';
+import '../web/games/piano/strings.js';
+import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
 import '../web/js/random.js';
 import { GAMES, GROUPS, OTHER_GROUP } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';
@@ -98,6 +100,9 @@ test('every key used in index.html and in the code exists', () => {
   for (const k of ['t1', 't2', 't3', 't4', 't5', 'day']) used.add(`klok.tier.${k}`);
   for (const n of [1, 2, 3]) used.add(`klok.win${n}`);
   for (const a of ['breakfast', 'school', 'lunch', 'play', 'dinner', 'bath', 'bed']) used.add(`klok.act.${a}`);
+  for (const id of PIANO_SONGS) used.add(`piano.song.${id}`); // built as t(`piano.song.${id}`)
+  for (const id of PIANO_KEYS) used.add(`piano.note.${id}`);
+  for (const n of [1, 2, 3]) used.add(`piano.win${n}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 

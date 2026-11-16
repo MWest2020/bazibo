@@ -262,3 +262,16 @@ export function ticktock(i = 0) {
   tone('sine', f, f * 0.8, t, 0.035, 0.12, 0.002);
   hiss(t, 0.02, 0.06, 'bandpass', f * 1.6, f * 1.2, 2);
 }
+
+// Piano: a toy-piano / marimba note at `f` Hz. A struck sine with a quick bright overtone (the
+// mallet), a fourth partial that dies fast (the wooden "tok") and a soft body; about a second of
+// tail. No limiter: two fingers may press two keys at the same moment.
+export function pianoNote(f, vol = 1) {
+  if (!on() || !(f > 0)) return;
+  const t = ac.currentTime + 0.004;
+  tone('sine', f, f, t, 1.1, 0.5 * vol, 0.003); // the note itself
+  tone('triangle', f, f, t, 0.5, 0.12 * vol, 0.003); // body for small speakers
+  tone('sine', f * 2, f * 2, t, 0.35, 0.12 * vol, 0.002); // the octave, like a struck rod
+  tone('sine', f * 3.98, f * 3.98, t, 0.09, 0.1 * vol, 0.001); // the marimba overtone, short
+  hiss(t, 0.018, 0.06 * vol, 'bandpass', f * 3, f * 2.5, 2); // the mallet touching the key
+}

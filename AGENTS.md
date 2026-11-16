@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -54,6 +54,7 @@ home → Kwartet: 6 and 8 sets and a 4th player offer only OK on the web, a seed
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
+home → Piano (`tests/smoke.py piano`): a tap sounds (oscillators counted), two fingers hold two keys, a slide plays every key it passes, a black key; a locked song offers only OK on the web and stays on the list; Vader Jacob played along by tapping the glowing key with one wrong key first (the song waits), 3 stars saved and "More songs" (the offer over the list); Listen lights the keys and a tap stops it; the sound setting followed ("Geluid aan" on the piano); the back arrows and the Android back button; the layout at 320x568, 360x740, 568x320, 844x390 (full version, every song open), 390x844 in English and desktop, every key on screen and the coloured keys 44 px from 390 wide, about 42 at 360, 37 at 320; leaving the app stops Listen and lets go of every key;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap, the traced word), a gentle wrong tap, a locked tier stays locked, tier 2 shows the build word for a moment and again on a tap on the picture; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
@@ -182,5 +183,14 @@ gap, a word to build); the rounds are pure in `web/games/letters/round.js`, test
 tier. The Piper voice was removed on Mark's word (13 Nov 2026: children did not like the robot
 voice); do not add speech back, recorded or generated, without him. New words go in `WORDS` (both
 languages, with a picture that exists in `art.js`).
+Piano: the keyboard, the songs and playing along are pure in `web/games/piano/songs.js` (tested: 8
+coloured keys C to the high C and 5 black ones, sounding C5-C6 in equal temperament; a song is a
+string of note names with lengths in beats; every song stays on the coloured keys in whole 4/4
+bars; a wrong key never moves a song on; `starsFor` counts wrong keys only, gently, never time).
+The sound is `pianoNote` in `web/js/audio.js` (synthesised, follows the sound setting); no voice
+and no recordings. Pointers are handled on the whole keyboard (`elementFromPoint`), so several
+fingers and slides work; keep `touch-action: none` there. New songs go at the end of `SONGS`, public
+domain only, with a name `piano.song.<id>` in both languages. Free: free play and the first song
+(Vader Jacob, `meta.freeSongs`); the full version adds the other songs. Saved: stars per song only.
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.
