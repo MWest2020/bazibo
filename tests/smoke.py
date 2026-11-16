@@ -3777,6 +3777,7 @@ def piano_flow(browser, base, problems):
         page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
     except Exception:
         problems.append("piano: no end card after the last note of Vader Jacob")
+    page.wait_for_timeout(600)  # the stars pop in one by one
     page.screenshot(path=str(SHOTS / "piano-song-done.png"))
     if page.inner_text("#ov-title") != "Super!" or card_buttons(page) != ["Meer liedjes", "Nog een keer", "Liedjes"]:
         problems.append(f"piano: end card {page.inner_text('#ov-title')!r} with {card_buttons(page)}")
@@ -3807,6 +3808,26 @@ def piano_flow(browser, base, problems):
     page.wait_for_function("window.__bubbels.piano.state().lit.length > 0", timeout=3000)
     page.wait_for_timeout(60)  # the light comes on in a few frames
     page.screenshot(path=str(SHOTS / "piano-flow-listen-390x844.png"))
+    # the app to the background: listening stops, no key stays lit or down
+    hide = "Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange'))"
+    back = "delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))"
+    page.evaluate(hide)
+    page.wait_for_timeout(100)
+    st = pi_state(page)
+    if st["listening"] or st["lit"]:
+        problems.append(f"piano: in the background still listening {st['listening']}, lit {st['lit']}")
+    page.evaluate(back)
+    pi_touch(cdp, "touchStart", [pi_key_point(page, "g")])
+    page.wait_for_timeout(60)
+    held = pi_state(page)["down"]
+    page.evaluate(hide)
+    page.wait_for_timeout(60)
+    if held != ["g"] or pi_state(page)["down"]:
+        problems.append(f"piano: a held key ({held}) stayed down in the background: {pi_state(page)['down']}")
+    pi_touch(cdp, "touchEnd", [])
+    page.evaluate(back)
+    page.click("#piano-listen")
+    page.wait_for_function("window.__bubbels.piano.state().lit.length > 0", timeout=3000)
     page.locator(".pkey[data-key='c']").tap()
     page.wait_for_timeout(100)
     st = pi_state(page)
@@ -3862,7 +3883,7 @@ def piano_layouts(browser, base, problems):
     """Piano on a small phone, sideways and on desktop, free play and a song: every key on screen,
     the coloured keys wide and tall enough for a small finger, no sideways scrolling; in English;
     and in the full version every song open."""
-    for w, h, owned in ((320, 568, False), (568, 320, False), (844, 390, True), (390, 844, False), (1280, 800, False)):
+    for w, h, owned in ((320, 568, False), (360, 740, False), (568, 320, False), (844, 390, True), (390, 844, False), (1280, 800, False)):
         mobile = w < 1000
         english = (w, h) == (390, 844)
         ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
@@ -3900,7 +3921,7 @@ def piano_layouts(browser, base, problems):
             narrow = min(k[4] for k in whites)
             short = min(k[5] for k in whites)
             print(f"[piano {label} {mode}] coloured keys {narrow:.0f}x{short:.0f} px, black {min(k[4] for k in keys if not k[1]):.0f} px")
-            if narrow < (36 if w < 360 else 44) or short < 120:
+            if narrow < (36 if w < 360 else (41 if w < 390 else 44)) or short < 120:
                 problems.append(f"piano {label} {mode}: coloured keys only {narrow:.0f}x{short:.0f} px")
             if page.evaluate("document.documentElement.scrollWidth") > w:
                 problems.append(f"piano {label} {mode}: the page scrolls sideways")

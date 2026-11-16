@@ -392,6 +392,13 @@ export function createPiano(shell) {
     if (onScreen('piano')) render();
   });
   window.addEventListener('resize', () => onScreen('piano') && song && renderSong());
+  // the app goes to the background (home button, a call): the song stops playing itself and no key
+  // stays down, like the pause in Bubbels and Slangetje
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    stopListening();
+    releaseAll();
+  });
 
   // A computer keyboard plays too: A S D F G H J K for the coloured keys, W E T Y U for the black.
   document.addEventListener('keydown', (e) => {
