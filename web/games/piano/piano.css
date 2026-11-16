@@ -86,15 +86,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 6px 12px;
+  padding: 10px 4px 12px;
 }
 .piano-body {
-  --pad: 8px;
+  --pad: 5px;
   width: min(100%, 980px);
-  height: min(100%, 470px, calc((100vw - 12px) * 1.15));
+  height: min(100%, 520px, calc((100vw - 8px) * 1.3));
   display: flex;
   flex-direction: column;
-  padding: 0 var(--pad) var(--pad);
+  padding: 0 var(--pad) 8px;
   border-radius: 28px;
   background: linear-gradient(180deg, #6f60ee, var(--primary) 40%);
   box-shadow: 0 8px 0 var(--primary-dark), 0 14px 26px rgba(59, 47, 168, 0.3);
@@ -107,8 +107,9 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  --gap: 2px;
   display: flex;
-  gap: 3px;
+  gap: var(--gap);
   touch-action: none; /* fingers play, they never scroll or zoom */
   -webkit-user-select: none;
   user-select: none;
@@ -137,8 +138,8 @@
   top: 0;
   z-index: 2;
   /* between white key `slot - 1` and `slot`: keys share the width minus their gaps */
-  --kw: calc((100% - (var(--whites) - 1) * 3px) / var(--whites));
-  left: calc(var(--slot) * (var(--kw) + 3px) - 1.5px - var(--kw) * 0.31);
+  --kw: calc((100% - (var(--whites) - 1) * var(--gap)) / var(--whites));
+  left: calc(var(--slot) * (var(--kw) + var(--gap)) - var(--gap) / 2 - var(--kw) * 0.31);
   width: calc(var(--kw) * 0.62);
   height: 56%;
   border-radius: 0 0 10px 10px;
@@ -148,7 +149,7 @@
 }
 .pkey.white.down {
   transform: translateY(3px);
-  filter: brightness(0.94) saturate(1.1);
+  filter: brightness(0.86) saturate(1.15);
   box-shadow: inset 0 -4px 0 var(--key-lo), 0 1px 0 var(--primary-dark);
 }
 .pkey.black.down { transform: translateY(2px); box-shadow: inset 0 -3px 0 #17123f; background: #4a4196; }
@@ -173,7 +174,13 @@
 .pkey.glow .pkey-mark { transform: translateX(-50%) scale(1); animation: piano-bob 1s ease-in-out infinite; }
 .pkey.white.glow { box-shadow: inset 0 -10px 0 var(--key-lo), 0 4px 0 var(--primary-dark), 0 0 0 4px #fff, 0 0 18px 6px #fff; }
 .pkey.lit { filter: brightness(1.15); }
-.pkey.white.lit { box-shadow: inset 0 -10px 0 var(--key-lo), 0 0 0 4px #fff, 0 0 22px 8px var(--gold); }
+.pkey.white.lit {
+  z-index: 1;
+  transform: translateY(3px);
+  background: var(--key-hi);
+  box-shadow: inset 0 -6px 0 var(--key-lo), 0 0 0 4px var(--gold), 0 0 22px 8px #fff;
+}
+.pkey.black.lit { transform: translateY(2px); background: #6a5fd0; box-shadow: 0 0 0 3px var(--gold); }
 .pkey.lit .pkey-mark { transform: translateX(-50%) scale(1); }
 .pkey.nudge { animation: piano-nudge 0.4s ease-in-out 2; }
 .piano-keys.listening .pkey.glow { animation: none; }
@@ -236,9 +243,8 @@
   #piano-listen span { display: none; } /* the play sign says it; the strip gets the room */
   .piano-card-title { font-size: 1.1rem; }
   .piano-card-art { width: 60px; height: 46px; }
-  .piano-body { --pad: 6px; }
-  .piano-keys { gap: 2px; }
-  .pkey.black { --kw: calc((100% - (var(--whites) - 1) * 2px) / var(--whites)); left: calc(var(--slot) * (var(--kw) + 2px) - 1px - var(--kw) * 0.31); }
+  .piano-body { --pad: 3px; border-radius: 22px; }
+  #piano-stage { padding-inline: 3px; }
 }
 /* short sideways phones: the bar and the notes share one row, the keys get the rest */
 @media (orientation: landscape) and (max-height: 520px) {
@@ -260,6 +266,8 @@
   .piano-status { display: none; }
   .piano-muted { grid-column: 1 / 3; grid-row: 2; }
   #piano-stage { grid-column: 1 / 3; grid-row: 3; padding: 6px 6px 8px; }
+  .piano-body { --pad: 8px; }
+  .piano-keys { --gap: 3px; }
   .piano-body { height: 100%; }
   .piano-top { height: 18px; }
   .piano-top span { width: 9px; height: 9px; }

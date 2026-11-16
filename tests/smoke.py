@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -3644,6 +3644,287 @@ def legpuzzel_layouts(browser, base, problems):
         ctx.close()
 
 
+# ---------- Piano ----------
+
+# Counts the oscillators the page starts, so the test can tell a key made a sound (or, with the
+# sound off, did not).
+COUNT_OSC = """
+(() => {
+  window.__osc = 0;
+  for (const AC of [window.AudioContext, window.webkitAudioContext]) {
+    if (!AC || AC.prototype.__counted) continue;
+    const make = AC.prototype.createOscillator;
+    AC.prototype.createOscillator = function () { window.__osc++; return make.call(this); };
+    AC.prototype.__counted = true;
+  }
+})();
+"""
+
+
+def pi_state(page):
+    return page.evaluate("window.__bubbels.piano.state()")
+
+
+def pi_key_point(page, key, black=False):
+    box = page.locator(f".pkey[data-key='{key}']").bounding_box()
+    # a white key low down (under the black keys), a black key in its middle
+    return {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] * (0.5 if black else 0.85)}
+
+
+def pi_touch(cdp, kind, points):
+    cdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [dict(p, id=i + 1) for i, p in enumerate(points)]})
+
+
+def piano_flow(browser, base, problems):
+    """Piano at 390x844 with real touch: free play (a tap sounds, two fingers hold two keys, a slide
+    plays every key it passes, a black key), a locked song offers only OK on the web and leaves the
+    child on the list, Vader Jacob played along by tapping the glowing key with one wrong key first
+    (the song waits), the end card with 3 stars saved and "More songs" (offer over the list), the
+    listen button lighting keys and stopped by a tap, the sound setting followed, the back arrows and
+    the Android back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(COUNT_OSC)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-piano .tile-name").strip() != "Piano":
+        problems.append(f"piano: tile says {page.inner_text('#tile-piano .tile-name')!r}")
+    if page.evaluate("document.querySelector('#tile-piano').closest('.tile-group').querySelector('.group-name').textContent") != "Creatief":
+        problems.append("piano: the tile is not in the Creatief section")
+    page.click("#tile-piano")
+    page.wait_for_timeout(250)
+    st = pi_state(page)
+    if where(page) != ["piano", False] or st["mode"] != "free" or page.inner_text("#piano-title") != "Vrij spelen":
+        problems.append(f"piano: the tile opened {where(page)} in {st['mode']} ({page.inner_text('#piano-title')!r}), not free play")
+
+    # a tap sounds
+    osc = page.evaluate("window.__osc")
+    page.locator(".pkey[data-key='e']").tap()
+    page.wait_for_timeout(80)
+    st = pi_state(page)
+    if st["pressed"] != 1 or page.evaluate("window.__osc") <= osc:
+        problems.append(f"piano: a tap on E pressed {st['pressed']} keys and started {page.evaluate('window.__osc') - osc} oscillators")
+    # two fingers: two keys down at once, both sound
+    pi_touch(cdp, "touchStart", [pi_key_point(page, "c"), pi_key_point(page, "g")])
+    page.wait_for_timeout(60)
+    st = pi_state(page)
+    if sorted(st["down"]) != ["c", "g"] or st["pressed"] != 3:
+        problems.append(f"piano: two fingers held {st['down']} ({st['pressed']} presses)")
+    page.screenshot(path=str(SHOTS / "piano-flow-two-fingers.png"))
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
+    if pi_state(page)["down"]:
+        problems.append(f"piano: keys still down after the fingers left: {pi_state(page)['down']}")
+    # a slide from C to G plays C D E F G
+    a, b = pi_key_point(page, "c"), pi_key_point(page, "g")
+    pi_touch(cdp, "touchStart", [a])
+    for k in range(1, 13):
+        pi_touch(cdp, "touchMove", [{"x": a["x"] + (b["x"] - a["x"]) * k / 12, "y": a["y"]}])
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
+    st = pi_state(page)
+    if st["pressed"] != 8 or st["down"]:
+        problems.append(f"piano: a slide over five keys gave {st['pressed'] - 3} presses (down: {st['down']})")
+    # a black key
+    pi_touch(cdp, "touchStart", [pi_key_point(page, "fis", black=True)])
+    page.wait_for_timeout(60)
+    if pi_state(page)["down"] != ["fis"]:
+        problems.append(f"piano: a touch on the black key between F and G held {pi_state(page)['down']}")
+    pi_touch(cdp, "touchEnd", [])
+    page.screenshot(path=str(SHOTS / "piano-flow-free-390x844.png"))
+
+    # the song list; a locked song offers only OK on the web and stays on the list
+    page.click("#piano-songs-btn")
+    page.wait_for_timeout(200)
+    page.screenshot(path=str(SHOTS / "piano-flow-songs-390x844.png"))
+    locked = page.eval_on_selector_all(".piano-card.locked", "els => els.map(e => e.dataset.song)")
+    if locked != ["kortjakje", "maan", "vreugde"]:
+        problems.append(f"piano: locked songs on the web are {locked}")
+    page.click(".piano-card[data-song='kortjakje']")
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"] or "Vader Jacob zijn gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"piano: a locked song offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
+    page.click("#ov-buttons button >> nth=0")
+    landed(page, "piano locked song", "piano-songs", problems)
+
+    # Vader Jacob: one wrong key first (the song waits), then every glowing key by a real tap
+    page.click(".piano-card[data-song='jacob']")
+    page.wait_for_timeout(200)
+    st = pi_state(page)
+    if st["mode"] != "song" or st["glow"] != ["c"] or page.inner_text("#piano-title") != "Vader Jacob":
+        problems.append(f"piano: Vader Jacob opened as {st['mode']} with {st['glow']} glowing")
+    page.locator(".pkey[data-key='a']").tap()
+    page.wait_for_timeout(60)
+    st = pi_state(page)
+    if st["index"] != 0 or st["misses"] != 1 or st["glow"] != ["c"]:
+        problems.append(f"piano: a wrong key moved the song to {st['index']} (misses {st['misses']}, glow {st['glow']})")
+    n = st["length"]
+    for i in range(n):
+        st = pi_state(page)
+        if len(st["glow"]) != 1 or st["glow"][0] != st["target"]:
+            problems.append(f"piano: note {i}: glowing {st['glow']}, the song wants {st['target']}")
+            break
+        page.locator(".pkey.glow").tap()
+        if i == 9:
+            page.wait_for_timeout(120)
+            page.screenshot(path=str(SHOTS / "piano-flow-song-390x844.png"))
+    try:
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    except Exception:
+        problems.append("piano: no end card after the last note of Vader Jacob")
+    page.screenshot(path=str(SHOTS / "piano-song-done.png"))
+    if page.inner_text("#ov-title") != "Super!" or card_buttons(page) != ["Meer liedjes", "Nog een keer", "Liedjes"]:
+        problems.append(f"piano: end card {page.inner_text('#ov-title')!r} with {card_buttons(page)}")
+    if page.evaluate("window.__bubbels.piano.stars()") != {"jacob": 3}:
+        problems.append(f"piano: saved stars {page.evaluate('window.__bubbels.piano.stars()')}")
+    if page.evaluate("window.__bubbels.save().games.piano") != {"stars": {"jacob": 3}}:
+        problems.append(f"piano: the save has {page.evaluate('window.__bubbels.save().games.piano')}")
+    # "More songs": the offer over the song list, OK lands on the list
+    web_offer_ok(page, "piano more songs", "piano-songs", problems)
+    if page.locator(".piano-card[data-song='jacob'] .piano-card-end svg.on").count() != 3:
+        problems.append("piano: the list does not show Vader Jacob's 3 stars")
+
+    # listen: the keys light up one after another, a tap stops it
+    page.click(".piano-card[data-song='jacob']")
+    page.wait_for_timeout(150)
+    heard = pi_state(page)["heard"]
+    page.click("#piano-listen")
+    try:
+        page.wait_for_function("window.__bubbels.piano.state().lit.length > 0", timeout=3000)
+    except Exception:
+        problems.append("piano: listen lit no key")
+    page.wait_for_timeout(1500)
+    st = pi_state(page)
+    if not st["listening"] or st["heard"] - heard < 3 or st["glow"]:
+        problems.append(f"piano: listening {st['listening']}, {st['heard'] - heard} notes heard, glow {st['glow']}")
+    if page.get_attribute("#piano-listen", "aria-pressed") != "true":
+        problems.append("piano: the listen button does not show Stop while it plays")
+    page.wait_for_function("window.__bubbels.piano.state().lit.length > 0", timeout=3000)
+    page.wait_for_timeout(60)  # the light comes on in a few frames
+    page.screenshot(path=str(SHOTS / "piano-flow-listen-390x844.png"))
+    page.locator(".pkey[data-key='c']").tap()
+    page.wait_for_timeout(100)
+    st = pi_state(page)
+    if st["listening"] or st["lit"] or st["index"] != 1:
+        problems.append(f"piano: a tap during listening left listening {st['listening']}, lit {st['lit']}, the song at {st['index']}")
+
+    # back: the song goes to the list, the list to free play, free play home; the Android back the same
+    page.click("#piano-back")
+    page.wait_for_timeout(100)
+    if where(page) != ["piano-songs", False]:
+        problems.append(f"piano: back from a song landed on {where(page)}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    if where(page) != ["piano", False] or pi_state(page)["mode"] != "free":
+        problems.append(f"piano: Android back from the list landed on {where(page)} {pi_state(page)['mode']}")
+    page.click("#piano-back")
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"piano: back from free play landed on {where(page)}")
+
+    # the sound setting: off, the piano says so and plays nothing; its button turns it on again
+    page.click("#btn-settings")
+    page.click("[data-sound='off']")
+    page.click("#screen-settings [data-go='home']")
+    page.wait_for_timeout(150)
+    page.click("#tile-piano")
+    page.wait_for_timeout(150)
+    if not page.is_visible("#piano-muted"):
+        problems.append("piano: no word that the sound is off")
+    page.screenshot(path=str(SHOTS / "piano-flow-muted-390x844.png"))
+    osc = page.evaluate("window.__osc")
+    page.locator(".pkey[data-key='d']").tap()
+    page.wait_for_timeout(60)
+    if page.evaluate("window.__osc") != osc:
+        problems.append("piano: a key made a sound with the sound off")
+    page.click("#piano-sound-on")
+    page.wait_for_timeout(100)
+    osc = page.evaluate("window.__osc")
+    page.locator(".pkey[data-key='d']").tap()
+    page.wait_for_timeout(60)
+    if page.is_visible("#piano-muted") or page.evaluate("window.__osc") <= osc:
+        problems.append("piano: 'Geluid aan' did not bring the sound back")
+    if page.evaluate("window.__bubbels.save().settings.muted") is not False:
+        problems.append("piano: 'Geluid aan' was not saved")
+    if errors:
+        problems.append(f"piano: page errors {errors[:2]}")
+    if foreign:
+        problems.append(f"piano: requests outside the app {foreign[:2]}")
+    ctx.close()
+
+
+def piano_layouts(browser, base, problems):
+    """Piano on a small phone, sideways and on desktop, free play and a song: every key on screen,
+    the coloured keys wide and tall enough for a small finger, no sideways scrolling; in English;
+    and in the full version every song open."""
+    for w, h, owned in ((320, 568, False), (568, 320, False), (844, 390, True), (390, 844, False), (1280, 800, False)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}"
+        page.click("#tile-piano")
+        page.wait_for_timeout(250)
+        song = "vreugde" if owned else "jacob"
+        for mode in ("free", "song"):
+            if mode == "song":
+                page.click("#piano-songs-btn")
+                page.wait_for_timeout(150)
+                page.screenshot(path=str(SHOTS / f"piano-songs-{w}x{h}.png"), full_page=True)
+                locked = page.locator(".piano-card.locked").count()
+                if locked != (0 if owned else 3):
+                    problems.append(f"piano {label}: {locked} songs locked")
+                page.click(f".piano-card[data-song='{song}']")
+                page.wait_for_timeout(200)
+                for k in range(3):
+                    page.evaluate(f"window.__bubbels.piano.press(window.__bubbels.piano.state().target)")
+                page.wait_for_timeout(150)
+            keys = page.eval_on_selector_all(".pkey", "els => els.map(e => { const r = e.getBoundingClientRect(); return [e.dataset.key, e.classList.contains('white'), r.left, r.top, r.width, r.height]; })")
+            for key, white, x, y, kw, kh in keys:
+                if x < -0.5 or y < -0.5 or x + kw > w + 0.5 or y + kh > h + 0.5:
+                    problems.append(f"piano {label} {mode}: key {key} off screen ({x:.0f},{y:.0f} {kw:.0f}x{kh:.0f})")
+            whites = [k for k in keys if k[1]]
+            narrow = min(k[4] for k in whites)
+            short = min(k[5] for k in whites)
+            print(f"[piano {label} {mode}] coloured keys {narrow:.0f}x{short:.0f} px, black {min(k[4] for k in keys if not k[1]):.0f} px")
+            if narrow < (36 if w < 360 else 44) or short < 120:
+                problems.append(f"piano {label} {mode}: coloured keys only {narrow:.0f}x{short:.0f} px")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"piano {label} {mode}: the page scrolls sideways")
+            for sel in ("#piano-back", "#piano-title") + (("#piano-listen", "#piano-strip") if mode == "song" else ("#piano-songs-btn",)):
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < 0 or r["y"] < 0 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"piano {label} {mode}: {sel} not on screen ({r})")
+            if mode == "song":
+                bar = page.locator("#piano-songbar").bounding_box()
+                top = min(k[3] for k in keys)
+                if bar["y"] + bar["height"] > top:
+                    problems.append(f"piano {label}: the notes strip runs into the keys")
+                if page.locator("#piano-strip .pnote").count() < 4:
+                    problems.append(f"piano {label}: the strip shows only {page.locator('#piano-strip .pnote').count()} notes")
+            if english:
+                want = {"free": "Free play", "song": "Frère Jacques"}[mode]
+                if page.inner_text("#piano-title") != want:
+                    problems.append(f"piano {label}: English title {page.inner_text('#piano-title')!r}, expected {want!r}")
+            page.screenshot(path=str(SHOTS / f"piano-{mode}-{w}x{h}.png"))
+        if errors:
+            problems.append(f"piano {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -3709,6 +3990,8 @@ def main():
             kwartet_layouts(browser, base, problems)
             legpuzzel_flow(browser, base, problems)
             legpuzzel_layouts(browser, base, problems)
+            piano_flow(browser, base, problems)
+            piano_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -3720,7 +4003,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
-         "legpuzzel": (legpuzzel_flow, legpuzzel_layouts)}
+         "legpuzzel": (legpuzzel_flow, legpuzzel_layouts),
+         "piano": (piano_flow, piano_layouts)}
 
 
 def report(problems):
