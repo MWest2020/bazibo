@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="games/tekenen/tekenen.css">
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
+  <link rel="stylesheet" href="games/piano/piano.css">
 </head>
 <body>
   <main id="app">
@@ -656,6 +657,47 @@
         <div id="letters-dots" class="klok-dots" role="img"></div>
         <p id="letters-status" class="klok-status" aria-live="polite"></p>
       </div>
+    </section>
+
+    <!-- Piano: the toy piano (free play, or a song to play along with) -->
+    <section id="screen-piano" class="screen" data-i18n-aria="games.piano" aria-label="Piano" data-mode="free">
+      <header class="bar piano-hud">
+        <button id="piano-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="piano-sub" class="hud-level"></div>
+          <div id="piano-title" class="piano-title"></div>
+        </div>
+        <button id="piano-songs-btn" class="btn piano-pill" type="button"></button>
+        <span id="piano-spacer" class="bar-spacer" hidden></span>
+      </header>
+      <p id="piano-muted" class="piano-muted" hidden><span data-i18n="piano.muted">Het geluid staat uit.</span> <button id="piano-sound-on" class="btn piano-pill small" type="button" data-i18n="piano.soundOn">Geluid aan</button></p>
+      <div id="piano-songbar" class="piano-songbar" hidden>
+        <button id="piano-listen" class="btn piano-pill" type="button" aria-pressed="false"></button>
+        <div class="piano-notes">
+          <div id="piano-strip" class="piano-strip" role="img"></div>
+          <p id="piano-status" class="piano-status" aria-live="polite"></p>
+        </div>
+      </div>
+      <div id="piano-stage">
+        <div class="piano-body">
+          <div class="piano-top" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div id="piano-keys" class="piano-keys" role="group" data-i18n-aria="piano.keys" aria-label="Pianotoetsen"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Piano: free play or one of the songs -->
+    <section id="screen-piano-songs" class="screen" data-i18n-aria="piano.songsAria" aria-label="Kies een liedje">
+      <header class="bar">
+        <button id="piano-songs-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="piano.songs">Liedjes</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="piano-songlist" class="piano-songlist"></div></div>
     </section>
 
     <!-- one overlay card, filled per situation -->
