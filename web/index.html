@@ -681,10 +681,14 @@
           <p id="piano-status" class="piano-status" aria-live="polite"></p>
         </div>
       </div>
+      <p id="piano-turn" class="piano-turn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M2.5 13.5a9.5 9.5 0 0 0 6 7.5M21.5 10.5a9.5 9.5 0 0 0-6-7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="piano.turn">Draai je telefoon, dan zie je alle toetsen.</span></p>
       <div id="piano-stage">
         <div class="piano-body">
           <div class="piano-top" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div id="piano-keys" class="piano-keys" role="group" data-i18n-aria="piano.keys" aria-label="Pianotoetsen"></div>
+          <div id="piano-map" class="piano-map" role="slider" tabindex="0" data-i18n-aria="piano.map" aria-label="Schuif hier naar andere toetsen" hidden><span id="piano-map-frame" class="piano-map-frame"></span></div>
+          <div id="piano-view" class="piano-view">
+            <div id="piano-keys" class="piano-keys" role="group" data-i18n-aria="piano.keys" aria-label="Pianotoetsen"></div>
+          </div>
         </div>
       </div>
     </section>
