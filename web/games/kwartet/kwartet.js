@@ -1,7 +1,9 @@
 // Kwartet: the Dutch quartets card game. A child against 1-3 computer players, or children
 // together on one device (a "pass the phone" card between their turns hides the cards). Ask
 // another player for a card of a set you hold; you get it: ask again; you do not: the turn passes.
-// Four of a set are laid down as a kwartet; the most kwartetten wins. The rules live in rules.js,
+// Two players play with a pile: after a "no" the asker taps the pile (a computer draws by itself)
+// and the card flies into the hand. Four of a set are laid down as a kwartet; the most kwartetten
+// wins. The rules live in rules.js,
 // the computer in ai.js, the cards in art.js; the shell (web/js/main.js) owns the overlay card,
 // the sound settings and the purchase.
 //
@@ -13,8 +15,8 @@
 // `stars` ('won-<sets>'; only games with one child, only going up), and the last menu choice
 // ('setup': { sets, players }). Games between children are not counted.
 import { meta } from './meta.js';
-import { newGame, ask as askRule, askable, opponents, setOf, cardsOf, shuffle, PER_SET, MAX_PLAYERS, mulberry32 } from './rules.js';
-import { emptyMemory, observe, laidDown, choose } from './ai.js';
+import { newGame, ask as askRule, draw as drawRule, canDraw, usesPile, handSize, askable, opponents, setOf, cardsOf, shuffle, PER_SET, MAX_PLAYERS, mulberry32 } from './rules.js';
+import { emptyMemory, observe, drew, laidDown, choose } from './ai.js';
 import { SETS, SET_IDS, setById, pictureOf, pictureSvg, robotSvg, CPU_COLORS, CARD_BACK } from './art.js';
 import { tokenSvg, TROPHY } from '../vier/art.js';
 import * as store from '../../js/storage.js';
@@ -28,7 +30,7 @@ export const SET_COUNTS = Object.freeze([4, 6, 8]);
 export const AGES = Object.freeze({ 4: 4, 6: 6, 8: 7 });
 export const DEFAULT_SETUP = Object.freeze({ sets: 4, players: Object.freeze(['kid', 'cpu', 'cpu']) });
 // How long things take, in ms: slow enough for a young child to follow every question
-export const TIMES = Object.freeze({ think: 1000, question: 1400, answer: 1300, quartet: 1500, card: 900 });
+export const TIMES = Object.freeze({ think: 1000, question: 1400, answer: 1300, quartet: 1500, card: 900, draw: 800, fly: 650 });
 
 export const winKey = (sets) => `won-${sets}`;
 
@@ -58,7 +60,7 @@ export function createKwartet(shell) {
   let fast = false;
   let timer = null; // the next thing that happens by itself (one at a time)
   let cardTimer = null; // the end card
-  let phase = 'idle'; // 'ask' (a child chooses), 'question', 'answer', 'cpu', 'pass', 'over'
+  let phase = 'idle'; // 'ask' (a child chooses), 'question', 'answer', 'draw' (from the pile), 'drew', 'cpu', 'pass', 'over'
   let pending = null; // the question on screen, not answered yet: { asker, target, card }
   let viewer = -1; // the child whose cards are shown (-1: hidden)
   let target = -1; // the player the child will ask
@@ -79,6 +81,9 @@ export function createKwartet(shell) {
   /** The name a player is called by, for the child looking at the screen. */
   const nameOf = (p) => (viewerFor(p) ? t('kwartet.you') : game.names[p]);
   const viewerFor = (p) => kids() === 1 && isKid(p);
+  /** A sentence about player p: the "you" form for the one child at the table ('kwartet.getsYou'). */
+  const about = (key, p, vars = {}) => (viewerFor(p) ? t(`${key}You`, vars) : t(key, { ...vars, name: game.names[p] }));
+  const turnText = (p) => (viewerFor(p) ? t('kwartet.yourTurn') : t('kwartet.turn', { name: game.names[p] }));
 
   function cancelTimer() {
     if (timer) clearTimeout(timer);
@@ -175,6 +180,10 @@ export function createKwartet(shell) {
     const kinds = choice.players;
     const names = namesFor(kinds);
     const faces = facesFor(kinds);
+    // the rule that changes with the number of players: two play with a pile
+    const rule = document.createElement('p');
+    rule.className = 'kwartet-rule';
+    rule.textContent = usesPile(kinds.length) ? t('kwartet.rulePile', { n: handSize(choice.sets) }) : t('kwartet.ruleAll');
     for (let p = 0; p < MAX_PLAYERS; p++) {
       const kind = kinds[p] || 'off';
       const isLocked = !owned && p >= meta.freePlayers;
@@ -200,6 +209,7 @@ export function createKwartet(shell) {
         });
       seats.appendChild(b);
     }
+    box.appendChild(rule);
     box.appendChild(seats);
 
     const actions = document.createElement('div');
@@ -299,8 +309,16 @@ export function createKwartet(shell) {
     const p = game.turn;
     bubbles = {};
     if (!isKid(p)) {
-      phase = 'cpu';
       if (kids() > 1) viewer = -1; // children together: nobody's cards while a computer plays
+      if (game.drawing) {
+        // a "no": the computer takes a card from the pile, slowly enough to see
+        phase = 'draw';
+        status = t('kwartet.draw', { name: game.names[p] });
+        render();
+        later(TIMES.draw, doDraw);
+        return;
+      }
+      phase = 'cpu';
       status = t('kwartet.thinking', { name: game.names[p] });
       render();
       later(TIMES.think, cpuAsk);
@@ -315,8 +333,15 @@ export function createKwartet(shell) {
       showPassCard(p);
       return;
     }
-    phase = 'ask';
     viewer = p;
+    if (game.drawing) {
+      // a "no": the child takes a card from the pile (the pile glows until it is tapped)
+      phase = 'draw';
+      status = about('kwartet.draw', p);
+      render();
+      return;
+    }
+    phase = 'ask';
     const others = opponents(game, p);
     if (!others.includes(target)) target = others[0];
     status = others.length > 1 ? t('kwartet.pickWho') : t('kwartet.pick');
@@ -365,7 +390,8 @@ export function createKwartet(shell) {
     pending = q;
     phase = 'question';
     fresh = leaving = hopSet = null;
-    bubbles = { [q.asker]: { text: t('kwartet.ask', { name: nameOf(q.target), card: cardThe(q.card) }), card: q.card } };
+    const text = viewerFor(q.target) ? t('kwartet.askYou', { card: cardThe(q.card) }) : t('kwartet.ask', { name: game.names[q.target], card: cardThe(q.card) });
+    bubbles = { [q.asker]: { text, card: q.card } };
     status = '';
     sfx.tick();
     render();
@@ -389,12 +415,13 @@ export function createKwartet(shell) {
     bubbles = { ...bubbles, [q.target]: { text: r.got ? t('kwartet.yes') : t('kwartet.no'), yes: r.got } };
     if (r.got) {
       sfx.plink(5);
-      status = t('kwartet.gets', { name: nameOf(q.asker), card: cardThe(q.card) });
+      status = about('kwartet.gets', q.asker, { card: cardThe(q.card) });
       if (q.asker === viewer) fresh = q.card;
       if (q.target === viewer) leaving = q.card;
     } else {
       sfx.boop();
-      status = t('kwartet.turn', { name: nameOf(game.turn) });
+      if (r.draw) status = about('kwartet.draw', q.asker);
+      else status = `${usesPile(game.players) ? `${t('kwartet.pileEmpty')} ` : ''}${turnText(game.turn)}`;
     }
     if (r.laid) {
       status = t('kwartet.quartet', { set: setName(r.laid) });
@@ -403,10 +430,23 @@ export function createKwartet(shell) {
     } else if (r.got && !game.over && game.turn === q.asker) {
       status += ` ${t('kwartet.askAgain')}`;
     }
+    status += refillText(r.refills);
     // children together: the moment the turn leaves a child (a "no", or no cards left), its cards
     // are hidden, not only once the answer has been on screen for a while
     if (kids() > 1 && game.turn !== viewer) viewer = -1;
+    if (r.draw && isKid(q.asker) && q.asker === viewer) {
+      // the child taps the pile (it glows); the "no" shows for a moment, then the status is clear
+      phase = 'draw';
+      render();
+      if (!quick)
+        later(TIMES.answer, () => {
+          bubbles = {};
+          render();
+        });
+      return;
+    }
     render();
+    flyRefills(r.refills);
     if (quick) {
       nextStep();
       return;
@@ -423,6 +463,95 @@ export function createKwartet(shell) {
       return;
     }
     question({ asker: me, target: c.target, card: c.card });
+  }
+
+  /** "… takes a new card from the pile" for every hand that ran empty. */
+  function refillText(refills) {
+    return refills.map((f) => ` ${about('kwartet.refill', f.player)}`).join('');
+  }
+  function flyRefills(refills) {
+    for (const f of refills) {
+      if (f.player === viewer) fresh = f.card;
+    }
+    if (refills.some((f) => f.player === viewer)) render();
+    for (const f of refills) flyTo(f.player, f.card);
+  }
+
+  /** The child taps the pile after a "no". */
+  function tapDraw() {
+    if (phase !== 'draw' || !game || !isKid(game.turn) || viewer !== game.turn) return;
+    sfx.unlock();
+    doDraw();
+  }
+
+  /** After a "no": the asker takes the top card of the pile. The card flies from the pile. */
+  function doDraw() {
+    if (!game || !canDraw(game)) return;
+    cancelTimer();
+    const p = game.turn;
+    const asked = game.drawing;
+    const r = drawRule(game);
+    game = keep(r.game);
+    memories = memories.map((m, i) => (game.kinds[i] === 'cpu' ? drew(m, { player: p, card: asked, lucky: r.lucky }, rand) : m));
+    if (r.laid) memories = memories.map((m) => laidDown(m, r.laid));
+    phase = 'drew';
+    fresh = leaving = hopSet = null;
+    bubbles = {};
+    if (p === viewer) fresh = r.card;
+    if (r.lucky) {
+      // the very card asked for: shown to everyone, and the asker asks again
+      sfx.plink(6);
+      bubbles[p] = { text: t('kwartet.lucky'), card: r.card, yes: true };
+      status = about('kwartet.luckyDraw', p, { card: cardThe(r.card) });
+    } else {
+      sfx.tick();
+      // the card is named only when one child plays (children together: the others may read along)
+      status = p === viewer && kids() === 1 ? t('kwartet.drewYou', { card: cardThe(r.card) }) : t('kwartet.drew', { name: nameOf(p) });
+    }
+    if (r.laid) {
+      status = t('kwartet.quartet', { set: setName(r.laid) });
+      if (p === viewer) hopSet = r.laid;
+      setTimeout(() => sfx.chime(), wait(250));
+    }
+    if (!game.over) status += game.turn === p ? ` ${t('kwartet.askAgain')}` : ` ${turnText(game.turn)}`;
+    status += refillText(r.refills);
+    render();
+    flyTo(p, r.card);
+    flyRefills(r.refills);
+    // children together: the drawing child sees the new card for a moment, then the pass card
+    later(TIMES.answer + (r.laid ? TIMES.quartet : 0), () => nextStep());
+  }
+
+  /** A card back flies gently from the pile to player p (to the new card when it is the viewer's). */
+  function flyTo(p, card) {
+    const pile = $('#kwartet-pile .kp-stack');
+    const to = p === viewer ? $(`#kwartet-hand .kcard[data-card="${card}"]`) : $(`.kseat[data-player="${p}"] .ks-count`);
+    if (!pile || !to || fast || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const a = pile.getBoundingClientRect();
+    const b = to.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'kfly';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = CARD_BACK;
+    Object.assign(el.style, { left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px` });
+    document.body.appendChild(el);
+    if (!el.animate) {
+      el.remove();
+      return;
+    }
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+    const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    const s = Math.max(0.35, Math.min(1.4, b.height / a.height));
+    const anim = el.animate(
+      [
+        { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) scale(${(1 + s) / 2}) rotate(-8deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)`, opacity: 0.15 },
+      ],
+      { duration: TIMES.fly, easing: 'ease-in-out' },
+    );
+    anim.onfinish = anim.oncancel = () => el.remove();
+    setTimeout(() => el.remove(), TIMES.fly + 300);
   }
 
   function finish() {
@@ -514,7 +643,7 @@ export function createKwartet(shell) {
       const n = game.hands[p].length;
       const q = game.quartets[p].length;
       seat.classList.toggle('turn', !game.over && game.turn === p);
-      seat.classList.toggle('thinking', phase === 'cpu' && game.turn === p);
+      seat.classList.toggle('thinking', (phase === 'cpu' || phase === 'draw') && game.turn === p && !isKid(p));
       seat.classList.toggle('target', phase === 'ask' && target === p);
       seat.classList.toggle('pickable', choosing && opponents(game, game.turn).includes(p));
       seat.classList.toggle('out', !n && !game.over);
@@ -529,6 +658,27 @@ export function createKwartet(shell) {
       });
       box.appendChild(seat);
     }
+    if (usesPile(game.players)) box.appendChild(pileEl());
+  }
+
+  /** The pile: a stack of card backs with how many are left; a big button when the child must draw. */
+  function pileEl() {
+    const n = game.pile.length;
+    const canTap = phase === 'draw' && isKid(game.turn) && viewer === game.turn;
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.id = 'kwartet-pile';
+    el.className = `kpile ${n ? '' : 'empty'} ${canTap ? 'active' : ''}`;
+    el.disabled = !canTap;
+    const backs = Math.min(n, 3);
+    el.innerHTML = `<span class="kp-stack" data-n="${backs}">${backs ? Array.from({ length: backs }, () => CARD_BACK).join('') : '<i class="kp-none"></i>'}</span><span class="kp-count"><b>${n}</b></span><span class="kp-name"></span>`;
+    el.querySelector('.kp-name').textContent = t('kwartet.pile');
+    el.setAttribute('aria-label', t('kwartet.pileLabel', { cards: t('kwartet.cards', { n }) }));
+    el.addEventListener('click', () => {
+      tap();
+      tapDraw();
+    });
+    return el;
   }
 
   function renderHand() {
@@ -643,6 +793,8 @@ export function createKwartet(shell) {
                 viewer,
                 target,
                 askable: viewer >= 0 ? askable(game, viewer) : [],
+                pile: game.pile.slice(),
+                drawing: game.drawing,
                 busy: !!timer,
               }
             : null,

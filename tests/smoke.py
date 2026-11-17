@@ -3325,10 +3325,10 @@ def kwartet_flow(browser, base, problems):
     st = kw_state(page)
     if st["viewer"] != 0 or not page.locator("#kwartet-hand .krow").count():
         problems.append("kwartet: two children: player 1's cards do not show")
-    # with two players everything is in one of two hands, so a "no" is impossible: ask for a card player 2 has
-    kw_ask(page, 1, st["askable"][0])
+    # a card player 2 has (the others may lie on the pile): a "yes"
+    kw_ask(page, 1, next((c for c in st["askable"] if c in st["hands"][1]), st["askable"][0]))
     page.evaluate("window.__bubbels.kwartet.fast(true)")
-    kw_wait(page, ("ask", "pass", "over"))
+    kw_wait(page, ("ask", "pass", "draw", "over"))
     st = kw_state(page)
     if st["viewer"] != 0 or st["turn"] != 0:
         problems.append(f"kwartet: two children: after a yes player 1 should ask again: {st['phase']} {st['turn']}")
@@ -3364,12 +3364,135 @@ def kwartet_flow(browser, base, problems):
         problems.append("kwartet: two children and a computer: no card to ask that gets a no")
     page.evaluate("window.__bubbels.back()")
     page.wait_for_timeout(200)
+    kwartet_pile(page, problems)
     if errors:
         problems.append(f"kwartet: page errors {errors[:3]}")
     ctx.close()
 
 
 KW_SEED = 3
+KW_PILE_SEED = 7
+
+
+def kwartet_pile(page, problems):
+    """Two players play with a pile (Mark, 17 Nov): a child against the computer, 4 sets: 5 cards
+    each and 6 on the pile. A "no" makes the pile glow and says "Pak een kaart van de stapel"; a
+    tap on it brings its top card into the hand (a card back flies there) and passes the turn; the
+    computer draws by itself, slowly and visibly. Then played to the end by the test hook, drawing
+    whenever the answer is no, until the pile is empty and every set is down."""
+    page.evaluate("window.__bubbels.kwartet.fast(false)")
+    page.evaluate("window.__bubbels.kwartet.choose({ sets: 4, players: ['kid', 'cpu'] })")
+    rule = page.inner_text(".kwartet-rule")
+    if "ieder 5 kaarten" not in rule or "stapel" not in rule:
+        problems.append(f"kwartet pile: the menu's rule says {rule!r}")
+    page.screenshot(path=str(SHOTS / "kwartet-9-menu-2p.png"), full_page=True)
+    page.evaluate(f"window.__bubbels.kwartet.seed({KW_PILE_SEED})")
+    page.click("#kwartet-play")
+    kw_wait(page, ("ask",))
+    st = kw_state(page)
+    held = [len(h) + 4 * len(q) for h, q in zip(st["hands"], st["quartets"])]
+    if held != [5, 5] or len(st["pile"]) != 6:
+        problems.append(f"kwartet pile: dealt {held} with {len(st['pile'])} on the pile")
+    if page.inner_text("#kwartet-pile .kp-count").strip() != "6" or page.inner_text("#kwartet-pile .kp-name").strip() != "Stapel":
+        problems.append(f"kwartet pile: the pile shows {page.inner_text('#kwartet-pile')!r}")
+    if not page.locator("#kwartet-pile[disabled]").count():
+        problems.append("kwartet pile: the pile can be tapped before a no")
+    page.screenshot(path=str(SHOTS / "kwartet-10-pile.png"))
+    # a "no": a card that lies on the pile
+    card = next((c for c in st["askable"] if c in st["pile"]), None)
+    if not card:
+        problems.append(f"kwartet pile: no askable card on the pile (try another KW_PILE_SEED) {st}")
+        return
+    kw_ask(page, 1, card)
+    page.wait_for_function("window.__bubbels.kwartet.state().phase === 'draw'", timeout=6000, polling=20)
+    page.wait_for_timeout(300)
+    status = page.inner_text("#kwartet-status")
+    if "Pak een kaart van de stapel" not in status or not page.locator("#kwartet-pile.active:not([disabled])").count() or not page.locator(".kseat .kbubble.no").count():
+        problems.append(f"kwartet pile: after a no: {status!r}, the pile not glowing, or no 'no' bubble")
+    page.screenshot(path=str(SHOTS / "kwartet-11-no.png"))
+    # the "no" goes after a moment; the pile keeps glowing until it is tapped
+    kw_wait(page, ("draw",), timeout=6000)
+    st = kw_state(page)
+    if page.locator(".kbubble").count() or not page.locator("#kwartet-pile.active").count():
+        problems.append("kwartet pile: the no bubble stays over the status, or the pile stops glowing")
+    page.screenshot(path=str(SHOTS / "kwartet-11-draw.png"))
+    top = st["pile"][0]
+    box = page.locator("#kwartet-pile").bounding_box()
+    if not box or min(box["width"], box["height"]) < 44:
+        problems.append(f"kwartet pile: the pile is {box}")
+    page.click("#kwartet-pile")
+    page.wait_for_timeout(250)
+    if not page.locator(".kfly").count():
+        problems.append("kwartet pile: no card flies from the pile")
+    page.screenshot(path=str(SHOTS / "kwartet-12-drawn.png"))
+    st = kw_state(page)
+    if top not in st["hands"][0] and not any(top.rsplit(":", 1)[0] == q for q in st["quartets"][0]):
+        problems.append(f"kwartet pile: the top card {top} is not in the child's hand {st['hands'][0]}")
+    if len(st["pile"]) != 5 or page.inner_text("#kwartet-pile .kp-count").strip() != "5":
+        problems.append(f"kwartet pile: after the draw the pile has {len(st['pile'])}")
+    if top != card and st["turn"] != 1:
+        problems.append(f"kwartet pile: after drawing another card the turn stays with {st['turn']}")
+    if not page.locator(f"#kwartet-hand .kcard.fresh[data-card='{top}']").count() and top in st["hands"][0]:
+        problems.append("kwartet pile: the drawn card does not pop into the hand")
+    # the computer's turn: it asks, and draws by itself after a no, slowly
+    seen_cpu_draw = False
+    if st["turn"] == 1:
+        for _ in range(6):
+            page.wait_for_function("(() => { const s = window.__bubbels.kwartet.state(); return s.turn === 0 || s.phase === 'draw' || s.over; })()", timeout=20000, polling=20)
+            st = kw_state(page)
+            if st["phase"] == "draw" and st["turn"] == 1:
+                t0 = time.time()
+                if "Robo pakt een kaart van de stapel" not in page.inner_text("#kwartet-status") or not page.locator(".kseat.thinking").count():
+                    problems.append(f"kwartet pile: the computer's draw is not shown: {page.inner_text('#kwartet-status')!r}")
+                page.screenshot(path=str(SHOTS / "kwartet-13-cpu-draws.png"))
+                page.wait_for_function("window.__bubbels.kwartet.state().phase === 'drew'", timeout=5000, polling=20)
+                if time.time() - t0 < 0.5:
+                    problems.append(f"kwartet pile: the computer drew after only {time.time() - t0:.1f} s")
+                seen_cpu_draw = True
+                break
+            if st["turn"] == 0 or st["over"]:
+                break
+    # back + keep playing while the child has to draw: the pile still waits for a tap
+    # then the rest of the game by the test hook: ask a card the computer has, else one from the pile
+    page.evaluate("window.__bubbels.kwartet.fast(true)")
+    draws = 1
+    left_while_drawing = False
+    for _ in range(120):
+        kw_wait(page, ("ask", "draw", "over"))
+        st = kw_state(page)
+        if st["phase"] == "over":
+            break
+        if st["phase"] == "draw":
+            if not left_while_drawing:
+                left_while_drawing = True
+                page.click("#kwartet-back")
+                page.wait_for_timeout(100)
+                page.click("#kwartet-continue")
+                page.wait_for_timeout(100)
+                if kw_state(page)["phase"] != "draw" or not page.locator("#kwartet-pile.active").count():
+                    problems.append("kwartet pile: keep playing lost the draw")
+            page.click("#kwartet-pile")
+            draws += 1
+            continue
+        has = [c for c in st["askable"] if c in st["hands"][1]]
+        kw_ask(page, 1, has[0] if has and (draws > 2 or not [c for c in st["askable"] if c in st["pile"]]) else next((c for c in st["askable"] if c in st["pile"]), st["askable"][0]))
+    st = kw_state(page)
+    if not st["over"] or st["pile"]:
+        problems.append(f"kwartet pile: the game did not end with an empty pile: {st['over']} {len(st['pile'])}")
+    if draws < 2:
+        problems.append(f"kwartet pile: the child drew only {draws} times")
+    if not seen_cpu_draw:
+        problems.append("kwartet pile: the computer never drew from the pile (try another KW_PILE_SEED)")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=5000)
+    title = page.inner_text("#ov-title").strip()
+    if title not in ("Jij wint!", "Robo wint!", "Gelijkspel!"):
+        problems.append(f"kwartet pile: end card says {title!r}")
+    if sum(len(q) for q in st["quartets"]) != 4:
+        problems.append(f"kwartet pile: not every set is down {st['quartets']}")
+    page.screenshot(path=str(SHOTS / "kwartet-14-pile-end.png"))
+    print(f"[kwartet pile] child drew {draws}x, end: {title} {[len(q) for q in st['quartets']]}")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(150)
 
 
 def kwartet_layouts(browser, base, problems):
@@ -3377,7 +3500,8 @@ def kwartet_layouts(browser, base, problems):
     four players on small and sideways phones, 6 sets in English: the players, the status, the hand
     and the back button on screen, the cards you may ask for 44 px or more, a speech bubble inside
     the screen, no sideways scroll, menu texts inside their buttons."""
-    for w, h, owned, sets, players in ((320, 568, False, 4, "['kid', 'cpu', 'cpu']"), (568, 320, False, 4, "['kid', 'cpu', 'cpu']"), (844, 390, False, 4, "['kid', 'cpu']"), (1280, 800, False, 4, "['kid', 'cpu', 'cpu']"),
+    for w, h, owned, sets, players in ((320, 568, False, 4, "['kid', 'cpu', 'cpu']"), (320, 568, False, 4, "['kid', 'cpu']"), (568, 320, False, 4, "['kid', 'cpu', 'cpu']"), (844, 390, False, 4, "['kid', 'cpu']"), (1280, 800, False, 4, "['kid', 'cpu', 'cpu']"),
+                                       (568, 320, True, 8, "['kid', 'cpu']"),
                                        (320, 568, True, 8, "['kid', 'cpu', 'cpu', 'cpu']"), (568, 320, True, 8, "['kid', 'cpu', 'cpu', 'cpu']"), (390, 844, True, 6, "['kid', 'cpu', 'cpu', 'cpu']")):
         mobile = w < 1000
         english = (w, h) == (390, 844)
@@ -3392,13 +3516,15 @@ def kwartet_layouts(browser, base, problems):
         if owned:
             page.wait_for_function("window.__bubbels.full()", timeout=8000)
         label = f"{w}x{h} {sets} sets {players.count(',') + 1}p"
+        two = players.count(",") == 1
+        name = f"kwartet-{w}x{h}{'-full' if owned else ''}{'-2p' if two else ''}"
         if english and page.inner_text("#tile-kwartet .tile-name").strip() != "Quartets":
             problems.append(f"kwartet {label}: English tile says {page.inner_text('#tile-kwartet .tile-name')!r}")
         page.click("#tile-kwartet")
         page.wait_for_timeout(200)
         page.evaluate(f"window.__bubbels.kwartet.choose({{ sets: {sets}, players: {players} }})")
         page.wait_for_timeout(150)
-        page.screenshot(path=str(SHOTS / f"kwartet-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        page.screenshot(path=str(SHOTS / f"kwartet-menu-{w}x{h}{'-full' if owned else ''}{'-2p' if two else ''}.png"), full_page=True)
         bad = page.evaluate("""[...document.querySelectorAll('.kwartet-opt, .kwartet-slot')].filter((b) => {
             const r = b.getBoundingClientRect();
             return [...b.querySelectorAll('.vier-opt-title, .vier-opt-sub, .slot-name, .slot-kind')].some((t) => {
@@ -3412,7 +3538,7 @@ def kwartet_layouts(browser, base, problems):
         page.evaluate("window.__bubbels.kwartet.seed(5)")
         page.click("#kwartet-play")
         kw_wait(page, ("ask",))
-        for sel in ("#kwartet-seats", "#kwartet-status", "#kwartet-hand", "#kwartet-back"):
+        for sel in ("#kwartet-seats", "#kwartet-status", "#kwartet-hand", "#kwartet-back") + (("#kwartet-pile",) if two else ()):
             r = page.locator(sel).bounding_box()
             if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
                 # the hand may be taller than the screen: it scrolls inside the table
@@ -3421,13 +3547,15 @@ def kwartet_layouts(browser, base, problems):
         b = page.locator("button.kcard.missing:not([disabled]) >> nth=0").bounding_box()
         if not b or min(b["width"], b["height"]) < 44 or b["y"] + b["height"] > h + 0.5:
             problems.append(f"kwartet {label}: the first card to ask for is {b}")
-        seats = page.evaluate("[...document.querySelectorAll('.kseat')].map((s) => { const r = s.getBoundingClientRect(); return [r.left, r.right, r.width, r.height]; })")
+        seats = page.evaluate("[...document.querySelectorAll('.kseat, .kpile')].map((s) => { const r = s.getBoundingClientRect(); return [r.left, r.right, r.width, r.height]; })")
+        if two != (page.locator("#kwartet-pile").count() == 1):
+            problems.append(f"kwartet {label}: a pile with {players}")
         if any(l < -0.5 or r > w + 0.5 or min(sw, sh) < 44 for l, r, sw, sh in seats):
             problems.append(f"kwartet {label}: seats {seats}")
         if page.evaluate("document.documentElement.scrollWidth") > w:
             problems.append(f"kwartet {label}: sideways scroll")
         print(f"[kwartet {label}] card {b['width']:.0f}x{b['height']:.0f} px")
-        page.screenshot(path=str(SHOTS / f"kwartet-{w}x{h}{'-full' if owned else ''}.png"))
+        page.screenshot(path=str(SHOTS / f"{name}.png"))
         # a question to the last player: its answer bubble stays inside the screen
         st = kw_state(page)
         last = max(p for p in range(len(st["kinds"])) if p != 0 and st["hands"][p])
@@ -3437,7 +3565,7 @@ def kwartet_layouts(browser, base, problems):
         for r in page.evaluate("[...document.querySelectorAll('.kbubble')].map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom]; })"):
             if r[0] < -0.5 or r[1] > w + 0.5 or r[3] > h + 0.5:
                 problems.append(f"kwartet {label}: a speech bubble is off screen {r}")
-        page.screenshot(path=str(SHOTS / f"kwartet-{w}x{h}{'-full' if owned else ''}-answer.png"))
+        page.screenshot(path=str(SHOTS / f"{name}-answer.png"))
         if errors:
             problems.append(f"kwartet {label}: page errors {errors[:2]}")
         ctx.close()
