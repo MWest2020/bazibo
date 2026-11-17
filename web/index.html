@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/piano/piano.css">
+  <link rel="stylesheet" href="games/drums/drums.css">
 </head>
 <body>
   <main id="app">
@@ -703,6 +704,46 @@
         <span class="bar-spacer"></span>
       </header>
       <div class="levels-scroll"><div id="piano-songlist" class="piano-songlist"></div></div>
+    </section>
+
+    <!-- Drumstel: the drum kit (free play, or a rhythm to play along with) -->
+    <section id="screen-drums" class="screen" data-i18n-aria="games.drums" aria-label="Drumstel" data-mode="free">
+      <header class="bar drums-hud">
+        <button id="drums-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="drums-sub" class="hud-level"></div>
+          <div id="drums-title" class="drums-title"></div>
+        </div>
+        <button id="drums-list-btn" class="btn drums-pill" type="button"></button>
+        <span id="drums-spacer" class="bar-spacer" hidden></span>
+      </header>
+      <p id="drums-muted" class="drums-muted" hidden><span data-i18n="drums.muted">Het geluid staat uit.</span> <button id="drums-sound-on" class="btn drums-pill small" type="button" data-i18n="drums.soundOn">Geluid aan</button></p>
+      <div id="drums-bar" class="drums-bar" hidden>
+        <button id="drums-listen" class="btn drums-pill" type="button" aria-pressed="false"></button>
+        <div class="drums-notes">
+          <div id="drums-strip" class="drums-strip" role="img"></div>
+          <p id="drums-status" class="drums-status" aria-live="polite"></p>
+        </div>
+      </div>
+      <div id="drums-stage">
+        <div id="drums-kit" class="drums-kit" role="group" data-i18n-aria="drums.kit" aria-label="Drumstel"></div>
+        <div id="drums-count" class="drums-count" aria-hidden="true" hidden></div>
+        <button id="drums-go" class="btn drums-go" type="button" hidden></button>
+      </div>
+    </section>
+
+    <!-- Drumstel: free play or one of the rhythms -->
+    <section id="screen-drums-list" class="screen" data-i18n-aria="drums.listAria" aria-label="Kies een ritme">
+      <header class="bar">
+        <button id="drums-list-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="drums.rhythms">Ritmes</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="drums-list" class="drums-list"></div></div>
     </section>
 
     <!-- one overlay card, filled per situation -->
