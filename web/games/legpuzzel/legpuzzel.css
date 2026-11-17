@@ -39,8 +39,15 @@
 /* ---------- the puzzle ---------- */
 .puzzel-hud .btn.icon svg { width: 30px; height: 30px; }
 #legpuzzel-ghost[aria-pressed="false"] { opacity: 0.55; }
+#legpuzzel-zoom[hidden] { display: none; }
+#legpuzzel-zoom[aria-pressed="true"] { background: var(--gold); color: var(--primary-dark); }
+#legpuzzel-zoom[aria-pressed="true"] .loupe-plus { display: none; } /* a minus: tap to see it all again */
 .puzzel-wrap { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; padding: 4px 12px 8px; }
 .puzzel-stage { position: relative; flex: 1; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* the board and the pieces in one layer: the magnifier scales and moves it as a whole */
+.puzzel-world { position: absolute; inset: 0; transform-origin: 0 0; }
+.puzzel-world.glide { transition: transform 0.25s ease-out; }
+.puzzel-stage.zoomed { overflow: hidden; border-radius: 14px; box-shadow: inset 0 0 0 3px rgba(201, 193, 255, 0.9); }
 .puzzel-board {
   position: absolute;
   border-radius: 6px;
@@ -75,6 +82,9 @@
   .puzzel-hud .btn.icon { width: 54px; height: 54px; }
   .puzzel-wrap { padding: 8px 10px 4px 4px; }
   .puzzel-status { font-size: 0.85rem; margin-top: 2px; }
+  /* the end card's picture made it too tall, cutting off Menu (the finished
+     puzzle is visible behind the card anyway) */
+  .puzzel-ov svg { display: none; }
 }
 @media (max-height: 600px) {
   .puzzel-ov svg { width: 120px; height: 90px; }
@@ -85,4 +95,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ppiece.snap, .puzzel-board.done { animation: none !important; transition: none; }
+  .puzzel-world.glide { transition: none; }
 }

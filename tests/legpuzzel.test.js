@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, isComplete, rearrange, mulberry32, TAB, SNAP } from '../web/games/legpuzzel/rules.js';
+import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, isComplete, rearrange, mulberry32, TAB, SNAP, zoomFor, clampPan, zoomAround, ZOOM_FROM, ZOOM_MAX } from '../web/games/legpuzzel/rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from '../web/games/legpuzzel/pictures.js';
 import { meta } from '../web/games/legpuzzel/meta.js';
 
 const nums = (d) => [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
 
-test('six sizes, from 4 pieces for a three-year-old to 30', () => {
-  assert.deepEqual(SIZE_IDS.map(piecesOf), [4, 6, 9, 12, 20, 30]);
-  const ages = SIZE_IDS.map((id) => SIZES[id].age);
-  assert.deepEqual(ages, [...ages].sort((a, b) => a - b));
+test('eight sizes, from 4 pieces for a two-year-old to 60 for a nine-year-old (issue #45)', () => {
+  assert.deepEqual(SIZE_IDS.map(piecesOf), [4, 6, 9, 12, 20, 30, 48, 60]);
+  assert.deepEqual(SIZE_IDS.map((id) => SIZES[id].age), [2, 2, 3, 3, 4, 5, 7, 9]);
+  assert.deepEqual([SIZES.p48.cols, SIZES.p48.rows, SIZES.p60.cols, SIZES.p60.rows], [8, 6, 10, 6]);
 });
 
 test('neighbouring pieces fit: a tab out on one side is a hole in on the other; the border is straight', () => {
@@ -62,12 +62,50 @@ test('the layout fits the board and the tray on every screen, with pieces big en
       assert.ok(tray.x >= -0.01 && tray.y >= -0.01 && tray.x + tray.w <= w + 0.01 && tray.y + tray.h <= h + 0.01, `${id} ${w}×${h}: tray ${JSON.stringify(tray)}`);
       // board and tray never overlap
       assert.ok(tray.x >= board.x + board.w - 0.01 || tray.y >= board.y + board.h - 0.01);
-      // a piece with its tabs is a finger-sized target
-      assert.ok(s + 2 * m >= 44, `${id} on ${w}×${h}: a piece is only ${s + 2 * m}px`);
+      // a piece with its tabs is a finger-sized target; only 60 pieces on a very short screen are
+      // smaller, and there the magnifier makes them big again
+      const z = zoomFor(s);
+      assert.ok(s + 2 * m >= 44 || (s + 2 * m >= 36 && (s + 2 * m) * z >= 60), `${id} on ${w}×${h}: a piece is only ${s + 2 * m}px (${z}× with the magnifier)`);
     }
   }
+  // the stages of real phones (measured: 390×844 both ways, 360×640, 320×568 both ways): 44 px without the magnifier
+  for (const [w, h] of [[366, 724], [730, 357], [336, 520], [296, 448], [454, 287]])
+    for (const id of SIZE_IDS) {
+      const l = layout(w, h, SIZES[id].cols, SIZES[id].rows);
+      assert.ok(l.s + 2 * l.m >= 44, `${id} on ${w}×${h}: ${l.s + 2 * l.m}px`);
+    }
   assert.equal(layout(300, 600, 2, 2).side, false);
   assert.equal(layout(700, 330, 2, 2).side, true);
+});
+
+test('the magnifier: offered only when the pieces are small, and then makes them big', () => {
+  assert.equal(zoomFor(ZOOM_FROM), 1);
+  assert.equal(zoomFor(120), 1);
+  for (let s = 16; s < ZOOM_FROM; s++) {
+    const z = zoomFor(s);
+    assert.ok(z > 1 && z <= ZOOM_MAX);
+    assert.ok(s * z >= Math.min(ZOOM_FROM, 16 * ZOOM_MAX), `${s}px -> ${s * z}`);
+  }
+  // 48 and 60 pieces on a phone (390×844 upright and sideways): offered; up to 20 pieces: not
+  for (const [w, h] of [[366, 724], [730, 357]]) {
+    for (const id of ['p48', 'p60']) assert.ok(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s) > 1, `${id} ${w}×${h}`);
+    for (const id of ['p4', 'p6', 'p9', 'p12', 'p20']) assert.equal(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s), 1, `${id} ${w}×${h}`);
+  }
+  // never on a desktop
+  for (const id of SIZE_IDS) assert.equal(zoomFor(layout(1180, 660, SIZES[id].cols, SIZES[id].rows).s), 1);
+});
+
+test('the zoomed view never shows past the stage, and zooms around the finger', () => {
+  const [w, h] = [300, 600];
+  assert.deepEqual(clampPan({ x: 50, y: 20 }, w, h, 2), { x: 0, y: 0 });
+  assert.deepEqual(clampPan({ x: -900, y: -900 }, w, h, 2), { x: -300, y: -600 });
+  assert.deepEqual(clampPan({ x: -900, y: -900 }, w, h, 1), { x: 0, y: 0 });
+  // zooming in around the middle: the stage point under the middle stays there
+  const at = zoomAround({ x: 0, y: 0 }, 1, 2, 150, 300, w, h);
+  assert.deepEqual(at, { x: -150, y: -300 });
+  assert.equal((150 - at.x) / 2, 150);
+  // and out again: back to the whole stage
+  assert.deepEqual(zoomAround(at, 2, 1, 150, 300, w, h), { x: 0, y: 0 });
 });
 
 test('the scattered pieces all lie on the tray, in a shuffled order', () => {
@@ -143,7 +181,12 @@ test('eight pictures, each a whole scene for every board shape; the first three 
   assert.deepEqual(meta.freePictures, ['garden', 'sea', 'fruit']);
 });
 
-test('the free part: 4, 6 and 9 pieces with the first three pictures', () => {
+test('the free part: 4, 6 and 9 pieces with the first three pictures; 48 and 60 in the full version', () => {
+  assert.deepEqual(meta.freeSizes, ['p4', 'p6', 'p9']);
+  for (const size of ['p48', 'p60']) {
+    assert.equal(meta.isLocked({ picture: 'garden', size }, false), true);
+    assert.equal(meta.isLocked({ picture: 'meadow', size }, true), false);
+  }
   assert.equal(meta.group, 'puzzles');
   assert.equal(meta.isLocked({ picture: 'garden', size: 'p9' }, false), false);
   assert.equal(meta.isLocked({ picture: 'garden', size: 'p12' }, false), true);

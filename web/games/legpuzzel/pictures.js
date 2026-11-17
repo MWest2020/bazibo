@@ -2,7 +2,7 @@
 // background (sky, grass, sea, space, a table cloth …) with the app's own drawings on it: the
 // coloured-in Kleurplaten pictures (as Letters uses them), the Picturedoku fruit and the Dogudoku
 // puppies, plus a few shapes drawn here (the sun, clouds, a tree, stars, a moon). A scene fills any
-// shape of board (`pictureSvg(id, w, h)`), from 1:1 for 4 pieces to 6:5 for 30.
+// shape of board (`pictureSvg(id, w, h)`), from 1:1 for 4 pieces to 5:3 for 60.
 import { wordPictureSvg } from '../letters/art.js';
 import { pictureSvg as fruitSvg } from '../picturedoku/art.js';
 import { dogSvg } from '../dogudoku/art.js';
