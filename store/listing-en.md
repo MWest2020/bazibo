@@ -47,8 +47,8 @@ PAIRS
 • 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
 
 JIGSAW
-• Drag the pieces to their places; close by, they snap in. From age 3.
-• 4, 6 and 9 pieces with three pictures. 12, 20 and 30 pieces and five more pictures (full version).
+• Drag the pieces to their places; close by, they snap in. From 4 pieces for the youngest to 60 for age 9, with a magnifier on phones.
+• 4, 6 and 9 pieces with three pictures. 12, 20, 30, 48 and 60 pieces and five more pictures (full version).
 
 FOUR IN A ROW
 • Together on one screen or against the computer; Hard in the full version.
