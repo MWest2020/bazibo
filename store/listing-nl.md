@@ -66,6 +66,7 @@ GANZENBORD
 
 KWARTET
 • Vraag de kaarten die je mist (grote knoppen met een plaatje) en leg je kwartetten neer.
+• Met z’n tweeën speel je met een stapel, met drie of vier zonder.
 • Tegen de computer of samen op één telefoon. 4 kwartetten; 6 en 8 kwartetten en een 4e speler (volledige versie).
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN

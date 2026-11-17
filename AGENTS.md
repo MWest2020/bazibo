@@ -50,7 +50,7 @@ home → Legpuzzel: 12, 20, 30, 48 and 60 pieces and the other pictures offer on
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Dammen: medium, hard and the 10×10 board offer only OK on the web, a two-player 8×8 game played to a win by taps, a move against easy with the take-back and "keep playing", the glow on the pieces that must capture and a double jump by taps; the layout at 320x568, sideways and on desktop, the 10×10 board with near taps, and the hard computer thinking in a worker while the page keeps drawing (run only these with `tests/smoke.py dammen`);
 home → Ganzenbord: the winter and sea boards and a 3rd and 4th goose offer only OK on the web, a game against the computer goose played to a win by "count yourself" taps (a wrong tap only shows where), the goose chain and the win card, back + keep playing halfway a throw, the Android back button, no voice clip loaded; the layout at 320x568, sideways and on desktop, four geese on the winter and sea boards, a near tap counts and a tap on the next stone does not (`tests/smoke.py ganzen`);
-home → Kwartet: 6 and 8 sets and a 4th player offer only OK on the web, a seeded game against two computers (a question that gets "no", the computers' turns slow and visible with speech bubbles, back + keep playing during a question, then won by asking well and counted, "More sets" offers only OK), two children with the pass-the-phone card hiding the cards (also after keep playing); the layout at 320x568, sideways and on desktop with 4, 6 and 8 sets and up to four players (`tests/smoke.py kwartet`);
+home → Kwartet: 6 and 8 sets and a 4th player offer only OK on the web, a seeded game against two computers (a question that gets "no", the computers' turns slow and visible with speech bubbles, back + keep playing during a question, then won by asking well and counted, "More sets" offers only OK), two children with the pass-the-phone card hiding the cards (also after keep playing); a seeded game against one computer with the pile (5 cards each and 6 on the pile, a "no" makes the pile glow, a tap draws its top card with a card flying into the hand, the computer draws slowly and visibly, back + keep playing while drawing, played to the end with an empty pile); the layout at 320x568, sideways and on desktop with 4, 6 and 8 sets, two to four players and the pile (`tests/smoke.py kwartet`);
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
@@ -143,16 +143,22 @@ meadow, winter, the sea); never copy a publisher's board. No voice in this game 
 robot voice): "count yourself" is visual only (the square to tap glows, the count pops up big),
 and the only sounds are the shell's effects, which follow the sound setting. Free: the classic
 board with 2 players; the full version adds 3-4 players and the winter and sea boards.
-Kwartet: rules in `web/games/kwartet/rules.js` (pure, tested: every card dealt once and evenly, asking
-only for a missing card of a set you hold and only someone with cards, a yes keeps the turn and a
-no passes it round the table, a whole set is laid down at once (also after the deal), players
-without cards are skipped, most kwartetten wins). The computers in `ai.js` use only what the table
-saw (never hidden cards), remember it only now and then, and stay gentle: 200 seeded games check
-that every ask is legal, every game ends, and an attentive child wins or shares at least 95 of 200
-against two computers. Sets in `art.js`: four cards each, each picture unique, a name and an ask
+Kwartet: rules in `web/games/kwartet/rules.js` (pure, tested: every card dealt once, asking only
+for a missing card of a set you hold and only someone with cards, a yes keeps the turn and a no
+passes it round the table, a whole set is laid down at once (also after the deal), players without
+cards are skipped, most kwartetten wins). Two players play with a pile (Mark, 17 Nov 2026: without
+one every question gets a yes): `handSize` cards each (5, 6, 7 for 4, 6, 8 sets), the rest face
+down; a no means `draw` (the top card; the very card asked for keeps the turn), a hand that runs
+empty takes a card from the pile at once, an empty pile just passes the turn. Three or four players
+share every card, no pile. The computers in `ai.js` use only what the table saw (never hidden cards
+or the pile: who asked for what, who gave what, who said no, a lucky draw), remember it only now and
+then, and stay gentle: 200 seeded games check that every ask is legal, every game ends, an attentive
+child wins or shares at least 95 of 200 against two computers and 115 of 200 against one with the
+pile. Sets in `art.js`: four cards each, each picture unique, a name and an ask
 form (`kwartet.card.<id>`, `kwartet.the.<id>`: "de appel", "het lieveheersbeestje") in both
 languages; long Dutch names get a soft hyphen. With more than one child the hands stay hidden
-between turns (the pass card); never show one child's cards to the next. Free: 4 sets, up to 3
+between turns (the pass card); never show one child's cards to the next (a child who draws sees
+the new card until the pass card, the card is not named in the status). Free: 4 sets, up to 3
 players; the full version adds 6 and 8 sets and a 4th player.
 Slangetje: rules in `web/games/slang/rules.js` (pure; `pathDirection` is the path finder the tests
 and the smoke test play with), 30 levels in `levels.json` (`size` is [short, long]; walls are
