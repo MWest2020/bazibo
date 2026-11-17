@@ -64,6 +64,7 @@ GAME OF THE GOOSE
 
 QUARTETS
 • Ask for the cards you are missing (big buttons with a picture) and lay down your sets of four.
+• Two players play with a pile to draw from, three or four without.
 • Against the computer or together on one phone. 4 sets; 6 and 8 sets and a 4th player (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
