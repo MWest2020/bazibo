@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -38,14 +38,14 @@ BUBBELS SCHIETEN
 
 DOGUDOKU: VERSTOP DE HONDJES
 • Eén hondje per rij en kolom, en hondjes raken elkaar niet, ook niet schuin.
-• Van een tuintje van 4 bij 4 voor de kleinsten tot kleurvakken vanaf 5 jaar. 60 puzzels.
+• Van 4 bij 4 voor de kleinsten tot kleurvakken vanaf 5 jaar. 60 puzzels.
 
 PICTUREDOKU: SUDOKU MET PLAATJES
 • Vanaf 3 jaar: 4 bij 4 met fruit, zonder cijfers en zonder lezen.
 • Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9, ook met cijfers. 60 puzzels.
 
 PAARTJES
-• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen een lieve computer die soms iets vergeet.
+• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen een lieve computer.
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
@@ -57,11 +57,11 @@ VIER OP EEN RIJ
 • Voor de kleinsten: het kleuterbord, waar drie op een rij wint.
 
 DAMMEN
-• Puppy tegen poes, of klassiek; stukken die moeten slaan, gloeien zachtjes.
+• Puppy tegen poes, of klassiek; wie moet slaan, gloeit zachtjes.
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en 10 bij 10 (volledige versie).
 
 GANZENBORD
-• Ons eigen bord met de klassieke vakjes. Je kind telt zelf door elk vakje aan te tikken.
+• Ons eigen bord met de klassieke vakjes. Je kind telt zelf de vakjes.
 • Samen of tegen een computergans. Tot vier spelers en een winter- en zeebord (volledige versie).
 
 KWARTET
@@ -86,8 +86,7 @@ PIANO
 • 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
 
 DRUMSTEL
-• Acht trommels en bekkens. Speel mee: de volgende trommel licht op.
-• In eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
+• Acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.

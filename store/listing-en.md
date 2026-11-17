@@ -43,7 +43,7 @@ PICTUREDOKU: SUDOKU WITH PICTURES
 • From age 6, 6 by 6; from age 8, 9 by 9, with numbers if you like. 60 puzzles.
 
 PAIRS
-• Turn over two cards and find the pairs. On your own, together, or against a kind computer that sometimes forgets.
+• Turn over two cards and find the pairs. On your own, together, or against a kind computer.
 • 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
 
 JIGSAW
@@ -84,8 +84,7 @@ PIANO
 • Ages 7-10: two octaves with black keys and the whole Ode to Joy. The Turkish March, Für Elise and more (full version).
 
 DRUMS
-• Eight drums and cymbals. Play along: the next drum lights up.
-• At your own pace (4-6) or on the beat (7-10). Free play and Rock; four more rhythms (full version).
+• Eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.
@@ -100,7 +99,7 @@ MADE FOR CHILDREN
 
 NO ADS, EVER
 • No adverts, no account and no trackers: the app collects nothing.
-• Every game has a free part to really play, like levels 1 to 10 in Bubble Shooter and 10 puzzles in Dogudoku and Picturedoku. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part, like 10 levels in Bubble Shooter and 10 puzzles in Dogudoku. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/
