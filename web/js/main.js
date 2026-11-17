@@ -56,6 +56,9 @@ import { tileSvg as lettersTileSvg } from '../games/letters/art.js';
 import '../games/piano/strings.js';
 import { createPiano } from '../games/piano/piano.js';
 import { tileSvg as pianoTileSvg } from '../games/piano/art.js';
+import '../games/drums/strings.js';
+import { createDrums } from '../games/drums/drums.js';
+import { tileSvg as drumsTileSvg } from '../games/drums/art.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -294,6 +297,10 @@ function drawLettersTile() {
 
 function drawPianoTile() {
   $('#tile-piano .tile-art').innerHTML = pianoTileSvg();
+}
+
+function drawDrumsTile() {
+  $('#tile-drums .tile-art').innerHTML = drumsTileSvg();
 }
 
 function drawKlokTile() {
@@ -705,6 +712,20 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.drums = createDrums({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    isMuted: () => settings.muted,
+    setMuted,
+    onMutedChange: (fn) => soundListeners.add(fn),
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.transfer = createTransfer({ t, show, showOverlay, hideOverlay, onShow: (fn) => showHooks.push(fn), tap });
   renderLanguage();
   drawTileArt();
@@ -722,10 +743,11 @@ async function boot() {
   drawKlokTile();
   drawLettersTile();
   drawPianoTile();
+  drawDrumsTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.piano.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.piano.init(), games.drums.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -745,6 +767,7 @@ async function boot() {
       klok: games.klok.testHook(),
       letters: games.letters.testHook(),
       piano: games.piano.testHook(),
+      drums: games.drums.testHook(),
       transfer: games.transfer.testHook(),
       homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
@@ -793,6 +816,9 @@ function onBack() {
   else if (action === 'piano-back') games.piano.back();
   else if (action === 'piano-songs-back') games.piano.songsBack();
   else if (action === 'piano-songs') games.piano.toSongs();
+  else if (action === 'drums-back') games.drums.back();
+  else if (action === 'drums-list-back') games.drums.listBack();
+  else if (action === 'drums-list') games.drums.toList();
   else if (action === 'transfer-card') games.transfer.onBackCard();
   else if (action === 'settings') show('settings');
   else if (action === 'home') show('home');

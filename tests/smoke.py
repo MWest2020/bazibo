@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -4627,6 +4627,334 @@ def piano_big(browser, base, problems):
         ctx.close()
 
 
+# ---------- Drumstel ----------
+
+
+def dr_state(page):
+    return page.evaluate("window.__bubbels.drums.state()")
+
+
+def dr_point(page, pad):
+    box = page.locator(f".dpad[data-pad='{pad}']").bounding_box()
+    return {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
+
+
+def dr_wait(page, cond, timeout=6000):
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.drums.state(); return {cond}; }})()", timeout=timeout)
+
+
+def drums_flow(browser, base, problems):
+    """Drumstel at 390x844 with real touch: the tile in Creatief opens free play, a tap sounds, two
+    fingers hit two pads at once; a locked rhythm offers only OK on the web and leaves the child on
+    the list; Rock (4-6) played to the end by tapping the glowing pad after the count-in, with one
+    wrong pad first (the rhythm waits), 3 stars saved and "More rhythms" (the offer over the list);
+    Rock (7-10) played on the beat with two fingers at once; Listen lights the pads and stops in the
+    background, no pad stays down there; the back arrows and the Android back button; the sound
+    setting followed."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(COUNT_OSC)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-drums .tile-name").strip() != "Drumstel":
+        problems.append(f"drums: tile says {page.inner_text('#tile-drums .tile-name')!r}")
+    if page.evaluate("document.querySelector('#tile-drums').closest('.tile-group').querySelector('.group-name').textContent") != "Creatief":
+        problems.append("drums: the tile is not in the Creatief section")
+    page.locator("#tile-drums").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "drums-flow-home-390x844.png"))
+    page.click("#tile-drums")
+    page.wait_for_timeout(250)
+    st = dr_state(page)
+    if where(page) != ["drums", False] or st["mode"] != "free" or page.inner_text("#drums-title") != "Vrij spelen":
+        problems.append(f"drums: the tile opened {where(page)} in {st['mode']} ({page.inner_text('#drums-title')!r}), not free play")
+
+    # a tap sounds
+    osc = page.evaluate("window.__osc")
+    page.locator(".dpad[data-pad='kick']").tap()
+    page.wait_for_timeout(80)
+    st = dr_state(page)
+    if st["hits"] != 1 or page.evaluate("window.__osc") <= osc:
+        problems.append(f"drums: a tap on the kick hit {st['hits']} pads and started {page.evaluate('window.__osc') - osc} oscillators")
+    # two fingers: two pads down at once, both sound
+    osc = page.evaluate("window.__osc")
+    pi_touch(cdp, "touchStart", [dr_point(page, "snare"), dr_point(page, "hihat")])
+    page.wait_for_timeout(60)
+    st = dr_state(page)
+    if sorted(st["down"]) != ["hihat", "snare"] or st["hits"] != 3 or page.evaluate("window.__osc") <= osc:
+        problems.append(f"drums: two fingers held {st['down']} ({st['hits']} hits)")
+    page.screenshot(path=str(SHOTS / "drums-flow-two-fingers.png"))
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
+    if dr_state(page)["down"]:
+        problems.append(f"drums: pads still down after the fingers left: {dr_state(page)['down']}")
+    page.screenshot(path=str(SHOTS / "drums-flow-free-390x844.png"))
+
+    # the rhythm list; a locked rhythm offers only OK on the web and stays on the list
+    page.click("#drums-list-btn")
+    page.wait_for_timeout(200)
+    page.screenshot(path=str(SHOTS / "drums-flow-list-390x844.png"), full_page=True)
+    locked = page.eval_on_selector_all(".drums-card.locked", "els => els.map(e => e.dataset.rhythm)")
+    if locked != ["mars1", "jacob1", "paard1", "mars2", "jacob2", "disco2"]:
+        problems.append(f"drums: locked rhythms on the web are {locked}")
+    page.click(".drums-card[data-rhythm='jacob1']")
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"] or "gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"drums: a locked rhythm offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
+    page.click("#ov-buttons button >> nth=0")
+    landed(page, "drums locked rhythm", "drums-list", problems)
+
+    # Rock (4-6): Begin, the count-in, one wrong pad (the rhythm waits), then every glowing pad by a tap
+    page.click(".drums-card[data-rhythm='rock1']")
+    page.wait_for_timeout(200)
+    st = dr_state(page)
+    if st["phase"] != "ready" or not page.is_visible("#drums-go") or page.inner_text("#drums-title") != "Rock":
+        problems.append(f"drums: Rock opened in phase {st['phase']} (Begin shown: {page.is_visible('#drums-go')})")
+    page.screenshot(path=str(SHOTS / "drums-flow-ready-390x844.png"))
+    page.click("#drums-go")
+    try:
+        dr_wait(page, "s.count === 2", 3000)
+        page.screenshot(path=str(SHOTS / "drums-flow-count-390x844.png"))
+        dr_wait(page, "s.phase === 'play' && s.glow.length === 1", 4000)
+    except Exception:
+        problems.append(f"drums: no count-in and glow after Begin: {dr_state(page)}")
+    page.locator(".dpad[data-pad='crash']").tap()
+    page.wait_for_timeout(60)
+    st = dr_state(page)
+    if st["index"] != 0 or st["misses"] != 1 or st["glow"] != ["kick"]:
+        problems.append(f"drums: a wrong pad moved the rhythm to {st['index']} (misses {st['misses']}, glow {st['glow']})")
+    n = st["length"]
+    for i in range(n):
+        try:
+            dr_wait(page, f"s.done || (s.index === {i} && s.glow.length === 1)", 4000)
+        except Exception:
+            problems.append(f"drums: step {i} never glowed: {dr_state(page)}")
+            break
+        st = dr_state(page)
+        if st["glow"] != st["target"]:
+            problems.append(f"drums: step {i}: glowing {st['glow']}, the rhythm wants {st['target']}")
+            break
+        page.locator(".dpad.glow").tap()
+        if i == 5:
+            page.wait_for_timeout(100)
+            page.screenshot(path=str(SHOTS / "drums-flow-rhythm-390x844.png"))
+    try:
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    except Exception:
+        problems.append("drums: no end card after the last step of Rock")
+    page.wait_for_timeout(600)
+    page.screenshot(path=str(SHOTS / "drums-flow-done.png"))
+    if page.inner_text("#ov-title") != "Super!" or card_buttons(page) != ["Meer ritmes", "Nog een keer", "Ritmes"]:
+        problems.append(f"drums: end card {page.inner_text('#ov-title')!r} with {card_buttons(page)}")
+    if page.evaluate("window.__bubbels.drums.stars()") != {"rock1": 3}:
+        problems.append(f"drums: saved stars {page.evaluate('window.__bubbels.drums.stars()')}")
+    web_offer_ok(page, "drums more rhythms", "drums-list", problems)
+    if page.locator(".drums-card[data-rhythm='rock1'] .drums-card-end svg.on").count() != 3:
+        problems.append("drums: the list does not show Rock's 3 stars")
+
+    # Rock (7-10) on the beat: a ring closes in, both pads of a pair tapped at once with two fingers
+    page.click(".drums-card[data-rhythm='rock2']")
+    page.wait_for_timeout(150)
+    page.click("#drums-go")
+    shot = False
+    t_end = time.time() + 25
+    while time.time() < t_end:
+        st = dr_state(page)
+        if st["phase"] == "done" or where(page)[1]:
+            break
+        if st["glow"] and st["dueIn"] is not None and st["dueIn"] < 30:
+            if not shot and len(st["glow"]) == 2:
+                page.screenshot(path=str(SHOTS / "drums-flow-beat-390x844.png"))
+                shot = True
+            pi_touch(cdp, "touchStart", [dr_point(page, p) for p in st["glow"]])
+            pi_touch(cdp, "touchEnd", [])
+            page.wait_for_timeout(40)
+        else:
+            page.wait_for_timeout(8)
+    try:
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    except Exception:
+        problems.append(f"drums: no end card after Rock on the beat: {dr_state(page)}")
+    page.wait_for_timeout(500)
+    page.screenshot(path=str(SHOTS / "drums-flow-beat-done.png"))
+    got = page.evaluate("window.__bubbels.drums.stars()").get("rock2", 0)
+    print(f"[drums] Rock on the beat by real taps: {dr_state(page)['good']} of {dr_state(page)['length']} in time, {got} stars")
+    if got < 2:
+        problems.append(f"drums: Rock on the beat by taps on time gave {got} stars ({dr_state(page)['good']} of {dr_state(page)['length']})")
+    if card_buttons(page) != ["Meer ritmes", "Nog een keer", "Ritmes"]:
+        problems.append(f"drums: end card on the beat with {card_buttons(page)}")
+    page.click("#ov-buttons button >> nth=2")  # Ritmes
+    page.wait_for_timeout(150)
+
+    # listen: the count-in, then the pads light up one after another; the background stops it
+    page.click(".drums-card[data-rhythm='rock1']")
+    page.wait_for_timeout(150)
+    page.click("#drums-listen")
+    try:
+        dr_wait(page, "s.lit.length > 0", 5000)
+    except Exception:
+        problems.append("drums: listen lit no pad")
+    page.wait_for_timeout(1200)
+    st = dr_state(page)
+    if not st["listening"] or st["heard"] < 2 or st["glow"] or page.is_visible("#drums-go"):
+        problems.append(f"drums: listening {st['listening']}, {st['heard']} steps heard, glow {st['glow']}")
+    if page.get_attribute("#drums-listen", "aria-pressed") != "true":
+        problems.append("drums: the listen button does not show Stop while it plays")
+    dr_wait(page, "s.lit.length > 0", 3000)
+    page.wait_for_timeout(40)
+    page.screenshot(path=str(SHOTS / "drums-flow-listen-390x844.png"))
+    hide = "Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange'))"
+    back = "delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))"
+    page.evaluate(hide)
+    page.wait_for_timeout(100)
+    st = dr_state(page)
+    if st["listening"] or st["lit"]:
+        problems.append(f"drums: in the background still listening {st['listening']}, lit {st['lit']}")
+    page.evaluate(back)
+    # playing along, then the background: back to Begin, and no pad stays down
+    page.click("#drums-go")
+    dr_wait(page, "s.phase === 'count'", 2000)
+    pi_touch(cdp, "touchStart", [dr_point(page, "floor")])
+    page.wait_for_timeout(60)
+    held = dr_state(page)["down"]
+    page.evaluate(hide)
+    page.wait_for_timeout(60)
+    st = dr_state(page)
+    if held != ["floor"] or st["down"] or st["phase"] != "ready" or st["count"]:
+        problems.append(f"drums: in the background a held pad ({held}) stayed down {st['down']}, phase {st['phase']}, count {st['count']}")
+    pi_touch(cdp, "touchEnd", [])
+    page.evaluate(back)
+    page.wait_for_timeout(100)
+    if not page.is_visible("#drums-go"):
+        problems.append("drums: no Begin after coming back from the background")
+
+    # back: the rhythm goes to the list, the list to free play, free play home; the Android back the same
+    page.click("#drums-back")
+    page.wait_for_timeout(100)
+    if where(page) != ["drums-list", False]:
+        problems.append(f"drums: back from a rhythm landed on {where(page)}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    if where(page) != ["drums", False] or dr_state(page)["mode"] != "free":
+        problems.append(f"drums: Android back from the list landed on {where(page)} {dr_state(page)['mode']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"drums: Android back from free play landed on {where(page)}")
+
+    # the sound setting: off, the kit says so and plays nothing; its button turns it on again
+    page.click("#btn-settings")
+    page.click("[data-sound='off']")
+    page.click("#screen-settings [data-go='home']")
+    page.wait_for_timeout(150)
+    page.click("#tile-drums")
+    page.wait_for_timeout(150)
+    if not page.is_visible("#drums-muted"):
+        problems.append("drums: no word that the sound is off")
+    page.screenshot(path=str(SHOTS / "drums-flow-muted-390x844.png"))
+    osc = page.evaluate("window.__osc")
+    page.locator(".dpad[data-pad='tom1']").tap()
+    page.wait_for_timeout(60)
+    if page.evaluate("window.__osc") != osc:
+        problems.append("drums: a pad made a sound with the sound off")
+    page.click("#drums-sound-on")
+    page.wait_for_timeout(100)
+    osc = page.evaluate("window.__osc")
+    page.locator(".dpad[data-pad='tom1']").tap()
+    page.wait_for_timeout(60)
+    if page.is_visible("#drums-muted") or page.evaluate("window.__osc") <= osc:
+        problems.append("drums: 'Geluid aan' did not bring the sound back")
+    if errors:
+        problems.append(f"drums: page errors {errors[:2]}")
+    if foreign:
+        problems.append(f"drums: requests outside the app {foreign[:2]}")
+    ctx.close()
+
+
+def drums_layouts(browser, base, problems):
+    """Drumstel on a small phone, an ordinary phone (in English), sideways and on desktop, free play
+    and a rhythm: every pad on screen, big enough for a small hand, none overlapping, the bar above
+    the kit, Begin on screen, no sideways scrolling; in the full version every rhythm open."""
+    for w, h, owned in ((320, 568, False), (390, 844, False), (844, 390, True), (568, 320, False), (1280, 800, False)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}"
+        page.click("#tile-drums")
+        page.wait_for_timeout(250)
+        rhythm = "jacob2" if owned else "rock1"
+        for mode in ("free", "rhythm"):
+            if mode == "rhythm":
+                page.click("#drums-list-btn")
+                page.wait_for_timeout(150)
+                page.screenshot(path=str(SHOTS / f"drums-list-{w}x{h}.png"), full_page=True)
+                locked = page.locator(".drums-card.locked").count()
+                if locked != (0 if owned else 6):
+                    problems.append(f"drums {label}: {locked} rhythms locked")
+                page.click(f".drums-card[data-rhythm='{rhythm}']")
+                page.wait_for_timeout(200)
+                go = page.locator("#drums-go").bounding_box()
+                if not go or go["x"] < 0 or go["y"] < 0 or go["x"] + go["width"] > w or go["y"] + go["height"] > h:
+                    problems.append(f"drums {label}: Begin not on screen ({go})")
+                page.screenshot(path=str(SHOTS / f"drums-ready-{w}x{h}.png"))
+                page.click("#drums-go")
+                page.wait_for_function("window.__bubbels.drums.state().phase === 'play' && window.__bubbels.drums.state().glow.length > 0", timeout=6000)
+                page.wait_for_timeout(120)
+            pads = page.eval_on_selector_all(".dpad", "els => els.map(e => { const r = e.getBoundingClientRect(); const f = e.querySelector('.dpad-face').getBoundingClientRect(); return [e.dataset.pad, r.left, r.top, r.width, r.height, f.width, f.height]; })")
+            for pad, x, y, pw, ph, fw, fh in pads:
+                if x < -0.5 or y < -0.5 or x + pw > w + 0.5 or y + ph > h + 0.5:
+                    problems.append(f"drums {label} {mode}: pad {pad} off screen ({x:.0f},{y:.0f} {pw:.0f}x{ph:.0f})")
+                if fw > pw + 0.5 or fh > ph + 0.5:
+                    problems.append(f"drums {label} {mode}: the drawn {pad} ({fw:.0f}) is bigger than its pad ({pw:.0f}x{ph:.0f})")
+            for i in range(len(pads)):
+                for j in range(i + 1, len(pads)):
+                    a, b = pads[i], pads[j]
+                    if not (a[1] + a[3] <= b[1] + 0.5 or b[1] + b[3] <= a[1] + 0.5 or a[2] + a[4] <= b[2] + 0.5 or b[2] + b[4] <= a[2] + 0.5):
+                        problems.append(f"drums {label} {mode}: {a[0]} and {b[0]} overlap")
+            small = min(min(p[3], p[4]) for p in pads)
+            face = min(p[5] for p in pads)
+            print(f"[drums {label} {mode}] {page.evaluate('window.__bubbels.drums.state().shape')}: pads at least {small:.0f} px, drawn {face:.0f} px")
+            if small < 80 or face < 70:
+                problems.append(f"drums {label} {mode}: pads only {small:.0f} px (drawn {face:.0f})")
+            want = "wide" if w > h else "tall"
+            if page.evaluate("window.__bubbels.drums.state().shape") != want:
+                problems.append(f"drums {label} {mode}: the kit is {page.evaluate('window.__bubbels.drums.state().shape')}, expected {want}")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"drums {label} {mode}: the page scrolls sideways")
+            for sel in ("#drums-back", "#drums-title") + (("#drums-listen", "#drums-strip") if mode == "rhythm" else ("#drums-list-btn",)):
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < 0 or r["y"] < 0 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"drums {label} {mode}: {sel} not on screen ({r})")
+            if mode == "rhythm":
+                bar = page.locator("#drums-bar").bounding_box()
+                top = min(p[2] for p in pads)
+                if bar["y"] + bar["height"] > top + 0.5:
+                    problems.append(f"drums {label}: the strip runs into the kit")
+                if page.locator("#drums-strip .dstep").count() < 4:
+                    problems.append(f"drums {label}: the strip shows only {page.locator('#drums-strip .dstep').count()} steps")
+            if english:
+                want = {"free": "Free play", "rhythm": "Rock"}[mode]
+                if page.inner_text("#drums-title") != want or page.inner_text("#tile-drums .tile-name") != "Drums":
+                    problems.append(f"drums {label}: English title {page.inner_text('#drums-title')!r}, expected {want!r}")
+            page.screenshot(path=str(SHOTS / f"drums-{mode}-{w}x{h}.png"))
+        if errors:
+            problems.append(f"drums {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -4696,6 +5024,8 @@ def main():
             piano_flow(browser, base, problems)
             piano_layouts(browser, base, problems)
             piano_big(browser, base, problems)
+            drums_flow(browser, base, problems)
+            drums_layouts(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -4708,7 +5038,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
          "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
-         "piano": (piano_flow, piano_layouts, piano_big)}
+         "piano": (piano_flow, piano_layouts, piano_big),
+         "drums": (drums_flow, drums_layouts)}
 
 
 def report(problems):

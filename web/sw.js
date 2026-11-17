@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-382a45e07e';
+const VERSION = 'bubbels-4ff298e451';
 const ASSETS = [
   './',
   'index.html',
@@ -146,6 +146,13 @@ const ASSETS = [
   'games/piano/piano.js',
   'games/piano/songs.js',
   'games/piano/strings.js',
+  'games/drums/art.js',
+  'games/drums/drums.css',
+  'games/drums/drums.js',
+  'games/drums/kit.js',
+  'games/drums/meta.js',
+  'games/drums/sound.js',
+  'games/drums/strings.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',

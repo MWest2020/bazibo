@@ -1,0 +1,302 @@
+/* Drumstel: home tile, the kit (pads, glow, the approaching ring, the count-in), the strip of steps
+   and the rhythm list. Shared look lives in css/style.css. */
+
+/* ---------- home tile ---------- */
+#tile-drums .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-drums .drums-tile-svg { width: 92px; height: 92px; display: block; }
+
+/* ---------- header ---------- */
+.drums-hud { gap: 10px; }
+.drums-hud .hud-mid { min-width: 0; }
+.drums-title { font-size: clamp(1.1rem, 5.4vw, 1.5rem); font-weight: 900; color: var(--primary); line-height: 1.1; }
+#screen-drums .bar-spacer[hidden] { display: none; }
+.btn.drums-pill {
+  flex: none;
+  min-width: 60px;
+  height: 60px;
+  padding: 0 16px 0 12px;
+  gap: 6px;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--primary);
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.15);
+}
+.btn.drums-pill:active { box-shadow: 0 1px 0 #c9c1ff; }
+.btn.drums-pill svg { width: 26px; height: 26px; fill: currentColor; }
+.btn.drums-pill.small { height: 44px; min-width: 0; padding: 0 14px; font-size: 0.95rem; }
+
+/* ---------- sound off ---------- */
+.drums-muted {
+  flex: none;
+  margin: 2px 12px 0;
+  padding: 6px 8px 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.drums-muted[hidden] { display: none; }
+
+/* ---------- playing along: listen, and the steps to come ---------- */
+.drums-bar {
+  flex: none;
+  width: min(100% - 24px, 760px);
+  margin: 2px auto 0;
+  padding: 8px 10px 8px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 0 #d6cff7;
+}
+.drums-bar[hidden] { display: none; }
+#drums-listen { height: 56px; border-radius: 18px; background: var(--accent); color: #fff; box-shadow: 0 5px 0 #c95f17, 0 8px 16px rgba(201, 95, 23, 0.25); }
+#drums-listen:active { box-shadow: 0 1px 0 #c95f17; }
+#drums-listen[aria-pressed="true"] { background: var(--primary); box-shadow: 0 5px 0 var(--primary-dark); }
+.drums-notes { flex: 1; min-width: 0; }
+.drums-strip { height: 46px; display: flex; align-items: center; gap: 4px; padding-left: 4px; overflow: hidden; }
+.dstep { flex: none; width: 28px; height: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.15s ease; }
+.dstep .dglyph { width: 24px; height: 24px; display: block; }
+.dstep.two .dglyph { width: 19px; height: 19px; margin: -2px 0; }
+.dstep.past { opacity: 0.3; transform: scale(0.75); }
+.dstep.miss { opacity: 0.18; }
+.dstep.now { width: 40px; height: 40px; margin: 0 4px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 3px var(--gold); }
+.dstep.now .dglyph { width: 32px; height: 32px; }
+.dstep.now.two .dglyph { width: 22px; height: 22px; }
+.drums-status { margin: 0; min-height: 1.2em; font-size: 0.9rem; font-weight: 800; color: var(--ink-soft); line-height: 1.2; }
+
+/* ---------- the kit ---------- */
+#drums-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 8px 10px 12px;
+}
+.drums-kit {
+  --cell: 120px;
+  flex: 1;
+  max-width: 1100px;
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-areas: "crash ride" "tom1 tom2" "hihat snare" "kick floor";
+  touch-action: none; /* fingers drum, they never scroll or zoom */
+  -webkit-user-select: none;
+  user-select: none;
+}
+.dpad {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.28);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+.dpad:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; z-index: 3; }
+/* the drawn drum: a square as big as the cell allows, in the middle of it */
+.dpad-face {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cell);
+  height: var(--cell);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.dpad-svg { width: 100%; height: 100%; display: block; overflow: visible; transition: transform 0.06s ease; }
+.dpad.down .dpad-svg { transform: scale(0.93); }
+.dpad.hit .dpad-svg { animation: drums-bounce 0.22s ease-out; }
+.dpad.cymbal.hit .dpad-svg, .dpad.ride.hit .dpad-svg, .dpad.hihat.hit .dpad-svg { animation: drums-wobble 0.5s ease-out; }
+.dpad.lit .dpad-svg { filter: brightness(1.12) drop-shadow(0 0 10px #fff); transform: scale(0.95); }
+.dpad.lit { background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 0 4px var(--gold); }
+
+/* the pad to hit: it glows and breathes */
+.dpad.glow { z-index: 1; background: rgba(255, 255, 255, 0.75); box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.9); }
+.dpad.glow .dpad-svg { animation: drums-breathe 0.9s ease-in-out infinite; }
+.dpad.good { animation: drums-good 0.35s ease-out; }
+.dpad.nudge { animation: drums-nudge 0.4s ease-in-out 2; }
+/* on the beat: a ring closes in on the glowing pad and lands on its beat */
+.dpad-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 999px;
+  border: 6px solid var(--gold);
+  opacity: 0;
+  pointer-events: none;
+}
+.drums-kit.timed .dpad.glow .dpad-ring { animation: drums-approach var(--lead, 500ms) linear forwards; }
+
+/* the count-in: a big number over the kit */
+.drums-count {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 116px;
+  height: 116px;
+  margin: -58px 0 0 -58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 4rem;
+  font-weight: 900;
+  box-shadow: 0 6px 0 var(--primary-dark), 0 0 0 6px #fff;
+  pointer-events: none;
+  z-index: 4;
+}
+.drums-count[hidden] { display: none; }
+.drums-count.pop { animation: drums-pop 0.35s ease-out; }
+
+/* Begin: big, in the middle of the kit */
+.btn.drums-go {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  height: 76px;
+  padding: 0 30px 0 22px;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  box-shadow: 0 6px 0 #c95f17, 0 0 0 6px #fff, 0 12px 28px rgba(59, 47, 168, 0.3);
+}
+.btn.drums-go:active { transform: translate(-50%, calc(-50% + 4px)); box-shadow: 0 2px 0 #c95f17, 0 0 0 6px #fff; }
+.btn.drums-go svg { width: 34px; height: 34px; fill: currentColor; }
+.btn.drums-go[hidden] { display: none; }
+
+@keyframes drums-bounce {
+  0% { transform: scale(0.9); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes drums-wobble {
+  0% { transform: rotate(0) scale(0.95); }
+  25% { transform: rotate(-7deg); }
+  50% { transform: rotate(5deg); }
+  75% { transform: rotate(-2deg); }
+  100% { transform: rotate(0); }
+}
+@keyframes drums-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes drums-good {
+  0% { box-shadow: 0 0 0 0 rgba(255, 197, 49, 0.9); }
+  100% { box-shadow: 0 0 0 18px rgba(255, 197, 49, 0); }
+}
+@keyframes drums-nudge {
+  0%, 100% { translate: 0 0; }
+  25% { translate: -6px 0; }
+  75% { translate: 6px 0; }
+}
+@keyframes drums-approach {
+  0% { transform: scale(1.5); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes drums-pop {
+  0% { transform: scale(0.6); }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dpad.glow .dpad-svg, .dpad.hit .dpad-svg, .dpad.nudge, .dpad.good, .drums-count.pop { animation: none; }
+}
+
+/* ---------- the rhythm list ---------- */
+.drums-list { max-width: 560px; margin: 0 auto; padding-bottom: 18px; }
+.drums-level { margin: 18px 6px 10px; font-size: 1.05rem; font-weight: 900; color: var(--primary-dark); }
+.drums-card {
+  width: 100%;
+  min-height: 84px;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 24px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #d6cff7, 0 8px 16px rgba(59, 47, 168, 0.12);
+}
+.drums-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #d6cff7; }
+.drums-card:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.drums-card-art { flex: none; width: 84px; height: 60px; }
+.drums-card-art svg { width: 100%; height: 100%; display: block; }
+.drums-card-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.drums-card-title { font-size: 1.25rem; font-weight: 900; color: var(--primary); line-height: 1.15; }
+.drums-card-sub { font-size: 0.9rem; font-weight: 700; color: var(--ink-soft); }
+.drums-card-end { flex: none; display: flex; gap: 1px; }
+.drums-card-end svg { width: 20px; height: 20px; fill: #d8d3f2; }
+.drums-card-end svg.on { fill: var(--gold); }
+.drums-card.locked { background: rgba(255, 255, 255, 0.7); }
+.drums-card.locked .drums-card-title { color: #8d86c4; }
+.drums-card.locked .drums-card-art { opacity: 0.6; }
+.drums-card.locked .drums-card-end svg { width: 26px; height: 26px; fill: #a59fd0; }
+.drums-card[data-rhythm="free"] { box-shadow: 0 6px 0 var(--primary-dark), 0 8px 16px rgba(59, 47, 168, 0.2); background: var(--primary-light); }
+
+/* ---------- small and sideways screens ---------- */
+@media (max-width: 360px) {
+  .btn.drums-pill { padding: 0 12px 0 10px; font-size: 0.95rem; }
+  #drums-listen { padding: 0 14px; }
+  #drums-listen span { display: none; } /* the play sign says it; the strip gets the room */
+  .drums-card-title { font-size: 1.1rem; }
+  .drums-card-art { width: 64px; height: 46px; }
+  #drums-stage { padding: 6px 6px 10px; }
+  .drums-kit { gap: 6px; }
+}
+/* short sideways phones: the bar and the strip share one row, the kit gets the rest */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-drums.active {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .drums-hud { grid-column: 1; grid-row: 1; padding: 6px 8px 2px 12px; }
+  #screen-drums[data-mode="free"] .drums-hud { grid-column: 1 / 3; }
+  .drums-hud .btn.icon, .btn.drums-pill, #drums-listen { height: 50px; }
+  .drums-hud .btn.icon { width: 50px; }
+  .drums-hud .hud-mid { flex: 1 1 auto; max-width: 40vw; }
+  #screen-drums[data-mode="free"] .drums-hud .hud-mid { max-width: none; }
+  #screen-drums .bar-spacer { display: none; }
+  .drums-title { font-size: 1.15rem; }
+  .drums-bar { grid-column: 2; grid-row: 1; width: auto; margin: 6px 12px 0 0; padding: 4px 8px 4px 4px; align-self: center; }
+  .drums-strip { height: 44px; }
+  .dstep.now { width: 34px; height: 34px; }
+  .dstep.now .dglyph { width: 28px; height: 28px; }
+  .drums-status { display: none; }
+  .drums-muted { grid-column: 1 / 3; grid-row: 2; }
+  #drums-stage { grid-column: 1 / 3; grid-row: 3; padding: 4px 10px 8px; }
+  .drums-kit { gap: 6px; }
+  .drums-count { width: 90px; height: 90px; margin: -45px 0 0 -45px; font-size: 3rem; }
+  .btn.drums-go { height: 64px; font-size: 1.3rem; }
+}

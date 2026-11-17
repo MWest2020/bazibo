@@ -25,6 +25,8 @@ import '../web/games/klok/strings.js';
 import '../web/games/letters/strings.js';
 import '../web/games/piano/strings.js';
 import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
+import '../web/games/drums/strings.js';
+import { RHYTHM_IDS as DRUM_RHYTHMS, PAD_IDS as DRUM_PADS, LEVELS as DRUM_LEVELS } from '../web/games/drums/kit.js';
 import '../web/js/random.js';
 import { GAMES, GROUPS, OTHER_GROUP } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';
@@ -103,6 +105,10 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of PIANO_SONGS) used.add(`piano.song.${id}`); // built as t(`piano.song.${id}`)
   for (const id of PIANO_KEYS) used.add(`piano.note.${id}`);
   for (const n of [1, 2, 3]) used.add(`piano.win${n}`);
+  for (const id of DRUM_RHYTHMS) used.add(`drums.rhythm.${id}`); // built as t(`drums.rhythm.${id}`)
+  for (const id of DRUM_PADS) used.add(`drums.pad.${id}`);
+  for (const l of DRUM_LEVELS) used.add(`drums.level.${l.id}`).add(`drums.age.${l.id}`);
+  for (const n of [0, 1, 2, 3]) used.add(`drums.win${n}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 

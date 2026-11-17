@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-15 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+16 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-15 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Klok kijken en Letters: spelen en leren, 3-10 jaar. Geen reclame.
+16 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu vijftien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -38,14 +38,14 @@ BUBBELS SCHIETEN
 
 DOGUDOKU: VERSTOP DE HONDJES
 • Eén hondje per rij en kolom, en hondjes raken elkaar niet, ook niet schuin.
-• Van een tuintje van 4 bij 4 voor de kleinsten tot kleurvakken vanaf 5 jaar. 60 puzzels.
+• Van 4 bij 4 voor de kleinsten tot kleurvakken vanaf 5 jaar. 60 puzzels.
 
 PICTUREDOKU: SUDOKU MET PLAATJES
 • Vanaf 3 jaar: 4 bij 4 met fruit, zonder cijfers en zonder lezen.
 • Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9, ook met cijfers. 60 puzzels.
 
 PAARTJES
-• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen een lieve computer die soms iets vergeet.
+• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen een lieve computer.
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
@@ -57,11 +57,11 @@ VIER OP EEN RIJ
 • Voor de kleinsten: het kleuterbord, waar drie op een rij wint.
 
 DAMMEN
-• Puppy tegen poes, of klassiek; stukken die moeten slaan, gloeien zachtjes.
+• Puppy tegen poes, of klassiek; wie moet slaan, gloeit zachtjes.
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en 10 bij 10 (volledige versie).
 
 GANZENBORD
-• Ons eigen bord met de klassieke vakjes. Je kind telt zelf door elk vakje aan te tikken.
+• Ons eigen bord met de klassieke vakjes. Je kind telt zelf de vakjes.
 • Samen of tegen een computergans. Tot vier spelers en een winter- en zeebord (volledige versie).
 
 KWARTET
@@ -85,6 +85,9 @@ PIANO
 • 4-6 jaar: vrij spelen en Vader Jacob; nog drie liedjes in de volledige versie.
 • 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
 
+DRUMSTEL
+• Acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
+
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.
 • Van dagritme voor de kleinsten tot losse minuten en de 24-uursklok.
@@ -98,7 +101,7 @@ GEMAAKT VOOR KINDEREN
 
 GEEN RECLAME, NOOIT
 • Geen advertenties, geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel om echt mee te spelen, zoals level 1 tot en met 10 bij Bubbels schieten en 10 puzzels bij Dogudoku en Picturedoku. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel, zoals 10 levels bij Bubbels schieten en 10 puzzels bij Dogudoku. Eén keer betalen opent alles, ook latere spellen, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

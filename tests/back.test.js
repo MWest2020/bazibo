@@ -83,3 +83,11 @@ test('back: the piano goes from a song to the song list and from free play home;
   assert.equal(backAction({ screen: 'piano-songs' }), 'piano-songs-back');
   assert.equal(backAction({ screen: 'piano-songs', overlay: 'card' }), 'close'); // the offer for a locked song
 });
+
+test('back: the drum kit goes from a rhythm to the rhythm list and from free play home; the list goes to free play', () => {
+  assert.equal(backAction({ screen: 'drums' }), 'drums-back'); // a rhythm -> the list, free play -> home (drums.js)
+  assert.equal(backAction({ screen: 'drums', overlay: 'card' }), 'drums-list'); // the end card of a rhythm
+  assert.equal(backAction({ screen: 'drums', overlay: 'busy' }), 'ignore');
+  assert.equal(backAction({ screen: 'drums-list' }), 'drums-list-back');
+  assert.equal(backAction({ screen: 'drums-list', overlay: 'card' }), 'close'); // the offer for a locked rhythm
+});

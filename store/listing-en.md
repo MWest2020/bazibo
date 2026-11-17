@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-15 games for children aged 3 to 10. No ads, no account, no trackers.
+16 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-15 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Telling Time and Letters: play and learn, ages 3 to 10, no ads.
+16 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has fifteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. It has sixteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -43,7 +43,7 @@ PICTUREDOKU: SUDOKU WITH PICTURES
 • From age 6, 6 by 6; from age 8, 9 by 9, with numbers if you like. 60 puzzles.
 
 PAIRS
-• Turn over two cards and find the pairs. On your own, together, or against a kind computer that sometimes forgets.
+• Turn over two cards and find the pairs. On your own, together, or against a kind computer.
 • 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
 
 JIGSAW
@@ -83,6 +83,9 @@ PIANO
 • Ages 4-6: free play and Frère Jacques. Three more songs, like Twinkle, Twinkle, Little Star (full version).
 • Ages 7-10: two octaves with black keys and the whole Ode to Joy. The Turkish March, Für Elise and more (full version).
 
+DRUMS
+• Eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms (full version).
+
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.
 • From a daily rhythm for the youngest to single minutes and the 24-hour clock.
@@ -96,7 +99,7 @@ MADE FOR CHILDREN
 
 NO ADS, EVER
 • No adverts, no account and no trackers: the app collects nothing.
-• Every game has a free part to really play, like levels 1 to 10 in Bubble Shooter and 10 puzzles in Dogudoku and Picturedoku. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
+• Every game has a free part, like 10 levels in Bubble Shooter and 10 puzzles in Dogudoku. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/
