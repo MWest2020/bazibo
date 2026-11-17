@@ -87,7 +87,7 @@ PIANO
 
 DRUMSTEL
 • Acht trommels en bekkens. Speel mee: de volgende trommel licht op.
-• In eigen tempo (4-6) of op de maat (7-10). Vrij spelen en Rock; vier ritmes meer (volledige versie).
+• In eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.
