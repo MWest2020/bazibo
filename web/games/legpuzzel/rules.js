@@ -9,18 +9,24 @@
 
 // `age`: from what age a size is about right. Mark (17 Nov 2026, issue #45): his four-year-old laid
 // the 30 pieces then marked 9+ with ease, so the scale moved down and 48 and 60 pieces came in.
+// Later that day: nothing for two-year-olds; 9 pieces from 3, 16 from 4, 25 from 5, the rest as it
+// was. The 4, 6, 12 and 20 pieces are gone from the menu; their stars stay in the save (never drop
+// a field), they are just not shown, and a saved last size that is gone falls back to 9.
 export const SIZES = Object.freeze({
-  p4: Object.freeze({ cols: 2, rows: 2, age: 2 }),
-  p6: Object.freeze({ cols: 3, rows: 2, age: 2 }),
   p9: Object.freeze({ cols: 3, rows: 3, age: 3 }),
-  p12: Object.freeze({ cols: 4, rows: 3, age: 3 }),
-  p20: Object.freeze({ cols: 5, rows: 4, age: 4 }),
-  p30: Object.freeze({ cols: 6, rows: 5, age: 5 }),
+  p16: Object.freeze({ cols: 4, rows: 4, age: 4 }),
+  p25: Object.freeze({ cols: 5, rows: 5, age: 5 }),
+  p30: Object.freeze({ cols: 6, rows: 5, age: 6 }),
   p48: Object.freeze({ cols: 8, rows: 6, age: 7 }),
   p60: Object.freeze({ cols: 10, rows: 6, age: 9 }),
 });
+/** Sizes that were in the menu before and are not any more (their saved stars are kept). */
+export const RETIRED_SIZES = Object.freeze(['p4', 'p6', 'p12', 'p20']);
 export const SIZE_IDS = Object.freeze(Object.keys(SIZES));
 export const piecesOf = (size) => SIZES[size].cols * SIZES[size].rows;
+export const DEFAULT_SIZE = 'p9';
+/** The saved last size as the menu can use it: a size that is not in the menu (any more) is 9. */
+export const knownSize = (id) => (SIZE_IDS.includes(id) ? id : DEFAULT_SIZE);
 
 export const TAB = 0.3; // how far a tab sticks out, in pieces
 export const margin = (s) => Math.ceil(s * (TAB + 0.02));
@@ -191,11 +197,11 @@ export function rearrange({ pos, placed, cols, board, s, m, w, h, resized, sprea
   });
 }
 
-// The magnifier (issue #45). With 48 or 60 pieces the board on a phone gets pieces of 30-45 px; a
-// child of 7-9 can drag them, but sees little of the picture on them. Then the HUD shows a
-// magnifier: the whole stage (board and tray together) is drawn ZOOM_TARGET px a piece and the
-// child moves the view with a finger on an empty spot, or by holding a piece near the edge. The
-// geometry stays the same: the zoom is only a view on it.
+// The magnifier (issue #45). With 48 or 60 pieces the board on a phone gets pieces of 30-45 px, with
+// 25 and 30 pieces about 45-50 px on a small phone (320-360 wide); a child can drag them, but sees
+// little of the picture on them. Then the HUD shows a magnifier: the whole stage (board and tray
+// together) is drawn ZOOM_TARGET px a piece and the child moves the view with a finger on an empty
+// spot, or by holding a piece near the edge. The geometry stays the same: the zoom is only a view.
 export const ZOOM_FROM = 56; // a piece's square smaller than this: the magnifier is offered
 export const ZOOM_TARGET = 66; // what a square becomes with the magnifier on
 export const ZOOM_MAX = 2.5;

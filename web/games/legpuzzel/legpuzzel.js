@@ -1,4 +1,4 @@
-// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 4 to 60 pieces with round tabs,
+// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 9 to 60 pieces with round tabs,
 // no turning; a piece dropped near its own place snaps in with a soft plink and stays. A faint
 // example picture on the board helps (the eye button turns it off). The geometry and the rules
 // live in rules.js, the pictures in pictures.js; the shell (web/js/main.js) owns the overlay card,
@@ -8,18 +8,19 @@
 // piece is its own small canvas, cut out with its outline (a Path2D from rules.piecePath) and moved
 // with a CSS transform, so dragging never redraws anything.
 //
-// The magnifier (48 and 60 pieces on a phone, see rules.zoomFor): the board and the pieces live in
+// The magnifier (48 and 60 pieces on a phone, 25 and 30 on a small one; see rules.zoomFor): the board and the pieces live in
 // one layer (`#legpuzzel-world`, the stage at its own size) that is scaled and moved as a whole.
 // All positions stay in stage units; only the pointer is turned into them (`toWorld`). A finger on
 // an empty spot moves the view, a piece held near the edge of the view moves it too. The canvases
 // are drawn at the zoomed resolution from the start, so turning the magnifier never redraws.
 //
 // Saved (games.legpuzzel): in `stars`, 1 for every picture and size laid at least once
-// ('<picture>-<size>'); the last size ('size'), the example picture on or off ('ghost') and the
+// ('<picture>-<size>', also for the sizes no longer in the menu: kept, not shown); the last size
+// ('size', back to 9 when it is a size that is gone), the example picture on or off ('ghost') and the
 // magnifier on or off ('zoom'). A puzzle
 // in progress is kept while the app stays open ("keep puzzling").
 import { meta } from './meta.js';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps, isComplete, rearrange, zoomFor, clampPan, zoomAround } from './rules.js';
+import { SIZES, SIZE_IDS, DEFAULT_SIZE, knownSize, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps, isComplete, rearrange, zoomFor, clampPan, zoomAround } from './rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from './pictures.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -30,7 +31,6 @@ const CHECK = '<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor
 const LOUPE = '<circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5.5 5.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="loupe-plus" d="M10 7v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
 const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>';
 
-export const DEFAULT_SIZE = 'p4';
 export const puzzleKey = (p) => `${p.picture}-${p.size}`;
 
 /** A little cut-up square for the size buttons: cols × rows pieces, two of them lifted out. */
@@ -48,10 +48,7 @@ export function sizeSvg(cols, rows) {
 export function createLegpuzzel(shell) {
   const { t, tap } = shell;
   const done = () => store.loadProgress(meta.id).stars;
-  const savedSize = () => {
-    const s = store.loadGameOption(meta.id, 'size', DEFAULT_SIZE);
-    return SIZE_IDS.includes(s) ? s : DEFAULT_SIZE;
-  };
+  const savedSize = () => knownSize(store.loadGameOption(meta.id, 'size', DEFAULT_SIZE));
   const ghostOn = () => store.loadGameOption(meta.id, 'ghost', true) !== false;
   const zoomOn = () => store.loadGameOption(meta.id, 'zoom', false) === true;
 

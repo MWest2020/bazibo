@@ -225,7 +225,12 @@ export function hit(id, vol = 1) {
   if (old && old.until > t) {
     old.out.gain.cancelScheduledValues(t);
     old.out.gain.setTargetAtTime(0, t, CHOKE);
-    for (const s of old.srcs) if (s.end > t + CHOKE * 6) s.stop(t + CHOKE * 6);
+    for (const s of old.srcs) {
+      if (s.end > t + CHOKE * 6) {
+        // older WebKit throws on a second stop(); the choke must never break a hit
+        try { s.stop(t + CHOKE * 6); } catch { /* already stopped */ }
+      }
+    }
     old.until = t + CHOKE * 6;
   }
   const out = ac.createGain();

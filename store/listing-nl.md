@@ -49,8 +49,8 @@ PAARTJES
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
-• Sleep de stukjes naar hun plek; dichtbij klikken ze vast. Van 4 stukjes voor de kleinsten tot 60 voor 9 jaar, met een vergrootglas op de telefoon.
-• 4, 6 en 9 stukjes met drie plaatjes. 12, 20, 30, 48 en 60 stukjes en vijf plaatjes meer (volledige versie).
+• Sleep de stukjes naar hun plek; dichtbij klikken ze vast. Van 9 stukjes vanaf 3 jaar tot 60 voor 9 jaar, met een vergrootglas op de telefoon.
+• 9, 16 en 25 stukjes met drie plaatjes. 30, 48 en 60 stukjes en vijf plaatjes meer (volledige versie).
 
 VIER OP EEN RIJ
 • Samen op één scherm of tegen de computer; Moeilijk in de volledige versie.
