@@ -54,7 +54,7 @@ home → Kwartet: 6 and 8 sets and a 4th player offer only OK on the web, a seed
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
-home → Piano (`tests/smoke.py piano`): a tap sounds (oscillators counted), two fingers hold two keys, a slide plays every key it passes, a black key; a locked song offers only OK on the web and stays on the list; Vader Jacob played along by tapping the glowing key with one wrong key first (the song waits), 3 stars saved and "More songs" (the offer over the list); Listen lights the keys and a tap stops it; the sound setting followed ("Geluid aan" on the piano); the back arrows and the Android back button; the layout at 320x568, 360x740, 568x320, 844x390 (full version, every song open), 390x844 in English and desktop, every key on screen and the coloured keys 44 px from 390 wide, about 42 at 360, 37 at 320; leaving the app stops Listen and lets go of every key;
+home → Piano (`tests/smoke.py piano`): a tap sounds (oscillators counted), two fingers hold two keys, a slide plays every key it passes, a black key; a locked song offers only OK on the web and stays on the list; Vader Jacob played along by tapping the glowing key with one wrong key first (the song waits), 3 stars saved and "More songs" (the offer over the list); Listen lights the keys and a tap stops it; the sound setting followed ("Geluid aan" on the piano); the back arrows and the Android back button; the layout at 320x568, 360x740, 568x320, 844x390 (full version, every song open), 390x844 in English and desktop, every key on screen and the coloured keys 44 px from 390 wide, about 42 at 360, 37 at 320; leaving the app stops Listen and lets go of every key; 7-10: the age buttons, its locked songs offer only OK on the web, free play with a window of 8 of the 15 coloured keys, the map and the turn line, the map slid to the top C, the whole Ode played to the end by taps while the window follows (3 stars, "More songs"), the age kept after a reload and back to 4-6; in the full version Für Elise played to the end by taps on 390x844 and 844x390 (all 15 keys in sight, no map) with every lit key of Listen in sight, and the window at 320x568 and 568x320;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap, the traced word), a gentle wrong tap, a locked tier stays locked, tier 2 shows the build word for a moment and again on a tap on the picture; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
@@ -187,14 +187,30 @@ gap, a word to build); the rounds are pure in `web/games/letters/round.js`, test
 tier. The Piper voice was removed on Mark's word (13 Nov 2026: children did not like the robot
 voice); do not add speech back, recorded or generated, without him. New words go in `WORDS` (both
 languages, with a picture that exists in `art.js`).
-Piano: the keyboard, the songs and playing along are pure in `web/games/piano/songs.js` (tested: 8
-coloured keys C to the high C and 5 black ones, sounding C5-C6 in equal temperament; a song is a
-string of note names with lengths in beats; every song stays on the coloured keys in whole 4/4
-bars; a wrong key never moves a song on; `starsFor` counts wrong keys only, gently, never time).
+Piano: two levels by age, picked with two buttons at the top of the song list and saved as
+`games.piano.level` (`small` or `big`; a new player gets `small`, the tile always opens free play).
+The keyboards, the songs and playing along are pure in `web/games/piano/songs.js` (tested). 4-6
+(`SMALL`, unchanged since PR #42): 8 coloured keys C to the high C and 5 black ones, sounding
+C5-C6; its songs stay on the coloured keys in whole 4/4 bars. 7-10 (`BIG`): C4-C6, 15 coloured
+keys (every C red, the same colours per note name) with their names on them and 10 black keys;
+when the coloured keys do not all fit 44 px wide (46 with the gap; 42 at 320 px) it shows a
+window of 7 to 14 of them: the map of the whole keyboard above the keys moves it (fingers on the
+keys only ever play), playing along and Listen move it with `followView` (pure, tested: the key to
+press is always in sight, every 7-10 song played through on 7, 8 and 12 keys), and an upright
+phone gets a line asking to turn it; sideways on a phone all 15 fit. A song is a string of notes
+with lengths in beats: the toy piano's notation (`C D:2 C'`) or, for 7-10, note and octave
+(`F#5:.5 Bb4`), with `R:.5` rests folded into the note before (`rest`, so Listen lets go in time).
+New 7-10 songs must be public domain and checked note for note against a real score; say which in
+a comment (the five now: Wikipedia's and the Mutopia Project's LilyPond sources), leaving out only
+grace notes and trills. A wrong key never moves a song on; `starsFor` counts wrong keys only,
+gently, never time (also for 7-10: the song waits for the key, so there is no rhythm to judge).
 The sound is `pianoNote` in `web/js/audio.js` (synthesised, follows the sound setting); no voice
 and no recordings. Pointers are handled on the whole keyboard (`elementFromPoint`), so several
-fingers and slides work; keep `touch-action: none` there. New songs go at the end of `SONGS`, public
-domain only, with a name `piano.song.<id>` in both languages. Free: free play and the first song
-(Vader Jacob, `meta.freeSongs`); the full version adds the other songs. Saved: stars per song only.
+fingers and slides work; keep `touch-action: none` there and on the map. New songs go at the end
+of their level in `RAW`/`RAW_BIG` with a unique id (stars are per id) and a name
+`piano.song.<id>` in both languages. Free: free play on both pianos and the first song of each
+level (Vader Jacob; the whole Ode to Joy in D, with F#: `meta.freeSongs`); the full version adds
+the other songs (4-6: Kortjakje, Au clair de la lune, Ode to Joy; 7-10: Wilhelmus, In the Hall of
+the Mountain King, the Rondo alla turca opening, Für Elise). Saved: stars per song and the level.
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.

@@ -79,7 +79,8 @@ DRAWING
 
 PIANO
 • A toy piano with coloured keys. Play along with a song: the next key lights up. Listen plays the song to you.
-• Free play and Frère Jacques. Three more songs, like Twinkle, Twinkle, Little Star (full version).
+• Ages 4-6: free play and Frère Jacques. Three more songs, like Twinkle, Twinkle, Little Star (full version).
+• Ages 7-10: two octaves with black keys and the whole Ode to Joy. The Turkish March, Für Elise and more (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.

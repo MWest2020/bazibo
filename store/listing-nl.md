@@ -81,7 +81,8 @@ TEKENEN
 
 PIANO
 • Een speelgoedpiano met gekleurde toetsen. Speel een liedje mee: de volgende toets licht op. Met Luister speelt het liedje zichzelf voor.
-• Vrij spelen en Vader Jacob. Nog drie liedjes, zoals Altijd is Kortjakje ziek (volledige versie).
+• 4-6 jaar: vrij spelen en Vader Jacob. Nog drie liedjes, zoals Altijd is Kortjakje ziek (volledige versie).
+• 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, de Turkse mars en Für Elise (volledige versie).
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.
