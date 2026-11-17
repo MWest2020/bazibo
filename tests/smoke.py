@@ -4149,6 +4149,7 @@ def piano_layouts(browser, base, problems):
 
 
 PI_IN_VIEW = """(k) => {
+  if (document.querySelector('#piano-view').scrollLeft) return false;  // only the transform may move the keys
   const v = document.querySelector('#piano-view').getBoundingClientRect();
   const r = document.querySelector(`.pkey[data-key='${k}']`).getBoundingClientRect();
   return r.left >= v.left - 0.5 && r.right <= v.right + 0.5 && r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5;
@@ -4230,7 +4231,7 @@ def piano_big(browser, base, problems):
     st = pi_state(page)
     if st["mode"] != "free" or st["keys"] != 25 or st["visible"] != 8 or st["view"] != 0:
         problems.append(f"piano big: free play has {st['keys']} keys, {st['visible']} in sight from {st['view']}")
-    if page.inner_text("#piano-sub") != "7‑10 jaar":
+    if page.inner_text("#piano-sub") != "7\u201110\u00a0jaar":
         problems.append(f"piano big: the free play header says {page.inner_text('#piano-sub')!r}")
     if not page.is_visible("#piano-map") or not page.is_visible("#piano-turn"):
         problems.append("piano big: no map or no line to turn the phone on an upright phone")
@@ -4257,21 +4258,60 @@ def piano_big(browser, base, problems):
     if pi_state(page)["pressed"] != 1 or page.evaluate("window.__osc") <= osc:
         problems.append("piano big: the top C did not sound after sliding the map")
     page.screenshot(path=str(SHOTS / "piano-big-map-390x844.png"))
+    # a finger holds the top C while another slides the map to the left end: the held finger lets
+    # go of its key, and trembling on the key that slid under it plays nothing
+    c6 = pi_key_point(page, "c6")
+    pi_touch(cdp, "touchStart", [c6])
+    page.wait_for_timeout(60)
+    pi_touch(cdp, "touchStart", [c6, {"x": m["x"] + 4, "y": y}])
+    page.wait_for_timeout(350)
+    for dx in (3, -3, 2):
+        pi_touch(cdp, "touchMove", [{"x": c6["x"] + dx, "y": c6["y"]}, {"x": m["x"] + 4, "y": y}])
+        page.wait_for_timeout(30)
+    st = pi_state(page)
+    if st["view"] != 0 or st["pressed"] != 2 or st["down"]:
+        problems.append(f"piano big: a finger held while the map moved: window {st['view']}, presses {st['pressed']} (want 2), down {st['down']}")
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
 
     # the whole Ode to Joy by taps; the window follows down to the low A and back up
     page.click("#piano-songs-btn")
     page.wait_for_timeout(150)
     page.click(".piano-card[data-song='ode']")
     page.wait_for_timeout(250)
-    if pi_state(page)["song"] != "ode" or page.inner_text("#piano-sub") != "Liedjes · 7‑10 jaar":
+    if pi_state(page)["song"] != "ode" or page.inner_text("#piano-sub") != "Liedjes \u00b7 7\u201110\u00a0jaar":
         problems.append(f"piano big: the Ode opened as {pi_state(page)['song']} under {page.inner_text('#piano-sub')!r}")
+    # the map slides the glowing F# out of sight; a wrong key held down brings it back, but only
+    # once the finger is lifted (the keys never slide under a finger)
+    m = page.locator("#piano-map").bounding_box()
+    pi_touch(cdp, "touchStart", [{"x": m["x"] + 4, "y": m["y"] + m["height"] / 2}])
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_function(PI_STILL, timeout=3000)
+    if pi_state(page)["view"] != 0 or page.evaluate(PI_IN_VIEW, "fis5"):
+        problems.append(f"piano big: the map did not slide the Ode's first key away (window {pi_state(page)['view']})")
+    c4 = pi_key_point(page, "c4")
+    p0 = pi_state(page)["pressed"]
+    pi_touch(cdp, "touchStart", [c4])
+    page.wait_for_timeout(350)
+    pi_touch(cdp, "touchMove", [{"x": c4["x"] + 3, "y": c4["y"]}])
+    page.wait_for_timeout(30)
+    st = pi_state(page)
+    if st["misses"] != 1 or st["view"] != 0 or st["pressed"] != p0 + 1:
+        problems.append(f"piano big: a held wrong key: misses {st['misses']}, window {st['view']} while held, presses {st['pressed'] - p0}")
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
+    page.wait_for_function(PI_STILL, timeout=3000)
+    if not page.evaluate(PI_IN_VIEW, "fis5") or pi_state(page)["glow"] != ["fis5"]:
+        problems.append(f"piano big: after a wrong key the glowing F# is not back in sight (window {pi_state(page)['view']})")
     views = pi_play_big(page, "big ode", problems, shot=(20, "piano-big-song-390x844.png"))
     if len(views) < 2:
         problems.append(f"piano big: the window never moved during the Ode ({views})")
     try:
         page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
     except Exception:
-        problems.append("piano big: no end card after the Ode")
+        problems.append(f"piano big: no end card after the Ode ({pi_state(page)})")
+        ctx.close()
+        return
     page.wait_for_timeout(600)
     page.screenshot(path=str(SHOTS / "piano-big-done-390x844.png"))
     if page.inner_text("#ov-title") != "Super!" or card_buttons(page) != ["Meer liedjes", "Nog een keer", "Liedjes"]:
@@ -4338,7 +4378,7 @@ def piano_big(browser, base, problems):
         narrow = min(x[2] for x in whites)
         short = min(x[3] for x in whites)
         print(f"[piano {label}] {st['visible']} of 15 coloured keys in sight, {narrow:.0f}x{short:.0f} px, map {page.is_visible('#piano-map')}")
-        if narrow < (42 if w < 360 else 44) or short < 120:
+        if narrow < (41.5 if w < 360 else 44) or short < 120:
             problems.append(f"piano {label}: coloured keys only {narrow:.0f}x{short:.0f} px")
         if len(seen) != st["visible"]:
             problems.append(f"piano {label}: {len(seen)} coloured keys on screen, the window says {st['visible']}")

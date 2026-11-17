@@ -197,7 +197,10 @@ when the coloured keys do not all fit 44 px wide (46 with the gap; 42 at 320 px)
 window of 7 to 14 of them: the map of the whole keyboard above the keys moves it (fingers on the
 keys only ever play), playing along and Listen move it with `followView` (pure, tested: the key to
 press is always in sight, every 7-10 song played through on 7, 8 and 12 keys), and an upright
-phone gets a line asking to turn it; sideways on a phone all 15 fit. A song is a string of notes
+phone gets a line asking to turn it; sideways on a phone all 15 fit. The window never moves under a
+finger: following waits until every finger is up (a wrong key brings the glowing key back then), and a
+finger that was down when the map moved plays nothing more until lifted. The window is `overflow: clip`
+and only its transform moves the keys (a tap focuses a key, and a browser scrolls a hidden overflow to it). A song is a string of notes
 with lengths in beats: the toy piano's notation (`C D:2 C'`) or, for 7-10, note and octave
 (`F#5:.5 Bb4`), with `R:.5` rests folded into the note before (`rest`, so Listen lets go in time).
 New 7-10 songs must be public domain and checked note for note against a real score; say which in

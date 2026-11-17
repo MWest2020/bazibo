@@ -49,6 +49,9 @@ export function createPiano(shell) {
   let pressed = 0; // keys pressed (also counted with the sound off: the test hook reads it)
   let heard = 0; // notes played by the listen button
   const holders = new Map(); // pointer (or computer key) -> the piano key it holds
+  const frozen = new Set(); // fingers that were down when the window moved: they play nothing more until lifted
+  let pendingFollow = false; // the window should follow the song once every finger is up
+  const fingersDown = () => [...holders.keys()].some((h) => typeof h === 'number'); // pointer ids are numbers
   const keyEls = {};
 
   // ---------- the keyboard ----------
@@ -60,6 +63,8 @@ export function createPiano(shell) {
     keysEl.textContent = '';
     for (const id of Object.keys(keyEls)) delete keyEls[id];
     holders.clear();
+    frozen.clear();
+    pendingFollow = false;
     const big = level !== 'small';
     bodyEl.classList.toggle('big', big);
     keysEl.style.setProperty('--whites', board.whites.length);
@@ -139,7 +144,18 @@ export function createPiano(shell) {
 
   /** Show the coloured keys from `v` on (kept on the keyboard). */
   function setView(v, animate = true) {
-    view = Math.min(Math.max(0, Math.round(v)), board.whites.length - visible);
+    const next = Math.min(Math.max(0, Math.round(v)), board.whites.length - visible);
+    if (next !== view) {
+      // the keys slide under any finger still down: it lets go of its key and plays nothing more
+      // until it is lifted, so a trembling finger never plays the key that slid under it
+      for (const [h, key] of holders) {
+        if (typeof h !== 'number') continue;
+        frozen.add(h);
+        holders.set(h, null);
+        if (key && ![...holders.values()].includes(key)) keyEls[key]?.classList.remove('down');
+      }
+    }
+    view = next;
     keysEl.classList.toggle('sliding', animate);
     keysEl.style.transform = keyW ? `translateX(${-view * keyW}px)` : '';
     const frame = mapEl.querySelector('.piano-map-frame');
@@ -149,13 +165,28 @@ export function createPiano(shell) {
     labelMap();
   }
 
-  /** Playing along (or listening): keep the key to press and the ones after it in sight. */
+  /**
+   * Playing along (or listening): keep the key to press and the ones after it in sight. While a
+   * finger is on the keys the window waits, and moves when the last finger is lifted.
+   */
   function follow(at) {
     if (!song || visible >= board.whites.length) return;
+    if (fingersDown()) {
+      pendingFollow = true;
+      return;
+    }
+    pendingFollow = false;
     const spans = song.notes.slice(at, at + 8).map((n) => board.span(n.key));
     const v = followView(spans, view, visible, board.whites.length);
     if (v !== view) setView(v);
   }
+
+  // Only the transform moves the keys: where `overflow: clip` is missing, undo the scroll a browser
+  // makes to show a key that got focus.
+  $('#piano-view').addEventListener('scroll', (e) => {
+    e.currentTarget.scrollLeft = 0;
+    e.currentTarget.scrollTop = 0;
+  });
 
   // The map: a finger on it (or a click) moves the window there; fingers on the keys only play.
   let mapFinger = null;
@@ -199,7 +230,7 @@ export function createPiano(shell) {
     else holders.set(e.pointerId, null); // between two keys: a slide on to one still plays it
   });
   keysEl.addEventListener('pointermove', (e) => {
-    if (!holders.has(e.pointerId)) return; // only a finger (or mouse button) that went down on the keys
+    if (!holders.has(e.pointerId) || frozen.has(e.pointerId)) return; // only a finger (or mouse button) that went down on the keys
     const key = keyAt(e.clientX, e.clientY);
     const now = holders.get(e.pointerId);
     if (key === now) return;
@@ -223,22 +254,28 @@ export function createPiano(shell) {
     if (!song || !run || finishing || run.done) return;
     if (slide && key !== run.target()) return; // sliding over the keys never counts as a mistake
     const r = run.press(key);
-    if (r === 'wrong') nudge();
+    if (r === 'wrong') {
+      nudge();
+      follow(run.index); // the child may have slid the window away: bring the glowing key back
+    }
     else if (r === 'right') renderSong();
     else if (r === 'done') finish();
   }
 
   /** A pointer lets go (or slides on to another key). */
   function release(holder, keepFollowing = false) {
+    if (!keepFollowing) frozen.delete(holder);
     if (!holders.has(holder)) return;
     const key = holders.get(holder);
     if (keepFollowing) holders.set(holder, null);
     else holders.delete(holder);
     if (key && ![...holders.values()].includes(key)) keyEls[key]?.classList.remove('down');
+    if (!keepFollowing && pendingFollow && !fingersDown() && song && run && (listen || !run.done)) follow(listen ? listen.step : Math.min(run.index, song.notes.length - 1));
   }
 
   function releaseAll() {
     holders.clear();
+    frozen.clear();
     for (const el of Object.values(keyEls)) el.classList.remove('down');
   }
 
@@ -258,7 +295,8 @@ export function createPiano(shell) {
     $('#screen-piano').dataset.mode = free ? 'free' : 'song';
     $('#screen-piano').dataset.level = level;
     // the 7-10 piano says so above the title (a non-breaking hyphen keeps "7-10" together)
-    const ages = level === 'small' ? null : t('piano.ages', { age: levelById(level).ages.replace('-', '\u2011') });
+    // and a non-breaking space, so a narrow header wraps after the dot ("Liedjes ·" / "7-10 jaar")
+    const ages = level === 'small' ? null : t('piano.ages', { age: levelById(level).ages.replace('-', '\u2011') }).replace(' ', '\u00a0');
     $('#piano-sub').textContent = free ? ages || t('games.piano') : ages ? `${t('piano.songs')} · ${ages}` : t('piano.songs');
     $('#piano-title').textContent = free ? t('piano.free') : t(`piano.song.${song.id}`);
     $('#piano-songs-btn').hidden = !free;

@@ -8,7 +8,6 @@
 /* ---------- header ---------- */
 .piano-hud { gap: 10px; }
 .piano-hud .hud-mid { min-width: 0; }
-#piano-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .piano-title { font-size: clamp(1.1rem, 5.4vw, 1.5rem); font-weight: 900; color: var(--primary); line-height: 1.1; }
 .bar-spacer[hidden] { display: none; }
 .btn.piano-pill {
@@ -205,7 +204,9 @@
 
 /* ---------- the 7-10 piano: two octaves, a window on them when they do not fit ---------- */
 .piano-view { position: relative; flex: 1; min-height: 0; display: flex; }
-.piano-body.windowed .piano-view { overflow: hidden; }
+/* clip, not hidden: a hidden overflow can still be scrolled, and the browser scrolls it to show a
+   key that gets focus on a tap, which would put the keys out of step with the window */
+.piano-body.windowed .piano-view { overflow: hidden; overflow: clip; }
 .piano-body.windowed .piano-keys { flex: none; }
 .piano-body.windowed .piano-top { display: none; }
 .piano-keys.sliding { transition: transform 0.25s ease; }
