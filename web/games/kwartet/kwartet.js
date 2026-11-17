@@ -673,7 +673,7 @@ export function createKwartet(shell) {
     const backs = Math.min(n, 3);
     el.innerHTML = `<span class="kp-stack" data-n="${backs}">${backs ? Array.from({ length: backs }, () => CARD_BACK).join('') : '<i class="kp-none"></i>'}</span><span class="kp-count"><b>${n}</b></span><span class="kp-name"></span>`;
     el.querySelector('.kp-name').textContent = t('kwartet.pile');
-    el.setAttribute('aria-label', t('kwartet.pileLabel', { cards: t('kwartet.cards', { n }) }));
+    el.setAttribute('aria-label', t('kwartet.pileLabel', { cards: n === 1 ? t('kwartet.card1') : t('kwartet.cards', { n }) }));
     el.addEventListener('click', () => {
       tap();
       tapDraw();
