@@ -44,6 +44,7 @@
 .kwartet-slot .swap { position: absolute; top: 8px; right: 10px; color: var(--primary); font-size: 1.1rem; }
 .kwartet-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
 #screen-kwartet-menu .levels-scroll { padding-bottom: 0; }
+.kwartet-rule { margin: -4px 4px 12px; font-weight: 800; font-size: 0.92rem; line-height: 1.3; color: var(--ink-soft); }
 
 /* ---------- HUD ---------- */
 .kwartet-hud .bar-spacer { width: 60px; flex: none; }
@@ -97,6 +98,41 @@
 .ks-count .kback { width: 14px; height: 19px; }
 .ks-quartets { display: inline-flex; gap: 2px; min-height: 12px; }
 .ks-quartets i { width: 10px; height: 13px; border-radius: 3px; background: var(--c); display: block; }
+
+/* the pile (two players): a stack of card backs and how many are left; it glows when you must draw */
+.kpile {
+  font: inherit;
+  position: relative;
+  flex: 0 1 96px;
+  min-width: 0;
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  column-gap: 4px;
+  row-gap: 2px;
+  padding: 6px 6px 8px;
+  border: 3px dashed #c9c1ff;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--ink);
+  touch-action: manipulation;
+}
+.kpile:disabled { cursor: default; opacity: 1; color: var(--ink); }
+.kpile .kp-stack { grid-column: 1 / -1; justify-self: center; position: relative; width: 44px; height: 48px; display: block; }
+.kpile .kp-stack .kback { position: absolute; left: 6px; top: 2px; width: 32px; height: 43px; filter: drop-shadow(0 2px 0 rgba(43, 35, 112, 0.18)); }
+.kpile .kp-stack .kback:nth-child(2) { transform: translate(3px, 2px) rotate(5deg); }
+.kpile .kp-stack .kback:nth-child(3) { transform: translate(-3px, 3px) rotate(-6deg); }
+.kpile .kp-none { position: absolute; left: 6px; top: 2px; width: 32px; height: 43px; border: 3px dashed #c9c1ff; border-radius: 6px; box-sizing: border-box; }
+.kpile .kp-count { font-weight: 900; font-size: 0.9rem; }
+.kpile .kp-name { font-weight: 900; font-size: 0.85rem; color: var(--primary-dark); }
+.kpile.empty { opacity: 0.6; }
+.kpile.active { cursor: pointer; border-style: solid; border-color: var(--gold); background: #fff; box-shadow: 0 4px 0 #f0d98a; animation: kwartet-pile 1.4s ease-in-out infinite; }
+.kpile.active .kp-stack { animation: kwartet-lift 1.4s ease-in-out infinite; }
+.kpile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kfly { position: fixed; z-index: 50; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.kfly .kback { width: 32px; height: 43px; }
 
 /* speech bubbles: under a player at the top, or beside your own face */
 .kbubble {
@@ -207,6 +243,9 @@ button.kcard:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px
   .kwartet-seats { flex-wrap: wrap; }
   .kseat { flex-basis: 86px; min-height: 80px; }
   .kseat .ks-face { width: 34px; height: 34px; }
+  .kpile { flex-basis: 80px; min-height: 80px; }
+  .kpile .kp-stack { height: 40px; }
+  .kpile .kp-stack .kback, .kpile .kp-none { width: 27px; height: 36px; left: 8px; }
   .krow { grid-template-columns: repeat(4, minmax(0, 66px)); gap: 6px; }
   .kc-name { font-size: 0.62rem; }
   .kwartet-status { font-size: 0.9rem; margin-top: auto; }
@@ -232,9 +271,11 @@ button.kcard:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px
 @keyframes kwartet-pop { 0% { opacity: 0; scale: 0.8; } 100% { opacity: 1; scale: 1; } }
 @keyframes kwartet-arrive { 0% { transform: translateY(-30px) scale(0.6); opacity: 0; } 70% { transform: translateY(4px) scale(1.05); opacity: 1; } 100% { transform: none; } }
 @keyframes kwartet-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+@keyframes kwartet-pile { 0%, 100% { box-shadow: 0 4px 0 #f0d98a; } 50% { box-shadow: 0 4px 0 #f0d98a, 0 0 0 6px rgba(255, 197, 49, 0.4); } }
+@keyframes kwartet-lift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes kwartet-breathe { 0%, 100% { box-shadow: 0 4px 0 var(--c); } 50% { box-shadow: 0 4px 0 var(--c), 0 0 0 4px rgba(255, 197, 49, 0.45); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .kseat.thinking .ks-face, .kbubble, .kcard.fresh, .kbadge.hop, button.kcard.missing:not(:disabled) { animation: none !important; }
+  .kseat.thinking .ks-face, .kbubble, .kcard.fresh, .kbadge.hop, button.kcard.missing:not(:disabled), .kpile.active, .kpile.active .kp-stack { animation: none !important; }
   .kcard.leaving { transition: none; }
 }

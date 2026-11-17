@@ -1,19 +1,26 @@
 // Kwartet's computer players: gentle, and readable. A computer only uses what everyone at the
-// table could know (who asked for what, who gave what, who said no), never the hidden cards, and it
-// remembers each of those things only now and then (`KEEP`). When it remembers who has a card it
-// needs it usually asks for that card (`USE`); otherwise it asks a random player for a random card
-// it may ask for. Pure (the random source is passed in), so the tests can seed it.
+// table could know (who asked for what, who gave what, who said no, who drew the very card they
+// asked for), never the hidden cards or the pile, and it remembers each of those things only now
+// and then (`KEEP`). When it remembers who has a card it needs it usually asks for that card
+// (`USE`). Next, a player who asked for a card of a set holds a card of that set: it usually asks
+// that player for another card of it (`HINT`). Otherwise it asks a random player for a random card
+// it may ask for, not one it remembers that player saying no to. Pure (the random source is passed
+// in), so the tests can seed it.
 
 import { askable, opponents, setOf } from './rules.js';
 
 export const KEEP = 0.6; // the chance it remembers something it saw at the table
 export const USE = 0.75; // the chance it uses what it remembers
+export const HINT = 0.4; // the chance it follows up on what someone asked for (kept low: gentle)
 
-/** An empty memory: who holds a card (card -> player), and who does not (player -> [cards]). */
-export const emptyMemory = () => ({ holds: {}, lacks: {} });
+/**
+ * An empty memory: who holds a card (card -> player), who does not (player -> [cards]), and who
+ * asked for what (player -> [cards]: that player holds another card of that set).
+ */
+export const emptyMemory = () => ({ holds: {}, lacks: {}, asked: {} });
 
 const forget = (m, card) => {
-  const n = { holds: { ...m.holds }, lacks: { ...m.lacks } };
+  const n = { holds: { ...m.holds }, lacks: { ...m.lacks }, asked: { ...(m.asked || {}) } };
   delete n.holds[card];
   return n;
 };
@@ -27,6 +34,10 @@ export function observe(memory, { asker, target, card, got }, rand = Math.random
   const lack = (p, c) => {
     if (rand() < keep) m.lacks[p] = [...new Set([...(m.lacks[p] || []), c])];
   };
+  // whoever asks holds a card of that set (and gave away nothing of it by asking)
+  if (rand() < keep) m.asked[asker] = [...new Set([...(m.asked[asker] || []).filter((c) => c !== card), card])];
+  // a player who gives a card away may have given the last of that set
+  if (got && m.asked[target]) m.asked[target] = m.asked[target].filter((c) => setOf(c) !== setOf(card));
   // the asker holds a card of that set; it did not have this card (or it does now)
   if (got) {
     if (rand() < keep) m.holds[card] = asker;
@@ -39,11 +50,24 @@ export function observe(memory, { asker, target, card, got }, rand = Math.random
   return m;
 }
 
+/**
+ * After a "no" the asker took a card from the pile. Nobody else sees which, except when it was the
+ * very card asked for: then the asker shows it and asks again (`lucky`).
+ */
+export function drew(memory, { player, card, lucky }, rand = Math.random, keep = KEEP) {
+  if (!lucky) return memory;
+  const m = forget(memory, card);
+  if (rand() < keep) m.holds[card] = player;
+  if (m.lacks[player]) m.lacks[player] = m.lacks[player].filter((c) => c !== card);
+  return m;
+}
+
 /** A kwartet was laid down: its cards are out of the game. */
 export function laidDown(memory, set) {
-  const m = { holds: {}, lacks: {} };
+  const m = { holds: {}, lacks: {}, asked: {} };
   for (const [c, p] of Object.entries(memory.holds)) if (setOf(c) !== set) m.holds[c] = p;
   for (const [p, list] of Object.entries(memory.lacks)) m.lacks[p] = list.filter((c) => setOf(c) !== set);
+  for (const [p, list] of Object.entries(memory.asked || {})) m.asked[p] = list.filter((c) => setOf(c) !== set);
   return m;
 }
 
@@ -60,8 +84,16 @@ export function choose(g, me, memory, rand = Math.random, use = USE) {
     const card = pick(known, rand);
     return { target: memory.holds[card], card };
   }
-  // otherwise a guess, but not someone it remembers saying no to that very card
-  const card = pick(cards, rand);
-  const maybe = others.filter((p) => !(memory.lacks[p] || []).includes(card));
+  const lacks = (p, c) => (memory.lacks[p] || []).includes(c);
+  // someone asked for a card of a set it holds too: that player has another card of it
+  const hinted = others.flatMap((p) =>
+    cards.filter((c) => !lacks(p, c) && (memory.asked?.[p] || []).some((a) => a !== c && setOf(a) === setOf(c))).map((card) => ({ target: p, card })),
+  );
+  if (hinted.length && rand() < Math.min(use, HINT)) return pick(hinted, rand);
+  // otherwise a guess, but not someone it remembers saying no to that very card (and, when it can,
+  // not a card everyone it could ask said no to)
+  const open = cards.filter((c) => others.some((p) => !lacks(p, c)));
+  const card = pick(open.length ? open : cards, rand);
+  const maybe = others.filter((p) => !lacks(p, card));
   return { target: pick(maybe.length ? maybe : others, rand), card };
 }
