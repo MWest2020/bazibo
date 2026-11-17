@@ -246,7 +246,7 @@ export function createDrums(shell) {
   function render() {
     const free = !rhythm;
     $('#screen-drums').dataset.mode = free ? 'free' : 'rhythm';
-    $('#drums-sub').textContent = free ? t('games.drums') : t(`drums.level.${rhythm.level}`);
+    $('#drums-sub').textContent = free ? t('games.drums') : t(`drums.age.${rhythm.level}`);
     $('#drums-title').textContent = free ? t('drums.free') : t(`drums.rhythm.${rhythm.id}`);
     $('#drums-list-btn').hidden = !free;
     $('#drums-spacer').hidden = free;

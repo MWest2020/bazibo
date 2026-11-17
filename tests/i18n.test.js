@@ -107,7 +107,7 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [1, 2, 3]) used.add(`piano.win${n}`);
   for (const id of DRUM_RHYTHMS) used.add(`drums.rhythm.${id}`); // built as t(`drums.rhythm.${id}`)
   for (const id of DRUM_PADS) used.add(`drums.pad.${id}`);
-  for (const l of DRUM_LEVELS) used.add(`drums.level.${l.id}`);
+  for (const l of DRUM_LEVELS) used.add(`drums.level.${l.id}`).add(`drums.age.${l.id}`);
   for (const n of [0, 1, 2, 3]) used.add(`drums.win${n}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });

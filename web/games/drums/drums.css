@@ -290,7 +290,9 @@
   #screen-drums .bar-spacer { display: none; }
   .drums-title { font-size: 1.15rem; }
   .drums-bar { grid-column: 2; grid-row: 1; width: auto; margin: 6px 12px 0 0; padding: 4px 8px 4px 4px; align-self: center; }
-  .drums-strip { height: 40px; }
+  .drums-strip { height: 44px; }
+  .dstep.now { width: 34px; height: 34px; }
+  .dstep.now .dglyph { width: 28px; height: 28px; }
   .drums-status { display: none; }
   .drums-muted { grid-column: 1 / 3; grid-row: 2; }
   #drums-stage { grid-column: 1 / 3; grid-row: 3; padding: 4px 10px 8px; }
