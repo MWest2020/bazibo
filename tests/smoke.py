@@ -4148,6 +4148,249 @@ def piano_layouts(browser, base, problems):
         ctx.close()
 
 
+PI_IN_VIEW = """(k) => {
+  const v = document.querySelector('#piano-view').getBoundingClientRect();
+  const r = document.querySelector(`.pkey[data-key='${k}']`).getBoundingClientRect();
+  return r.left >= v.left - 0.5 && r.right <= v.right + 0.5 && r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5;
+}"""
+PI_STILL = "!document.getAnimations().some((a) => a.effect && a.effect.target && a.effect.target.id === 'piano-keys')"
+
+
+def pi_play_big(page, label, problems, shot=None):
+    """Play the open 7-10 song to its end by real taps on the glowing key, checking before every tap
+    that the key is in the window (the keyboard follows the song). Returns the windows seen."""
+    views = set()
+    n = pi_state(page)["length"]
+    for i in range(n):
+        page.wait_for_function(PI_STILL, timeout=3000)
+        st = pi_state(page)
+        views.add(st["view"])
+        if len(st["glow"]) != 1 or st["glow"][0] != st["target"]:
+            problems.append(f"piano {label}: note {i}: glowing {st['glow']}, the song wants {st['target']}")
+            return views
+        if not page.evaluate(PI_IN_VIEW, st["target"]):
+            problems.append(f"piano {label}: note {i} ({st['target']}) is out of sight (window {st['view']}+{st['visible']})")
+            return views
+        page.locator(".pkey.glow").tap()
+        if shot and i == shot[0]:
+            page.wait_for_function(PI_STILL, timeout=3000)
+            page.wait_for_timeout(150)
+            page.screenshot(path=str(SHOTS / shot[1]))
+    return views
+
+
+def piano_big(browser, base, problems):
+    """The 7-10 piano. 390x844 on the web with real touch: the age buttons on the song list, the
+    locked songs offer only OK, free play shows a window of 8 of the 15 coloured keys with the map
+    and the turn line, the map moves the window, the whole Ode to Joy (free, with F#) played to the
+    end by taps while the window follows, 3 stars and "More songs", the age kept after a reload, back
+    to 4-6. In the full version: Fur Elise played to the end on 390x844 (black keys, the window
+    following both ways) and listened to, and on 844x390 every key in sight with no map; the
+    window at 320x568 and 568x320."""
+    # ---- the web, upright
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(COUNT_OSC)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-piano")
+    page.wait_for_timeout(200)
+    if pi_state(page)["level"] != "small" or pi_state(page)["keys"] != 13:
+        problems.append(f"piano big: a new player starts on {pi_state(page)['level']} with {pi_state(page)['keys']} keys")
+    page.click("#piano-songs-btn")
+    page.wait_for_timeout(150)
+    ages = page.eval_on_selector_all(".piano-level", "els => els.map(e => [e.textContent, e.getAttribute('aria-pressed')])")
+    if ages != [["4-6 jaar", "true"], ["7-10 jaar", "false"]]:
+        problems.append(f"piano big: the age buttons are {ages}")
+    small = min(page.eval_on_selector_all(".piano-level", "els => els.map(e => e.getBoundingClientRect().height)"))
+    if small < 56:
+        problems.append(f"piano big: the age buttons are only {small:.0f} px high")
+    page.locator(".piano-level[data-level='big']").tap()
+    page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "piano-big-songs-390x844.png"))
+    songs = page.eval_on_selector_all(".piano-card", "els => els.map(e => e.dataset.song)")
+    locked = page.eval_on_selector_all(".piano-card.locked", "els => els.map(e => e.dataset.song)")
+    if songs != ["free", "ode", "wilhelmus", "bergkoning", "turks", "elise"] or locked != ["wilhelmus", "bergkoning", "turks", "elise"]:
+        problems.append(f"piano big: the 7-10 list is {songs}, locked {locked}")
+    page.click(".piano-card[data-song='elise']")
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"] or "Ode aan de vreugde zijn gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"piano big: a locked 7-10 song offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
+    page.click("#ov-buttons button >> nth=0")
+    landed(page, "piano big locked song", "piano-songs", problems)
+
+    # free play: a window of 8 coloured keys, the map, the line to turn the phone
+    page.click(".piano-card[data-song='free']")
+    page.wait_for_timeout(250)
+    st = pi_state(page)
+    if st["mode"] != "free" or st["keys"] != 25 or st["visible"] != 8 or st["view"] != 0:
+        problems.append(f"piano big: free play has {st['keys']} keys, {st['visible']} in sight from {st['view']}")
+    if page.inner_text("#piano-sub") != "7‑10 jaar":
+        problems.append(f"piano big: the free play header says {page.inner_text('#piano-sub')!r}")
+    if not page.is_visible("#piano-map") or not page.is_visible("#piano-turn"):
+        problems.append("piano big: no map or no line to turn the phone on an upright phone")
+    widths = page.eval_on_selector_all(".pkey.white", "els => els.map(e => e.getBoundingClientRect().width)")
+    if min(widths) < 44:
+        problems.append(f"piano big: coloured keys only {min(widths):.0f} px")
+    if page.evaluate("document.documentElement.scrollWidth") > 390:
+        problems.append("piano big: the page scrolls sideways")
+    page.screenshot(path=str(SHOTS / "piano-big-free-390x844.png"))
+    # the map: a finger slid to its right end shows the top keys, and the top C plays
+    m = page.locator("#piano-map").bounding_box()
+    y = m["y"] + m["height"] / 2
+    pi_touch(cdp, "touchStart", [{"x": m["x"] + 20, "y": y}])
+    for k in range(1, 9):
+        pi_touch(cdp, "touchMove", [{"x": m["x"] + 20 + (m["width"] - 25) * k / 8, "y": y}])
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(350)
+    st = pi_state(page)
+    if st["view"] != 7 or not page.evaluate(PI_IN_VIEW, "c6") or st["pressed"]:
+        problems.append(f"piano big: the map slid to window {st['view']} (C6 in sight: {page.evaluate(PI_IN_VIEW, 'c6')}, keys pressed {st['pressed']})")
+    osc = page.evaluate("window.__osc")
+    page.locator(".pkey[data-key='c6']").tap()
+    page.wait_for_timeout(60)
+    if pi_state(page)["pressed"] != 1 or page.evaluate("window.__osc") <= osc:
+        problems.append("piano big: the top C did not sound after sliding the map")
+    page.screenshot(path=str(SHOTS / "piano-big-map-390x844.png"))
+
+    # the whole Ode to Joy by taps; the window follows down to the low A and back up
+    page.click("#piano-songs-btn")
+    page.wait_for_timeout(150)
+    page.click(".piano-card[data-song='ode']")
+    page.wait_for_timeout(250)
+    if pi_state(page)["song"] != "ode" or page.inner_text("#piano-sub") != "Liedjes · 7‑10 jaar":
+        problems.append(f"piano big: the Ode opened as {pi_state(page)['song']} under {page.inner_text('#piano-sub')!r}")
+    views = pi_play_big(page, "big ode", problems, shot=(20, "piano-big-song-390x844.png"))
+    if len(views) < 2:
+        problems.append(f"piano big: the window never moved during the Ode ({views})")
+    try:
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    except Exception:
+        problems.append("piano big: no end card after the Ode")
+    page.wait_for_timeout(600)
+    page.screenshot(path=str(SHOTS / "piano-big-done-390x844.png"))
+    if page.inner_text("#ov-title") != "Super!" or card_buttons(page) != ["Meer liedjes", "Nog een keer", "Liedjes"]:
+        problems.append(f"piano big: Ode end card {page.inner_text('#ov-title')!r} with {card_buttons(page)}")
+    if page.evaluate("window.__bubbels.save().games.piano") != {"stars": {"ode": 3}, "level": "big"}:
+        problems.append(f"piano big: the save has {page.evaluate('window.__bubbels.save().games.piano')}")
+    if "Wilhelmus" not in page.inner_text("#ov-text") and "volledige versie" not in page.inner_text("#ov-text"):
+        problems.append(f"piano big: the end card says {page.inner_text('#ov-text')!r}")
+    web_offer_ok(page, "piano big more songs", "piano-songs", problems)
+    if page.locator(".piano-card[data-song='ode'] .piano-card-end svg.on").count() != 3:
+        problems.append("piano big: the list does not show the Ode's 3 stars")
+
+    # the age is kept: after a reload the tile opens the 7-10 piano
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-piano")
+    page.wait_for_timeout(250)
+    st = pi_state(page)
+    if st["level"] != "big" or st["keys"] != 25:
+        problems.append(f"piano big: after a reload the piano is {st['level']} with {st['keys']} keys")
+    # and back to 4-6: the toy piano as before, no map
+    page.click("#piano-songs-btn")
+    page.wait_for_timeout(150)
+    page.locator(".piano-level[data-level='small']").tap()
+    page.wait_for_timeout(150)
+    songs = page.eval_on_selector_all(".piano-card", "els => els.map(e => e.dataset.song)")
+    page.click(".piano-card[data-song='free']")
+    page.wait_for_timeout(250)
+    st = pi_state(page)
+    if songs != ["free", "jacob", "kortjakje", "maan", "vreugde"] or st["keys"] != 13 or page.is_visible("#piano-map") or page.is_visible("#piano-turn"):
+        problems.append(f"piano big: back on 4-6 the list is {songs}, {st['keys']} keys, map {page.is_visible('#piano-map')}")
+    if page.inner_text("#piano-sub") != "Piano" or page.evaluate("window.__bubbels.save().games.piano.level") != "small":
+        problems.append(f"piano big: back on 4-6 the header says {page.inner_text('#piano-sub')!r}")
+    if errors:
+        problems.append(f"piano big: page errors {errors[:2]}")
+    if foreign:
+        problems.append(f"piano big: requests outside the app {foreign[:2]}")
+    ctx.close()
+
+    # ---- the full version: Fur Elise upright, then sideways and small screens
+    for w, h in ((390, 844), (844, 390), (320, 568), (568, 320)):
+        label = f"big {w}x{h} full"
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.click("#tile-piano")
+        page.wait_for_timeout(200)
+        page.click("#piano-songs-btn")
+        page.wait_for_timeout(150)
+        page.locator(".piano-level[data-level='big']").tap()
+        page.wait_for_timeout(150)
+        if page.locator(".piano-card.locked").count():
+            problems.append(f"piano {label}: songs locked in the full version")
+        page.click(".piano-card[data-song='elise']")
+        page.wait_for_timeout(250)
+        st = pi_state(page)
+        whites = page.eval_on_selector_all(".pkey.white", "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.left, r.right, r.width, r.height]; })")
+        seen = [x for x in whites if x[0] >= -0.5 and x[1] <= w + 0.5]
+        narrow = min(x[2] for x in whites)
+        short = min(x[3] for x in whites)
+        print(f"[piano {label}] {st['visible']} of 15 coloured keys in sight, {narrow:.0f}x{short:.0f} px, map {page.is_visible('#piano-map')}")
+        if narrow < (42 if w < 360 else 44) or short < 120:
+            problems.append(f"piano {label}: coloured keys only {narrow:.0f}x{short:.0f} px")
+        if len(seen) != st["visible"]:
+            problems.append(f"piano {label}: {len(seen)} coloured keys on screen, the window says {st['visible']}")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"piano {label}: the page scrolls sideways")
+        if (w, h) == (844, 390):
+            if st["visible"] != 15 or page.is_visible("#piano-map") or page.is_visible("#piano-turn"):
+                problems.append(f"piano {label}: sideways {st['visible']} keys in sight, map {page.is_visible('#piano-map')}")
+        elif not page.is_visible("#piano-map") or page.is_visible("#piano-turn") != (h > w):
+            problems.append(f"piano {label}: map {page.is_visible('#piano-map')}, turn line {page.is_visible('#piano-turn')}")
+        for sel in ("#piano-back", "#piano-title", "#piano-listen", "#piano-strip"):
+            r = page.locator(sel).bounding_box()
+            if not r or r["x"] < 0 or r["y"] < 0 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"piano {label}: {sel} not on screen ({r})")
+        bar = page.locator("#piano-songbar").bounding_box()
+        top = page.locator("#piano-view").bounding_box()["y"]
+        if bar["y"] + bar["height"] > top:
+            problems.append(f"piano {label}: the notes strip runs into the keys")
+        if (w, h) in ((390, 844), (844, 390)):
+            views = pi_play_big(page, label, problems, shot=(12, f"piano-big-elise-{w}x{h}.png"))
+            try:
+                page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+            except Exception:
+                problems.append(f"piano {label}: no end card after Fur Elise")
+            st = pi_state(page)
+            if st["misses"] != 0 or page.evaluate("window.__bubbels.piano.stars()").get("elise") != 3:
+                problems.append(f"piano {label}: Fur Elise ended with {st['misses']} misses, stars {page.evaluate('window.__bubbels.piano.stars()')}")
+            if card_buttons(page) != ["Nog een keer", "Liedjes"]:
+                problems.append(f"piano {label}: the last song's end card has {card_buttons(page)}")
+            if w < h and len(views) < 2:
+                problems.append(f"piano {label}: the window never moved during Fur Elise ({views})")
+            page.click("#ov-buttons button >> nth=0")  # again
+            page.wait_for_timeout(200)
+            # listening: every key that lights up is in sight
+            page.click("#piano-listen")
+            outside = []
+            for k in range(12):
+                page.wait_for_timeout(180)
+                page.wait_for_function(PI_STILL, timeout=3000)
+                for key in pi_state(page)["lit"]:
+                    if not page.evaluate(PI_IN_VIEW, key):
+                        outside.append(key)
+            if outside:
+                problems.append(f"piano {label}: listening lit keys out of sight: {outside}")
+            page.click("#piano-listen")
+        else:
+            page.screenshot(path=str(SHOTS / f"piano-big-{w}x{h}.png"))
+        if errors:
+            problems.append(f"piano {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -4216,6 +4459,7 @@ def main():
             legpuzzel_big(browser, base, problems)
             piano_flow(browser, base, problems)
             piano_layouts(browser, base, problems)
+            piano_big(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -4228,7 +4472,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
          "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
-         "piano": (piano_flow, piano_layouts)}
+         "piano": (piano_flow, piano_layouts, piano_big)}
 
 
 def report(problems):
