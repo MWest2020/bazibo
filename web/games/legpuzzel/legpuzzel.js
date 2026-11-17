@@ -224,7 +224,10 @@ export function createLegpuzzel(shell) {
     const next = layout(w, h, game.cols, game.rows);
     if (!next) return;
     const same = lay && lay.s === next.s && lay.board.x === next.board.x && lay.board.y === next.board.y && lay.tray.w === next.tray.w && lay.tray.h === next.tray.h && pieces.length;
-    if (same && game.pos) return;
+    if (same && game.pos) {
+      setView(zoomOn(), w / 2, h / 2); // the stage may be a little shorter: keep the view inside it
+      return;
+    }
     const token = ++builds;
     // loose pieces are spread again only when the pieces change size; a toolbar sliding in or out
     // must not undo the child's own arrangement
