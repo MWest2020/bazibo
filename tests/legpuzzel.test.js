@@ -1,15 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, isComplete, rearrange, mulberry32, TAB, SNAP, zoomFor, clampPan, zoomAround, ZOOM_FROM, ZOOM_MAX } from '../web/games/legpuzzel/rules.js';
+import { SIZES, SIZE_IDS, RETIRED_SIZES, DEFAULT_SIZE, knownSize, piecesOf, makeEdges, sidesOf, piecePath, margin, layout, scatter, home, snaps, isComplete, rearrange, mulberry32, TAB, SNAP, zoomFor, clampPan, zoomAround, ZOOM_FROM, ZOOM_MAX } from '../web/games/legpuzzel/rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from '../web/games/legpuzzel/pictures.js';
 import { meta } from '../web/games/legpuzzel/meta.js';
 
 const nums = (d) => [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
 
-test('eight sizes, from 4 pieces for a two-year-old to 60 for a nine-year-old (issue #45)', () => {
-  assert.deepEqual(SIZE_IDS.map(piecesOf), [4, 6, 9, 12, 20, 30, 48, 60]);
-  assert.deepEqual(SIZE_IDS.map((id) => SIZES[id].age), [2, 2, 3, 3, 4, 5, 7, 9]);
-  assert.deepEqual([SIZES.p48.cols, SIZES.p48.rows, SIZES.p60.cols, SIZES.p60.rows], [8, 6, 10, 6]);
+test('six sizes, from 9 pieces for a three-year-old to 60 for a nine-year-old (Mark, 17 Nov 2026)', () => {
+  assert.deepEqual(SIZE_IDS.map(piecesOf), [9, 16, 25, 30, 48, 60]);
+  assert.deepEqual(SIZE_IDS.map((id) => SIZES[id].age), [3, 4, 5, 6, 7, 9]);
+  assert.deepEqual(SIZE_IDS.map((id) => [SIZES[id].cols, SIZES[id].rows]), [[3, 3], [4, 4], [5, 5], [6, 5], [8, 6], [10, 6]]);
+  // nothing for two-year-olds any more
+  assert.ok(SIZE_IDS.every((id) => SIZES[id].age >= 3));
+});
+
+test('a saved last size that left the menu falls back to 9 pieces; the sizes in it stay', () => {
+  assert.equal(DEFAULT_SIZE, 'p9');
+  for (const id of RETIRED_SIZES) {
+    assert.ok(!SIZE_IDS.includes(id), id);
+    assert.equal(knownSize(id), 'p9');
+  }
+  for (const id of SIZE_IDS) assert.equal(knownSize(id), id);
+  for (const junk of [undefined, null, '', 'p100', 42]) assert.equal(knownSize(junk), 'p9');
 });
 
 test('neighbouring pieces fit: a tab out on one side is a hole in on the other; the border is straight', () => {
@@ -86,10 +98,16 @@ test('the magnifier: offered only when the pieces are small, and then makes them
     assert.ok(z > 1 && z <= ZOOM_MAX);
     assert.ok(s * z >= Math.min(ZOOM_FROM, 16 * ZOOM_MAX), `${s}px -> ${s * z}`);
   }
-  // 48 and 60 pieces on a phone (390×844 upright and sideways): offered; up to 20 pieces: not
+  // 48 and 60 pieces on a phone (390×844 upright and sideways): offered; up to 30 pieces: not
   for (const [w, h] of [[366, 724], [730, 357]]) {
     for (const id of ['p48', 'p60']) assert.ok(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s) > 1, `${id} ${w}×${h}`);
-    for (const id of ['p4', 'p6', 'p9', 'p12', 'p20']) assert.equal(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s), 1, `${id} ${w}×${h}`);
+    for (const id of ['p9', 'p16', 'p25', 'p30']) assert.equal(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s), 1, `${id} ${w}×${h}`);
+  }
+  // 9 and 16 pieces never need it, not even at 320×568 (upright and sideways); 25 there does
+  // (pieces of 45 px), so the magnifier is offered, off until the child turns it on
+  for (const [w, h] of [[296, 448], [454, 287]]) {
+    for (const id of ['p9', 'p16']) assert.equal(zoomFor(layout(w, h, SIZES[id].cols, SIZES[id].rows).s), 1, `${id} ${w}×${h}`);
+    assert.ok(zoomFor(layout(w, h, 5, 5).s) > 1, `p25 ${w}×${h}`);
   }
   // never on a desktop
   for (const id of SIZE_IDS) assert.equal(zoomFor(layout(1180, 660, SIZES[id].cols, SIZES[id].rows).s), 1);
@@ -181,15 +199,18 @@ test('eight pictures, each a whole scene for every board shape; the first three 
   assert.deepEqual(meta.freePictures, ['garden', 'sea', 'fruit']);
 });
 
-test('the free part: 4, 6 and 9 pieces with the first three pictures; 48 and 60 in the full version', () => {
-  assert.deepEqual(meta.freeSizes, ['p4', 'p6', 'p9']);
-  for (const size of ['p48', 'p60']) {
+test('the free part: 9, 16 and 25 pieces with the first three pictures; 30, 48 and 60 in the full version', () => {
+  assert.deepEqual(meta.freeSizes, ['p9', 'p16', 'p25']);
+  assert.deepEqual(SIZE_IDS.filter((id) => !meta.freeSizes.includes(id)), ['p30', 'p48', 'p60']);
+  for (const size of meta.freeSizes) assert.equal(meta.isLocked({ picture: 'fruit', size }, false), false);
+  for (const size of ['p30', 'p48', 'p60']) {
     assert.equal(meta.isLocked({ picture: 'garden', size }, false), true);
     assert.equal(meta.isLocked({ picture: 'meadow', size }, true), false);
   }
   assert.equal(meta.group, 'puzzles');
   assert.equal(meta.isLocked({ picture: 'garden', size: 'p9' }, false), false);
-  assert.equal(meta.isLocked({ picture: 'garden', size: 'p12' }, false), true);
-  assert.equal(meta.isLocked({ picture: 'space', size: 'p4' }, false), true);
+  assert.equal(meta.isLocked({ picture: 'space', size: 'p9' }, false), true);
+  // a size that left the menu is never free (it cannot be chosen; the hook would get the offer)
+  for (const size of RETIRED_SIZES) assert.equal(meta.isLocked({ picture: 'garden', size }, false), true);
   assert.equal(meta.isLocked({ picture: 'space', size: 'p30' }, true), false);
 });
