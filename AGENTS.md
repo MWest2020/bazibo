@@ -231,8 +231,14 @@ on the beat (a step counts within `WINDOW_MS` of its beat, never past the middle
 a missed step passes; `timedStars` by the share in time, 0 means "try again" and saves nothing).
 Time is passed in, so the tests play every rhythm without waiting. The sound is synthesised in
 the game's own `sound.js` (its own audio context; no files, no samples), which follows the app's
-sound setting through `audio.js` (`unlock`, `isMuted`, `softClipCurve`); no voice. Pointers are
-handled on the whole kit with pointer capture; keep `touch-action: none` there. New rhythms go at
+sound setting through `audio.js` (`unlock`, `isMuted`, `softClipCurve`); no voice. One voice per
+pad: a new hit chokes the pad's last one in about 10 ms, so a mash never stacks tails (at most
+`MAX_VOICES` ring; tested with a fake AudioContext), and a limiter (`LIMIT`) keeps headroom before
+the clipper. `sound.unlock()` runs inside the tile and card clicks and on every pointerup (WebKit
+does not count a pointerdown as a gesture); the context is suspended in the background. Hits are
+judged by the event's `timeStamp`; the cue is the ring on screen, so audio output latency does not
+shift the windows. Pointers are handled on the whole kit with pointer capture; keep
+`touch-action: none` there. New rhythms go at
 the end of their level, public domain only, with a name `drums.rhythm.<id>` in both languages.
 Free: free play and the first rhythm of each level (`meta.freeRhythms`: both rock beats); the full
 version adds the others. Saved: stars per rhythm only.

@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters. Er komen meer spellen bij.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -86,8 +86,8 @@ PIANO
 • 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
 
 DRUMSTEL
-• Acht trommels en bekkens, ook met twee vingers. Speel mee: de volgende trommel licht op.
-• 4-6 jaar in eigen tempo, 7-10 jaar op de maat. Vrij spelen en Rock; nog vier ritmes (volledige versie).
+• Acht trommels en bekkens. Speel mee: de volgende trommel licht op.
+• In eigen tempo (4-6) of op de maat (7-10). Vrij spelen en Rock; vier ritmes meer (volledige versie).
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.
@@ -102,7 +102,7 @@ GEMAAKT VOOR KINDEREN
 
 GEEN RECLAME, NOOIT
 • Geen advertenties, geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel om echt mee te spelen, zoals level 1 tot en met 10 bij Bubbels schieten en 10 puzzels bij Dogudoku en Picturedoku. Eén keer betalen opent alles, in alle spellen, ook latere, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel, zoals 10 levels bij Bubbels schieten en 10 puzzels bij Dogudoku. Eén keer betalen opent alles, ook latere spellen, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

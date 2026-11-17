@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has sixteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. It has sixteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -84,8 +84,8 @@ PIANO
 • Ages 7-10: two octaves with black keys and the whole Ode to Joy. The Turkish March, Für Elise and more (full version).
 
 DRUMS
-• Eight drums and cymbals, two fingers at once too. Play along with a rhythm: after the count-in the next drum lights up.
-• At your own pace for ages 4-6, on the beat for ages 7-10. Free play and Rock; a march, Frère Jacques, a pony gallop and disco (full version).
+• Eight drums and cymbals. Play along: the next drum lights up.
+• At your own pace (4-6) or on the beat (7-10). Free play and Rock; four more rhythms (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.

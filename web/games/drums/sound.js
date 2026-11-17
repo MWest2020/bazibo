@@ -8,13 +8,23 @@
 // The game keeps its own audio context (js/audio.js keeps its own private), but follows the app's
 // sound setting through audio.js: `unlock()` also unlocks the shell's sound (and on iOS the
 // ambient audio session), a hit is silent while `isMuted()`, and `followMute()` fades a ringing
-// cymbal out when the sound is turned off.
+// cymbal out when the sound is turned off. `suspend()` lets the context sleep in the background.
+//
+// Loudness, for little ears and small phones: every pad has one voice. Hitting a pad again chokes
+// its previous voice in about 10 ms (like a hand on a cymbal), so a child mashing the crash never
+// stacks dozens of tails: at most one voice per pad (`MAX_VOICES`) rings at once. Everything then
+// goes through a limiter (a hard compressor) with headroom before the shell's soft clipper, so the
+// summed peak stays near half of full scale and the clipper never sits in steady distortion.
 import * as sfx from '../../js/audio.js';
 
 let ac = null;
 let master = null;
 let noise = null;
-const VOLUME = 0.9;
+let limiter = null;
+const VOLUME = 0.7;
+const voices = new Map(); // pad -> { out, srcs }: its ringing voice, choked by the next hit
+let building = null; // the voice the current hit is adding its sources to
+const CHOKE = 0.004; // s: the time constant of the choke (about -60 dB after 12 ms)
 const TAIL = 1.5; // sources stop at attack + decay * TAIL, when the fade is about -50 dB
 
 /** Make (or wake) the audio context. Call it in a touch or click handler. */
@@ -27,13 +37,19 @@ export function unlock() {
       ac = new AC();
       master = ac.createGain();
       master.gain.value = sfx.isMuted() ? 0 : VOLUME;
-      // soft clipping like the shell's sounds: two pads at once never clip
+      // a limiter with headroom, then the shell's soft clipping as a last safety net
+      limiter = ac.createDynamicsCompressor();
+      limiter.threshold.value = LIMIT.threshold;
+      limiter.knee.value = LIMIT.knee;
+      limiter.ratio.value = LIMIT.ratio;
+      limiter.attack.value = LIMIT.attack;
+      limiter.release.value = LIMIT.release;
       const pre = ac.createGain();
       pre.gain.value = 1 / 3;
       const clip = ac.createWaveShaper();
       clip.curve = sfx.softClipCurve();
       clip.oversample = '2x';
-      master.connect(pre).connect(clip).connect(ac.destination);
+      master.connect(limiter).connect(pre).connect(clip).connect(ac.destination);
       noise = ac.createBuffer(1, Math.floor(ac.sampleRate), ac.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -42,6 +58,27 @@ export function unlock() {
   } catch {
     ac = null;
   }
+}
+
+/** The limiter's settings (dB and seconds): loud hits are held down hard from -14 dB. */
+export const LIMIT = Object.freeze({ threshold: -14, knee: 4, ratio: 12, attack: 0.002, release: 0.2 });
+export const MAX_VOICES = 9; // one per pad, and the sticks of the count-in
+
+/** The app goes to the background: let the context sleep (the next touch wakes it). */
+export function suspend() {
+  try {
+    if (ac && ac.state === 'running') ac.suspend()?.catch?.(() => {});
+  } catch {
+    // nothing to do
+  }
+}
+
+/** How many voices still ring at the context's time (the tests read it). */
+export function ringing() {
+  if (!ac) return 0;
+  let n = 0;
+  for (const v of voices.values()) if (v.until > ac.currentTime) n++;
+  return n;
 }
 
 /** The sound setting changed: a ringing cymbal fades out (or the next hit sounds again). */
@@ -56,6 +93,8 @@ export function resetForTest() {
   ac = null;
   master = null;
   noise = null;
+  limiter = null;
+  voices.clear();
 }
 
 // Fast attack, then a natural exponential fade (as in js/audio.js).
@@ -73,9 +112,17 @@ function tone(type, f0, f1, sweep, t, decay, peak, attack = 0.002) {
   o.frequency.setValueAtTime(f0, t);
   if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + sweep);
   env(g, t, peak, attack, decay);
-  o.connect(g).connect(master);
+  o.connect(g).connect(building.out);
   o.start(t);
-  o.stop(t + attack + decay * TAIL + 0.02);
+  keep(o, t + attack + decay * TAIL + 0.02);
+}
+
+/** A source of the voice being built, and when it ends on its own. */
+function keep(src, end) {
+  src.stop(end);
+  src.end = end;
+  building.srcs.push(src);
+  building.until = Math.max(building.until, end);
 }
 
 /** Noise through a chain of filters ([type, frequency, Q]), fading over `decay`. */
@@ -92,9 +139,10 @@ function hiss(t, decay, peak, filters, attack = 0.001) {
   }
   const g = ac.createGain();
   env(g, t, peak, attack, decay);
-  node.connect(g).connect(master);
-  const len = attack + decay * TAIL + 0.02;
-  src.start(t, Math.random() * Math.max(0, noise.duration - len - 0.01), Math.min(len, noise.duration));
+  node.connect(g).connect(building.out);
+  const len = Math.min(attack + decay * TAIL + 0.02, noise.duration);
+  src.start(t, Math.random() * Math.max(0, noise.duration - len - 0.01));
+  keep(src, t + len);
 }
 
 // The metallic part of a cymbal: square waves at clashing, inharmonic ratios (as in classic drum
@@ -106,14 +154,14 @@ function metal(t, decay, peak, scale, cutoff, count = METAL.length) {
   hp.frequency.value = cutoff;
   const g = ac.createGain();
   env(g, t, peak, 0.001, decay);
-  hp.connect(g).connect(master);
+  hp.connect(g).connect(building.out);
   for (const f of METAL.slice(0, count)) {
     const o = ac.createOscillator();
     o.type = 'square';
     o.frequency.value = f * scale;
     o.connect(hp);
     o.start(t);
-    o.stop(t + 0.001 + decay * TAIL + 0.02);
+    keep(o, t + 0.001 + decay * TAIL + 0.02);
   }
 }
 
@@ -166,10 +214,27 @@ function drum(t, v, f, decay) {
 
 export const VOICE_IDS = Object.keys(VOICES);
 
-/** Hit pad `id` (a pad id from kit.js, or 'sticks'). No limiter: two fingers may hit at once. */
+/**
+ * Hit pad `id` (a pad id from kit.js, or 'sticks'). Two fingers may hit two pads at once; the same
+ * pad again chokes its previous voice first.
+ */
 export function hit(id, vol = 1) {
   if (!on() || !VOICES[id]) return false;
-  VOICES[id](ac.currentTime + 0.003, vol);
+  const t = ac.currentTime + 0.003;
+  const old = voices.get(id);
+  if (old && old.until > t) {
+    old.out.gain.cancelScheduledValues(t);
+    old.out.gain.setTargetAtTime(0, t, CHOKE);
+    for (const s of old.srcs) if (s.end > t + CHOKE * 6) s.stop(t + CHOKE * 6);
+    old.until = t + CHOKE * 6;
+  }
+  const out = ac.createGain();
+  out.gain.value = 1;
+  out.connect(master);
+  building = { out, srcs: [], until: t };
+  VOICES[id](t, vol);
+  voices.set(id, building);
+  building = null;
   return true;
 }
 

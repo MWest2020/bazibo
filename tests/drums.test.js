@@ -305,19 +305,31 @@ test('the pictures are self-contained SVG (no ids, no links)', () => {
   assert.equal(new Set(D.PAD_IDS.map(padGlyph)).size, D.PAD_IDS.length, 'two pad signs look the same');
 });
 
-// A stand-in for the Web Audio API that counts what a hit makes.
+// A stand-in for the Web Audio API that counts what a hit makes. `currentTime` is moved by the test.
 function fakeAudio() {
-  const made = { osc: 0, noise: 0, started: 0, stopped: [], ends: [] };
-  const param = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {}, linearRampToValueAtTime() {} });
+  const made = { osc: 0, noise: 0, started: 0, sources: [], compressors: [], suspended: 0 };
+  const param = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} });
   const node = (extra = {}) => ({ connect: (n) => n, ...extra });
+  const source = (extra) => {
+    const s = node({ ...extra, stopAt: Infinity, stop(t) { s.stopAt = t; } });
+    made.sources.push(s);
+    return s;
+  };
   class Ctx {
     constructor() {
+      made.ctx = this;
       this.currentTime = 0;
       this.sampleRate = 8000;
       this.state = 'running';
       this.destination = node();
     }
     resume() {
+      this.state = 'running';
+      return Promise.resolve();
+    }
+    suspend() {
+      made.suspended++;
+      this.state = 'suspended';
       return Promise.resolve();
     }
     createGain() {
@@ -326,12 +338,17 @@ function fakeAudio() {
     createWaveShaper() {
       return node({});
     }
+    createDynamicsCompressor() {
+      const c = node({ threshold: param(), knee: param(), ratio: param(), attack: param(), release: param() });
+      made.compressors.push(c);
+      return c;
+    }
     createBiquadFilter() {
       return node({ frequency: param(), Q: param(), type: '' });
     }
     createOscillator() {
       made.osc++;
-      return node({ frequency: param(), type: '', start: () => made.started++, stop: (t) => made.stopped.push(t) });
+      return source({ frequency: param(), type: '', start: () => made.started++ });
     }
     createBuffer(ch, len, rate) {
       const d = new Float32Array(len);
@@ -339,18 +356,28 @@ function fakeAudio() {
     }
     createBufferSource() {
       made.noise++;
-      return node({ buffer: null, start: (t, off, dur) => (made.started++, made.ends.push(t + dur)) });
+      return source({ buffer: null, start: () => made.started++ });
     }
   }
   return { Ctx, made };
 }
 
-test('the sound: every pad and the sticks make a sound that ends within two seconds; nothing with the sound off', () => {
-  const { Ctx, made } = fakeAudio();
-  globalThis.AudioContext = Ctx;
+function withFakeAudio(fn) {
+  const fake = fakeAudio();
+  globalThis.AudioContext = fake.Ctx;
   try {
     sound.resetForTest();
     sfx.setMuted(false);
+    return fn(fake.made);
+  } finally {
+    sfx.setMuted(false);
+    sound.resetForTest();
+    delete globalThis.AudioContext;
+  }
+}
+
+test('the sound: every pad and the sticks make a sound that ends within two seconds; nothing with the sound off', () => {
+  withFakeAudio((made) => {
     assert.equal(sound.hit('kick'), false, 'nothing before the first touch');
     sound.unlock();
     for (const id of [...D.PAD_IDS, 'sticks']) {
@@ -359,17 +386,49 @@ test('the sound: every pad and the sticks make a sound that ends within two seco
       assert.ok(made.osc + made.noise > before, `${id} made no sound`);
     }
     assert.deepEqual([...sound.VOICE_IDS].sort(), [...D.PAD_IDS, 'sticks'].sort());
-    for (const t of [...made.stopped, ...made.ends]) assert.ok(t > 0 && t < 2.5, `a sound runs until ${t}s`);
-    assert.equal(made.stopped.length + made.ends.length, made.started, 'every source stops');
+    for (const s of made.sources) assert.ok(s.stopAt > 0 && s.stopAt < 2.5, `a sound runs until ${s.stopAt}s`);
+    assert.equal(made.sources.length, made.started, 'every source starts');
     sfx.setMuted(true);
     const before = made.osc + made.noise;
     for (const id of D.PAD_IDS) assert.equal(sound.hit(id), false);
     assert.equal(made.osc + made.noise, before, 'a sound with the sound off');
-  } finally {
-    sfx.setMuted(false);
-    sound.resetForTest();
-    delete globalThis.AudioContext;
-  }
+  });
+});
+
+test('the sound: a mashed cymbal chokes its last hit, so at most one voice per pad rings; a limiter keeps headroom', () => {
+  withFakeAudio((made) => {
+    sound.unlock();
+    // a limiter with headroom sits before the clipper
+    assert.equal(made.compressors.length, 1);
+    assert.ok(sound.LIMIT.threshold <= -10 && sound.LIMIT.ratio >= 10 && sound.LIMIT.attack <= 0.005);
+    assert.equal(made.compressors[0].threshold.value, sound.LIMIT.threshold);
+    const ringingSources = (now) => made.sources.filter((s) => s.stopAt > now).length;
+    let now = 0;
+    // 60 hits on the crash and the ride, 50 ms apart (a child mashing two cymbals)
+    const one = (() => {
+      const before = made.sources.length;
+      sound.hit('crash');
+      return made.sources.length - before;
+    })();
+    for (let k = 1; k < 60; k++) {
+      made.ctx.currentTime = k * 0.05;
+      sound.hit('crash');
+      sound.hit('ride');
+      now = k * 0.05;
+    }
+    const live = ringingSources(now + 0.03);
+    assert.ok(sound.ringing() <= 2, `${sound.ringing()} voices ring`);
+    assert.ok(live <= one * 2 + 6, `${live} sources still ring after the mash (one crash is ${one})`);
+    // every pad mashed at once: never more than one voice per pad
+    for (let k = 0; k < 20; k++) {
+      made.ctx.currentTime = 4 + k * 0.03;
+      for (const id of [...D.PAD_IDS, 'sticks']) sound.hit(id);
+    }
+    assert.ok(sound.ringing() <= sound.MAX_VOICES, `${sound.ringing()} voices ring`);
+    // the background lets the context sleep
+    sound.suspend();
+    assert.equal(made.suspended, 1);
+  });
 });
 
 test('save: stars per rhythm only go up, in its own section, and survive a transfer', async () => {

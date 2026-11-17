@@ -102,16 +102,32 @@ export function createDrums(shell) {
     e.preventDefault();
     sound.unlock();
     kitEl.setPointerCapture?.(e.pointerId); // the lift always comes back here, wherever the finger went
-    hit(el.dataset.pad, e.pointerId);
+    hit(el.dataset.pad, e.pointerId, eventTime(e));
   });
-  const up = (e) => release(e.pointerId);
+  const up = (e) => {
+    if (e.type === 'pointerup') sound.unlock(); // WebKit counts a lift (not a press) as the gesture
+    release(e.pointerId);
+  };
   kitEl.addEventListener('pointerup', up);
   kitEl.addEventListener('pointercancel', up);
   kitEl.addEventListener('lostpointercapture', up);
   kitEl.addEventListener('contextmenu', (e) => e.preventDefault()); // a long press is just a held pad
 
+  /**
+   * When the finger touched, on the clock the rhythm runs on (`performance.now()`): the event's own
+   * time stamp, so a busy page or a slow frame never makes a hit late. Judging is against the
+   * picture, not the sound: the child aims at the ring closing in on the pad, which the screen
+   * shows on time, so the audio output latency (`outputLatency`, often 20-100 ms on phones) does
+   * not move the windows. Only the listen button's sound arrives that much after its light.
+   */
+  function eventTime(e) {
+    const at = now();
+    const ts = e?.timeStamp;
+    return ts > 0 && ts <= at && at - ts < 500 ? ts : at;
+  }
+
   /** A pad is hit: it sounds and bounces, and when playing along it may count. */
-  function hit(pad, holder) {
+  function hit(pad, holder, at = now()) {
     holders.set(holder, pad);
     const el = padEls[pad];
     if (!el) return;
@@ -124,7 +140,7 @@ export function createDrums(shell) {
       return;
     }
     if (!rhythm || !run || (phase !== 'count' && phase !== 'play')) return;
-    const r = run.press(pad, now());
+    const r = run.press(pad, at);
     if (r === 'wrong') nudge();
     else if (r === 'step' || r === 'part') restartClass(el, 'good');
     else if (r === 'done') {
@@ -356,6 +372,7 @@ export function createDrums(shell) {
   }
 
   function playFree() {
+    sound.unlock(); // inside the tile's or the card's click: on iOS the first sound needs a gesture
     stopAll();
     rhythm = null;
     run = null;
@@ -371,6 +388,7 @@ export function createDrums(shell) {
       shell.offerUnlock(t('drums.lockedLead'));
       return;
     }
+    sound.unlock();
     stopAll();
     rhythm = r;
     toReady();
@@ -548,6 +566,7 @@ export function createDrums(shell) {
     if (!document.hidden) return;
     stopListening();
     releaseAll();
+    sound.suspend(); // the next touch wakes it
     if (phase === 'count' || phase === 'play') {
       toReady();
       if (onScreen('drums')) render();
@@ -561,7 +580,7 @@ export function createDrums(shell) {
     if (!pad) return;
     e.preventDefault();
     sound.unlock();
-    hit(pad, `kb-${e.key.toLowerCase()}`);
+    hit(pad, `kb-${e.key.toLowerCase()}`, eventTime(e));
   });
   document.addEventListener('keyup', (e) => release(`kb-${e.key.toLowerCase()}`));
 
