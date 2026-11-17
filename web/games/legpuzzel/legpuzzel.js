@@ -1,4 +1,4 @@
-// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 4 to 30 pieces with round tabs,
+// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 4 to 60 pieces with round tabs,
 // no turning; a piece dropped near its own place snaps in with a soft plink and stays. A faint
 // example picture on the board helps (the eye button turns it off). The geometry and the rules
 // live in rules.js, the pictures in pictures.js; the shell (web/js/main.js) owns the overlay card,
@@ -8,11 +8,18 @@
 // piece is its own small canvas, cut out with its outline (a Path2D from rules.piecePath) and moved
 // with a CSS transform, so dragging never redraws anything.
 //
+// The magnifier (48 and 60 pieces on a phone, see rules.zoomFor): the board and the pieces live in
+// one layer (`#legpuzzel-world`, the stage at its own size) that is scaled and moved as a whole.
+// All positions stay in stage units; only the pointer is turned into them (`toWorld`). A finger on
+// an empty spot moves the view, a piece held near the edge of the view moves it too. The canvases
+// are drawn at the zoomed resolution from the start, so turning the magnifier never redraws.
+//
 // Saved (games.legpuzzel): in `stars`, 1 for every picture and size laid at least once
-// ('<picture>-<size>'); the last size ('size') and the example picture on or off ('ghost'). A puzzle
+// ('<picture>-<size>'); the last size ('size'), the example picture on or off ('ghost') and the
+// magnifier on or off ('zoom'). A puzzle
 // in progress is kept while the app stays open ("keep puzzling").
 import { meta } from './meta.js';
-import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps, isComplete, rearrange } from './rules.js';
+import { SIZES, SIZE_IDS, piecesOf, makeEdges, sidesOf, piecePath, layout, scatter, home, snaps, isComplete, rearrange, zoomFor, clampPan, zoomAround } from './rules.js';
 import { PICTURES, PICTURE_IDS, pictureSvg } from './pictures.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -20,6 +27,7 @@ import * as sfx from '../../js/audio.js';
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const CHECK = '<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>';
+const LOUPE = '<circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5.5 5.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="loupe-plus" d="M10 7v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
 const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>';
 
 export const DEFAULT_SIZE = 'p4';
@@ -45,13 +53,19 @@ export function createLegpuzzel(shell) {
     return SIZE_IDS.includes(s) ? s : DEFAULT_SIZE;
   };
   const ghostOn = () => store.loadGameOption(meta.id, 'ghost', true) !== false;
+  const zoomOn = () => store.loadGameOption(meta.id, 'zoom', false) === true;
 
   let size = null; // the menu's size
   let game = null; // { picture, size, cols, rows, edges, placed: [bool], pos: [{x, y}], over }
   let lay = null; // rules.layout for the stage as it is now
   let image = null; // the picture, drawn at the board's size
   let pieces = []; // the piece canvases
-  let drag = null; // { i, id, dx, dy }
+  let drag = null; // { i, id, dx, dy (stage units), cx, cy (the finger, page px) }
+  let pan = null; // a finger moving the zoomed view: { id, cx, cy, from: {x, y} }
+  // the view on the stage: drawn `z` times bigger and moved by `at`; `max` is what the magnifier
+  // gives for the pieces as they are now (1: no magnifier)
+  const view = { z: 1, max: 1, at: { x: 0, y: 0 } };
+  let glide = 0; // the edge of the view moving while a piece is held there (requestAnimationFrame)
   let z = 10;
   let builds = 0; // so a slow picture never lands on a newer puzzle or size
   let cardTimer = null;
@@ -175,6 +189,8 @@ export function createLegpuzzel(shell) {
     const { cols, rows } = SIZES[p.size];
     game = { ...p, cols, rows, edges: makeEdges(cols, rows), placed: new Array(cols * rows).fill(false), pos: null, over: false };
     lay = null;
+    view.z = 1;
+    view.at = { x: 0, y: 0 };
     renderHud();
     shell.show('legpuzzel'); // onShow builds the pieces
   }
@@ -202,6 +218,7 @@ export function createLegpuzzel(shell) {
   async function build() {
     if (!game || !onScreen('legpuzzel')) return;
     const stage = $('#legpuzzel-stage');
+    const world = $('#legpuzzel-world');
     const w = stage.clientWidth;
     const h = stage.clientHeight;
     const next = layout(w, h, game.cols, game.rows);
@@ -214,7 +231,8 @@ export function createLegpuzzel(shell) {
     const resized = !game.pos || !lay || lay.s !== next.s;
     lay = next;
     const { s, m, board } = lay;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // drawn sharp enough for the magnifier from the start: turning it on never redraws
+    const dpr = Math.min(Math.min(window.devicePixelRatio || 1, 2) * zoomFor(s), 4);
     const img = new Image();
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pictureSvg(game.picture, board.w, board.h))}`;
     try {
@@ -239,6 +257,7 @@ export function createLegpuzzel(shell) {
     g.clearRect(0, 0, board.w, board.h);
     g.drawImage(img, 0, 0, board.w, board.h);
     el.classList.toggle('ghost-off', !ghostOn());
+    setView(zoomOn(), w / 2, h / 2);
     // the pieces
     for (const p of pieces) p.remove();
     const loose = game.placed.map((x) => !x);
@@ -247,7 +266,7 @@ export function createLegpuzzel(shell) {
     pieces = game.pos.map((_, i) => makePiece(i, s, m, dpr));
     pieces.forEach((p, i) => {
       p.classList.toggle('placed', !loose[i]);
-      stage.appendChild(p);
+      world.appendChild(p);
       moveTo(i, game.pos[i]);
     });
     renderStatus();
@@ -279,8 +298,7 @@ export function createLegpuzzel(shell) {
     ctx.strokeStyle = 'rgba(58,47,107,0.55)';
     ctx.lineWidth = 1;
     ctx.stroke(path);
-    canvas.hit = (x, y) => ctx.isPointInPath(path, x * dpr, y * dpr); // x, y: px inside the drawing
-    canvas.addEventListener('pointerdown', (e) => grab(e, i));
+    canvas.hit = (x, y) => ctx.isPointInPath(path, x * dpr, y * dpr); // x, y: stage units inside the drawing
     return canvas;
   }
 
@@ -296,44 +314,132 @@ export function createLegpuzzel(shell) {
       const k = Number(el.dataset.i);
       if (game.placed[k]) continue;
       const r = el.getBoundingClientRect();
-      if (el.hit(x - r.left, y - r.top)) return k;
+      const k2 = (lay.s + 2 * lay.m) / r.width; // page px -> stage units (the magnifier, a lifted piece)
+      if (el.hit((x - r.left) * k2, (y - r.top) * k2)) return k;
     }
     // near enough: the top loose piece whose drawing was touched
     const loose = hits.map((el) => Number(el.dataset.i)).filter((k) => !game.placed[k]);
     return loose.length ? loose[0] : -1;
   }
 
-  function grab(e, tapped) {
-    if (!game || game.over || drag) return;
-    if (!game.pos) return; // the pieces are still being cut
-    const i = pieceAt(e.clientX, e.clientY);
-    if (i < 0 || (game.placed[i] && i === tapped)) return;
+  // ---------- the view (the magnifier) ----------
+
+  /** A point on the page -> stage units. */
+  function toWorld(cx, cy) {
+    const r = $('#legpuzzel-stage').getBoundingClientRect();
+    return { x: (cx - r.left - view.at.x) / view.z, y: (cy - r.top - view.at.y) / view.z };
+  }
+
+  function applyView(animate = false) {
+    const world = $('#legpuzzel-world');
+    world.classList.toggle('glide', animate);
+    world.style.transform = view.z === 1 ? '' : `translate(${view.at.x}px, ${view.at.y}px) scale(${view.z})`;
+    $('#legpuzzel-stage').classList.toggle('zoomed', view.z > 1);
+    const btn = $('#legpuzzel-zoom');
+    btn.hidden = view.max === 1;
+    btn.setAttribute('aria-pressed', String(view.z > 1));
+  }
+
+  /** The magnifier on or off, around the point (cx, cy) of the stage; also after a new layout. */
+  function setView(on, cx, cy, animate = false) {
+    const stage = $('#legpuzzel-stage');
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    view.max = lay ? zoomFor(lay.s) : 1;
+    const z = on && view.max > 1 ? view.max : 1;
+    view.at = view.z === z ? clampPan(view.at, w, h, z) : zoomAround(view.at, view.z, z, cx, cy, w, h);
+    view.z = z;
+    applyView(animate);
+  }
+
+  // ---------- dragging ----------
+
+  /** A finger (or mouse) down on the stage: the loose piece under it, else (zoomed) the view. */
+  function down(e) {
+    if (!game || !game.pos || !lay || drag || pan) return; // .pos: the pieces are still being cut
+    const i = game.over ? -1 : pieceAt(e.clientX, e.clientY);
+    if (i < 0) {
+      if (view.z > 1) {
+        e.preventDefault();
+        $('#legpuzzel-stage').setPointerCapture?.(e.pointerId);
+        pan = { id: e.pointerId, cx: e.clientX, cy: e.clientY, from: { ...view.at } };
+      }
+      return;
+    }
     e.preventDefault();
     sfx.unlock();
     const el = pieces[i];
     el.setPointerCapture?.(e.pointerId);
     el.style.zIndex = String(++z);
     el.classList.add('lift');
-    drag = { i, id: e.pointerId, dx: e.clientX - game.pos[i].x, dy: e.clientY - game.pos[i].y };
+    const p = toWorld(e.clientX, e.clientY);
+    drag = { i, id: e.pointerId, dx: p.x - game.pos[i].x, dy: p.y - game.pos[i].y, cx: e.clientX, cy: e.clientY, sx: e.clientX, sy: e.clientY };
   }
 
-  function onMove(e) {
-    if (!drag || e.pointerId !== drag.id) return;
+  /** The held piece follows the finger (in stage units, so also while the view moves). */
+  function follow() {
     const stage = $('#legpuzzel-stage');
     const side = lay.s + 2 * lay.m;
+    const p = toWorld(drag.cx, drag.cy);
     // keep at least half a piece on the stage
-    const x = Math.min(Math.max(e.clientX - drag.dx, -side / 2), stage.clientWidth - side / 2);
-    const y = Math.min(Math.max(e.clientY - drag.dy, -side / 2), stage.clientHeight - side / 2);
+    const x = Math.min(Math.max(p.x - drag.dx, -side / 2), stage.clientWidth - side / 2);
+    const y = Math.min(Math.max(p.y - drag.dy, -side / 2), stage.clientHeight - side / 2);
     game.pos[drag.i] = { x, y };
     moveTo(drag.i, game.pos[drag.i]);
   }
 
+  /** Zoomed, a piece held near the edge of the view moves the view that way, a little a frame. */
+  function edgeGlide() {
+    glide = 0;
+    if (!drag || view.z === 1) return;
+    const stage = $('#legpuzzel-stage');
+    const r = stage.getBoundingClientRect();
+    const edge = Math.min(48, r.width / 6, r.height / 6);
+    // only towards an edge the finger moved to: a piece picked up near the edge and taken inwards
+    // must not move the view
+    const dir = (v, from, lo, hi) => (v < lo + edge && v < from ? 1 : v > hi - edge && v > from ? -1 : 0);
+    const vx = dir(drag.cx, drag.sx, r.left, r.right);
+    const vy = dir(drag.cy, drag.sy, r.top, r.bottom);
+    if (!vx && !vy) return;
+    const next = clampPan({ x: view.at.x + vx * 8, y: view.at.y + vy * 8 }, stage.clientWidth, stage.clientHeight, view.z);
+    if (next.x === view.at.x && next.y === view.at.y) return; // at the end of the stage
+    view.at = next;
+    applyView();
+    follow();
+    glide = requestAnimationFrame(edgeGlide);
+  }
+
+  function onMove(e) {
+    if (pan && e.pointerId === pan.id) {
+      const stage = $('#legpuzzel-stage');
+      view.at = clampPan({ x: pan.from.x + e.clientX - pan.cx, y: pan.from.y + e.clientY - pan.cy }, stage.clientWidth, stage.clientHeight, view.z);
+      applyView();
+      return;
+    }
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.cx = e.clientX;
+    drag.cy = e.clientY;
+    follow();
+    if (view.z > 1 && !glide) glide = requestAnimationFrame(edgeGlide);
+  }
+
   function onUp(e) {
+    if (pan && e.pointerId === pan.id) {
+      pan = null;
+      return;
+    }
     if (!drag || e.pointerId !== drag.id) return;
     const { i } = drag;
     drag = null;
+    if (glide) cancelAnimationFrame(glide);
+    glide = 0;
+    pieces[i].classList.remove('lift');
+    drop(i);
+  }
+
+  /** Piece i let go where it is now: in its place if near enough, else it stays there. */
+  function drop(i) {
     const el = pieces[i];
-    el.classList.remove('lift');
     const at = home(i, game.cols, lay.board, lay.s, lay.m);
     const p = game.pos[i];
     if (snaps(p.x, p.y, at, lay.s)) {
@@ -356,6 +462,7 @@ export function createLegpuzzel(shell) {
   }
 
   const stageEl = $('#legpuzzel-stage');
+  stageEl.addEventListener('pointerdown', down);
   stageEl.addEventListener('pointermove', onMove);
   stageEl.addEventListener('pointerup', onUp);
   stageEl.addEventListener('pointercancel', onUp);
@@ -395,6 +502,15 @@ export function createLegpuzzel(shell) {
     $('#legpuzzel-ghost').setAttribute('aria-pressed', String(ghostOn()));
     $('#legpuzzel-board').classList.toggle('ghost-off', !ghostOn());
   });
+  $('#legpuzzel-zoom').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${LOUPE}</svg>`;
+  $('#legpuzzel-zoom').addEventListener('click', () => {
+    tap();
+    if (drag) return;
+    const on = view.z === 1;
+    store.saveGameOption(meta.id, 'zoom', on);
+    const stage = $('#legpuzzel-stage');
+    setView(on, stage.clientWidth / 2, stage.clientHeight / 2, true);
+  });
   $('#legpuzzel-back').addEventListener('click', () => {
     tap();
     leave();
@@ -404,7 +520,9 @@ export function createLegpuzzel(shell) {
   function leave() {
     shell.hideOverlay();
     cancelCard();
+    if (drag) pieces[drag.i]?.classList.remove('lift');
     drag = null;
+    pan = null;
     shell.show('legpuzzel-menu');
   }
 
@@ -417,7 +535,15 @@ export function createLegpuzzel(shell) {
       return true;
     },
     testHook() {
-      const stagePos = () => $('#legpuzzel-stage').getBoundingClientRect();
+      // page coordinates of a point in stage units (through the magnifier)
+      const toPage = (x, y) => {
+        const o = $('#legpuzzel-stage').getBoundingClientRect();
+        return { x: o.left + view.at.x + x * view.z, y: o.top + view.at.y + y * view.z };
+      };
+      const inView = (p) => {
+        const o = $('#legpuzzel-stage').getBoundingClientRect();
+        return p.x > o.left && p.x < o.right && p.y > o.top && p.y < o.bottom;
+      };
       return {
         start: (p) => start(p),
         chooseSize: (s) => {
@@ -428,31 +554,41 @@ export function createLegpuzzel(shell) {
         state: () =>
           game && lay
             ? (() => {
-                const o = stagePos();
                 const half = lay.s / 2 + lay.m;
                 return {
                   picture: game.picture,
                   size: game.size,
                   placed: game.placed.slice(),
                   over: game.over,
-                  s: lay.s,
+                  s: lay.s * view.z, // a piece's square on screen, px
                   side: lay.side,
+                  zoom: view.z,
+                  zoomMax: view.max,
                   // page coordinates of each piece's middle, now and in its place
-                  at: game.pos.map((p) => ({ x: o.left + p.x + half, y: o.top + p.y + half })),
+                  at: game.pos.map((p) => toPage(p.x + half, p.y + half)),
                   home: game.pos.map((_, i) => {
                     const h = home(i, game.cols, lay.board, lay.s, lay.m);
-                    return { x: o.left + h.x + half, y: o.top + h.y + half };
+                    return toPage(h.x + half, h.y + half);
                   }),
                 };
               })()
             : null,
         done: () => done(),
-        // the loose pieces a finger on their middle would pick up (not covered by another piece)
+        // the loose pieces a finger on their middle would pick up (in view, not covered by another piece)
         free: () => {
           if (!game || !lay) return [];
-          const o = stagePos();
           const half = lay.s / 2 + lay.m;
-          return game.pos.flatMap((p, i) => (!game.placed[i] && pieceAt(o.left + p.x + half, o.top + p.y + half) === i ? [i] : []));
+          return game.pos.flatMap((p, i) => {
+            const at = toPage(p.x + half, p.y + half);
+            return !game.placed[i] && inView(at) && pieceAt(at.x, at.y) === i ? [i] : [];
+          });
+        },
+        // lay piece i in its place without a finger (the same drop as a real drag)
+        place: (i) => {
+          if (!game || !lay || game.placed[i] || game.over) return false;
+          game.pos[i] = home(i, game.cols, lay.board, lay.s, lay.m);
+          drop(i);
+          return game.placed[i];
         },
       };
     },

@@ -7,13 +7,17 @@
 // Units: `s` is the side of a piece's square; a piece's drawing is (s + 2m) wide, with room `m`
 // (`margin`) on every side for the tabs that stick out.
 
+// `age`: from what age a size is about right. Mark (17 Nov 2026, issue #45): his four-year-old laid
+// the 30 pieces then marked 9+ with ease, so the scale moved down and 48 and 60 pieces came in.
 export const SIZES = Object.freeze({
-  p4: Object.freeze({ cols: 2, rows: 2, age: 3 }),
-  p6: Object.freeze({ cols: 3, rows: 2, age: 4 }),
-  p9: Object.freeze({ cols: 3, rows: 3, age: 5 }),
-  p12: Object.freeze({ cols: 4, rows: 3, age: 6 }),
-  p20: Object.freeze({ cols: 5, rows: 4, age: 7 }),
-  p30: Object.freeze({ cols: 6, rows: 5, age: 9 }),
+  p4: Object.freeze({ cols: 2, rows: 2, age: 2 }),
+  p6: Object.freeze({ cols: 3, rows: 2, age: 2 }),
+  p9: Object.freeze({ cols: 3, rows: 3, age: 3 }),
+  p12: Object.freeze({ cols: 4, rows: 3, age: 3 }),
+  p20: Object.freeze({ cols: 5, rows: 4, age: 4 }),
+  p30: Object.freeze({ cols: 6, rows: 5, age: 5 }),
+  p48: Object.freeze({ cols: 8, rows: 6, age: 7 }),
+  p60: Object.freeze({ cols: 10, rows: 6, age: 9 }),
 });
 export const SIZE_IDS = Object.freeze(Object.keys(SIZES));
 export const piecesOf = (size) => SIZES[size].cols * SIZES[size].rows;
@@ -185,6 +189,36 @@ export function rearrange({ pos, placed, cols, board, s, m, w, h, resized, sprea
     if (resized || !pos?.[i]) return spread[i];
     return { x: Math.min(Math.max(pos[i].x, 0), Math.max(0, w - size)), y: Math.min(Math.max(pos[i].y, 0), Math.max(0, h - size)) };
   });
+}
+
+// The magnifier (issue #45). With 48 or 60 pieces the board on a phone gets pieces of 30-45 px; a
+// child of 7-9 can drag them, but sees little of the picture on them. Then the HUD shows a
+// magnifier: the whole stage (board and tray together) is drawn ZOOM_TARGET px a piece and the
+// child moves the view with a finger on an empty spot, or by holding a piece near the edge. The
+// geometry stays the same: the zoom is only a view on it.
+export const ZOOM_FROM = 56; // a piece's square smaller than this: the magnifier is offered
+export const ZOOM_TARGET = 66; // what a square becomes with the magnifier on
+export const ZOOM_MAX = 2.5;
+
+/** How far the magnifier enlarges for pieces of `s` px: 1 means no magnifier. */
+export const zoomFor = (s) => (s >= ZOOM_FROM ? 1 : Math.min(ZOOM_MAX, Math.max(1.4, ZOOM_TARGET / s)));
+
+/**
+ * Keep a zoomed view on the stage: the view (`w` × `h`) shows the stage drawn `z` times bigger,
+ * moved by `pan` ({x, y}, px, never positive); the stage's edges never come inside the view.
+ */
+export function clampPan(pan, w, h, z) {
+  return { x: Math.min(0, Math.max(w - w * z, pan.x)), y: Math.min(0, Math.max(h - h * z, pan.y)) };
+}
+
+/**
+ * Zooming in or out around a point of the view (cx, cy): the stage point under it stays put.
+ * Returns the new pan.
+ */
+export function zoomAround(pan, z0, z1, cx, cy, w, h) {
+  const wx = (cx - pan.x) / z0;
+  const wy = (cy - pan.y) / z0;
+  return clampPan({ x: cx - wx * z1, y: cy - wy * z1 }, w, h, z1);
 }
 
 /** Does a piece dropped with its drawing at (x, y) snap into its place at `at`? */
