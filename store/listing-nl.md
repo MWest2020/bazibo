@@ -81,7 +81,7 @@ TEKENEN
 • Spiegelen (elke streep wordt een mandala), stempels en tot 100 tekeningen (volledige versie).
 
 PIANO
-• Een speelgoedpiano met gekleurde toetsen. Speel een liedje mee: de volgende toets licht op. Met Luister speelt het liedje zichzelf voor.
+• Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op, of luister eerst.
 • 4-6 jaar: vrij spelen en Vader Jacob; nog drie liedjes in de volledige versie.
 • 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
 
