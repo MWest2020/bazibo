@@ -3455,7 +3455,8 @@ def pz_drag(page, a, b, steps=8):
 
 
 def legpuzzel_flow(browser, base, problems):
-    """Legpuzzel on the web build: 12, 20 and 30 pieces and the five other pictures offer only OK;
+    """Legpuzzel on the web build: 12, 20, 30, 48 and 60 pieces and the five other pictures offer only OK
+    (the free sizes show their age, the others "full version");
     the 4-piece garden laid by real drags (a drop on another piece's place does not snap, a drop
     near its own place does), saved as laid, the end card; the 9-piece sea with back + keep
     puzzling halfway and the example picture turned off, "More puzzles" at the end of the free
@@ -3474,7 +3475,10 @@ def legpuzzel_flow(browser, base, problems):
         problems.append(f"legpuzzel: tile sits under {group!r}")
     page.click("#tile-legpuzzel")
     page.wait_for_timeout(250)
-    for sel in (".puzzel-opt.size-p12", ".puzzel-opt.size-p20", ".puzzel-opt.size-p30", ".puzzel-pic.pic-space", ".puzzel-pic.pic-puppies"):
+    subs = page.evaluate("[...document.querySelectorAll('.puzzel-sizes .vier-opt-sub')].map((e) => e.textContent)")
+    if subs != ["vanaf 2 jaar", "vanaf 2 jaar", "vanaf 3 jaar"] + ["volledige versie"] * 5:
+        problems.append(f"legpuzzel: the size buttons say {subs}")
+    for sel in (".puzzel-opt.size-p12", ".puzzel-opt.size-p20", ".puzzel-opt.size-p30", ".puzzel-opt.size-p48", ".puzzel-opt.size-p60", ".puzzel-pic.pic-space", ".puzzel-pic.pic-puppies"):
         page.click(sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
@@ -3589,7 +3593,8 @@ def legpuzzel_layouts(browser, base, problems):
     with its tabs 44 px or more, the board and the tray apart, no sideways scroll; the last piece
     laid by a drag on each."""
     for w, h, owned, size, pic in ((320, 568, False, "p9", "fruit"), (568, 320, False, "p9", "garden"), (844, 390, False, "p6", "sea"), (1280, 800, False, "p9", "fruit"),
-                                   (320, 568, True, "p30", "puppies"), (568, 320, True, "p30", "space"), (390, 844, True, "p20", "zoo"), (1280, 800, True, "p30", "meadow")):
+                                   (320, 568, True, "p30", "puppies"), (568, 320, True, "p30", "space"), (390, 844, True, "p20", "zoo"), (1280, 800, True, "p30", "meadow"),
+                                   (320, 568, True, "p60", "street"), (568, 320, True, "p48", "fruit"), (1280, 800, True, "p60", "meadow")):
         mobile = w < 1000
         english = (w, h) == (390, 844)
         ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
@@ -3632,13 +3637,210 @@ def legpuzzel_layouts(browser, base, problems):
             problems.append(f"legpuzzel {label}: pieces {on_board} start on the board")
         if page.evaluate("document.documentElement.scrollWidth") > w:
             problems.append(f"legpuzzel {label}: sideways scroll")
-        print(f"[legpuzzel {label}] piece {st['s']} px ({small:.0f} with tabs), {'side' if st['side'] else 'upright'}")
+        # the magnifier only when the pieces are small (never for 20 pieces or fewer on a phone, never on a desktop)
+        zoom_shown = page.is_visible("#legpuzzel-zoom")
+        if zoom_shown != (st["zoomMax"] > 1) or (zoom_shown and (not mobile or size in ("p4", "p6", "p9", "p12", "p20"))):
+            problems.append(f"legpuzzel {label}: magnifier shown {zoom_shown} (zoom {st['zoomMax']})")
+        print(f"[legpuzzel {label}] piece {st['s']} px ({small:.0f} with tabs), {'side' if st['side'] else 'upright'}, magnifier {st['zoomMax']:.2f}")
         page.screenshot(path=str(SHOTS / f"legpuzzel-{w}x{h}{'-full' if owned else ''}.png"))
         k = page.evaluate("window.__bubbels.puzzel.free()")[0]
         pz_drag(page, st["at"][k], st["home"][k])
         page.wait_for_timeout(200)
         if not pz_state(page)["placed"][k]:
             problems.append(f"legpuzzel {label}: a drag to its place did not snap")
+        if errors:
+            problems.append(f"legpuzzel {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
+def pz_view(page):
+    return page.locator("#legpuzzel-stage").bounding_box()
+
+
+def pz_inside(r, p, pad=0):
+    return r["x"] + pad < p["x"] < r["x"] + r["width"] - pad and r["y"] + pad < p["y"] < r["y"] + r["height"] - pad
+
+
+def pz_drag_zoomed(page, i):
+    """A real drag of piece i through the magnifier: a piece out of view is first brought in by a finger
+    on an empty spot; when its place is out of view, the finger holds the piece at the edge of the
+    view in that direction until the view has moved there."""
+    r = pz_view(page)
+    for _ in range(3):  # the piece out of view: a finger on an empty spot brings it in first
+        a = pz_state(page)["at"][i]
+        if pz_inside(r, a, 4):
+            break
+        spot = pz_empty_spot(page)
+        if not spot:
+            break
+        c = {"x": r["x"] + r["width"] / 2, "y": r["y"] + r["height"] / 2}
+        pz_drag(page, spot, {"x": spot["x"] + c["x"] - a["x"], "y": spot["y"] + c["y"] - a["y"]})
+        page.wait_for_timeout(150)
+    a = pz_state(page)["at"][i]
+    page.mouse.move(a["x"], a["y"])
+    page.mouse.down()
+    glided = False
+    for _ in range(80):
+        h = pz_state(page)["home"][i]
+        if pz_inside(r, h, 4):
+            break
+        glided = True
+        page.mouse.move(min(max(h["x"], r["x"] + 6), r["x"] + r["width"] - 6), min(max(h["y"], r["y"] + 6), r["y"] + r["height"] - 6), steps=4)
+        page.wait_for_timeout(100)
+    for _ in range(30):  # a place near the edge may move the view a little more: follow it
+        h = pz_state(page)["home"][i]
+        page.mouse.move(h["x"], h["y"], steps=3)
+        page.wait_for_timeout(120)
+        h2 = pz_state(page)["home"][i]
+        if abs(h2["x"] - h["x"]) + abs(h2["y"] - h["y"]) < 1:
+            break
+    page.mouse.up()
+    return glided
+
+
+def pz_empty_spot(page):
+    """A point in the view with no loose piece under it (a finger there moves the zoomed view)."""
+    return page.evaluate("""() => {
+      const r = document.querySelector('#legpuzzel-stage').getBoundingClientRect();
+      for (let y = r.top + 20; y < r.bottom - 20; y += 9)
+        for (let x = r.left + 20; x < r.right - 20; x += 9)
+          if (!document.elementsFromPoint(x, y).some((e) => e.classList.contains('ppiece') && !e.classList.contains('placed'))) return { x, y };
+      return null;
+    }""")
+
+
+def legpuzzel_big(browser, base, problems):
+    """Legpuzzel 48 and 60 pieces in the full version on a phone, upright 390x844 (Dutch) and
+    sideways 844x390 (English): the age on every size button; every piece on screen and 44 px or
+    more; a real drag snaps without the magnifier; the magnifier makes a piece 60 px or more, a
+    finger on an empty spot moves the view, a real drag through the magnifier (holding the piece at
+    the edge until its place comes into view) snaps; the rest laid by the test hook but the last,
+    which a real drag finishes: the end card, the puzzle saved through recordStars and ticked off;
+    the magnifier stays on for the next puzzle."""
+    ages_nl = ["vanaf 2 jaar", "vanaf 2 jaar", "vanaf 3 jaar", "vanaf 3 jaar", "vanaf 4 jaar", "vanaf 5 jaar", "vanaf 7 jaar", "vanaf 9 jaar"]
+    ages_en = ["age 2+", "age 2+", "age 3+", "age 3+", "age 4+", "age 5+", "age 7+", "age 9+"]
+    for w, h, size, pic, english in ((390, 844, "p60", "meadow", False), (844, 390, "p48", "street", True), (844, 390, "p60", "zoo", False), (390, 844, "p48", "puppies", True)):
+        n = int(size[1:])
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h} {size} {pic}"
+        page.click("#tile-legpuzzel")
+        page.wait_for_timeout(200)
+        subs = page.evaluate("[...document.querySelectorAll('.puzzel-sizes .vier-opt-sub')].map((e) => e.textContent)")
+        if subs != (ages_en if english else ages_nl):
+            problems.append(f"legpuzzel {label}: the size buttons say {subs}")
+        page.click(f".puzzel-opt.size-{size}")
+        page.wait_for_timeout(100)
+        if page.get_attribute(f".puzzel-opt.size-{size}", "aria-pressed") != "true":
+            problems.append(f"legpuzzel {label}: {size} not chosen")
+        page.screenshot(path=str(SHOTS / f"legpuzzel-big-menu-{w}x{h}-{size}.png"), full_page=True)
+        page.click(f".puzzel-pic.pic-{pic}")
+        page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=8000)
+        page.wait_for_timeout(250)
+        st = pz_state(page)
+        if len(st["placed"]) != n:
+            problems.append(f"legpuzzel {label}: {len(st['placed'])} pieces")
+        boxes = page.evaluate("[...document.querySelectorAll('.ppiece')].map((c) => { const r = c.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })")
+        off = [i for i, (l, t_, r, b) in enumerate(boxes) if l < -0.5 or t_ < -0.5 or r > w + 0.5 or b > h + 0.5]
+        small = min(r - l for l, t_, r, b in boxes)
+        if off or small < 44:
+            problems.append(f"legpuzzel {label}: pieces off screen {off}, smallest {small:.0f} px")
+        if not page.is_visible("#legpuzzel-zoom") or page.get_attribute("#legpuzzel-zoom", "aria-pressed") != "false":
+            problems.append(f"legpuzzel {label}: no magnifier (or it starts on)")
+        page.screenshot(path=str(SHOTS / f"legpuzzel-big-{w}x{h}-{size}.png"))
+        # a real drag without the magnifier
+        k = page.evaluate("window.__bubbels.puzzel.free()")[0]
+        pz_drag(page, st["at"][k], st["home"][k])
+        page.wait_for_timeout(200)
+        if not pz_state(page)["placed"][k]:
+            problems.append(f"legpuzzel {label}: a drag to its place did not snap")
+        # the magnifier
+        page.click("#legpuzzel-zoom")
+        page.wait_for_timeout(400)
+        st = pz_state(page)
+        if st["zoom"] <= 1 or st["s"] < 60 or page.get_attribute("#legpuzzel-zoom", "aria-pressed") != "true":
+            problems.append(f"legpuzzel {label}: the magnifier gives {st['zoom']:.2f}x, a piece of {st['s']:.0f} px")
+        if page.evaluate("document.documentElement.scrollWidth") > w or page.evaluate("document.documentElement.scrollHeight") > h:
+            problems.append(f"legpuzzel {label}: the zoomed board makes the page scroll")
+        for sel in ("#legpuzzel-back", "#legpuzzel-zoom", "#legpuzzel-ghost"):
+            r = page.locator(sel).bounding_box()
+            if not r or page.evaluate(f"document.elementFromPoint({r['x'] + r['width'] / 2}, {r['y'] + r['height'] / 2})?.closest('{sel}') === null"):
+                problems.append(f"legpuzzel {label}: {sel} covered with the magnifier on")
+        page.screenshot(path=str(SHOTS / f"legpuzzel-big-{w}x{h}-{size}-zoom.png"))
+        # a finger on an empty spot moves the view
+        spot = pz_empty_spot(page)
+        if not spot:
+            problems.append(f"legpuzzel {label}: no empty spot to move the view")
+        else:
+            before = pz_state(page)["home"][0]
+            r = pz_view(page)
+            to = {"x": r["x"] + r["width"] - spot["x"] + r["x"], "y": r["y"] + r["height"] - spot["y"] + r["y"]}  # across the middle
+            pz_drag(page, spot, to)
+            page.wait_for_timeout(150)
+            after = pz_state(page)["home"][0]
+            if abs(after["x"] - before["x"]) + abs(after["y"] - before["y"]) < 20:
+                problems.append(f"legpuzzel {label}: a finger on an empty spot did not move the view ({before} -> {after})")
+            if sum(pz_state(page)["placed"]) != 1:
+                problems.append(f"legpuzzel {label}: moving the view laid or lost a piece")
+            # the magnifier off and on again: back to the middle of the stage, where the tray is
+            page.click("#legpuzzel-zoom")
+            page.wait_for_timeout(350)
+            page.click("#legpuzzel-zoom")
+            page.wait_for_timeout(350)
+        # a real drag through the magnifier, to a place that may be out of view
+        st = pz_state(page)
+        r = pz_view(page)
+        free = page.evaluate("window.__bubbels.puzzel.free()")
+        far = [i for i in free if not pz_inside(r, st["home"][i], 4)]
+        if not free:
+            problems.append(f"legpuzzel {label}: no loose piece in view with the magnifier on")
+            ctx.close()
+            continue
+        k = (far or free)[0]
+        glided = pz_drag_zoomed(page, k)
+        page.wait_for_timeout(250)
+        if not pz_state(page)["placed"][k]:
+            problems.append(f"legpuzzel {label}: a drag through the magnifier did not snap (view moved: {glided})")
+        if far and not glided:
+            problems.append(f"legpuzzel {label}: the view did not move to a place out of view")
+        print(f"[legpuzzel {label}] magnifier {st['zoom']:.2f}x, piece {st['s']:.0f} px; a drag to a place {'out of' if far else 'in'} view, the view moved along: {glided}")
+        page.screenshot(path=str(SHOTS / f"legpuzzel-big-{w}x{h}-{size}-zoom-drag.png"))
+        # the rest by the test hook, all but one; the last by a real drag
+        st = pz_state(page)
+        rest = [i for i in range(n) if not st["placed"][i]]
+        for i in rest[:-1]:
+            if not page.evaluate(f"window.__bubbels.puzzel.place({i})"):
+                problems.append(f"legpuzzel {label}: the hook could not lay piece {i}")
+                break
+        page.wait_for_timeout(200)
+        last = rest[-1]
+        pz_drag_zoomed(page, last)
+        page.wait_for_timeout(250)
+        st = pz_state(page)
+        if not st["over"]:
+            problems.append(f"legpuzzel {label}: not done after the last piece: {sum(st['placed'])} of {n}")
+        else:
+            page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+            page.screenshot(path=str(SHOTS / f"legpuzzel-big-{w}x{h}-{size}-done.png"))
+            key = f"{pic}-{size}"
+            if page.evaluate("window.__bubbels.puzzel.done()").get(key) != 1:
+                problems.append(f"legpuzzel {label}: {key} not saved: {page.evaluate('window.__bubbels.puzzel.done()')}")
+            want = (f"{'Play again' if english else 'Nog een keer'}")
+            page.click(f"#ov-buttons button >> text={want}")
+            page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=8000)
+            page.wait_for_timeout(300)
+            if page.get_attribute("#legpuzzel-zoom", "aria-pressed") != "true" or pz_state(page)["zoom"] <= 1:
+                problems.append(f"legpuzzel {label}: the magnifier did not stay on for the next puzzle")
+            page.click("#legpuzzel-back")
+            page.wait_for_timeout(250)
+            if not page.locator(f".puzzel-pic.pic-{pic}.done .check").count():
+                problems.append(f"legpuzzel {label}: the menu does not tick off {key}")
         if errors:
             problems.append(f"legpuzzel {label}: page errors {errors[:2]}")
         ctx.close()
@@ -4011,6 +4213,7 @@ def main():
             kwartet_layouts(browser, base, problems)
             legpuzzel_flow(browser, base, problems)
             legpuzzel_layouts(browser, base, problems)
+            legpuzzel_big(browser, base, problems)
             piano_flow(browser, base, problems)
             piano_layouts(browser, base, problems)
             browser.close()
@@ -4024,7 +4227,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
-         "legpuzzel": (legpuzzel_flow, legpuzzel_layouts),
+         "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
          "piano": (piano_flow, piano_layouts)}
 
 
