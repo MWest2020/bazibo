@@ -1,15 +1,20 @@
-// Piano: a toy piano with 8 coloured keys and 5 black keys.
+// Piano: a toy piano with 8 coloured keys and 5 black keys (4-6), or two octaves (7-10).
 //   Vrij spelen   every key sounds; two fingers play two keys; sliding a finger plays the keys it
 //                 passes (a glissando)
 //   Liedjes       play along: the next key glows and the strip above shows the notes to come in
 //                 the colours of their keys; "Luister" plays the song with the keys lighting up
-// The tile opens free play straight away, so a toddler is one tap from the keys. The songs and the
-// rules of playing along live in songs.js (pure, tested); the sound is synthesised in
-// js/audio.js (`pianoNote`), so it follows the sound setting. No voice, no recordings.
+// The tile opens free play straight away, so a toddler is one tap from the keys. The age is picked
+// at the top of the song list and kept. The 7-10 piano has 15 coloured keys: when they do not all
+// fit 44 px wide (an upright phone), it shows a window of 7 to 14 of them, a little map of the
+// whole keyboard above it moves the window (fingers on the keys only play), playing along moves
+// it to the keys to come, and a line asks to turn the phone. The songs and the rules of playing
+// along live in songs.js (pure, tested); the sound is synthesised in js/audio.js (`pianoNote`), so
+// it follows the sound setting. No voice, no recordings.
 //
-// Saved (games.piano): stars per song played to the end (`stars`, only ever raised).
+// Saved (games.piano): stars per song played to the end (`stars`, only ever raised) and the age
+// picked (`level`: 'small' or 'big').
 import { meta } from './meta.js';
-import { KEYS, SONGS, songById, keyById, keyFrequency, blackSlot, createRun, schedule, starsFor, KEYBOARD_MAP, WHITE_KEYS } from './songs.js';
+import { LEVELS, levelById, songById, songsFor, createRun, schedule, starsFor, followView } from './songs.js';
 import { cardSvg } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -21,6 +26,8 @@ const NOTE = '<path d="M9 17.5V5.2l11-2.4v12.1a3.2 2.6 0 1 1-2-2.4V7.1l-7 1.5v9.
 const PLAY = '<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>';
 const STOP = '<rect x="5.5" y="5.5" width="13" height="13" rx="2.5"/>';
 const DONE_PAUSE = 650; // ms between the last note and the end card: let the note ring
+const MIN_KEY = 46; // px: the narrowest a coloured key of the 7-10 piano gets (44 and its gap)
+const MIN_VISIBLE = 7; // the window never shows fewer coloured keys (an octave, nearly)
 
 export function createPiano(shell) {
   const { t, tap } = shell;
@@ -29,6 +36,11 @@ export function createPiano(shell) {
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
   const overlayUp = () => !$('#overlay').hidden;
 
+  let level = levelById(store.loadGameOption(meta.id, 'level', 'small'))?.id || 'small';
+  let board = levelById(level).board;
+  let visible = board.whites.length; // coloured keys in sight (the 7-10 piano on a narrow screen: fewer)
+  let view = 0; // the first coloured key in sight
+  let keyW = 0; // px per coloured key, its gap included, while the window is on
   let song = null; // null: free play; else the song being played along
   let run = null;
   let finishing = false; // the last note was played, the end card is coming
@@ -42,10 +54,16 @@ export function createPiano(shell) {
   // ---------- the keyboard ----------
 
   const keysEl = $('#piano-keys');
+  const bodyEl = $('#piano-stage .piano-body');
+  const mapEl = $('#piano-map');
   function buildKeys() {
     keysEl.textContent = '';
-    keysEl.style.setProperty('--whites', WHITE_KEYS.length);
-    for (const k of KEYS) {
+    for (const id of Object.keys(keyEls)) delete keyEls[id];
+    holders.clear();
+    const big = level !== 'small';
+    bodyEl.classList.toggle('big', big);
+    keysEl.style.setProperty('--whites', board.whites.length);
+    for (const k of board.keys) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = `pkey ${k.white ? 'white' : 'black'}`;
@@ -55,8 +73,8 @@ export function createPiano(shell) {
         b.style.setProperty('--key-hi', mix(k.color, '#ffffff', 0.45)); // the light top of the key
         b.style.setProperty('--key-lo', mix(k.color, '#000000', 0.28)); // its darker front edge
       }
-      else b.style.setProperty('--slot', blackSlot(k.id));
-      b.innerHTML = '<span class="pkey-mark" aria-hidden="true"></span>';
+      else b.style.setProperty('--slot', board.blackSlot(k.id));
+      b.innerHTML = `<span class="pkey-mark" aria-hidden="true"></span>${big && k.white ? '<span class="pkey-name" aria-hidden="true"></span>' : ''}`;
       // pointers are handled on the whole keyboard (below); a click from a screen reader or the
       // keyboard (Enter, Space) comes with detail 0 and plays the key too
       b.addEventListener('click', (e) => {
@@ -67,12 +85,104 @@ export function createPiano(shell) {
       keyEls[k.id] = b;
       keysEl.appendChild(b);
     }
+    buildMap();
     labelKeys();
   }
   function labelKeys() {
     keysEl.setAttribute('aria-label', t('piano.keys'));
-    for (const k of KEYS) keyEls[k.id].setAttribute('aria-label', t(`piano.note.${k.id}`));
+    const big = level !== 'small';
+    for (const k of board.keys) {
+      const name = t(`piano.note.${big ? k.pc : k.id}`);
+      keyEls[k.id].setAttribute('aria-label', big ? t('piano.noteOct', { note: name, oct: Math.floor(k.midi / 12) - 1 }) : name);
+      const tag = keyEls[k.id].querySelector('.pkey-name');
+      if (tag) tag.textContent = name;
+    }
+    mapEl.setAttribute('aria-label', t('piano.map'));
+    labelMap();
   }
+
+  // ---------- the window on the 7-10 piano ----------
+
+  /** The whole keyboard, small, with a frame around the keys in sight. */
+  function buildMap() {
+    const n = board.whites.length;
+    let svg = `<svg viewBox="0 0 ${n * 10} 30" preserveAspectRatio="none" aria-hidden="true">`;
+    board.whites.forEach((k, i) => (svg += `<rect x="${i * 10 + 0.6}" y="0" width="8.8" height="30" rx="2" fill="${k.color}"/>`));
+    for (const k of board.keys) if (!k.white) svg += `<rect x="${board.blackSlot(k.id) * 10 - 3.2}" y="0" width="6.4" height="17" rx="1.5" fill="#2b2370"/>`;
+    mapEl.innerHTML = `${svg}</svg><span id="piano-map-frame" class="piano-map-frame"></span>`;
+  }
+  function labelMap() {
+    const first = board.whites[view];
+    const last = board.whites[Math.min(board.whites.length, view + visible) - 1];
+    const name = (k) => t('piano.noteOct', { note: t(`piano.note.${k.pc}`), oct: Math.floor(k.midi / 12) - 1 });
+    mapEl.setAttribute('aria-valuemin', '0');
+    mapEl.setAttribute('aria-valuemax', String(board.whites.length - visible));
+    mapEl.setAttribute('aria-valuenow', String(view));
+    if (first && last) mapEl.setAttribute('aria-valuetext', t('piano.mapAt', { from: name(first), to: name(last) }));
+  }
+
+  /** How many coloured keys fit, and the keyboard's width and place for that. */
+  function layoutKeys() {
+    const total = board.whites.length;
+    const portrait = window.innerHeight > window.innerWidth;
+    const avail = $('#piano-view').clientWidth;
+    visible = level === 'small' || !avail ? total : Math.min(total, Math.max(MIN_VISIBLE, Math.floor(avail / MIN_KEY)));
+    const windowed = visible < total;
+    keyW = windowed ? avail / visible : 0;
+    bodyEl.classList.toggle('windowed', windowed);
+    // the gap after the last key falls outside, so key i starts at exactly i * keyW
+    keysEl.style.width = windowed ? `${keyW * total - 2}px` : '';
+    mapEl.hidden = !windowed;
+    $('#piano-turn').hidden = !(windowed && portrait);
+    setView(view, false);
+  }
+
+  /** Show the coloured keys from `v` on (kept on the keyboard). */
+  function setView(v, animate = true) {
+    view = Math.min(Math.max(0, Math.round(v)), board.whites.length - visible);
+    keysEl.classList.toggle('sliding', animate);
+    keysEl.style.transform = keyW ? `translateX(${-view * keyW}px)` : '';
+    const frame = mapEl.querySelector('.piano-map-frame');
+    const n = board.whites.length;
+    frame.style.left = `${(view / n) * 100}%`;
+    frame.style.width = `${(visible / n) * 100}%`;
+    labelMap();
+  }
+
+  /** Playing along (or listening): keep the key to press and the ones after it in sight. */
+  function follow(at) {
+    if (!song || visible >= board.whites.length) return;
+    const spans = song.notes.slice(at, at + 8).map((n) => board.span(n.key));
+    const v = followView(spans, view, visible, board.whites.length);
+    if (v !== view) setView(v);
+  }
+
+  // The map: a finger on it (or a click) moves the window there; fingers on the keys only play.
+  let mapFinger = null;
+  const mapTo = (e) => {
+    const r = mapEl.getBoundingClientRect();
+    setView(((e.clientX - r.left) / r.width) * board.whites.length - visible / 2, false);
+  };
+  mapEl.addEventListener('pointerdown', (e) => {
+    if (overlayUp() || e.button > 0) return;
+    e.preventDefault();
+    mapFinger = e.pointerId;
+    mapEl.setPointerCapture?.(e.pointerId);
+    mapTo(e);
+  });
+  mapEl.addEventListener('pointermove', (e) => e.pointerId === mapFinger && mapTo(e));
+  const mapUp = (e) => {
+    if (e.pointerId === mapFinger) mapFinger = null;
+  };
+  mapEl.addEventListener('pointerup', mapUp);
+  mapEl.addEventListener('pointercancel', mapUp);
+  mapEl.addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, PageUp: -7, PageDown: 7, Home: -99, End: 99 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setView(view + step);
+  });
 
   const keyAt = (x, y) => {
     const el = document.elementFromPoint(x, y)?.closest?.('.pkey');
@@ -107,7 +217,7 @@ export function createPiano(shell) {
   function hit(key, holder, slide) {
     holders.set(holder, key);
     keyEls[key]?.classList.add('down');
-    sfx.pianoNote(keyFrequency(key));
+    sfx.pianoNote(board.frequency(key));
     pressed++;
     if (listen) stopListening();
     if (!song || !run || finishing || run.done) return;
@@ -146,13 +256,17 @@ export function createPiano(shell) {
   function render() {
     const free = !song;
     $('#screen-piano').dataset.mode = free ? 'free' : 'song';
-    $('#piano-sub').textContent = free ? t('games.piano') : t('piano.songs');
+    $('#screen-piano').dataset.level = level;
+    // the 7-10 piano says so above the title (a non-breaking hyphen keeps "7-10" together)
+    const ages = level === 'small' ? null : t('piano.ages', { age: levelById(level).ages.replace('-', '\u2011') });
+    $('#piano-sub').textContent = free ? ages || t('games.piano') : ages ? `${t('piano.songs')} · ${ages}` : t('piano.songs');
     $('#piano-title').textContent = free ? t('piano.free') : t(`piano.song.${song.id}`);
     $('#piano-songs-btn').hidden = !free;
     $('#piano-spacer').hidden = free;
     $('#piano-songbar').hidden = free;
     renderMuted();
     renderListen();
+    layoutKeys();
     renderSong();
   }
 
@@ -175,16 +289,22 @@ export function createPiano(shell) {
     if (!song) return;
     const at = listen ? listen.step : run.index;
     if (!listen && !run.done) keyEls[run.target()]?.classList.add('glow');
+    if (!run.done || listen) follow(Math.min(at, song.notes.length - 1));
     $('#piano-status').textContent = t(listen ? 'piano.listening' : 'piano.prompt');
     const strip = $('#piano-strip');
+    const big = song.level !== 'small';
+    strip.classList.toggle('big', big);
     strip.textContent = '';
     const fit = Math.max(4, Math.floor(((strip.clientWidth || 300) - 20) / 30));
     const from = Math.max(0, Math.min(at - 1, song.notes.length - fit));
     song.notes.slice(from, from + fit).forEach((n, k) => {
       const i = from + k;
       const d = document.createElement('span');
-      d.className = `pnote${i < at ? ' past' : ''}${i === at ? ' now' : ''}${n.beats >= 2 ? ' long' : n.beats < 1 ? ' short' : ''}`;
-      d.style.setProperty('--key', keyById(n.key).color);
+      const key = board.keyById(n.key);
+      d.className = `pnote${i < at ? ' past' : ''}${i === at ? ' now' : ''}${n.beats >= 2 ? ' long' : n.beats < 1 ? ' short' : ''}${key.white ? '' : ' sharp'}`;
+      if (key.white) d.style.setProperty('--key', key.color);
+      // on the 7-10 piano a note sits higher the higher it sounds (middle C low, the top C high)
+      if (big) d.style.setProperty('--lift', `${((72 - key.midi) / 12) * 8}px`);
       strip.appendChild(d);
     });
     strip.setAttribute('aria-label', t('piano.progress', { done: Math.min(run.index, song.notes.length), total: song.notes.length }));
@@ -194,6 +314,27 @@ export function createPiano(shell) {
     const box = $('#piano-songlist');
     box.textContent = '';
     const got = stars();
+    // the age: two big buttons at the top, the one picked filled in
+    const ages = document.createElement('div');
+    ages.className = 'piano-levels';
+    ages.setAttribute('role', 'group');
+    ages.setAttribute('aria-label', t('piano.levels'));
+    for (const l of LEVELS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'piano-level';
+      b.dataset.level = l.id;
+      b.setAttribute('aria-pressed', String(l.id === level));
+      b.textContent = t('piano.ages', { age: l.ages });
+      b.addEventListener('click', () => {
+        if (l.id === level) return;
+        tap();
+        setLevel(l.id);
+        renderSongs();
+      });
+      ages.appendChild(b);
+    }
+    box.appendChild(ages);
     const card = (id, title, sub, isLocked, n) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -208,14 +349,15 @@ export function createPiano(shell) {
       else if (n !== null) end.innerHTML = [0, 1, 2].map((k) => `<svg class="${k < n ? 'on' : ''}" viewBox="0 0 24 24">${STAR}</svg>`).join('');
       return b;
     };
-    const free = card('free', t('piano.free'), t('piano.freeSub'), false, null);
+    const free = card(level === 'small' ? 'free' : 'free-big', t('piano.free'), t(level === 'small' ? 'piano.freeSub' : 'piano.freeSubBig'), false, null);
+    free.dataset.song = 'free';
     free.setAttribute('aria-label', t('piano.free'));
     free.addEventListener('click', () => {
       tap();
       playFree();
     });
     box.appendChild(free);
-    for (const s of SONGS) {
+    for (const s of songsFor(level)) {
       const name = t(`piano.song.${s.id}`);
       const isLocked = locked(s.id);
       const b = card(s.id, name, '', isLocked, got[s.id] || 0);
@@ -237,13 +379,29 @@ export function createPiano(shell) {
     render();
   }
 
+  /** The age picked: its keyboard, kept for next time. */
+  function setLevel(id) {
+    if (id === level || !levelById(id)) return;
+    stopListening();
+    releaseAll();
+    level = id;
+    board = levelById(id).board;
+    view = 0;
+    store.saveGameOption(meta.id, 'level', id);
+    buildKeys();
+    if (onScreen('piano')) render();
+  }
+
+  const lockedLead = (lvl) => t(lvl === 'small' ? 'piano.lockedLead' : 'piano.lockedLeadBig');
+
   function choose(id) {
     const s = songById(id);
     if (!s) return;
     if (locked(id)) {
-      shell.offerUnlock(t('piano.lockedLead'));
+      shell.offerUnlock(lockedLead(s.level));
       return;
     }
+    if (s.level !== level) setLevel(s.level);
     stopListening();
     clearFinish();
     song = s;
@@ -281,7 +439,7 @@ export function createPiano(shell) {
           listen.step = i;
           const el = keyEls[st.key];
           el?.classList.add('lit');
-          sfx.pianoNote(keyFrequency(st.key));
+          sfx.pianoNote(board.frequency(st.key));
           heard++;
           renderSong();
           me.timers.push(setTimeout(() => el?.classList.remove('lit'), st.hold));
@@ -334,14 +492,14 @@ export function createPiano(shell) {
       finishTimer = null;
       if (song !== s || !onScreen('piano')) return;
       sfx.chime();
-      const k = SONGS.indexOf(s);
-      const next = SONGS[k + 1] || null;
+      const list = songsFor(s.level);
+      const next = list[list.indexOf(s) + 1] || null;
       const buttons = [];
       let text = t('piano.winText', { song: t(`piano.song.${s.id}`) });
       if (next && !locked(next.id)) buttons.push([t('piano.next'), 'big primary', () => choose(next.id)]);
       else if (next) {
         text = `${text} ${t('piano.lastFree')}`;
-        buttons.push([t('piano.more'), 'big primary', () => (showSongs(), shell.offerUnlock(t('piano.lockedLead')))]);
+        buttons.push([t('piano.more'), 'big primary', () => (showSongs(), shell.offerUnlock(lockedLead(s.level)))]);
       }
       buttons.push([t('piano.again'), buttons.length ? 'big secondary' : 'big primary', () => choose(s.id)]);
       buttons.push([t('piano.songs'), 'big secondary', showSongs]);
@@ -391,7 +549,11 @@ export function createPiano(shell) {
     if (onScreen('piano-songs')) renderSongs();
     if (onScreen('piano')) render();
   });
-  window.addEventListener('resize', () => onScreen('piano') && song && renderSong());
+  window.addEventListener('resize', () => {
+    if (!onScreen('piano')) return;
+    layoutKeys();
+    if (song) renderSong();
+  });
   // the app goes to the background (home button, a call): the song stops playing itself and no key
   // stays down, like the pause in Bubbels and Slangetje
   document.addEventListener('visibilitychange', () => {
@@ -400,10 +562,12 @@ export function createPiano(shell) {
     releaseAll();
   });
 
-  // A computer keyboard plays too: A S D F G H J K for the coloured keys, W E T Y U for the black.
+  // A computer keyboard plays too: on the toy piano A S D F G H J K for the coloured keys, W E T Y
+  // U for the black; on the 7-10 piano Z to M and Q to I, with the rows above for the black keys.
   document.addEventListener('keydown', (e) => {
     if (!onScreen('piano') || overlayUp() || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-    const key = KEYBOARD_MAP[e.key.toLowerCase()];
+    if (e.target === mapEl) return;
+    const key = board.keymap[e.key.toLowerCase()];
     if (!key) return;
     e.preventDefault();
     sfx.unlock();
@@ -433,6 +597,10 @@ export function createPiano(shell) {
     testHook() {
       return {
         state: () => ({
+          level,
+          keys: board.keys.length,
+          view,
+          visible,
           mode: song ? 'song' : 'free',
           song: song?.id || null,
           index: run ? run.index : null,
@@ -449,6 +617,7 @@ export function createPiano(shell) {
           glow: Object.keys(keyEls).filter((k) => keyEls[k].classList.contains('glow')),
         }),
         choose: (id) => choose(id),
+        setLevel: (id) => setLevel(id),
         free: () => playFree(),
         press: (key) => {
           hit(key, `hook-${key}`, false);

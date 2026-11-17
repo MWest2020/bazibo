@@ -8,6 +8,7 @@
 /* ---------- header ---------- */
 .piano-hud { gap: 10px; }
 .piano-hud .hud-mid { min-width: 0; }
+#piano-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .piano-title { font-size: clamp(1.1rem, 5.4vw, 1.5rem); font-weight: 900; color: var(--primary); line-height: 1.1; }
 .bar-spacer[hidden] { display: none; }
 .btn.piano-pill {
@@ -202,7 +203,96 @@
   .pkey.glow, .pkey.glow .pkey-mark, .pkey.nudge { animation: none; }
 }
 
+/* ---------- the 7-10 piano: two octaves, a window on them when they do not fit ---------- */
+.piano-view { position: relative; flex: 1; min-height: 0; display: flex; }
+.piano-body.windowed .piano-view { overflow: hidden; }
+.piano-body.windowed .piano-keys { flex: none; }
+.piano-body.windowed .piano-top { display: none; }
+.piano-keys.sliding { transition: transform 0.25s ease; }
+@media (prefers-reduced-motion: reduce) { .piano-keys.sliding { transition: none; } }
+/* the black keys a little wider than on the toy piano: songs use them now */
+.piano-body.big .pkey.black {
+  left: calc(var(--slot) * (var(--kw) + var(--gap)) - var(--gap) / 2 - var(--kw) * 0.34);
+  width: calc(var(--kw) * 0.68);
+}
+.pkey-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(43, 35, 112, 0.62);
+  pointer-events: none;
+}
+.piano-body.big .pkey.white .pkey-mark { bottom: 40px; }
+/* the map of the whole keyboard: a finger on it moves the window */
+.piano-map {
+  flex: none;
+  position: relative;
+  height: 40px;
+  margin: 8px 2px 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--primary-dark);
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.piano-map[hidden] { display: none; }
+.piano-map:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.piano-map svg { width: 100%; height: 100%; display: block; }
+.piano-map-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 4px solid #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 0 999px rgba(26, 18, 86, 0.5);
+  transition: left 0.25s ease;
+  pointer-events: none;
+}
+.piano-turn {
+  flex: none;
+  margin: 2px 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.piano-turn[hidden] { display: none; }
+.piano-turn svg { flex: none; width: 26px; height: 26px; color: var(--primary); }
+/* the notes to come: higher on the strip the higher they sound; a black key's note is dark */
+.piano-strip.big { height: 52px; }
+.piano-strip.big .pnote { translate: 0 var(--lift, 0px); }
+.pnote.sharp { background: radial-gradient(circle, #fff 0 26%, var(--ink) 30%); }
+
 /* ---------- the song list ---------- */
+.piano-levels { display: flex; gap: 12px; margin: 0 0 18px; }
+.piano-level {
+  flex: 1;
+  min-height: 60px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 22px;
+  background: #fff;
+  color: var(--primary);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #d6cff7, 0 8px 16px rgba(59, 47, 168, 0.12);
+}
+.piano-level:active { transform: translateY(3px); box-shadow: 0 2px 0 #d6cff7; }
+.piano-level:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.piano-level[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark), 0 8px 16px rgba(59, 47, 168, 0.2); }
 .piano-songlist { max-width: 560px; margin: 0 auto; padding-bottom: 18px; }
 .piano-card {
   width: 100%;
@@ -272,4 +362,7 @@
   .piano-top { height: 18px; }
   .piano-top span { width: 9px; height: 9px; }
   .pkey-mark { bottom: 14px; }
+  .piano-body.big .pkey.white .pkey-mark { bottom: 34px; }
+  .pkey-name { bottom: 10px; }
+  .piano-map { height: 32px; margin: 4px 2px 6px; }
 }
