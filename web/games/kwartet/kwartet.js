@@ -337,7 +337,7 @@ export function createKwartet(shell) {
     if (game.drawing) {
       // a "no": the child takes a card from the pile (the pile glows until it is tapped)
       phase = 'draw';
-      status = about('kwartet.draw', p);
+      status = t('kwartet.drawYou');
       render();
       return;
     }
@@ -420,7 +420,7 @@ export function createKwartet(shell) {
       if (q.target === viewer) leaving = q.card;
     } else {
       sfx.boop();
-      if (r.draw) status = about('kwartet.draw', q.asker);
+      if (r.draw) status = isKid(q.asker) ? t('kwartet.drawYou') : t('kwartet.draw', { name: game.names[q.asker] });
       else status = `${usesPile(game.players) ? `${t('kwartet.pileEmpty')} ` : ''}${turnText(game.turn)}`;
     }
     if (r.laid) {
