@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-15 games for children aged 3 to 10. No ads, no account, no trackers.
+16 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-15 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Telling Time and Letters: play and learn, ages 3 to 10, no ads.
+16 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has fifteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has sixteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -82,6 +82,10 @@ PIANO
 • A toy piano with coloured keys. Play along with a song: the next key lights up. Listen plays the song to you.
 • Ages 4-6: free play and Frère Jacques. Three more songs, like Twinkle, Twinkle, Little Star (full version).
 • Ages 7-10: two octaves with black keys and the whole Ode to Joy. The Turkish March, Für Elise and more (full version).
+
+DRUMS
+• Eight drums and cymbals, two fingers at once too. Play along with a rhythm: after the count-in the next drum lights up.
+• At your own pace for ages 4-6, on the beat for ages 7-10. Free play and Rock; a march, Frère Jacques, a pony gallop and disco (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.

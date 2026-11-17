@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-15 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+16 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-15 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Klok kijken en Letters: spelen en leren, 3-10 jaar. Geen reclame.
+16 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu vijftien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Klok kijken en Letters. Er komen meer spellen bij.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Geen filmpjes tussendoor, geen account. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters. Er komen meer spellen bij.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -84,6 +84,10 @@ PIANO
 • Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op, of luister eerst.
 • 4-6 jaar: vrij spelen en Vader Jacob; nog drie liedjes in de volledige versie.
 • 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
+
+DRUMSTEL
+• Acht trommels en bekkens, ook met twee vingers. Speel mee: de volgende trommel licht op.
+• 4-6 jaar in eigen tempo, 7-10 jaar op de maat. Vrij spelen en Rock; nog vier ritmes (volledige versie).
 
 KLOK KIJKEN
 • Zet de klok op "half drie", of kies hoe laat het is.

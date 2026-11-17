@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -55,6 +55,7 @@ home → Slangetje: a locked level offers only OK on the web, counting level 1 a
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
 home → Tekenen: a real stroke, undo, mirror mode and stamps locked on the web (only OK), done, "my drawings", kept after a reload, clear then undo after the autosave, a 4th drawing offers only OK; in the full version 8 mirror lines (a 45-degree copy, by pixel) against 6, a stamp and 44 px targets at 320x568, 844x390 and 568x320; a locked device with 4 drawings keeps all 4 after clear and undo;
 home → Piano (`tests/smoke.py piano`): a tap sounds (oscillators counted), two fingers hold two keys, a slide plays every key it passes, a black key; a locked song offers only OK on the web and stays on the list; Vader Jacob played along by tapping the glowing key with one wrong key first (the song waits), 3 stars saved and "More songs" (the offer over the list); Listen lights the keys and a tap stops it; the sound setting followed ("Geluid aan" on the piano); the back arrows and the Android back button; the layout at 320x568, 360x740, 568x320, 844x390 (full version, every song open), 390x844 in English and desktop, every key on screen and the coloured keys 44 px from 390 wide, about 42 at 360, 37 at 320; leaving the app stops Listen and lets go of every key; 7-10: the age buttons, its locked songs offer only OK on the web, free play with a window of 8 of the 15 coloured keys, the map and the turn line, the map slid to the top C, the whole Ode played to the end by taps while the window follows (3 stars, "More songs"), the age kept after a reload and back to 4-6; in the full version Für Elise played to the end by taps on 390x844 and 844x390 (all 15 keys in sight, no map) with every lit key of Listen in sight, and the window at 320x568 and 568x320;
+home → Drumstel (`tests/smoke.py drums`): the tile in Creatief, a tap sounds (oscillators counted), two fingers hit two pads at once; a locked rhythm offers only OK on the web and stays on the list; Rock (4-6) played to the end by tapping the glowing pad after Begin and the count-in, with one wrong pad first (the rhythm waits), 3 stars saved and "More rhythms" (the offer over the list); Rock (7-10) played on the beat with two fingers at once (at least 2 stars); Listen lights the pads, and the background stops it, sends a rhythm back to Begin and lets go of every pad; the back arrows and the Android back button; the sound setting followed; the layout at 320x568, 390x844 in English, 844x390 (full version), 568x320 and desktop, every pad on screen, 80 px or more and none overlapping, the strip above the kit;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap, the traced word), a gentle wrong tap, a locked tier stays locked, tier 2 shows the build word for a moment and again on a tap on the picture; the layout at 320x568 and sideways;
 home → Bubbels, 5 shots on
@@ -221,5 +222,19 @@ of their level in `RAW`/`RAW_BIG` with a unique id (stars are per id) and a name
 level (Vader Jacob; the whole Ode to Joy in D, with F#: `meta.freeSongs`); the full version adds
 the other songs (4-6: Kortjakje, Au clair de la lune, Ode to Joy; 7-10: Wilhelmus, In the Hall of
 the Mountain King, the Rondo alla turca opening, Für Elise). Saved: stars per song and the level.
+Drumstel (Drums, id `drums`): the kit, the rhythms and playing along are pure in `web/games/drums/kit.js`
+(tested: 8 pads, two layouts (4x2 wide, 2x4 tall) with big cells; a rhythm is a string of steps
+like `K+H S:.5 .` in whole 4/4 bars; two levels by age: `small` (4-6) one pad at a time, slower,
+in your own pace (the next pad glows on the beat after the count-in but the rhythm waits; only
+the order counts, `starsFor` counts wrong pads only), `big` (7-10) two pads at once too, faster,
+on the beat (a step counts within `WINDOW_MS` of its beat, never past the middle to the next;
+a missed step passes; `timedStars` by the share in time, 0 means "try again" and saves nothing).
+Time is passed in, so the tests play every rhythm without waiting. The sound is synthesised in
+the game's own `sound.js` (its own audio context; no files, no samples), which follows the app's
+sound setting through `audio.js` (`unlock`, `isMuted`, `softClipCurve`); no voice. Pointers are
+handled on the whole kit with pointer capture; keep `touch-action: none` there. New rhythms go at
+the end of their level, public domain only, with a name `drums.rhythm.<id>` in both languages.
+Free: free play and the first rhythm of each level (`meta.freeRhythms`: both rock beats); the full
+version adds the others. Saved: stars per rhythm only.
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.
