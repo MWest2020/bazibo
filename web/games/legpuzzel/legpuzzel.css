@@ -82,6 +82,9 @@
   .puzzel-hud .btn.icon { width: 54px; height: 54px; }
   .puzzel-wrap { padding: 8px 10px 4px 4px; }
   .puzzel-status { font-size: 0.85rem; margin-top: 2px; }
+  /* the end card's picture made it too tall, cutting off Menu (the finished
+     puzzle is visible behind the card anyway) */
+  .puzzel-ov svg { display: none; }
 }
 @media (max-height: 600px) {
   .puzzel-ov svg { width: 120px; height: 90px; }
