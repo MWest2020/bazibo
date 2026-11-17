@@ -15,85 +15,86 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-Games for children aged 3 to 10. No ads, no account, no trackers.
+15 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Game of the Goose, Snake, Colouring, Drawing, Telling Time and Letters: ages 3 to 10, no ads.
+15 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Telling Time and Letters: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
-bubble shooter,sudoku,four in a row,snake,counting,colouring,mandala,drawing,puzzle,kids,no ads
+jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time,bubble shooter
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has eleven games now: Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Checkers, Game of the Goose, Snake, Colouring, Drawing, Telling Time and Letters. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. No videos in between, no account. It has fifteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Telling Time and Letters. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
 BUBBLE SHOOTER
-• Drag to aim and let go to shoot.
-• Three of the same colour pop.
-• 30 levels.
+• Drag to aim and let go: three of the same colour pop. 30 levels.
 
 DOGUDOKU: HIDE THE PUPPIES
 • One puppy per row and column, and puppies may not touch, not even diagonally.
-• For the youngest (age 3 and up): a 4 by 4 garden with bushes, no reading needed.
-• From age 5, coloured beds join in: one puppy per colour.
-• 60 puzzles, each with one solution. A hint helps.
+• From a 4 by 4 garden for the youngest to coloured beds from age 5. 60 puzzles.
 
 PICTUREDOKU: SUDOKU WITH PICTURES
-• Every picture goes once in every row, every column and every box.
-• For the youngest (age 3 and up): 4 by 4 with fruit pictures, no numbers, no reading.
-• From age 6, 6 by 6; from age 8, 9 by 9. Older children can choose numbers instead of pictures.
-• 60 puzzles, each with one solution.
+• From age 3: 4 by 4 with fruit, no numbers and no reading.
+• From age 6, 6 by 6; from age 8, 9 by 9, with numbers if you like. 60 puzzles.
 
-FOUR IN A ROW: TOGETHER OR AGAINST THE COMPUTER
-• Take turns dropping a token: the first to get four in a row wins.
-• Together on one screen, or against the computer: Easy, Medium or Hard (full version). Easy makes mistakes on purpose.
-• For the youngest (age 3 and up): the little 5 by 4 board, where three in a row wins.
+PAIRS
+• Turn over two cards and find the pairs. On your own, together, or against a kind computer that sometimes forgets.
+• 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
+
+JIGSAW
+• Drag the pieces to their places; close by, they snap in. From age 3.
+• 4, 6 and 9 pieces with three pictures. 12, 20 and 30 pieces and five more pictures (full version).
+
+FOUR IN A ROW
+• Together on one screen or against the computer; Hard in the full version.
+• For the youngest: the little board, where three in a row wins.
 
 CHECKERS
-• Tap a piece, then a dot; pieces that must jump glow softly. Puppy against kitten, or classic.
-• Together or against the computer on 8 by 8. A smarter computer and the international 10 by 10 board (full version).
+• Puppy against kitten, or classic; pieces that must jump glow softly.
+• Together or against the computer on 8 by 8. A smarter computer and 10 by 10 (full version).
 
 GAME OF THE GOOSE
-• Our own board with the classic squares, from the goose to the well. Land exactly on 63!
-• Count yourself: your child taps every square. Together or against a computer goose; up to four players and winter and sea boards (full version).
+• Our own board with the classic squares. Your child counts by tapping every square.
+• Together or against a computer goose. Up to four players and winter and sea boards (full version).
+
+QUARTETS
+• Ask for the cards you are missing (big buttons with a picture) and lay down your sets of four.
+• Against the computer or together on one phone. 4 sets; 6 and 8 sets and a 4th player (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
-• Counting: eat the numbers in order, up to 20.
-• Letters: eat the letters of a word that comes with a picture, like SUN, FISH and APPLE.
-• Colours: eat only the fruit of the right colour; every colour also has its own shape.
+• Eat the numbers in order, the letters of a word, or only the fruit of the right colour.
 • 30 levels; a mistake is never game over.
 
 COLOURING PAGES AND MANDALAS
-• Pick a colour and tap a part: done. No reading needed.
-• For the youngest (age 3 and up): 13 pictures, from a sun to an elephant.
-• From age 7: mandalas.
+• Pick a colour and tap a part: done. 13 pictures from age 3, mandalas from age 7.
 
 DRAWING
-• Draw with a finger; mirror mode makes every stroke a mandala (full version).
+• Draw with a finger, with every colour, an eraser and undo.
+• Mirror mode (every stroke a mandala), stamps and up to 100 drawings (full version).
+
+PIANO
+• A toy piano with coloured keys. Play along with a song: the next key lights up. Listen plays the song to you.
+• Free play and Frère Jacques. Three more songs, like Twinkle, Twinkle, Little Star (full version).
 
 TELLING TIME
 • Set the clock to "half past two", or pick what time it is.
-• Daily rhythm for the youngest: breakfast, school, bedtime.
-• From whole hours to single minutes and the 24-hour clock.
+• From a daily rhythm for the youngest to single minutes and the 24-hour clock.
 
 LETTERS
-• Tap the letter: find the same letter, a capital with its small letter too.
-• First letter: which letter is missing from the word under the picture?
-• Build a word: copy it first, then from memory; small or capital letters.
+• Find the same letter, the first letter of a pictured word, and build a word.
 
 MADE FOR CHILDREN
-• Colours each have their own symbol or pattern, so colour-blind children can play too.
-• Big buttons, short texts, in English or Dutch.
-• Works without internet.
+• Every colour has its own symbol or pattern, so colour-blind children can play too.
+• Big buttons, short texts, in English or Dutch. Works without internet.
 
 NO ADS, EVER
-• No adverts, not even in the free part.
-• No account and no trackers: the app collects nothing.
-• Every game has a free part to really play: for example levels 1 to 10 in Bubble Shooter, 10 puzzles in Dogudoku and in Picturedoku, playing together in Four in a Row, Checkers and Game of the Goose, 6 colouring pages and 3 kept drawings. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
+• No adverts, no account and no trackers: the app collects nothing.
+• Every game has a free part to really play, like levels 1 to 10 in Bubble Shooter and 10 puzzles in Dogudoku and Picturedoku. Paying once opens everything, in every game, including later ones, plus endless new puzzles, mandalas and rounds. No subscription. Buying is only possible after a question for parents.
 
 Privacy policy: https://bazibo.nl/en/privacy/
 Terms: https://bazibo.nl/en/terms/
@@ -109,7 +110,7 @@ Source code (MIT): https://github.com/MWest2020/bazibo
 
 ## Category and contact
 
-- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter, Puzzle, Board game. App Store: primary
+- Play: Games › Educational (or Games › Puzzle); tags: Kids, Bubble shooter, Puzzle, Board game, Card game. App Store: primary
   Games › Family, secondary Education; Kids category: see `forms.md`.
 - Contact email: hallo@bazibo.nl
 - Website: https://bazibo.nl/
