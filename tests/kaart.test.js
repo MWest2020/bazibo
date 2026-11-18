@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import { PACKS, PACK_IDS, COUNTRY_IDS, FREE_PACK, defaultCountry, menuPacks, loadPack } from '../web/games/kaart/packs.js';
-import { parsePath, shapeOf, insideRings, hitRegion, hitPoint, snaps, snapDistance, fitMap, zoomFor, SNAP_PX } from '../web/games/kaart/map.js';
+import { parsePath, shapeOf, insideRings, edgeDistance, hitRegion, hitPoint, snaps, snapDistance, fiddly, fitMap, zoomFor, FIDDLY_PX } from '../web/games/kaart/map.js';
 import { TIER_IDS, TIERS, CHUNK, KINDS, roundsOf, makeRound, roundId, parseRoundId, nextRound, starsFor, chunkSizes, sameNameAsRegion } from '../web/games/kaart/rounds.js';
 import { meta } from '../web/games/kaart/meta.js';
 import { tileSvg, howSvg } from '../web/games/kaart/art.js';
@@ -114,13 +114,59 @@ test('kaart: a tap on a region centre picks that region, on a 320 px phone, zoom
   }
 });
 
-test('kaart: a small region is picked a little off its centre; open sea far from land picks nothing', () => {
+test('kaart: a tap 8 px inside any border picks the region it is in (no small neighbour steals it)', () => {
+  for (const pack of Object.values(packs)) {
+    const s = phone(pack);
+    for (const scale of [s, s * zoomFor(pack, s), desktop(pack)]) {
+      const r = FINGER / scale;
+      const inset = 8 / scale;
+      let checked = 0;
+      for (const g of pack.regions) {
+        const { rings } = shapeOf(g);
+        for (const ring of rings) {
+          const step = Math.max(1, Math.floor(ring.length / 40));
+          for (let i = 0; i < ring.length; i += step) {
+            const [ax, ay] = ring[i];
+            const [bx, by] = ring[(i + 1) % ring.length];
+            const len = Math.hypot(bx - ax, by - ay);
+            if (!len) continue;
+            const mx = (ax + bx) / 2;
+            const my = (ay + by) / 2;
+            for (const k of [1, -1]) {
+              const x = mx + (k * -(by - ay) / len) * inset;
+              const y = my + (k * (bx - ax) / len) * inset;
+              if (!insideRings(rings, x, y) || edgeDistance(rings, x, y) < inset * 0.94) continue;
+              checked++;
+              assert.equal(hitRegion(pack, x, y, r)?.id, g.id, `${pack.id}: 8 px inside ${g.id} at (${x.toFixed(1)}, ${y.toFixed(1)}), ${scale.toFixed(2)} px a unit`);
+            }
+          }
+        }
+      }
+      assert.ok(checked >= 10, `${pack.id}: only ${checked} points checked`);
+    }
+  }
+});
+
+test('kaart: a small region is picked by a tap on or right by it; open sea far from land picks nothing', () => {
   const us = packs.us;
   const s = phone(us);
   const r = FINGER / s;
   const ri = us.regions.find((g) => g.id === 'RI');
   assert.ok(shapeOf(ri).size < 2 * r, 'Rhode Island is smaller than a finger on a phone');
-  assert.equal(hitRegion(us, ri.c[0] + r * 0.3, ri.c[1] + r * 0.2, r)?.id, 'RI');
+  assert.equal(hitRegion(us, ri.c[0], ri.c[1], r)?.id, 'RI');
+  // just outside its outline (in the sea or a neighbour), a few px away
+  // in the sea a few px off its coast (nearer to it than to any other state)
+  let sea = null;
+  for (let a = 0; a < 360 && !sea; a += 5) {
+    for (let k = 0; k < 160 && !sea; k++) {
+      const x = ri.c[0] + Math.cos((a * Math.PI) / 180) * k * 0.25;
+      const y = ri.c[1] + Math.sin((a * Math.PI) / 180) * k * 0.25;
+      const d = edgeDistance(shapeOf(ri).rings, x, y);
+      if (d * s > 2 && d * s < 4 && !us.regions.some((g) => insideRings(shapeOf(g).rings, x, y)) && us.regions.every((g) => g === ri || edgeDistance(shapeOf(g).rings, x, y) > d)) sea = [x, y];
+    }
+  }
+  assert.ok(sea, 'a sea point by Rhode Island');
+  assert.equal(hitRegion(us, sea[0], sea[1], r)?.id, 'RI');
   assert.equal(hitRegion(us, 2, 2, FINGER / desktop(us)), null);
   // `among`: only the round's empty places count
   const tx = us.regions.find((g) => g.id === 'TX');
@@ -138,21 +184,35 @@ test('kaart: a capital tap picks the nearest dot; an ocean tap picks by the wate
   for (const g of w.regions) assert.equal(hitPoint(w, g.c[0], g.c[1], 5), null, `continents: ${g.id} is land`);
 });
 
-test('kaart: a piece snaps near its own place only, never on another region\'s place', () => {
+test('kaart: a piece snaps near its own place only, never on another region\'s centre, at any scale', () => {
   for (const pack of Object.values(packs)) {
-    const s = desktop(pack);
-    for (const g of pack.regions) {
-      assert.ok(snaps(pack, g, g.c[0], g.c[1], s));
-      const d = snapDistance(pack, g, s);
-      assert.ok(d >= SNAP_PX / s - 1e-9);
-      assert.ok(!snaps(pack, g, g.c[0] + d * 1.01, g.c[1], s), `${pack.id} ${g.id}: snaps too far away`);
-      for (const o of pack.regions) {
-        if (o === g) continue;
-        const near = Math.hypot(o.c[0] - g.c[0], o.c[1] - g.c[1]) <= d;
-        if (near) assert.ok(shapeOf(g).size * s < 2 * SNAP_PX || shapeOf(o).size * s < 2 * SNAP_PX, `${pack.id}: ${g.id} snaps on ${o.id}'s place`);
+    const p = phone(pack);
+    for (const s of [p, p * zoomFor(pack, p), desktop(pack), desktop(pack) * 3]) {
+      for (const g of pack.regions) {
+        assert.ok(snaps(pack, g, g.c[0], g.c[1], s));
+        const d = snapDistance(pack, g, s);
+        const [fx, fy] = [g.c[0] + d * 1.01, g.c[1]];
+        if (!insideRings(shapeOf(g).rings, fx, fy)) assert.ok(!snaps(pack, g, fx, fy, s), `${pack.id} ${g.id}: snaps too far away`);
+        for (const o of pack.regions) if (o !== g) assert.ok(!snaps(pack, g, o.c[0], o.c[1], s), `${pack.id}: ${g.id} snaps on ${o.id}'s centre at ${s.toFixed(2)}`);
       }
     }
   }
+});
+
+test('kaart: puzzles with pieces too fiddly for a phone start with the magnifier (Europe, the US), never the Dutch map', () => {
+  for (const id of ['nl', 'continents', 'uk']) {
+    const pack = packs[id];
+    assert.ok(!fiddly(pack, pack.regions.map((g) => g.id), phone(pack)), `${id} is fiddly on a phone`);
+  }
+  for (const id of ['europe', 'us']) {
+    const pack = packs[id];
+    const s = phone(pack);
+    assert.ok(fiddly(pack, pack.regions.map((g) => g.id), s), `${id} is not fiddly on a phone`);
+    // with the magnifier on, every piece has room for a finger
+    // with the magnifier on, every piece snaps from at least 5 px around its centre (and anywhere inside its outline)
+    for (const g of pack.regions) assert.ok(snapDistance(pack, g, s * zoomFor(pack, s)) * s * zoomFor(pack, s) >= 5, `${id} ${g.id} still fiddly with the magnifier`);
+  }
+  assert.ok(!fiddly(packs.europe, roundsOf(packs.europe, 't1')[0].items, desktop(packs.europe)), 'Europe round 1 on desktop');
 });
 
 test('kaart: the magnifier only where regions are smaller than a finger on a phone', () => {
@@ -254,14 +314,13 @@ test('kaart: free are the whole Continents pack and tier 1 of every pack; the pu
   assert.equal(meta.group, 'learning');
 });
 
-test('kaart: the own country follows the device language, and nobody else gets one', () => {
+test('kaart: the own country follows the device language exactly (nl-NL or nl, en-US, en-GB), and nobody else gets one', () => {
   assert.equal(defaultCountry('nl-NL'), 'nl');
-  assert.equal(defaultCountry('nl-BE'), 'nl');
   assert.equal(defaultCountry('nl'), 'nl');
   assert.equal(defaultCountry('en-US'), 'us');
   assert.equal(defaultCountry('en_US'), 'us');
   assert.equal(defaultCountry('en-GB'), 'uk');
-  for (const tag of ['en', 'en-AU', 'en-IE', 'de-DE', 'fr', 'fa-IR', '', undefined, null]) assert.equal(defaultCountry(tag), null, String(tag));
+  for (const tag of ['nl-BE', 'nl-SR', 'en', 'en-AU', 'en-IE', 'de-DE', 'fr', 'fa-IR', '', undefined, null]) assert.equal(defaultCountry(tag), null, String(tag));
   assert.deepEqual(menuPacks('nl'), ['continents', 'europe', 'nl']);
   assert.deepEqual(menuPacks(null), ['continents', 'europe']);
   assert.deepEqual(menuPacks('xx'), ['continents', 'europe']);

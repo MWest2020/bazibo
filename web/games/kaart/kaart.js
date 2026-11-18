@@ -16,7 +16,7 @@
 import { meta } from './meta.js';
 import { PACK_IDS, COUNTRY_IDS, FREE_PACK, packInfo, defaultCountry, menuPacks, loadPack } from './packs.js';
 import { TIERS, TIER_IDS, MAX_TRIES, roundsOf, makeRound, roundId, parseRoundId, nextRound, starsFor, sameNameAsRegion } from './rounds.js';
-import { shapeOf, hitRegion, hitPoint, snaps, fitMap, zoomFor } from './map.js';
+import { shapeOf, hitRegion, hitPoint, snaps, fitMap, zoomFor, fiddly } from './map.js';
 import { clampPan, zoomAround } from '../legpuzzel/rules.js';
 import { howSvg } from './art.js';
 import { addStrings, getLang } from '../../js/i18n.js';
@@ -274,6 +274,16 @@ export function createKaart(shell) {
     shell.show('kaart');
     buildMap();
     render();
+    // pieces too small to drop well at this size (Europe, the US on a phone): the magnifier is on
+    // from the start (with the borders; a zoomed map without them
+    // would be one plain colour, so there the child zooms when they want)
+    if (geo && game.kind === 'puzzle' && game.lines && view.max > 1 && fiddly(game.pack, game.items, geo.s)) {
+      // the first such piece's place in the middle (the child pans for the others)
+      const first = game.items.map(region).find((g) => fiddly(game.pack, [g.id], geo.s));
+      setZoom(true);
+      view.at = clampPan({ x: geo.w / 2 - view.z * (geo.ox + geo.s * first.c[0]), y: geo.h / 2 - view.z * (geo.oy + geo.s * first.c[1]) }, geo.w, geo.h, view.z);
+      applyView();
+    }
     if (!seenHow()[game.kind]) {
       shell.showOverlay({
         art: `<span class="km-ov">${howSvg()}</span>`,
@@ -759,8 +769,11 @@ export function createKaart(shell) {
     if (game.kind === 'puzzle') {
       // a picked piece goes where the tap is (as if dropped there)
       if (game.selected) {
-        const r = mapbox.getBoundingClientRect();
-        dropAt(game.selected, bx + r.left, by + r.top);
+        // its place under the tap (small places within a finger): placed; another empty place: not there
+        const open = game.items.filter((x) => !game.placed.includes(x));
+        const g = hitRegion(game.pack, wx, wy, reach, open);
+        if (g?.id === game.selected) place(g.id);
+        else if (g) wrong(game.selected, g.id);
         return;
       }
       const g = hitRegion(game.pack, wx, wy, reach);

@@ -5604,8 +5604,8 @@ def kaart_flow(browser, base, problems):
     finger), one by tap-tap; 2 stars saved; the next round, back and "keep playing"; the end of the
     free part offers only OK; "Waar ligt...?" on the free continents with two wrong taps (the right
     one glows, no more mistakes after that); "Ander land" picks the United States (kept after a
-    reload); an en-US device starts on the United States, en-GB on the United Kingdom and de-DE
-    on no country at all. Nothing from outside, nothing spoken."""
+    reload); an en-US device starts on the United States, en-GB on the United Kingdom, nl-BE and
+    de-DE on no country at all. Nothing from outside, nothing spoken."""
     ctx = km_context(browser, 390, 844)
     page = ctx.new_page()
     cdp = ctx.new_cdp_session(page)
@@ -5797,6 +5797,7 @@ def kaart_flow(browser, base, problems):
     # the device language picks the first country (and nobody else is pushed one)
     for locale, want_country, want_packs in (("en-US", "us", ["Continents", "Europe", "United States", "Other country…"]),
                                             ("en-GB", "uk", ["Continents", "Europe", "United Kingdom", "Other country…"]),
+                                            ("nl-BE", None, ["Werelddelen", "Europa", "Ander land…"]),
                                             ("de-DE", None, ["Werelddelen", "Europa", "Ander land…"])):
         ctx = km_context(browser, 390, 844, locale=locale)
         page = ctx.new_page()
@@ -5879,6 +5880,20 @@ def kaart_layouts(browser, base, problems):
                 page.screenshot(path=str(SHOTS / f"kaart-{rid}-zoom-{w}x{h}.png"))
                 page.locator("#kaart-zoom").tap()
             page.screenshot(path=str(SHOTS / f"kaart-{rid}-{w}x{h}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(100)
+        if w == 320:
+            # the smallest states with the borders: the magnifier is on from the start, around them
+            page.evaluate("window.__bubbels.kaart.start('us-t1-7')")
+            page.wait_for_timeout(300)
+            v = page.evaluate("window.__bubbels.kaart.view()")
+            if v["z"] <= 1:
+                problems.append(f"kaart 320x568 us-t1-7: the smallest states do not start with the magnifier ({v})")
+            for rid in km_state(page)["items"][:2]:
+                t = km_target(page, rid)
+                if not (0 <= t["x"] <= w and 0 <= t["y"] <= h):
+                    problems.append(f"kaart 320x568 us-t1-7: the place of {rid} is out of the zoomed view ({t})")
+            page.screenshot(path=str(SHOTS / "kaart-us-t1-7-zoom-320x568.png"))
             page.evaluate("window.__bubbels.back()")
             page.wait_for_timeout(100)
         if errors:

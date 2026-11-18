@@ -10,7 +10,7 @@
 export const PACKS = Object.freeze([
   Object.freeze({ id: 'continents', kind: 'world', silhouette: false }),
   Object.freeze({ id: 'europe', kind: 'world', silhouette: true }),
-  Object.freeze({ id: 'nl', kind: 'country', locales: Object.freeze(['nl']), silhouette: true }),
+  Object.freeze({ id: 'nl', kind: 'country', locales: Object.freeze(['nl', 'nl-NL']), silhouette: true }),
   Object.freeze({ id: 'us', kind: 'country', locales: Object.freeze(['en-US']), silhouette: true }),
   Object.freeze({ id: 'uk', kind: 'country', locales: Object.freeze(['en-GB']), silhouette: true }),
 ]);
@@ -21,17 +21,17 @@ export const packInfo = (id) => PACKS.find((p) => p.id === id) || null;
 export const FREE_PACK = 'continents';
 
 /**
- * The country pack for the device's language (navigator.language): by language and region
- * ("en-US", "en-GB") or by language alone ("nl", so nl-BE too). Anything else, English without a
- * region we know (en-AU, plain "en") included, gets none: better no country than the wrong one.
+ * The country pack for the device's language (navigator.language), by an exact tag: "nl-NL" or
+ * plain "nl" for the Netherlands, "en-US", "en-GB". Anything else gets none, Flemish Dutch
+ * (nl-BE) and English without a region we know (en-AU, plain "en") too: better no country than the
+ * wrong one.
  */
 export function defaultCountry(tag) {
-  const t = String(tag || '').replace('_', '-').toLowerCase();
-  const lang = t.split('-')[0];
-  if (!lang) return null;
+  const t = String(tag || '').replace(/_/g, '-').toLowerCase();
+  if (!t) return null;
   for (const p of PACKS) {
     if (p.kind !== 'country') continue;
-    if (p.locales.some((l) => (l.includes('-') ? t === l.toLowerCase() || t.startsWith(`${l.toLowerCase()}-`) : lang === l))) return p.id;
+    if (p.locales.some((l) => t === l.toLowerCase() || (l.includes('-') && t.startsWith(`${l.toLowerCase()}-`)))) return p.id;
   }
   return null;
 }

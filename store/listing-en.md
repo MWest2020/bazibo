@@ -90,7 +90,7 @@ TELLING TIME
 • From a daily rhythm for the youngest to single minutes and the 24-hour clock.
 
 LETTERS
-• Find the same letter among look-alikes (b and d, m and n), the first or a middle letter of a pictured word, and build a word.
+• Find the same letter among look-alikes, the first or a middle letter of a pictured word, and build a word.
 
 LITTLE HEDGEHOG
 • A hedgehog in a garden maze picks up the alphabet, a word or numbers in order.
@@ -99,7 +99,7 @@ KANGAROO HOPS
 • Adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 (full version).
 
 MAP PUZZLE
-• Piece together the continents, Europe or your own country, and find where places are. Continents free, and every map's puzzle.
+• Piece together the continents, Europe, the Netherlands, the US or the UK, and find places. Free: the continents, and every puzzle with borders.
 
 MADE FOR CHILDREN
 • Every colour has its own symbol or pattern, so colour-blind children can play too.

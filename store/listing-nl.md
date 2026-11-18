@@ -80,7 +80,7 @@ TEKENEN
 • Spiegelen (elke streep wordt een mandala), stempels en tot 100 tekeningen (volledige versie).
 
 PIANO
-• Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op.
+• Speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op.
 • 4-6 jaar: Vader Jacob; nog drie liedjes (volledige versie).
 • 7-10 jaar: twee octaven en de Ode aan de vreugde; Für Elise en meer (volledige versie).
 
@@ -101,7 +101,7 @@ KANGOEROE OP DE GETALLENLIJN
 • Plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 (volledige versie).
 
 KAARTPUZZEL
-• Leg de werelddelen, Europa of je eigen land en zoek waar iets ligt. Werelddelen gratis, en van elke kaart het leggen.
+• Leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: de werelddelen, en leggen met lijnen.
 
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
