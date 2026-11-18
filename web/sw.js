@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-57c2bc14d7';
+const VERSION = 'bubbels-11fca78514';
 const ASSETS = [
   './',
   'index.html',
@@ -146,6 +146,13 @@ const ASSETS = [
   'games/kangoeroe/kangoeroe.js',
   'games/kangoeroe/meta.js',
   'games/kangoeroe/strings.js',
+  'games/doolhof/art.js',
+  'games/doolhof/doolhof.css',
+  'games/doolhof/doolhof.js',
+  'games/doolhof/maze.js',
+  'games/doolhof/meta.js',
+  'games/doolhof/rules.js',
+  'games/doolhof/strings.js',
   'games/piano/art.js',
   'games/piano/meta.js',
   'games/piano/piano.css',

@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -2225,6 +2225,235 @@ def letters_play(browser, base, problems):
 
 
 # ---------- Dammen ----------
+
+DH_KEYS = {"up": "ArrowUp", "down": "ArrowDown", "left": "ArrowLeft", "right": "ArrowRight"}
+
+
+def dh_state(page):
+    return page.evaluate("window.__bubbels.doolhof.state()")
+
+
+def dh_idle(page, timeout=6000):
+    """Wait until the hedgehog stands still (not walking, not curled up)."""
+    page.wait_for_function("(() => { const s = window.__bubbels.doolhof.state(); return s && (s.done || (!s.walking && !s.curled)); })()", timeout=timeout)
+    return dh_state(page)
+
+
+def dh_play_to_end(page, label, problems, swipe_first=False):
+    """Play the round on screen to its end by real input: the hook's guide says which way, the arrow
+    pad, the arrow keys (and one swipe) walk the hedgehog, the crows keep walking."""
+    for k in range(400):
+        st = dh_idle(page)
+        if st["done"]:
+            break
+        d = page.evaluate("window.__bubbels.doolhof.autopilot()")
+        if not d:
+            problems.append(f"{label}: no way to {st['expected']}")
+            break
+        if swipe_first and k == 0:
+            b = page.locator("#doolhof-board").bounding_box()
+            x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+            dx, dy = {"up": (0, -60), "down": (0, 60), "left": (-60, 0), "right": (60, 0)}[d]
+            page.mouse.move(x, y)
+            page.mouse.down()
+            page.mouse.move(x + dx, y + dy, steps=5)
+            page.mouse.up()
+        elif k % 2:
+            page.keyboard.press(DH_KEYS[d])
+        else:
+            page.click(f"#doolhof-pad [data-dir={d}]")
+        page.wait_for_timeout(120)
+    st = dh_state(page)
+    if not st["done"]:
+        problems.append(f"{label}: the round did not end ({st['i']}/{st['total']})")
+    return st
+
+
+def dh_fits(page, w, h, label, problems):
+    """The panel, the garden and the arrows on screen, the arrows 48 px or more, no sideways scroll."""
+    for sel in ("#doolhof-target", "#doolhof-canvas", "#doolhof-pad"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"{label}: {sel} off screen ({r})")
+    for k in range(4):
+        r = page.locator("#doolhof-pad .pad-btn").nth(k).bounding_box()
+        if r["width"] < 48 or r["height"] < 48:
+            problems.append(f"{label}: an arrow is only {r['width']:.0f}x{r['height']:.0f} px")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"{label}: sideways scroll")
+    st = dh_state(page)
+    if st["glyph"] < 14:
+        problems.append(f"{label}: letters only {st['glyph']:.0f} px on a {st['cell']} px cell")
+    canvas = page.locator("#doolhof-canvas").bounding_box()
+    if min(canvas["width"], canvas["height"]) < 150:
+        problems.append(f"{label}: the garden is only {canvas['width']:.0f}x{canvas['height']:.0f} px")
+
+
+def doolhof_play(browser, base, problems):
+    """Egeltje (Little Hedgehog): the tile in Leren, a locked tier offers only OK on the web; the
+    alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a
+    wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (curled up,
+    rolled back, nothing lost); the waiting garden draws no frames; back + keep playing; the Android
+    back button; the end of the free part offers only OK and lands on the list; no voice; the layout
+    at 390x844 (Dutch and English), 320x568, 844x390, 568x320 and desktop."""
+    title = {"nl": "Egeltje", "en": "Little Hedgehog"}
+    group = {"nl": "Leren", "en": "Learning"}
+    for lang, w, h, full in (("nl", 390, 844, True), ("en", 390, 844, False), ("nl", 320, 568, False), ("en", 844, 390, False), ("nl", 568, 320, False), ("en", 1280, 800, False)):
+        label = f"doolhof {w}x{h} {lang}"
+        mobile = w < 1000
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if lang == "en" else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        page = ctx.new_page()
+        errors, requests = [], []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("request", lambda r: requests.append(r.url))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if page.inner_text("#tile-doolhof .tile-name").strip() != title[lang]:
+            problems.append(f"{label}: the tile says {page.inner_text('#tile-doolhof .tile-name')!r}")
+        heading = page.evaluate("document.querySelector('#tile-doolhof').closest('.tile-group').querySelector('.group-name').textContent")
+        if heading.strip() != group[lang]:
+            problems.append(f"{label}: the tile is in {heading!r}, not with Letters")
+        if w == 390 and lang == "nl":
+            page.locator("#tile-doolhof").scroll_into_view_if_needed()
+            page.locator("#tile-doolhof").screenshot(path=str(SHOTS / "doolhof-tile.png"))
+        page.click("#tile-doolhof")
+        page.wait_for_timeout(200)
+        if page.locator(".doolhof-modecard").count() != 3:
+            problems.append(f"{label}: {page.locator('.doolhof-modecard').count()} kinds of round")
+        page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-menu.png"))
+        page.click(".doolhof-modecard[data-mode=abc]")
+        page.wait_for_timeout(200)
+        page.click(".level-btn[data-round='abc-t2-1']")
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != [TEXT[lang]["ok"]]:
+            problems.append(f"{label}: a locked round offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+        page.click(".level-btn[data-round='abc-t1-1']")
+        page.wait_for_selector("#screen-doolhof.active")
+        if not close_card_if_any(page, 2000):
+            problems.append(f"{label}: no how-to card the first time")
+        page.wait_for_timeout(250)
+        dh_fits(page, w, h, label, problems)
+        page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-abc.png"))
+        if page.locator("audio").count():
+            problems.append(f"{label}: an audio element (no voice in this game)")
+        if not full:
+            for rid in ("word-t1-1", "count-t1-1"):
+                page.evaluate(f"window.__bubbels.doolhof.start('{rid}')")
+                page.wait_for_timeout(200)
+                close_card_if_any(page)
+                dh_fits(page, w, h, f"{label} {rid}", problems)
+                page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-{rid.split('-')[0]}.png"))
+            if errors:
+                problems.append(f"{label}: page errors {errors}")
+            ctx.close()
+            continue
+
+        # waiting for the first step: no animation frames, the crows stand still
+        page.evaluate("""(() => { window.__raf = 0; const o = window.requestAnimationFrame.bind(window);
+            window.requestAnimationFrame = (f) => { window.__raf++; return o(f); }; })()""")
+        crows = dh_state(page)["crows"]
+        page.wait_for_timeout(1000)
+        if page.evaluate("window.__raf") > 3:
+            problems.append(f"{label}: {page.evaluate('window.__raf')} frames in 1 s while the garden waits")
+        if dh_state(page)["crows"] != crows:
+            problems.append(f"{label}: the crows walked before the first step")
+
+        # a wrong letter: a bump, it stays, one mistake
+        d = None
+        for _ in range(6):  # a wrong tile next to the hedgehog where it fits (else a step on first)
+            d = page.evaluate("window.__bubbels.doolhof.wrongBeside()")
+            if d:
+                break
+            page.click(f"#doolhof-pad [data-dir={page.evaluate('window.__bubbels.doolhof.autopilot()')}]")
+            dh_idle(page)
+        before = dh_state(page)
+        page.click(f"#doolhof-pad [data-dir={d}]")
+        st = dh_idle(page)
+        if st["hog"] != before["hog"] or st["mistakes"] != 1 or len(st["tiles"]) != len(before["tiles"]) or st["i"] != before["i"]:
+            problems.append(f"{label}: a wrong letter was not a soft bump: {before} -> {st}")
+        page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-wrong.png"))
+
+        # a crow: walked into it by an arrow key, curled up and rolled back, the crow flies off
+        page.evaluate("window.__bubbels.doolhof.freeze(true)")
+        d = page.evaluate("window.__bubbels.doolhof.crowBeside()")
+        before = dh_state(page)
+        page.keyboard.press(DH_KEYS[d])
+        page.wait_for_timeout(350)
+        st = dh_state(page)
+        page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-crow.png"))
+        if not st["curled"] or st["touches"] != 1 or st["i"] != before["i"] or st["mistakes"] != before["mistakes"] or len(st["tiles"]) != len(before["tiles"]):
+            problems.append(f"{label}: a crow did not curl the hedgehog up gently: {st}")
+        if st["crows"][0] == before["crows"][0]:
+            problems.append(f"{label}: the crow did not fly off")
+        st = dh_idle(page)
+        if st["curled"]:
+            problems.append(f"{label}: the hedgehog stayed curled up")
+        page.evaluate("window.__bubbels.doolhof.freeze(false)")
+
+        # the rest of the round by real input, crows walking
+        st = dh_play_to_end(page, label, problems, swipe_first=True)
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-win.png"))
+        got = page.evaluate("window.__bubbels.doolhof.stars()")
+        if got.get("abc-t1-1") != 2:
+            problems.append(f"{label}: one wrong letter should save 2 stars, saved {got}")
+        page.click(f"#ov-buttons button >> nth=-1")  # Rounds
+        page.wait_for_timeout(200)
+
+        # back + keep playing: the garden waits for the next step; the Android back button
+        page.click(".level-btn[data-round='abc-t1-2']")
+        page.wait_for_selector("#screen-doolhof.active")
+        dh_idle(page)
+        d = page.evaluate("window.__bubbels.doolhof.autopilot()")
+        page.click(f"#doolhof-pad [data-dir={d}]")
+        page.wait_for_timeout(300)
+        page.click("#doolhof-back")
+        page.wait_for_timeout(200)
+        if not page.is_visible("#doolhof-continue") or page.inner_text("#doolhof-continue").strip() != TEXT[lang]["keep"]:
+            problems.append(f"{label}: no 'keep playing' for an unfinished round")
+        page.click("#doolhof-continue")
+        page.wait_for_timeout(300)
+        a = dh_state(page)
+        page.wait_for_timeout(1300)
+        b = dh_state(page)
+        if a["started"] or a["crows"] != b["crows"] or a["hog"] != b["hog"]:
+            problems.append(f"{label}: after 'keep playing' something moved before a step")
+        page.evaluate("window.__bubbels.back()")
+        page.wait_for_timeout(200)
+        if not page.is_visible("#screen-doolhof-menu"):
+            problems.append(f"{label}: the Android back button did not go to the menu")
+        page.evaluate("window.__bubbels.back()")  # from the alphabet's rounds to the kinds
+        page.wait_for_timeout(150)
+        if page.locator(".doolhof-modecard").count() != 3:
+            problems.append(f"{label}: back from the rounds did not show the kinds")
+
+        # the end of the free part: "More rounds" offers only OK over the list
+        page.click(".doolhof-modecard[data-mode=count]")
+        page.wait_for_timeout(150)
+        page.click(".level-btn[data-round='count-t1-3']")
+        page.wait_for_selector("#screen-doolhof.active")
+        close_card_if_any(page)
+        dh_play_to_end(page, f"{label} count-t1-3", problems)
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        page.click(f"#ov-buttons button >> text={'Meer rondes' if lang == 'nl' else 'More rounds'}")
+        page.wait_for_timeout(250)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != [TEXT[lang]["ok"]]:
+            problems.append(f"{label}: the end of the free part offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(200)
+        if not page.is_visible("#screen-doolhof-menu") or page.evaluate("window.__bubbels.doolhof.stars()").get("count-t1-3") != 3:
+            problems.append(f"{label}: the offer did not land on the list with the stars kept")
+        foreign = [u for u in requests if not u.startswith(base)]
+        if foreign:
+            problems.append(f"{label}: requests outside the app: {foreign[:3]}")
+        if errors:
+            problems.append(f"{label}: page errors {errors}")
+        ctx.close()
+
 
 def dam_wait(page, timeout=15000):
     """Until no piece is moving and the computer is not thinking."""
@@ -5450,6 +5679,7 @@ def main():
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
             letters_play(browser, base, problems)
+            doolhof_play(browser, base, problems)
             transfer_flow(browser, base, problems)
             transfer_camera_race(browser, base, problems)
             dammen_flow(browser, base, problems)
@@ -5489,6 +5719,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "doolhof": (doolhof_play,),
          "store": (store_links,)}
 
 

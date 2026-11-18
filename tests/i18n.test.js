@@ -25,6 +25,7 @@ import '../web/games/klok/strings.js';
 import '../web/games/letters/strings.js';
 import '../web/games/kangoeroe/strings.js';
 import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
+import '../web/games/doolhof/strings.js';
 import '../web/games/piano/strings.js';
 import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
 import '../web/games/drums/strings.js';
@@ -114,6 +115,11 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);
   for (const k of ['count', 'add', 'land', 'missing', 'skipOn', 'skipBack']) used.add(`kangoeroe.lead.${k}`);
   for (const n of [1, 2, 3]) used.add(`kangoeroe.win${n}`);
+  for (const m of ['abc', 'word', 'count']) {
+    used.add(`doolhof.mode.${m}`).add(`doolhof.mode.${m}Sub`).add(`doolhof.how.${m}`);
+    for (const k of ['t1', 't2', 't3']) used.add(`doolhof.tier.${m}.${k}`);
+  }
+  for (const n of [1, 2, 3]) used.add(`doolhof.win${n}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 

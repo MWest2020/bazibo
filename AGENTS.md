@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops)). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -65,6 +65,7 @@ home → Drumstel (`tests/smoke.py drums`): the tile in Creatief, a tap sounds (
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap at the start, the word with a gap inside it, the build word shown for a moment), a gentle wrong tap, a locked tier stays locked, tier 1 shows the build word for a moment and again on a tap on the picture, tiers 2 and 3 the picture only with extra tiles; a round with four-letter words built by real taps with the sound on (every word fills its last slot and finishes, no page errors); the layout at 320x568 and sideways (`tests/smoke.py letters`);
 home → Kangoeroe op de getallenlijn (`tests/smoke.py kangoeroe`): the tile in Leren, a locked tier offers only OK on the web; round t1-1 played to the end by real taps with one wrong answer first (back to the start, the way as dashed arcs, counted once), "how many hops?" by +1 taps to the flag (numbered arcs, +1 greyed there) then the number, "3 + 4" with the pips filling then Hier!, one sum by a tap on the line; 2 stars saved; the next round, the Android back button and "keep playing"; the end of the free part offers only OK and lands on the menu with the save kept; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for tiers 1-3, every button 48 px or more and on screen, 0-100 a window with a map on phones that follows the kangaroo, all of it on desktop;
+home → Egeltje (`tests/smoke.py doolhof`): the tile in Leren, a locked tier offers only OK on the web, the alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (curled up, rolled back, nothing lost, the crow flown off), no frames while the garden waits, back + keep playing (nothing moves before a step), the Android back button, the end of the free part ("More rounds" offers only OK over the list); the layout at 390x844 in Dutch and English, 320x568, 844x390, 568x320 and desktop, the arrows 48 px or more;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
@@ -223,6 +224,23 @@ window of 20-100 numbers (`viewSize`, 8 px or more apart) with a map above it; `
 the kangaroo in sight. Nothing is spoken; the sounds are the shell's (`plink`, `boop`, `chime`).
 Every target 48 px or more. Free: tier 1; the full version adds tiers 2 and 3 and random rounds.
 Saved: stars per round, random rounds per tier, the how-to cards seen and the last tier.
+Egeltje (id `doolhof`): a garden maze. The maze in `web/games/doolhof/maze.js`, the rounds,
+steps and crows in `rules.js` (both pure, tested: every garden one piece without dead ends, every
+board keeps every letter reachable without walking over another after every step (`placementOk`),
+200 seeds per kind, tier, language and orientation played to the end with the crows walking, the
+wrong-letter and crow rules, crows never onto the hedgehog, a tile or each other). It must never
+look or sound like Pac-Man (Mark, 18 Nov 2026): no Pac-like name, no yellow round chomping figure,
+no ghosts, no waka or arcade sounds, no classic maze layout. It stays calm: no dying, no game over,
+no timer. Only a step the child chooses can bump or touch: a walk going on by itself (round a bend,
+`stepHog(..., { auto: true })`) stops in front of a wrong letter and in front of a crow, also one
+that stepped in between two steps. A chosen step onto a wrong letter is a soft bump (it stays, one
+mistake per letter, help after two); a chosen step into a crow is never a death: the hedgehog
+curls up and rolls back at most `ROLLBACK` cells while the crow flies off; crows never cost stars.
+Tier 1 wrong tiles are plain (`plainOk`: never a look-alike either way round of what is asked, also
+after a word changes; tested on every step). Tiers are harder by
+what must be told apart (Letters' `SIMILAR`/`LOOKALIKE`, `NUMBER_LOOKALIKE`) and how much of a word
+is shown (`WORD_HINT`), not by speed. Words and pictures come from Letters (`BUILD`, `LONG_WORDS`
+must have a picture in Letters' `art.js`). No voice. Free: tier 1 of every kind (`meta.freeTiers`).
 Piano: two levels by age, picked with two buttons at the top of the song list and saved as
 `games.piano.level` (`small` or `big`; a new player gets `small`, the tile always opens free play).
 The keyboards, the songs and playing along are pure in `web/games/piano/songs.js` (tested). 4-6

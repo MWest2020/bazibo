@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-17 games for children aged 3 to 10. No ads, no account, no trackers.
+18 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-17 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
+18 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. It has seventeen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time, Letters and Kangaroo Hops. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. It has eighteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time, Letters, Little Hedgehog and Kangaroo Hops. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -47,7 +47,7 @@ PAIRS
 • 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
 
 JIGSAW
-• Drag the pieces to their places. From 9 pieces (age 3) to 60 (age 9), with a magnifier on phones.
+• Drag the pieces to their places. From 9 to 60 pieces, with a magnifier on phones.
 • 9, 16 and 25 pieces with three pictures. 30, 48 and 60 pieces and five more pictures (full version).
 
 FOUR IN A ROW
@@ -64,7 +64,6 @@ GAME OF THE GOOSE
 
 QUARTETS
 • Ask for the cards you are missing (big buttons with a picture) and lay down your sets of four.
-• Two players play with a pile to draw from, three or four without.
 • Against the computer or together on one phone. 4 sets; 6 and 8 sets and a 4th player (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
@@ -81,7 +80,7 @@ DRAWING
 PIANO
 • A toy piano with coloured keys. Play along with a song: the next key lights up. Listen plays the song to you.
 • Ages 4-6: Frère Jacques; three more songs (full version).
-• Ages 7-10: two octaves and the Ode to Joy; the Turkish March, Für Elise and more (full version).
+• Ages 7-10: two octaves and the Ode to Joy; Für Elise and more (full version).
 
 DRUMS
 • Eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms (full version).
@@ -93,8 +92,11 @@ TELLING TIME
 LETTERS
 • Find the same letter among look-alikes (b and d, m and n), the first or a middle letter of a pictured word, and build a word.
 
+LITTLE HEDGEHOG
+• A hedgehog walks a garden maze picking up the alphabet, a word or numbers in order.
+
 KANGAROO HOPS
-• Adding and taking away on a number line, as taught in Dutch schools: your child picks the hops. Up to 10 free; up to 20 and 100 (full version).
+• Adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 (full version).
 
 MADE FOR CHILDREN
 • Every colour has its own symbol or pattern, so colour-blind children can play too.
