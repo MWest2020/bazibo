@@ -209,7 +209,7 @@ const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 15
 export function plink(v = 1) {
   if (!on()) return;
   // a whole note number: PENTA[0.1] is undefined, and a non-finite frequency throws in the browser
-  const k = Math.max(1, Math.round(Number(v)) || 1);
+  const k = Number.isFinite(Number(v)) ? Math.max(1, Math.round(Number(v))) : 1;
   const f = PENTA[(k - 1) % PENTA.length];
   const t = ac.currentTime + 0.004;
   tone('sine', f, f, t, 0.22, 0.16);

@@ -34,7 +34,7 @@ export function wordPictureSvg(picture, { cls = '' } = {}) {
   return pageSvg({ ...page, viewBox: '0 0 200 200', stroke: 4 }, p[1], { cls: `letters-pic ${cls}` });
 }
 
-/** The three kinds of round, as menu pictures. */
+/** The kinds of round, as menu pictures. */
 export function modeSvg(mode) {
   const tile = (x, y, ch, fill) =>
     `<rect x="${x}" y="${y}" width="30" height="30" rx="8" fill="${fill}" stroke="#3a2f6b" stroke-width="2.4"/>` +
@@ -46,6 +46,11 @@ export function modeSvg(mode) {
   }
   if (mode === 'first') {
     return `<svg viewBox="0 0 100 70" aria-hidden="true"><g transform="translate(2 6) scale(.29)">${(wordPictureSvg('sun').match(/<g[\s\S]*<\/g>/) || [''])[0]}</g>${tile(64, 20, 'z', '#ffe9a8')}</svg>`;
+  }
+  if (mode === 'middle') {
+    // a word with an empty box in the middle, the missing letter above it
+    return `<svg viewBox="0 0 100 70" aria-hidden="true"><text x="50" y="12" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="900" fill="#5b4bd6">a</text>
+      ${tile(4, 30, 'k', '#d8e6ff')}<rect x="35" y="30" width="30" height="30" rx="8" fill="#fff" stroke="#5b4bd6" stroke-width="2.4" stroke-dasharray="5 4"/>${tile(66, 30, 't', '#d8e6ff')}</svg>`;
   }
   return `<svg viewBox="0 0 100 70" aria-hidden="true">${tile(4, 20, 'k', '#ffd9c2')}${tile(35, 20, 'a', '#ffd9c2')}${tile(66, 20, 't', '#ffd9c2')}
     <path d="M10 60h80" stroke="#3a2f6b" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 6"/></svg>`;

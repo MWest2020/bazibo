@@ -2,13 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf, confusable, lookalike, caseClash, LOOKALIKE, ALSO_A_WORD, alsoAWord } from '../web/games/letters/words.js';
-import { MODES, TIER_IDS, ROUND_LEN, OPTIONS, EXTRA_TILES, TAP_CASE, BUILD_HINT, LOOKALIKE_QS, makeRound, starsFor, nextLetterOk, hashSeed, tapGlyphs, gapped } from '../web/games/letters/round.js';
+import { ALPHABET, LETTER_SETS, WORDS, BUILD, firstWords, pictureOf, confusable, lookalike, similar, SIMILAR, SIMILAR_UPPER, caseClash, LOOKALIKE, ALSO_A_WORD, alsoAWord, MIDDLE, middleWords, middleAlso } from '../web/games/letters/words.js';
+import { MODES, TIER_IDS, ROUND_LEN, OPTIONS, EXTRA_TILES, TAP_CASE, BUILD_HINT, LOOKALIKES, LOOKALIKE_QS, makeRound, starsFor, nextLetterOk, hashSeed, tapGlyphs, gapped, around } from '../web/games/letters/round.js';
 import { PICTURE_IDS, wordPictureSvg } from '../web/games/letters/art.js';
 import { meta } from '../web/games/letters/meta.js';
 
 const WEB = new URL('../web/', import.meta.url).pathname;
-const rounds = (mode, tier, lang, n = 100) => Array.from({ length: n }, (_, s) => makeRound({ mode, tier, lang, seed: hashSeed(`${lang}${mode}${tier}:${s}`) }));
+const rounds = (mode, tier, lang, n = 100, upper = false) => Array.from({ length: n }, (_, s) => makeRound({ mode, tier, lang, upper, seed: hashSeed(`${lang}${mode}${tier}${upper}:${s}`) }));
+/** Every look-alike of a letter, mirrored or not, small or capital. */
+const anyLook = (l) => [...lookalike(l), ...similar(l, false), ...similar(l, true)];
+/** The look-alikes a round may put next to `l` on purpose: in the tiles' case, mirrors in tier 3 on small letters. */
+const meantLook = (l, tier, upper) => [...(tier === 't3' && !upper ? lookalike(l) : []), ...similar(l, upper)];
 
 test('every word has a picture that is drawn, and both languages use the same pictures', () => {
   for (const lang of ['nl', 'en']) {
@@ -56,6 +60,7 @@ test('rounds: the answer is always there, the choices differ, the same seed give
           assert.deepEqual(qs, makeRound({ mode, tier, lang, seed }));
           qs.forEach((q, i) => {
             const key = (x) => (mode === 'tap' ? x.letter : x.word);
+            if (mode === 'middle') assert.ok(q.at >= 1 && q.at <= q.word.length - 2, `${lang} middle ${q.word}: gap at ${q.at}`);
             if (i > 0) assert.notEqual(key(q), key(qs[i - 1]), 'the same question twice in a row');
             if (mode === 'build') {
               assert.equal(q.tiles.length, q.word.length + EXTRA_TILES[tier]);
@@ -66,9 +71,10 @@ test('rounds: the answer is always there, the choices differ, the same seed give
             } else {
               assert.equal(q.options.length, OPTIONS[tier]);
               assert.equal(new Set(q.options).size, q.options.length, 'choices are distinct');
-              const answer = mode === 'tap' ? q.letter : q.word[0];
-              assert.equal(q.options.filter((o) => o === answer).length, 1);
+              assert.equal(q.options.filter((o) => o === q.letter).length, 1);
               if (mode === 'first') assert.equal(q.letter, q.word[0]);
+              if (mode === 'middle') assert.equal(q.letter, q.word[q.at]);
+              if (mode === 'middle') assert.ok(middleWords(lang, tier).some(([w, at]) => w === q.word && at.includes(q.at)));
               if (mode === 'tap') assert.ok(LETTER_SETS[tier].includes(q.letter));
               if (mode === 'first') assert.ok(firstWords(lang, tier).some(([w]) => w === q.word));
             }
@@ -98,13 +104,17 @@ test('stars and the free part', () => {
   }
 });
 
-test('tap, tier 1: the big letter is drawn exactly like its tile, from the first letters only', () => {
+test('tap, tier 1: the big letter is drawn exactly like its tile, next to one look-alike (m and n, i and l)', () => {
   for (const lang of ['nl', 'en']) {
-    for (const qs of rounds('tap', 't1', lang)) {
-      for (const q of qs) {
-        assert.equal(q.cross, false);
-        for (const o of q.options) assert.ok(LETTER_SETS.t1.includes(o), `t1 tile ${o}`);
-        for (const upper of [false, true]) {
+    for (const upper of [false, true]) {
+      for (const qs of rounds('tap', 't1', lang, 100, upper)) {
+        for (const q of qs) {
+          assert.equal(q.cross, false);
+          assert.ok(LETTER_SETS.t1.includes(q.letter));
+          const looks = q.options.filter((o) => anyLook(q.letter).includes(o));
+          assert.equal(looks.length, 1, `t1 ${q.letter}: one look-alike in ${q.options}`);
+          assert.ok(similar(q.letter, upper).includes(looks[0]), `t1 ${upper}: ${looks[0]} looks like ${q.letter} in the tiles' case`);
+          for (const o of q.options) if (o !== q.letter && o !== looks[0]) assert.ok(LETTER_SETS.t1.includes(o), `t1 tile ${o}`);
           const { big, tiles } = tapGlyphs(q, upper);
           assert.equal(tiles.filter((x) => x === big).length, 1, `t1 ${upper}: the big ${big} matches one tile exactly`);
           assert.equal(big, upper ? q.letter.toUpperCase() : q.letter);
@@ -114,39 +124,55 @@ test('tap, tier 1: the big letter is drawn exactly like its tile, from the first
   }
 });
 
-test('tap, tier 2: a capital to match with its small letter (the other way round with capitals on)', () => {
+test('tap, tier 2: a capital to match with its small letter (the other way round with capitals on), with a look-alike', () => {
   for (const lang of ['nl', 'en']) {
-    for (const qs of rounds('tap', 't2', lang)) {
-      for (const q of qs) {
-        assert.equal(q.cross, true);
-        assert.ok(LETTER_SETS.t2.includes(q.letter));
-        const small = tapGlyphs(q, false);
-        assert.equal(small.big, q.letter.toUpperCase());
-        assert.deepEqual(small.tiles, q.options);
-        const caps = tapGlyphs(q, true);
-        assert.equal(caps.big, q.letter);
-        assert.deepEqual(caps.tiles, q.options.map((o) => o.toUpperCase()));
-        for (const o of q.options) if (o !== q.letter) assert.ok(!lookalike(q.letter).includes(o), `t2: ${q.letter} next to its look-alike ${o}`);
+    for (const upper of [false, true]) {
+      for (const qs of rounds('tap', 't2', lang, 100, upper)) {
+        for (const q of qs) {
+          assert.equal(q.cross, true);
+          assert.ok(LETTER_SETS.t2.includes(q.letter));
+          const g = tapGlyphs(q, upper);
+          assert.equal(g.big, upper ? q.letter : q.letter.toUpperCase());
+          assert.deepEqual(g.tiles, q.options.map((o) => (upper ? o.toUpperCase() : o)));
+          const looks = q.options.filter((o) => anyLook(q.letter).includes(o));
+          assert.equal(looks.length, 1, `t2 ${q.letter}: one look-alike in ${q.options}`);
+          assert.ok(similar(q.letter, upper).includes(looks[0]));
+          assert.ok(!looks.some((o) => lookalike(q.letter).includes(o)) || similar(q.letter, upper).includes(looks[0]), 'no mirror twin before tier 3');
+          for (const o of q.options) assert.ok(!caseClash(q.letter).includes(o), `capital ${q.letter.toUpperCase()} next to ${o}`);
+        }
       }
     }
   }
 });
 
-test('tap, tier 3: mixed cases, and a mirrored look-alike next to b, d, p, q, n, u, m and w', () => {
+test('tap, tier 3: mixed cases, two look-alikes, mirrored ones next to b, d, p, q, n, u, m and w in half the round', () => {
   for (const lang of ['nl', 'en']) {
     for (const qs of rounds('tap', 't3', lang)) {
       assert.equal(new Set(qs.map((q) => q.letter)).size, qs.length, 'no letter twice in a round');
       assert.equal(qs.filter((q) => q.cross).length, ROUND_LEN.tap / 2, 'half of the questions cross the case');
       assert.equal(qs.filter((q) => lookalike(q.letter).length).length, LOOKALIKE_QS);
       for (const q of qs) {
-        const twins = q.options.filter((o) => lookalike(q.letter).includes(o));
-        assert.equal(twins.length, lookalike(q.letter).length ? 1 : 0, `t3 ${q.letter}: ${q.options}`);
+        const looks = q.options.filter((o) => anyLook(q.letter).includes(o));
+        assert.equal(looks.length, LOOKALIKES.tap.t3, `t3 ${q.letter}: ${q.options}`); // i and l have a third, for the case clash
+        for (const o of looks) assert.ok(meantLook(q.letter, 't3', false).includes(o));
+        if (lookalike(q.letter).length) assert.ok(looks.some((o) => lookalike(q.letter).includes(o)), `t3 ${q.letter}: no mirrored twin in ${q.options}`);
         if (q.cross) for (const o of q.options) assert.ok(!caseClash(q.letter).includes(o), `capital ${q.letter.toUpperCase()} next to ${o}`);
       }
     }
   }
   assert.deepEqual(TAP_CASE, { t1: 'same', t2: 'other', t3: 'mixed' });
   for (const [l, list] of Object.entries(LOOKALIKE)) for (const x of list) assert.ok(LOOKALIKE[x].includes(l), `${l}/${x} both ways`);
+});
+
+test('look-alike tables: every letter has two, never itself, never a mirror image (those are tier 3 only)', () => {
+  for (const table of [SIMILAR, SIMILAR_UPPER]) {
+    assert.deepEqual(Object.keys(table).sort(), ALPHABET);
+    for (const [l, list] of Object.entries(table)) {
+      assert.ok(list.length >= 2, `${l}: ${list}`);
+      for (const x of list) assert.ok(ALPHABET.includes(x) && x !== l, `${l}: ${x}`);
+    }
+  }
+  for (const [l, list] of Object.entries(SIMILAR)) for (const x of list) assert.ok(!lookalike(l).includes(x), `SIMILAR ${l}: ${x} is a mirror`);
 });
 
 test('first letter: the word with a gap where the answer goes, in every tier', () => {
@@ -165,19 +191,85 @@ test('first letter: the word with a gap where the answer goes, in every tier', (
   assert.deepEqual(gapped('maan'), ['_', 'aan']);
 });
 
-test('build: traced in tier 1, seen for a moment in tier 2, picture only in tier 3', () => {
-  assert.deepEqual(BUILD_HINT, { t1: 'ghost', t2: 'flash', t3: 'none' });
+test('build: the word for a moment in tier 1, the picture only from tier 2, extra tiles that look like the word', () => {
+  assert.deepEqual(BUILD_HINT, { t1: 'flash', t2: 'none', t3: 'none' });
   for (const lang of ['nl', 'en']) {
     for (const tier of TIER_IDS) {
-      for (const qs of rounds('build', tier, lang, 40)) {
-        for (const q of qs) {
-          assert.equal(q.hint, BUILD_HINT[tier]);
-          assert.ok(pictureOf(lang, q.word), `${lang} ${q.word} has a picture`);
-          if (tier !== 't3') assert.equal(q.tiles.length, q.word.length, 'no extra letters before tier 3');
+      for (const upper of [false, true]) {
+        let mirrored = 0;
+        for (const qs of rounds('build', tier, lang, 60, upper)) {
+          for (const q of qs) {
+            assert.equal(q.hint, BUILD_HINT[tier]);
+            assert.ok(pictureOf(lang, q.word), `${lang} ${q.word} has a picture`);
+            assert.equal(q.tiles.length, q.word.length + EXTRA_TILES[tier]);
+            assert.ok(q.tiles.length <= 6, 'at most six tiles: they fit two rows of three');
+            const extra = [...q.tiles];
+            for (const l of q.word) extra.splice(extra.indexOf(l), 1);
+            for (const x of extra) assert.ok(!q.word.includes(x), `${q.word}: extra ${x} is in the word`);
+            const looks = extra.filter((x) => [...q.word].some((l) => anyLook(l).includes(x)));
+            const can = new Set([...q.word].flatMap((l) => meantLook(l, tier, upper)).filter((x) => !q.word.includes(x) && ![...q.word].some((w) => confusable(lang, w).includes(x))));
+            assert.equal(looks.length, Math.min(LOOKALIKES.build[tier], can.size), `${lang} ${tier} ${q.word}: look-alikes ${looks} in ${q.tiles}`);
+            if (tier !== 't1') assert.ok(looks.length >= 1, `${lang} ${tier} ${q.word}: no look-alike`);
+            for (const x of looks) assert.ok([...q.word].some((l) => meantLook(l, tier, upper).includes(x)), `${q.word}: ${x} in the tiles' case`);
+            const canMirror = [...q.word].some((l) => lookalike(l).some((m) => !q.word.includes(m) && ![...q.word].some((w) => confusable(lang, w).includes(m))));
+            if (tier === 't3' && !upper && canMirror) {
+              assert.ok(extra.some((x) => [...q.word].some((l) => lookalike(l).includes(x))), `${lang} t3 ${q.word}: no mirrored letter in ${q.tiles}`);
+              mirrored++;
+            }
+            if (tier !== 't3' || upper) assert.ok(!looks.some((x) => ![...q.word].some((l) => similar(l, upper).includes(x))), `${tier} ${q.word}: a mirror twin before tier 3 (${q.tiles})`);
+          }
+        }
+        if (tier === 't3' && !upper) assert.ok(mirrored > 50, `${lang}: tier 3 rarely has a mirrored tile (${mirrored})`);
+      }
+    }
+  }
+});
+
+test('middle letter: the gap is inside the word, never a letter that spells another word or sounds the same', () => {
+  for (const lang of ['nl', 'en']) {
+    const words = new Set(WORDS[lang].map(([w]) => w));
+    for (const [word, gaps] of Object.entries(MIDDLE[lang])) {
+      assert.ok(words.has(word), `${lang}: ${word} is not a Letters word`);
+      for (const [at, others] of Object.entries(gaps)) {
+        assert.ok(Number(at) >= 1 && Number(at) <= word.length - 2, `${lang} ${word}: gap ${at} is the first or last letter`);
+        for (const w of others) {
+          assert.equal(w.length, word.length, `${lang} ${w}`);
+          assert.equal(w.slice(0, at) + w.slice(Number(at) + 1), word.slice(0, at) + word.slice(Number(at) + 1), `${lang}: ${w} must differ from ${word} at ${at} only`);
+          assert.notEqual(w[at], word[at]);
+        }
+      }
+    }
+    for (const tier of TIER_IDS) {
+      const list = middleWords(lang, tier);
+      assert.ok(list.length >= 4, `${lang} ${tier}: ${list.length} words`);
+      for (const [w, at] of list) {
+        if (tier === 't1') assert.ok(w.length <= 4 && at.every((k) => 'aeiou'.includes(w[k])), `${lang} t1 ${w} ${at}`);
+        if (tier === 't2') assert.ok(w.length <= 6, `${lang} t2 ${w}`);
+      }
+      for (const upper of [false, true]) {
+        for (const qs of rounds('middle', tier, lang, 120, upper)) {
+          for (const q of qs) {
+            const [head, tail] = around(q.word, q.at);
+            assert.equal(head + q.letter + tail, q.word);
+            assert.ok(head.length >= 1 && tail.length >= 1);
+            const also = middleAlso(lang, q.word, q.at);
+            for (const o of q.options) {
+              if (o === q.letter) continue;
+              assert.ok(!also.includes(o), `${lang} ${tier}: ${o} in "${head}_${tail}" spells another word`);
+              assert.ok(!confusable(lang, q.letter).includes(o), `${lang} ${tier}: ${o} sounds like ${q.letter}`);
+            }
+            const looks = q.options.filter((o) => anyLook(q.letter).includes(o));
+            // as many as asked for, unless the word list or the sounds leave fewer (bal: no e, o; paddenstoel: s looks like z and c, which sound like it)
+            const can = new Set(meantLook(q.letter, tier, upper).filter((x) => !also.includes(x) && !confusable(lang, q.letter).includes(x)));
+            assert.equal(looks.length, Math.min(LOOKALIKES.middle[tier], can.size), `${lang} ${tier} ${q.word}/${q.letter}: look-alikes ${looks} in ${q.options}`);
+            for (const o of looks) assert.ok(meantLook(q.letter, tier, upper).includes(o));
+          }
         }
       }
     }
   }
+  assert.deepEqual(around('maan', 2), ['ma', 'n']);
+  assert.deepEqual(middleAlso('nl', 'kat', 1), ['i', 'o', 'u']);
 });
 
 test('old saves still load: stars per round stay, the old how-to flags and options are kept', async () => {
@@ -240,11 +332,13 @@ test('"first letter" never offers a letter that spells another word in the gap (
   assert.deepEqual(alsoAWord('nl', 'kat').slice(0, 2), ['m', 'l']);
 });
 
-test('with capitals on, tap tier 3 adds no mirrored twin (capital B, D, P and Q are not mirrors)', () => {
+test('with capitals on, tap tier 3 adds no mirrored twin (capital B, D, P and Q are not mirrors), only capital look-alikes', () => {
   for (const lang of ['nl', 'en']) {
     for (let s = 0; s < 100; s++) {
       for (const q of makeRound({ mode: 'tap', tier: 't3', lang, seed: hashSeed(`u${lang}${s}`), upper: true })) {
-        assert.ok(!q.options.some((o) => lookalike(q.letter).includes(o)), `capitals: ${q.letter} next to ${q.options}`);
+        const looks = q.options.filter((o) => anyLook(q.letter).includes(o));
+        assert.equal(looks.length, LOOKALIKES.tap.t3);
+        for (const o of looks) assert.ok(similar(q.letter, true).includes(o), `capitals: ${q.letter} next to ${o} (${q.options})`);
       }
     }
   }

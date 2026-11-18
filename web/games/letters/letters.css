@@ -129,7 +129,8 @@
 }
 @media (max-width: 360px) {
   .letters-options { gap: 9px; }
-  .letters-options.n4 { grid-template-columns: repeat(2, minmax(0, 96px)); }
+  /* four tiles stay one row (a tier-1 word with its extra tile): two rows push the dots off a 320x568 screen */
+  .letters-options.n4 { grid-template-columns: repeat(4, minmax(0, 68px)); }
 }
 
 /* sideways phones: the picture on the left, everything else on the right */

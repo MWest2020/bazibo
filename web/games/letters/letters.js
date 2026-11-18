@@ -1,8 +1,11 @@
 // Letters: learn the letters by sight (ages 4-7). Nothing is spoken: every question is a big
 // letter, a picture or a word to look at.
-//   Tik de letter   a big letter: tap the same one (tier 2 a capital and its small letter)
+//   Tik de letter   a big letter: tap the same one among look-alikes (tier 2 a capital and its
+//                   small letter, tier 3 mirrored letters too)
 //   Beginletter     a picture with its word, the first letter left out: tap that letter
-//   Woordje maken   a picture: tap its word's letters in order (traced, seen for a moment, or not)
+//   Middenletter    the same with a letter inside the word left out
+//   Woordje maken   a picture: tap its word's letters in order (seen for a moment, or not), with
+//                   extra tiles that look like the word's letters
 // Three tiers (first letters, more letters, the whole alphabet); a round earns stars by mistakes.
 // The rounds are pure (round.js); the pictures are the app's own drawings (art.js). The shell
 // (web/js/main.js) owns the overlay, sound and purchase.
@@ -12,7 +15,7 @@
 // tier per mode and the capitals option. All read from
 // the save each time. An unfinished round is kept while the app stays open ("keep playing").
 import { meta } from './meta.js';
-import { MODES, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, makeRound, starsFor, hashSeed, nextLetterOk, tapGlyphs, gapped } from './round.js';
+import { MODES, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, makeRound, starsFor, hashSeed, nextLetterOk, tapGlyphs, around } from './round.js';
 import { pictureOf } from './words.js';
 import { wordPictureSvg, modeSvg } from './art.js';
 import { getLang } from '../../js/i18n.js';
@@ -26,7 +29,7 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="#fff" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/>';
 const AGES = Object.freeze({ t1: '4-5', t2: '5-6', t3: '6-7' });
 const MAX_TRIES = 2; // wrong taps on one question before the right letter is shown
-const PEEK_MS = 2000; // build, tier 2: how long the word stays in view
+const PEEK_MS = 2000; // build, tier 1: how long the word stays in view
 
 export function createLetters(shell) {
   const { t, tap } = shell;
@@ -194,7 +197,7 @@ export function createLetters(shell) {
     renderCaseToggle();
   });
 
-  /** The menu's back: from one kind of round to the three kinds, from there to the home screen. */
+  /** The menu's back: from one kind of round to the list of kinds, from there to the home screen. */
   function menuBack() {
     if (menuMode) {
       menuMode = null;
@@ -279,9 +282,9 @@ export function createLetters(shell) {
     shell.show('letters-menu');
   }
 
-  // ---------- showing the word (build, tier 2) ----------
+  // ---------- showing the word (build, tier 1) ----------
 
-  /** A question is on screen and the card is gone: tier 2 builds show their word for a moment. */
+  /** A question is on screen and the card is gone: tier 1 builds show their word for a moment. */
   function startQuestion() {
     if (!game || game.done || game.mode !== 'build') return;
     if (q().hint === 'flash') peek();
@@ -332,11 +335,12 @@ export function createLetters(shell) {
     let key;
     if (game.mode === 'tap') key = !it.cross ? 'letters.findSame' : game.upper ? 'letters.findCapital' : 'letters.findSmall';
     else if (game.mode === 'first') key = 'letters.first';
+    else if (game.mode === 'middle') key = 'letters.middle';
     else key = it.hint === 'ghost' ? 'letters.buildGhost' : it.hint === 'flash' ? 'letters.buildFlash' : 'letters.build';
     $('#letters-prompt').textContent = t(key);
   }
 
-  /** The big letter (tap) or the picture (first, build). In a tier 2 build the picture shows the word. */
+  /** The big letter (tap) or the picture (first, middle, build). In a tier 1 build the picture shows the word. */
   function renderPicture() {
     const box = $('#letters-pic');
     box.hidden = false;
@@ -353,7 +357,7 @@ export function createLetters(shell) {
     const flash = game.mode === 'build' && q().hint === 'flash';
     const pic = wordPictureSvg(pictureOf(game.lang, word));
     if (flash) {
-      // tier 2: the picture is a button that shows the word again
+      // tier 1: the picture is a button that shows the word again
       box.innerHTML = `<button type="button" class="letters-peekbtn">${pic}<span class="letters-peek" aria-hidden="true"><svg viewBox="0 0 24 24">${EYE}</svg></span></button>`;
       box.querySelector('button').setAttribute('aria-label', t('letters.peek'));
       box.removeAttribute('role');
@@ -365,22 +369,24 @@ export function createLetters(shell) {
     box.setAttribute('aria-label', t('letters.picture'));
   }
 
-  /** First letter: the word below the picture with a gap for its first letter. */
+  /** First and middle letter: the word below the picture with a gap for the missing letter. */
   function renderWord(filled = false) {
     const box = $('#letters-word');
     box.textContent = '';
-    if (game.mode !== 'first') {
+    if (game.mode !== 'first' && game.mode !== 'middle') {
       box.hidden = true;
       return;
     }
     box.hidden = false;
-    const [, rest] = gapped(q().word);
+    const [head, rest] = around(q().word, q().at || 0);
     const gap = document.createElement('span');
     gap.className = `letters-gap${filled ? ' filled' : ''}`;
     gap.textContent = filled ? show(q().letter) : '';
+    if (head) box.append(document.createTextNode(show(head)));
     box.append(gap, document.createTextNode(show(rest)));
     box.style.setProperty('--n', String(q().word.length));
-    box.setAttribute('aria-label', filled ? show(q().word) : t('letters.gapWord', { rest: show(rest) }));
+    const label = head ? t('letters.gapWordMid', { head: show(head), rest: show(rest) }) : t('letters.gapWord', { rest: show(rest) });
+    box.setAttribute('aria-label', filled ? show(q().word) : label);
   }
 
   function renderSlots() {
@@ -469,7 +475,7 @@ export function createLetters(shell) {
     const tiles = [...document.querySelectorAll('#letters-options .letters-tile')];
     if (it.options[k] === it.letter) {
       tiles[k]?.classList.add('right');
-      if (game.mode === 'first') renderWord(true);
+      renderWord(true);
       correct();
       return;
     }
@@ -478,7 +484,7 @@ export function createLetters(shell) {
     oops(() => {
       const right = it.options.indexOf(it.letter);
       tiles[right]?.classList.add('right');
-      if (game.mode === 'first') renderWord(true);
+      renderWord(true);
     });
   }
 

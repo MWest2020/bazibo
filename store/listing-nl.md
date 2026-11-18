@@ -93,7 +93,7 @@ KLOK KIJKEN
 • Van dagritme voor de kleinsten tot losse minuten en de 24-uursklok.
 
 LETTERS
-• Zoek dezelfde letter, vind de beginletter bij een plaatje en maak zelf een woordje.
+• Zoek dezelfde letter (pas op voor b en d), vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
 
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
