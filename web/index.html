@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="games/tekenen/tekenen.css">
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
+  <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
   <link rel="stylesheet" href="games/piano/piano.css">
   <link rel="stylesheet" href="games/drums/drums.css">
@@ -664,6 +665,49 @@
         <div id="letters-options" class="letters-options" role="group" data-i18n-aria="letters.options" aria-label="Kies een letter"></div>
         <div id="letters-dots" class="klok-dots" role="img"></div>
         <p id="letters-status" class="klok-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Kangoeroe op de getallenlijn: choose a round (three tiers: to 10, to 20, to 100) -->
+    <section id="screen-kangoeroe-menu" class="screen" data-i18n-aria="games.kangoeroe" aria-label="Kangoeroe op de getallenlijn">
+      <header class="bar">
+        <button id="kangoeroe-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="kangoeroe.menu">Kangoeroe</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="kangoeroe-menu" class="klok-menu"></div></div>
+    </section>
+
+    <!-- Kangoeroe: one sum at a time on the number line (no voice, no timer) -->
+    <section id="screen-kangoeroe" class="screen" data-i18n-aria="games.kangoeroe" aria-label="Kangoeroe op de getallenlijn">
+      <header class="bar dogu-hud klok-hud kg-hud">
+        <button id="kangoeroe-back" class="btn icon" type="button" data-i18n-aria="kangoeroe.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="kg-sub" class="hud-level"></div>
+          <div id="kg-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="kg-stage">
+        <div id="kg-prompt" class="kg-prompt">
+          <p id="kg-lead" class="kg-lead"></p>
+          <p id="kg-sum" class="kg-sum"></p>
+          <div id="kg-pips" class="kg-pips" role="img" hidden></div>
+        </div>
+        <div id="kg-map" class="kg-map" role="img" aria-label="De hele lijn van 0 tot 100" hidden></div>
+        <div id="kg-linebox" class="kg-linebox">
+          <svg id="kg-line" class="kg-line" role="img" aria-label="De getallenlijn"><g id="kg-static"></g><g id="kg-roo"></g><g id="kg-over"></g></svg>
+        </div>
+        <div class="kg-side">
+          <div id="kg-hops" class="kg-hops" role="group"></div>
+          <div id="kg-answer" class="kg-answer"></div>
+          <div id="kg-dots" class="klok-dots" role="img"></div>
+          <p id="kg-status" class="klok-status" aria-live="polite"></p>
+        </div>
       </div>
     </section>
 

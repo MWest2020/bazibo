@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -5254,6 +5254,304 @@ def drums_layouts(browser, base, problems):
         ctx.close()
 
 
+def kg_state(page):
+    return page.evaluate("window.__bubbels.kangoeroe.state()")
+
+
+def kg_settle(page):
+    """Wait until the kangaroo has made every hop on screen."""
+    page.wait_for_function("(() => { const v = window.__bubbels.kangoeroe.view(); return v && !v.moving; })()", timeout=6000)
+
+
+def kg_next(page, i):
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.kangoeroe.state(); return s.i > {i} || s.done; }})()", timeout=8000)
+
+
+def kg_tap(page, sel):
+    """A real tap on a button that must be on screen and enabled."""
+    loc = page.locator(sel)
+    if loc.is_disabled():
+        raise AssertionError(f"{sel} is disabled")
+    loc.tap()
+
+
+def kg_tap_line(page, n):
+    """A real tap on the number line at number n (a little above the line, where a finger lands)."""
+    x = page.evaluate(f"window.__bubbels.kangoeroe.x({n})")
+    box = page.locator("#kg-linebox").bounding_box()
+    page.touchscreen.tap(x, box["y"] + box["height"] * 0.6)
+
+
+def kangoeroe_flow(browser, base, problems):
+    """Kangoeroe op de getallenlijn at 390x844 with real taps: the tile in Leren opens the menu, a
+    locked tier offers only OK on the web; round t1-1 played to the end: one wrong answer first (a
+    gentle bounce back to the start, the way drawn as dashed arcs, counted once), "how many hops?"
+    by tapping +1 to the flag (numbered arcs, +1 greyed at the flag) and then the number, "3 + 4"
+    by +1 taps with the pips filling and then Hier!, one sum by a tap on the line; 2 stars saved;
+    the next round with back (the Android back button) and "keep playing"; the end of the free part
+    offers only OK and lands on the menu with the save kept; no voice, nothing from outside."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    name = page.inner_text("#tile-kangoeroe .tile-name").replace("­", "").replace("\n", " ").strip()
+    if name != "Kangoeroe op de getallenlijn":
+        problems.append(f"kangoeroe: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-kangoeroe').closest('.tile-group').querySelector('.group-name').textContent") != "Leren":
+        problems.append("kangoeroe: the tile is not in the Leren section")
+    page.locator("#tile-kangoeroe").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "kangoeroe-home-390x844.png"))
+    page.locator("#tile-kangoeroe").tap()
+    page.wait_for_timeout(200)
+    if where(page) != ["kangoeroe-menu", False]:
+        problems.append(f"kangoeroe: the tile opened {where(page)}")
+    locked = page.locator("#kangoeroe-menu .level-btn.locked:not(.random-btn)").count()
+    if locked != 6:
+        problems.append(f"kangoeroe: {locked} rounds locked on the web, expected 6 (tiers 2 and 3)")
+    page.screenshot(path=str(SHOTS / "kangoeroe-menu-390x844.png"), full_page=True)
+    page.locator("#kangoeroe-menu .level-btn[data-round='t2-1']").tap()
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"]:
+        problems.append(f"kangoeroe: a locked round offers {card_buttons(page)}, not the web's OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    if where(page) != ["kangoeroe-menu", False] or kg_state(page):
+        problems.append(f"kangoeroe: after OK on a locked round: {where(page)}")
+
+    # round t1-1 by real taps
+    page.locator("#kangoeroe-menu .level-btn[data-round='t1-1']").tap()
+    page.wait_for_timeout(200)
+    if not page.is_visible("#overlay"):
+        problems.append("kangoeroe: no how-to card on the first round")
+    else:
+        page.screenshot(path=str(SHOTS / "kangoeroe-how-390x844.png"))
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    did = {"wrong": False, "count": False, "pips": False, "line": False}
+    for i in range(8):
+        st = kg_state(page)
+        q = st["q"]
+        label = f"kangoeroe t1-1 q{i + 1} {q['kind']} {q['start']}"
+        if page.locator("#kg-pips").is_visible() != (q["kind"] == "add"):
+            problems.append(f"{label}: pips shown {page.locator('#kg-pips').is_visible()}")
+        if i == 0:
+            # a wrong answer first: back to the start, the way drawn, counted once
+            if q["ask"] == "count":
+                wrong = next(o for o in q["options"] if o != q["answer"])
+                kg_tap(page, f"#kg-hops .kg-hop[data-d='1']")
+                kg_tap(page, f"#kg-answer .kg-option[data-n='{wrong}']")
+            else:
+                kg_tap(page, "#kg-here")  # still on the start: not the answer
+            page.wait_for_timeout(120)
+            st = kg_state(page)
+            arcs = page.locator("#kg-over .kg-arc.hint").count()
+            if not st["hint"] or st["mistakes"] != 1 or st["pos"] != q["start"] or st["trail"] or arcs != len(q["hint"]) or st["i"] != 0:
+                problems.append(f"{label}: after a wrong answer hint={st['hint']} mistakes={st['mistakes']} pos={st['pos']} trail={st['trail']} arcs={arcs}/{len(q['hint'])}")
+            if "Bijna" not in page.inner_text("#kg-status"):
+                problems.append(f"{label}: the status after a wrong answer says {page.inner_text('#kg-status')!r}")
+            kg_settle(page)
+            page.screenshot(path=str(SHOTS / "kangoeroe-hint-390x844.png"))
+            did["wrong"] = True
+        if q["ask"] == "count":
+            for k in range(q["answer"]):
+                kg_tap(page, "#kg-hops .kg-hop[data-d='1']")
+            st = kg_state(page)
+            arcs = page.locator("#kg-static .kg-arc.on").count()
+            if st["pos"] != q["to"] or len(st["trail"]) != q["answer"] or arcs != q["answer"]:
+                problems.append(f"{label}: after {q['answer']} taps on +1 the kangaroo is on {st['pos']} with {arcs} arcs, not on the flag {q['to']}")
+            if not page.locator("#kg-hops .kg-hop[data-d='1']").is_disabled():
+                problems.append(f"{label}: +1 still works at the flag")
+            nums = page.eval_on_selector_all("#kg-static .kg-arc-label.on", "els => els.map(e => e.textContent)")
+            if nums and nums != [str(k + 1) for k in range(q["answer"])]:
+                problems.append(f"{label}: the arcs are numbered {nums}")
+            kg_settle(page)
+            if not did["count"]:
+                page.screenshot(path=str(SHOTS / "kangoeroe-count-390x844.png"))
+            did["count"] = True
+            kg_tap(page, f"#kg-answer .kg-option[data-n='{q['answer']}']")
+        elif not did["line"] and i > 0:
+            # one sum by a tap on the line: the kangaroo jumps there in one arc, then Hier!
+            kg_tap_line(page, q["answer"])
+            page.wait_for_timeout(60)
+            st = kg_state(page)
+            if st["pos"] != q["answer"] or len(st["trail"]) != 1:
+                problems.append(f"{label}: a tap on {q['answer']} on the line put the kangaroo on {st['pos']} ({st['trail']})")
+            kg_settle(page)
+            did["line"] = True
+            kg_tap(page, "#kg-here")
+        else:
+            for k in range(q["answer"] - st["pos"]):
+                kg_tap(page, "#kg-hops .kg-hop[data-d='1']")
+            pips = page.locator("#kg-pips .kg-pip.on").count()
+            if pips != q["terms"][0]:
+                problems.append(f"{label}: {pips} pips filled after {q['terms'][0]} hops")
+            if not did["pips"]:
+                kg_settle(page)
+                page.screenshot(path=str(SHOTS / "kangoeroe-add-390x844.png"))
+            did["pips"] = True
+            kg_tap(page, "#kg-here")
+        page.wait_for_timeout(80)
+        if i < 7 and "Goed" not in page.inner_text("#kg-status"):
+            problems.append(f"{label}: the right answer says {page.inner_text('#kg-status')!r}")
+        kg_next(page, i)
+    if not all(did.values()):
+        problems.append(f"kangoeroe: round t1-1 did not cover every kind of answer: {did}")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    page.screenshot(path=str(SHOTS / "kangoeroe-win-390x844.png"))
+    if page.inner_text("#ov-title").strip() != "Goed gedaan!" or page.evaluate("window.__bubbels.kangoeroe.stars()").get("t1-1") != 2:
+        problems.append(f"kangoeroe: t1-1 with one mistake ended {page.inner_text('#ov-title')!r}, stars {page.evaluate('window.__bubbels.kangoeroe.stars()')}")
+    if card_buttons(page) != ["Volgende ronde", "Nog een keer", "Rondes"]:
+        problems.append(f"kangoeroe: the end card offers {card_buttons(page)}")
+
+    # the next round; the Android back button halfway and "keep playing"
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(200)
+    st = kg_state(page)
+    if st["roundId"] != "t1-2" or st["i"] != 0:
+        problems.append(f"kangoeroe: Volgende ronde started {st['roundId']}")
+    q = st["q"]
+    if q["ask"] == "count":
+        page.evaluate(f"window.__bubbels.kangoeroe.pick({q['answer']})")
+    else:
+        page.evaluate(f"window.__bubbels.kangoeroe.tapLine({q['answer']})")
+        page.evaluate("window.__bubbels.kangoeroe.here()")
+    kg_next(page, 0)
+    page.evaluate("window.__bubbels.kangoeroe.hop(1)")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    if where(page) != ["kangoeroe-menu", False] or not page.is_visible("#kangoeroe-continue") or page.inner_text("#kangoeroe-continue").strip() != "Verder spelen":
+        problems.append(f"kangoeroe: back from a round went to {where(page)} without Verder spelen")
+    page.locator("#kangoeroe-continue").tap()
+    page.wait_for_timeout(150)
+    st2 = kg_state(page)
+    if where(page) != ["kangoeroe", False] or st2["i"] != 1 or st2["roundId"] != "t1-2":
+        problems.append(f"kangoeroe: Verder spelen opened {where(page)} at question {st2['i'] + 1}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    page.evaluate("window.__bubbels.back()")  # the menu goes home
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"kangoeroe: back from the menu went to {where(page)}")
+
+    # the end of the free part: "Meer rondes" offers only OK on the web, and lands on the menu
+    page.locator("#tile-kangoeroe").click()
+    page.evaluate("window.__bubbels.kangoeroe.start('t1-3')")
+    page.wait_for_timeout(150)
+    for i in range(8):
+        q = kg_state(page)["q"]
+        if q["ask"] == "count":
+            page.evaluate(f"window.__bubbels.kangoeroe.pick({q['answer']})")
+        else:
+            page.evaluate(f"window.__bubbels.kangoeroe.tapLine({q['answer']})")
+            page.evaluate("window.__bubbels.kangoeroe.here()")
+        kg_next(page, i)
+    if "laatste gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"kangoeroe: the end of t1-3 says {page.inner_text('#ov-text')!r}")
+    if web_offer_ok(page, "kangoeroe t1-3", "kangoeroe-menu", problems):
+        if page.evaluate("window.__bubbels.kangoeroe.stars()").get("t1-3") != 3:
+            problems.append(f"kangoeroe: t1-3 not saved ({page.evaluate('window.__bubbels.kangoeroe.stars()')})")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("kangoeroe: something speaks")
+    if errors:
+        problems.append(f"kangoeroe: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"kangoeroe: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+def kangoeroe_layouts(browser, base, problems):
+    """Kangoeroe on a small phone, an ordinary phone (in English), sideways and on desktop, tier 1
+    and (full version) tier 3: every button on screen and 48 px or more, the line and the sum on
+    screen, no sideways scrolling; on 0-100 a phone shows a window of the line with the map above
+    it, and hopping +10 moves the window so the kangaroo stays in sight."""
+    for w, h in ((320, 568), (390, 844), (568, 320), (844, 390), (1280, 800)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        for rid in ("t1-1", "t2-1", "t3-1"):
+            label = f"kangoeroe {w}x{h} {rid}"
+            page.evaluate(f"window.__bubbels.kangoeroe.start('{rid}')")
+            page.wait_for_timeout(200)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(150)
+            q = kg_state(page)["q"]
+            if rid == "t3-1":
+                # follow the way with the buttons: the kangaroo never leaves the window
+                for a, b in q["hint"]:
+                    d = b - a
+                    step = d if d in q["buttons"] else (1 if d > 0 else -1)
+                    for _ in range(abs(d // step)):
+                        page.locator(f"#kg-hops .kg-hop[data-d='{step}']").click()
+                    kg_settle(page)
+                    page.wait_for_timeout(300)
+                    v = page.evaluate("window.__bubbels.kangoeroe.view()")
+                    pos = kg_state(page)["pos"]
+                    if not (v["lo"] <= pos <= v["lo"] + v["size"]):
+                        problems.append(f"{label}: the kangaroo on {pos} is out of the window {v['lo']}-{v['lo'] + v['size']}")
+                    lb = page.locator("#kg-linebox").bounding_box()
+                    x = page.evaluate(f"window.__bubbels.kangoeroe.x({pos})")
+                    if not (lb["x"] <= x <= lb["x"] + lb["width"]):
+                        problems.append(f"{label}: the kangaroo on {pos} is drawn outside the line ({x:.0f})")
+                v = page.evaluate("window.__bubbels.kangoeroe.view()")
+                if mobile and (not v["map"] or v["size"] >= 100):
+                    problems.append(f"{label}: a phone shows {v['size']} numbers without the map")
+                if not mobile and v["size"] != 100:
+                    problems.append(f"{label}: desktop shows only {v['size']} numbers")
+                if v["unit"] < 8 and v["size"] > 20:
+                    problems.append(f"{label}: numbers only {v['unit']:.1f} px apart")
+                print(f"[kangoeroe {w}x{h}] 0-100: {v['size']} in view, {v['unit']:.1f} px a number, map {v['map']}")
+            if rid == "t2-1" and q["ask"] == "land" and (w, h) == (390, 844):
+                # a double tap (or a held Enter) on Hier! after a wrong answer counts only once:
+                # the second try is kept
+                page.locator("#kg-here").dblclick()
+                page.keyboard.press("Enter")
+                page.wait_for_timeout(120)
+                st = kg_state(page)
+                if st["tries"] != 1 or st["mistakes"] != 1 or not st["hint"] or st["waiting"]:
+                    problems.append(f"{label}: a double tap on Hier! counted tries={st['tries']} mistakes={st['mistakes']} waiting={st['waiting']}")
+                kg_settle(page)
+            spill = page.eval_on_selector_all("#kg-hops .kg-hop", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent)")
+            if spill:
+                problems.append(f"{label}: the labels {spill} spill out of their buttons")
+            targets = ["#kangoeroe-back"] + [f"#kg-hops .kg-hop >> nth={k}" for k in range(page.locator("#kg-hops .kg-hop").count())]
+            targets += ["#kg-here"] if q["ask"] == "land" else [f"#kg-answer .kg-option >> nth={k}" for k in range(len(q["options"]))]
+            for sel in targets + ["#kg-sum", "#kg-linebox"] + (["#kg-map"] if page.is_visible("#kg-map") else []):
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"{label}: {sel} not on screen ({r})")
+                elif sel in targets and (r["width"] < 47.5 or r["height"] < 47.5):
+                    problems.append(f"{label}: {sel} only {r['width']:.0f}x{r['height']:.0f} px")
+                elif sel == "#kg-linebox" and r["height"] < 90:
+                    problems.append(f"{label}: the line has only {r['height']:.0f} px")
+                elif sel == "#kg-map" and r["height"] < 44:
+                    problems.append(f"{label}: the map is {r['height']:.0f} px high")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"{label}: the page scrolls sideways")
+            text = page.locator("#kg-sum").evaluate("e => e.scrollWidth > e.clientWidth + 1")
+            if text:
+                problems.append(f"{label}: the sum does not fit")
+            if english and page.inner_text("#kg-sub") != "Kangaroo Hops":
+                problems.append(f"{label}: English title {page.inner_text('#kg-sub')!r}")
+            page.screenshot(path=str(SHOTS / f"kangoeroe-{rid}-{w}x{h}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(100)
+        if errors:
+            problems.append(f"kangoeroe {w}x{h}: page errors {errors[:2]}")
+        ctx.close()
+
+
 PLAY_URL = "https://play.google.com/store/apps/details?id=work.westerweel.bazibo"
 APP_ONLY = "window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };"
 
@@ -5402,6 +5700,8 @@ def main():
             piano_big(browser, base, problems)
             drums_flow(browser, base, problems)
             drums_layouts(browser, base, problems)
+            kangoeroe_flow(browser, base, problems)
+            kangoeroe_layouts(browser, base, problems)
             store_links(browser, base, problems)
             browser.close()
     finally:
@@ -5418,6 +5718,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "piano": (piano_flow, piano_layouts, piano_big),
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
+         "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
          "doolhof": (doolhof_play,),
          "store": (store_links,)}
 

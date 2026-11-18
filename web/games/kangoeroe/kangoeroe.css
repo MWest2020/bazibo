@@ -1,0 +1,179 @@
+/* Kangoeroe op de getallenlijn: home tile, the menu picture, the question screen (the sum, the
+   number line with the kangaroo, the hop buttons, Hier! or the numbers to pick). The menu reuses
+   Klok kijken's round grid (klok.css); shared look lives in css/style.css. */
+
+/* ---------- home tile and menu ---------- */
+#tile-kangoeroe .tile-art { display: flex; align-items: center; justify-content: center; }
+.kg-tile-svg { width: 100%; height: 100%; max-width: 104px; display: block; overflow: visible; }
+.kg-menu-art { display: flex; justify-content: center; margin: 0 0 8px; }
+.kg-menu-art svg { width: 180px; height: auto; display: block; }
+.kg-ov { display: inline-flex; width: 170px; height: 117px; }
+.kg-ov svg { width: 100%; height: 100%; }
+
+/* ---------- the question screen ---------- */
+.kg-hud { gap: 10px; }
+#kg-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 12px;
+}
+
+/* the sum */
+.kg-prompt {
+  width: min(100%, 560px);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 0 #d6cff7;
+  text-align: center;
+}
+.kg-lead { margin: 0; font-size: 1rem; font-weight: 800; color: var(--ink-soft); line-height: 1.2; text-wrap: balance; }
+.kg-sum { margin: 0; font: 900 clamp(2.1rem, 11vw, 3rem)/1.1 var(--font); color: var(--primary-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kg-sum.long { font-size: clamp(1.8rem, 9vw, 2.6rem); }
+.kg-pips { display: flex; gap: 8px; justify-content: center; padding: 2px 0; }
+.kg-pips[hidden], .kg-map[hidden] { display: none; }
+.kg-pip { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #ff8a3d; background: #fff; }
+.kg-pip.on { background: #ff8a3d; }
+
+/* the line (drawn in an SVG the size of its box) */
+.kg-map { width: min(100%, 900px); height: 44px; flex: none; cursor: pointer; touch-action: manipulation; }
+.kg-map svg { display: block; }
+.kg-map-axis { stroke: #b7aeea; stroke-width: 3; stroke-linecap: round; }
+.kg-map-tick { stroke: #b7aeea; stroke-width: 2; }
+.kg-map-num { font: 800 11px var(--font); fill: var(--ink-soft); text-anchor: middle; }
+.kg-map-view { fill: rgba(91, 75, 219, 0.14); stroke: var(--primary); stroke-width: 2; }
+.kg-map-roo { fill: #e08a45; stroke: #7a3d17; stroke-width: 1.5; }
+.kg-linebox {
+  position: relative;
+  width: min(100%, 900px);
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 340px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 0 #d6cff7;
+}
+.kg-line { position: absolute; inset: 0; display: block; overflow: visible; cursor: pointer; touch-action: manipulation; }
+.kg-axis { stroke: var(--primary); stroke-width: 4; stroke-linecap: round; }
+.kg-tick { stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; }
+.kg-tick.ten { stroke-width: 3.5; }
+.kg-num { font-family: var(--font); font-weight: 800; fill: var(--ink-soft); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.kg-num.ten { font-weight: 900; fill: var(--primary-dark); }
+.kg-start { fill: #3fb35f; stroke: #fff; stroke-width: 2.5; }
+.kg-flag path { stroke: #7a3d17; }
+.kg-flag .kg-flag-cloth { fill: #ff5a5a; stroke: #c23636; stroke-width: 1.5; stroke-linejoin: round; }
+.kg-arc { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+.kg-arc.on { stroke: #ff8a3d; }
+.kg-arc.back { stroke: #3b82f6; }
+.kg-arc.hint { stroke: #e0a800; stroke-width: 3.5; stroke-dasharray: 6 5; }
+.kg-arc-label { font: 900 14px var(--font); text-anchor: middle; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.kg-arc-label.on { fill: #d35f12; }
+.kg-arc-label.back { fill: #1d4ed8; }
+.kg-arc-label.hint { fill: #9a7300; }
+.kg-pill rect { fill: #fff; stroke: var(--primary); stroke-width: 3; }
+.kg-pill text { font-family: var(--font); font-weight: 900; fill: var(--primary-dark); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.kg-pill.right rect { fill: #dcf7d4; stroke: #3fb35f; }
+.kg-pill.right text { fill: #1f7a36; }
+
+/* the hops, Hier! or the numbers, progress */
+.kg-side { width: min(100%, 560px); flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.kg-hops { width: 100%; display: flex; justify-content: center; gap: 8px; }
+.kg-hop {
+  flex: 1 1 0;
+  min-width: 48px;
+  max-width: 88px;
+  height: 56px;
+  border: 0;
+  border-radius: 18px;
+  font: 900 1.45rem/1 var(--font);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  touch-action: manipulation;
+  box-shadow: 0 4px 0 rgba(43, 35, 112, 0.35);
+}
+.kg-hop.on { background: #ff8a3d; }
+.kg-hop.on.ten { background: #e2581f; }
+.kg-hop.back { background: #3b82f6; }
+.kg-hop.back.ten { background: #1d4ed8; }
+.kg-hop.undo { flex: 0 0 auto; width: 56px; background: #fff; color: var(--primary-dark); box-shadow: 0 4px 0 #d6cff7; }
+.kg-hop.undo svg { width: 28px; height: 28px; display: block; margin: auto; }
+.kg-hop:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(43, 35, 112, 0.35); }
+.kg-hop:disabled { opacity: 0.4; cursor: default; transform: none; }
+.kg-hop:focus-visible, .kg-option:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kg-answer { width: 100%; display: flex; justify-content: center; gap: 10px; }
+.btn.big.kg-here { min-width: 0; width: 100%; max-width: 300px; min-height: 56px; }
+.kg-answer.count { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 420px; }
+.kg-answer.count.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 330px; }
+.kg-option {
+  min-height: 56px;
+  min-width: 0;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--primary-dark);
+  font: 900 1.8rem/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 5px 0 #d6cff7;
+}
+.kg-option:active { transform: translateY(3px); box-shadow: 0 2px 0 #d6cff7; }
+.kg-option.right { background: #dcf7d4; box-shadow: 0 5px 0 #7cc46f; color: #1f7a36; }
+.kg-option.wrong { background: #ffe0dc; box-shadow: 0 5px 0 #ff9a8b; animation: klok-shake 0.35s; }
+#kg-stage.happy .kg-prompt { background: #eaffdc; box-shadow: 0 4px 0 #9be15d; }
+
+/* narrow phones: "−10" and "+10" stay inside their buttons */
+@media (max-width: 359px) {
+  .kg-hop.ten { font-size: 1.15rem; }
+}
+
+/* short phones: a smaller sum and buttons, so the line keeps room */
+@media (max-height: 640px) {
+  .kg-prompt { padding: 4px 12px; }
+  .kg-lead { font-size: 0.92rem; }
+  .kg-sum { font-size: clamp(1.8rem, 9vw, 2.3rem); }
+  .kg-sum.long { font-size: clamp(1.5rem, 7.6vw, 2rem); }
+  .kg-pip { width: 14px; height: 14px; border-width: 2.5px; }
+  .kg-hop, .kg-hop.undo { height: 50px; }
+  .btn.big.kg-here, .kg-option { min-height: 50px; }
+  .klok-status { min-height: 1.3em; }
+  #kg-stage { gap: 6px; padding-bottom: 8px; }
+}
+
+/* sideways phones: the bar on the left (like Klok kijken), the line wide, the buttons in one row */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-kangoeroe { flex-direction: row; }
+  .kg-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; max-width: 120px; }
+  .kg-hud .hud-mid { flex: 0; }
+  .kg-hud .hud-level { white-space: normal; font-size: 0.92rem; }
+  .kg-hud .btn.icon { width: 54px; height: 54px; }
+  #kg-stage { gap: 6px; padding: 8px 12px 6px; }
+  .kg-prompt { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px 14px; padding: 4px 12px; width: 100%; max-width: none; }
+  .kg-sum, .kg-sum.long { font-size: 1.8rem; }
+  .kg-linebox { min-height: 100px; width: 100%; }
+  .kg-map { height: 44px; width: 100%; }
+  .kg-side { width: 100%; max-width: none; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "hops answer" "dots status"; gap: 4px 12px; align-items: center; }
+  .kg-hops { grid-area: hops; }
+  .kg-answer { grid-area: answer; }
+  .kg-side .klok-dots { grid-area: dots; }
+  .kg-side .klok-status { grid-area: status; min-height: 0; font-size: 0.9rem; }
+  .kg-hops { gap: 6px; }
+  .kg-hop, .kg-hop.undo { flex: 0 0 52px; width: 52px; height: 50px; }
+  .kg-hop.ten { font-size: 1.2rem; }
+  .btn.big.kg-here, .kg-option { min-height: 50px; }
+  .btn.big.kg-here { font-size: 1.3rem; }
+  .kg-option { font-size: 1.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kg-option.wrong { animation: none; }
+}

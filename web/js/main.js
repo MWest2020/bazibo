@@ -54,6 +54,9 @@ import { tileSvg as klokTileSvg } from '../games/klok/art.js';
 import '../games/letters/strings.js';
 import { createLetters } from '../games/letters/letters.js';
 import { tileSvg as lettersTileSvg } from '../games/letters/art.js';
+import '../games/kangoeroe/strings.js';
+import { createKangoeroe } from '../games/kangoeroe/kangoeroe.js';
+import { tileSvg as kangoeroeTileSvg } from '../games/kangoeroe/art.js';
 import '../games/doolhof/strings.js';
 import { createDoolhof } from '../games/doolhof/doolhof.js';
 import { tileSvg as doolhofTileSvg } from '../games/doolhof/art.js';
@@ -315,6 +318,10 @@ function drawTekenenTile() {
 
 function drawLettersTile() {
   $('#tile-letters .tile-art').innerHTML = lettersTileSvg();
+}
+
+function drawKangoeroeTile() {
+  $('#tile-kangoeroe .tile-art').innerHTML = kangoeroeTileSvg();
 }
 
 function drawDoolhofTile() {
@@ -724,6 +731,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.kangoeroe = createKangoeroe({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.doolhof = createDoolhof({
     t,
     show,
@@ -779,13 +797,14 @@ async function boot() {
   drawTekenenTile();
   drawKlokTile();
   drawLettersTile();
+  drawKangoeroeTile();
   drawDoolhofTile();
   drawPianoTile();
   drawDrumsTile();
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.piano.init(), games.drums.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.kangoeroe.init(), games.piano.init(), games.drums.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -804,6 +823,7 @@ async function boot() {
       teken: games.tekenen.testHook(),
       klok: games.klok.testHook(),
       letters: games.letters.testHook(),
+      kangoeroe: games.kangoeroe.testHook(),
       doolhof: games.doolhof.testHook(),
       piano: games.piano.testHook(),
       drums: games.drums.testHook(),
@@ -852,6 +872,7 @@ function onBack() {
   else if (action === 'klok-menu-back') games.klok.menuBack();
   else if (action === 'letters-menu') games.letters.leave();
   else if (action === 'letters-menu-back') games.letters.menuBack();
+  else if (action === 'kangoeroe-menu') games.kangoeroe.leave();
   else if (action === 'doolhof-menu') games.doolhof.leave();
   else if (action === 'doolhof-menu-back') games.doolhof.menuBack();
   else if (action === 'piano-back') games.piano.back();

@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-17 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+18 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-17 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+18 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zeventien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken, Letters en Egeltje.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu achttien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken, Letters, Egeltje en Kangoeroe op de getallenlijn.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -49,7 +49,7 @@ PAARTJES
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
-• Sleep de stukjes naar hun plek; dichtbij klikken ze vast. Van 9 tot 60 stukjes, met een vergrootglas op de telefoon.
+• Sleep de stukjes op hun plek. Van 9 tot 60 stukjes, met een vergrootglas op de telefoon.
 • 9, 16 en 25 stukjes met drie plaatjes. 30, 48 en 60 stukjes en vijf plaatjes meer (volledige versie).
 
 VIER OP EEN RIJ
@@ -61,7 +61,7 @@ DAMMEN
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en 10 bij 10 (volledige versie).
 
 GANZENBORD
-• Ons eigen bord met de klassieke vakjes. Je kind telt zelf de vakjes.
+• Ons eigen bord; je kind telt zelf de vakjes.
 • Samen of tegen een computergans. Tot vier spelers en een winter- en zeebord (volledige versie).
 
 KWARTET
@@ -81,8 +81,8 @@ TEKENEN
 
 PIANO
 • Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op, of luister eerst.
-• 4-6 jaar: vrij spelen en Vader Jacob; nog drie liedjes in de volledige versie.
-• 7-10 jaar: twee octaven met zwarte toetsen en de Ode aan de vreugde. Für Elise en meer (volledige versie).
+• 4-6 jaar: Vader Jacob; nog drie liedjes (volledige versie).
+• 7-10 jaar: twee octaven en de Ode aan de vreugde; Für Elise en meer (volledige versie).
 
 DRUMSTEL
 • Acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
@@ -97,13 +97,16 @@ LETTERS
 EGELTJE
 • Een egeltje loopt door een tuindoolhof en raapt het alfabet, een woordje of getallen op volgorde op.
 
+KANGOEROE OP DE GETALLENLIJN
+• Plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 (volledige versie).
+
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
 • Grote knoppen, korte teksten, Nederlands of Engels. Werkt zonder internet.
 
 GEEN RECLAME, NOOIT
 • Geen advertenties, geen account en geen trackers: de app verzamelt niets.
-• Elk spel heeft een gratis deel, zoals 10 levels bij Bubbels schieten en 10 puzzels bij Dogudoku. Eén keer betalen opent alles, ook latere spellen, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
+• Elk spel heeft een gratis deel. Eén keer betalen opent alles, ook latere spellen, plus eindeloos nieuwe puzzels, mandala's en rondes. Geen abonnement. Kopen kan alleen na een vraag voor ouders.
 
 Privacyverklaring: https://bazibo.nl/nl/privacy/
 Voorwaarden: https://bazibo.nl/nl/voorwaarden/

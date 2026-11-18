@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog)). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -64,6 +64,7 @@ home → Piano (`tests/smoke.py piano`): a tap sounds (oscillators counted), two
 home → Drumstel (`tests/smoke.py drums`): the tile in Creatief, a tap sounds (oscillators counted), two fingers hit two pads at once; a locked rhythm offers only OK on the web and stays on the list; Rock (4-6) played to the end by tapping the glowing pad after Begin and the count-in, with one wrong pad first (the rhythm waits), 3 stars saved and "More rhythms" (the offer over the list); Rock (7-10) played on the beat with two fingers at once (at least 2 stars); Listen lights the pads, and the background stops it, sends a rhythm back to Begin and lets go of every pad; the back arrows and the Android back button; the sound setting followed; the layout at 320x568, 390x844 in English, 844x390 (full version), 568x320 and desktop, every pad on screen, 80 px or more and none overlapping, the strip above the kit;
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap at the start, the word with a gap inside it, the build word shown for a moment), a gentle wrong tap, a locked tier stays locked, tier 1 shows the build word for a moment and again on a tap on the picture, tiers 2 and 3 the picture only with extra tiles; a round with four-letter words built by real taps with the sound on (every word fills its last slot and finishes, no page errors); the layout at 320x568 and sideways (`tests/smoke.py letters`);
+home → Kangoeroe op de getallenlijn (`tests/smoke.py kangoeroe`): the tile in Leren, a locked tier offers only OK on the web; round t1-1 played to the end by real taps with one wrong answer first (back to the start, the way as dashed arcs, counted once), "how many hops?" by +1 taps to the flag (numbered arcs, +1 greyed there) then the number, "3 + 4" with the pips filling then Hier!, one sum by a tap on the line; 2 stars saved; the next round, the Android back button and "keep playing"; the end of the free part offers only OK and lands on the menu with the save kept; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for tiers 1-3, every button 48 px or more and on screen, 0-100 a window with a map on phones that follows the kangaroo, all of it on desktop;
 home → Egeltje (`tests/smoke.py doolhof`): the tile in Leren, a locked tier offers only OK on the web, the alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (curled up, rolled back, nothing lost, the crow flown off), no frames while the garden waits, back + keep playing (nothing moves before a step), the Android back button, the end of the free part ("More rounds" offers only OK over the list); the layout at 390x844 in Dutch and English, 320x568, 844x390, 568x320 and desktop, the arrows 48 px or more;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
@@ -207,6 +208,22 @@ the number of tiles (Mark, 18 Nov 2026). Keep `first` as it is (Mark's children 
 in `middle` needs its gaps in `MIDDLE` with the words a wrong letter would spell there. The Piper voice was removed on Mark's word (13 Nov 2026: children did not like the robot
 voice); do not add speech back, recorded or generated, without him. New words go in `WORDS` (both
 languages, with a picture that exists in `art.js`).
+Kangoeroe op de getallenlijn (Kangaroo Hops, id `kangoeroe`): the questions, the hops and the
+view on the line are pure in `web/games/kangoeroe/hops.js` (tested over 200 seeds per tier: every
+number on the line and never below 0, the way (`hint`) joins up from the start to the answer, over
+10 it is two arcs via the ten, every question solvable with the buttons it offers, a "how many
+hops?" question reached in exactly its answer). Three tiers by the maths, never by speed (Mark, 18
+Nov 2026): t1 0-10 forward only ("from 3 to 7, how many hops?", "3 + 4" with pips), t2 0-20 forward
+and back with the missing number and "via 10", t3 0-100 with hops of 10, via a ten, two steps
+("37 + 20 + 5") and counting by 2s and 5s. A question is `land` (hop there, then Hier!) or `count`
+(pick the number; only the hop towards the flag, which stops there). A tap on the line moves the
+kangaroo there in one jump, it never answers by itself. No timers, no losing: a wrong answer
+bounces the kangaroo to the start and draws the way dashed (over the kangaroo, so never hidden);
+after `MAX_TRIES` it hops the way itself. `starsFor` counts mistakes only. On 0-100 a phone shows a
+window of 20-100 numbers (`viewSize`, 8 px or more apart) with a map above it; `followView` keeps
+the kangaroo in sight. Nothing is spoken; the sounds are the shell's (`plink`, `boop`, `chime`).
+Every target 48 px or more. Free: tier 1; the full version adds tiers 2 and 3 and random rounds.
+Saved: stars per round, random rounds per tier, the how-to cards seen and the last tier.
 Egeltje (id `doolhof`): a garden maze. The maze in `web/games/doolhof/maze.js`, the rounds,
 steps and crows in `rules.js` (both pure, tested: every garden one piece without dead ends, every
 board keeps every letter reachable without walking over another after every step (`placementOk`),
