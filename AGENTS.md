@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops)). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, the game of the goose `ganzen`, the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -65,6 +65,7 @@ home → Drumstel (`tests/smoke.py drums`): the tile in Creatief, a tap sounds (
 home → Klok kijken: a locked round offers only OK on the web, a set-the-clock round by dragging the hour hand, a what-time-is-it round with one mistake and its explanation card, a daily-rhythm round, + and -, the hint and "keep playing"; the layout at 320x568 and sideways;
 home → Letters: one round of each kind played by taps in Dutch and English (the big letter matches its tile, the word with a gap at the start, the word with a gap inside it, the build word shown for a moment), a gentle wrong tap, a locked tier stays locked, tier 1 shows the build word for a moment and again on a tap on the picture, tiers 2 and 3 the picture only with extra tiles; a round with four-letter words built by real taps with the sound on (every word fills its last slot and finishes, no page errors); the layout at 320x568 and sideways (`tests/smoke.py letters`);
 home → Kangoeroe op de getallenlijn (`tests/smoke.py kangoeroe`): the tile in Leren, a locked tier offers only OK on the web; round t1-1 played to the end by real taps with one wrong answer first (back to the start, the way as dashed arcs, counted once), "how many hops?" by +1 taps to the flag (numbered arcs, +1 greyed there) then the number, "3 + 4" with the pips filling then Hier!, one sum by a tap on the line; 2 stars saved; the next round, the Android back button and "keep playing"; the end of the free part offers only OK and lands on the menu with the save kept; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for tiers 1-3, every button 48 px or more and on screen, 0-100 a window with a map on phones that follows the kangaroo, all of it on desktop;
+home → Kaartpuzzel (`tests/smoke.py kaart`): the tile in Leren, the menu on the device's own country (Nederland on nl-NL, the United States on en-US, the United Kingdom on en-GB, none on nl-BE and de-DE), "Ander land…" picking another (kept after a reload), a locked round offers only OK on the web; nl-t1-1 played to the end by real input (a wrong drop on another province's place bounces, counts once and makes the piece's place glow after two, mouse drags, a finger drag with the piece above the finger, tap-tap), 2 stars saved, the next round, back + keep playing, the end of the free part offers only OK; "Waar ligt…?" on the continents with two wrong taps (the right one glows) and the rest by real taps; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for a puzzle, "where is", the capitals and the whole puzzle without lines, pieces 64 px and buttons 44 px or more on screen, the magnifier only for the US and Europe on phones (on from the start for the smallest states at 320 px), a real tap on a state's centre at 320 px finds it;
 home → Egeltje (`tests/smoke.py doolhof`): the tile in Leren, a locked tier offers only OK on the web, the alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (curled up, rolled back, nothing lost, the crow flown off), no frames while the garden waits, back + keep playing (nothing moves before a step), the Android back button, the end of the free part ("More rounds" offers only OK over the list); the layout at 390x844 in Dutch and English, 320x568, 844x390, 568x320 and desktop, the arrows 48 px or more;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
@@ -241,6 +242,27 @@ after a word changes; tested on every step). Tiers are harder by
 what must be told apart (Letters' `SIMILAR`/`LOOKALIKE`, `NUMBER_LOOKALIKE`) and how much of a word
 is shown (`WORD_HINT`), not by speed. Words and pictures come from Letters (`BUILD`, `LONG_WORDS`
 must have a picture in Letters' `art.js`). No voice. Free: tier 1 of every kind (`meta.freeTiers`).
+Kaartpuzzel (Map Puzzle, id `kaart`): the maps are data made by `tools/gen-kaart.mjs` from
+Natural Earth (public domain; source, version and files in CREDITS.md); never hand-edit
+`web/games/kaart/packs/*.js` and never commit the raw GeoJSON. Europe uses Natural Earth's Dutch
+point of view (the NLD edition). What a tap or drop means is pure in `map.js` (`hitRegion`: the
+region under the finger, unless the tap is within `EDGE_SHARE` of a finger of a small region's
+outline; off every region, the nearest small outline or centre within a finger; `hitPoint`;
+`snaps`: inside its own outline or near its own centre, never more than half way to the next
+region's centre, at any scale, with no floor beating that; a puzzle with pieces that would be
+`fiddly` on the phone starts with the magnifier on, when it has borders), the rounds in
+`rounds.js` (t1 a puzzle with the borders, biggest first; t2 "where is" per region; t3 the whole
+puzzle without borders, then the capitals or oceans; harder by the task, never by speed; no
+timers); all tested in `tests/kaart.test.js` (every region a path, a centre inside it, Dutch and
+English names, no duplicates, a tap on every centre picks it at phone, magnifier and desktop
+scale, and a tap 8 px inside any border picks the region it is in). A pack stays under 80 KB, all of them under 200 KB. Region and point names go through
+`t()` by `addStrings` when a pack loads (`kaart.r.<pack>.<id>`, `kaart.p.<pack>.<id>`); check the
+Dutch names by hand for a new pack. The own-country pack follows `navigator.language`
+(`defaultCountry`, exact tags: nl-NL or plain nl, en-US, en-GB; anything else none, nl-BE too, so
+nobody is pushed another country's provinces); "Ander land…" saves `country`. A wrong drop or tap counts once per piece or question,
+after `MAX_TRIES` the place glows; `starsFor` counts mistakes only. No voice. Free: the whole
+Continents pack and tier 1 of every pack (`meta.freePacks`, `meta.freeTiers`). Adding a country: a
+block in the tool, an entry in `packs.js`, `kaart.pack.<id>` in `strings.js`.
 Piano: two levels by age, picked with two buttons at the top of the song list and saved as
 `games.piano.level` (`small` or `big`; a new player gets `small`, the tile always opens free play).
 The keyboards, the songs and playing along are pure in `web/games/piano/songs.js` (tested). 4-6
