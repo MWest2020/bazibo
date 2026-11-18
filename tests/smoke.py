@@ -5283,6 +5283,19 @@ def kangoeroe_layouts(browser, base, problems):
                 if v["unit"] < 8 and v["size"] > 20:
                     problems.append(f"{label}: numbers only {v['unit']:.1f} px apart")
                 print(f"[kangoeroe {w}x{h}] 0-100: {v['size']} in view, {v['unit']:.1f} px a number, map {v['map']}")
+            if rid == "t2-1" and q["ask"] == "land" and (w, h) == (390, 844):
+                # a double tap (or a held Enter) on Hier! after a wrong answer counts only once:
+                # the second try is kept
+                page.locator("#kg-here").dblclick()
+                page.keyboard.press("Enter")
+                page.wait_for_timeout(120)
+                st = kg_state(page)
+                if st["tries"] != 1 or st["mistakes"] != 1 or not st["hint"] or st["waiting"]:
+                    problems.append(f"{label}: a double tap on Hier! counted tries={st['tries']} mistakes={st['mistakes']} waiting={st['waiting']}")
+                kg_settle(page)
+            spill = page.eval_on_selector_all("#kg-hops .kg-hop", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent)")
+            if spill:
+                problems.append(f"{label}: the labels {spill} spill out of their buttons")
             targets = ["#kangoeroe-back"] + [f"#kg-hops .kg-hop >> nth={k}" for k in range(page.locator("#kg-hops .kg-hop").count())]
             targets += ["#kg-here"] if q["ask"] == "land" else [f"#kg-answer .kg-option >> nth={k}" for k in range(len(q["options"]))]
             for sel in targets + ["#kg-sum", "#kg-linebox"] + (["#kg-map"] if page.is_visible("#kg-map") else []):

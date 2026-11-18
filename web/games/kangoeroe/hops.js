@@ -220,8 +220,8 @@ export function optionsFor(answer, n, rand) {
   return [...out].sort((a, b) => a - b);
 }
 
-/** A question's identity, so a round never asks the same thing twice. */
-const keyOf = (q) => `${q.kind}:${q.start}:${q.terms.join(',')}`;
+/** A question's identity: where it starts and lands, so "6 -> 10" and "6 + 4" never share a round. */
+export const keyOf = (q) => `${q.start}:${q.ask === 'count' ? q.to : q.answer}`;
 
 /**
  * One round of ROUND_LEN questions for `tier`, the same for the same seed. `round` (1-3, 0 for
@@ -249,6 +249,22 @@ export function makeRound({ tier, seed, round = 0 }) {
 
 /** Where the kangaroo ends when it follows the hint (the answer, or the flag of a count question). */
 export const landing = (q) => (q.ask === 'count' ? q.to : q.answer);
+
+/**
+ * The hops the kangaroo makes when it shows the way: single hops in a "how many hops?" question,
+ * so the arcs it numbers count up to the answer; the strategy (via 10, tens) otherwise.
+ */
+export const wayFor = (q) => (q.ask === 'count' ? stepsOf(q.start, q.to) : q.hint.map((x) => [...x]));
+
+/**
+ * The label on the k-th arc made: in a "how many hops?" question single hops are counted (1, 2,
+ * 3…) while every hop so far was a single one; any other arc shows its size (+2, −10).
+ */
+export function arcLabel(q, trail, k) {
+  const [a, b] = trail[k];
+  const counting = q.ask === 'count' && trail.slice(0, k + 1).every(([x, y]) => Math.abs(y - x) === 1);
+  return counting ? String(k + 1) : b < a ? `\u2212${a - b}` : `+${b - a}`;
+}
 
 /** Is `value` the answer: the number landed on, or the number of hops picked? */
 export const isRight = (q, value) => value === q.answer;

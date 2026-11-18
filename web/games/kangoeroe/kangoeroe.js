@@ -29,6 +29,8 @@ import {
   jump,
   undo,
   pipsDone,
+  wayFor,
+  arcLabel,
   viewSize,
   startView,
   followView,
@@ -515,7 +517,7 @@ export function createKangoeroe(shell) {
     game.st.trail.forEach(([a, b], k) => {
       const p = arcPath(a, b, lineY);
       parts.push(`<path class="kg-arc ${b < a ? 'back' : 'on'}" d="${p.d}"/>`);
-      if (p.w >= 18) parts.push(`<text class="kg-arc-label ${b < a ? 'back' : 'on'}" x="${p.mx.toFixed(1)}" y="${(p.my - 5).toFixed(1)}">${it.ask === 'count' ? k + 1 : signed(b - a)}</text>`);
+      if (p.w >= 18) parts.push(`<text class="kg-arc-label ${b < a ? 'back' : 'on'}" x="${p.mx.toFixed(1)}" y="${(p.my - 5).toFixed(1)}">${arcLabel(it, game.st.trail, k)}</text>`);
     });
     // where the kangaroo stands, big; green once it is right
     const pos = game.st.pos;
@@ -702,6 +704,11 @@ export function createKangoeroe(shell) {
 
   function here() {
     if (!game || game.waiting || game.done || q().ask !== 'land' || overlayUp()) return;
+    // just bounced back after a wrong answer and not hopped yet: a second (double) tap counts nothing
+    if (game.hint && !game.st.trail.length) {
+      sfx.bounce();
+      return;
+    }
     if (isRight(q(), game.st.pos)) correct();
     else wrong();
   }
@@ -764,12 +771,13 @@ export function createKangoeroe(shell) {
   function showWay() {
     const it = q();
     game.shown = true;
-    for (const [a, b] of it.hint) animateHop(a, b);
-    game.st = { pos: landing(it), trail: it.hint.map((x) => [...x]) };
+    const way = wayFor(it);
+    for (const [a, b] of way) animateHop(a, b);
+    game.st = { pos: landing(it), trail: way };
     setStatus(t('kangoeroe.show'));
     if (it.ask === 'count') document.querySelector(`#kg-answer .kg-option[data-n="${it.answer}"]`)?.classList.add('right');
     changed();
-    later(1200 + it.hint.length * HOP_MS, nextQuestion);
+    later(1200 + way.length * HOP_MS, nextQuestion);
   }
 
   function nextQuestion() {

@@ -23,6 +23,9 @@ import {
   jump,
   undo,
   pipsDone,
+  wayFor,
+  arcLabel,
+  keyOf,
   viewSize,
   startView,
   followView,
@@ -75,8 +78,10 @@ test('rounds: 8 questions of the tier\'s kinds, the same for the same seed, neve
     for (const qs of allRounds(tier)) {
       assert.equal(qs.length, ROUND_LEN);
       assert.deepEqual(qs.map((q) => q.kind).sort(), [...KINDS[tier]].sort());
-      const keys = qs.map((q) => `${q.kind}:${q.start}:${q.terms.join(',')}`);
+      // the same hop never twice, also not as "6 -> 10" and "6 + 4"
+      const keys = qs.map((q) => `${q.start}:${landing(q)}`);
       assert.equal(new Set(keys).size, keys.length, `${tier}: a question twice in ${keys}`);
+      assert.deepEqual(qs.map(keyOf), keys);
     }
     assert.deepEqual(makeRound({ tier, seed: 7 }), makeRound({ tier, seed: 7 }));
     assert.notDeepEqual(makeRound({ tier, seed: hashSeed('kangoeroe:a') }), makeRound({ tier, seed: hashSeed('kangoeroe:b') }));
@@ -353,4 +358,29 @@ test('the drawings are inline SVG without ids or outside references', () => {
   }
   assert.match(tileSvg(), /^<svg/);
   assert.match(kangaroo(-1), /scale\(-1 1\)/);
+});
+
+test('showing the way in a "how many hops?" question hops one by one, so the numbered arcs end on the answer', () => {
+  for (const tier of TIER_IDS) {
+    for (const q of everyQ(tier)) {
+      const way = wayFor(q);
+      assert.equal(way[0][0], q.start);
+      assert.equal(way[way.length - 1][1], landing(q));
+      if (q.ask === 'count') {
+        assert.equal(way.length, q.answer, JSON.stringify(q));
+        assert.equal(arcLabel(q, way, way.length - 1), String(q.answer), JSON.stringify(q));
+      } else assert.deepEqual(way, q.hint);
+    }
+  }
+  // "5 + ? = 12": the via-10 hint is two arcs, but the kangaroo hops 7 single hops numbered 1-7
+  const q = { kind: 'missing', ask: 'count', start: 5, to: 12, answer: 7, terms: [7], hint: viaTen(5, 12), buttons: [1], options: [6, 7, 8, 9] };
+  assert.deepEqual(wayFor(q).map((_, k, w) => arcLabel(q, w, k)), ['1', '2', '3', '4', '5', '6', '7']);
+  // an arc longer than one shows its size, never a count
+  assert.equal(arcLabel(q, q.hint, 0), '+5');
+  assert.equal(arcLabel(q, q.hint, 1), '+2');
+  const down = { ...q, start: 14, to: 8 };
+  assert.equal(arcLabel(down, [[14, 10]], 0), '\u22124');
+  assert.equal(arcLabel(down, [[14, 13], [13, 12]], 1), '2');
+  const land = { kind: 'add', ask: 'land', start: 3, answer: 5, terms: [2], hint: stepsOf(3, 5), buttons: [1] };
+  assert.equal(arcLabel(land, land.hint, 1), '+1');
 });

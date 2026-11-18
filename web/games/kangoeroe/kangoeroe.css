@@ -97,6 +97,7 @@
   font: 900 1.45rem/1 var(--font);
   color: #fff;
   cursor: pointer;
+  padding: 0;
   touch-action: manipulation;
   box-shadow: 0 4px 0 rgba(43, 35, 112, 0.35);
 }
@@ -129,6 +130,11 @@
 .kg-option.right { background: #dcf7d4; box-shadow: 0 5px 0 #7cc46f; color: #1f7a36; }
 .kg-option.wrong { background: #ffe0dc; box-shadow: 0 5px 0 #ff9a8b; animation: klok-shake 0.35s; }
 #kg-stage.happy .kg-prompt { background: #eaffdc; box-shadow: 0 4px 0 #9be15d; }
+
+/* narrow phones: "−10" and "+10" stay inside their buttons */
+@media (max-width: 359px) {
+  .kg-hop.ten { font-size: 1.15rem; }
+}
 
 /* short phones: a smaller sum and buttons, so the line keeps room */
 @media (max-height: 640px) {
