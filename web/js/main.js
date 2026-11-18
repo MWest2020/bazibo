@@ -180,6 +180,10 @@ $('#store-play').addEventListener('click', (e) => {
     else location.href = PLAY_URL; // a blocked new tab: go there in this one
   });
 });
+// A middle click or a long press ("open in new tab", Android Chrome) would pass the gate: no menu.
+for (const ev of ['auxclick', 'contextmenu']) {
+  $('#store-play').addEventListener(ev, (e) => e.preventDefault());
+}
 
 // ---------- home tiles ----------
 
