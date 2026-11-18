@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-18 games for children aged 3 to 10. No ads, no account, no trackers.
+19 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-18 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
+19 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. It has eighteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time, Letters, Little Hedgehog and Kangaroo Hops. More games will follow.
+Bazibo is an app of games for children aged 3 to 10, with no ads. It has nineteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time, Letters, Little Hedgehog, Kangaroo Hops and Map Puzzle. More games will follow.
 
 The name comes from "bāzi", the Persian word for play.
 
@@ -43,7 +43,7 @@ PICTUREDOKU: SUDOKU WITH PICTURES
 • From age 6, 6 by 6; from age 8, 9 by 9, with numbers if you like. 60 puzzles.
 
 PAIRS
-• Turn over two cards and find the pairs. On your own, together, or against a kind computer.
+• Turn over two cards and find the pairs. On your own, together, or against the computer.
 • 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
 
 JIGSAW
@@ -55,7 +55,7 @@ FOUR IN A ROW
 • For the youngest: the little board, where three in a row wins.
 
 CHECKERS
-• Puppy against kitten, or classic; pieces that must jump glow softly.
+• Puppy against kitten, or classic.
 • Together or against the computer on 8 by 8. A smarter computer and 10 by 10 (full version).
 
 GAME OF THE GOOSE
@@ -63,7 +63,7 @@ GAME OF THE GOOSE
 • Together or against a computer goose. Up to four players and winter and sea boards (full version).
 
 QUARTETS
-• Ask for the cards you are missing (big buttons with a picture) and lay down your sets of four.
+• Ask for the cards you are missing and lay down your sets of four.
 • Against the computer or together on one phone. 4 sets; 6 and 8 sets and a 4th player (full version).
 
 SNAKE: COUNTING, LETTERS AND COLOURS
@@ -74,11 +74,11 @@ COLOURING PAGES AND MANDALAS
 • Pick a colour and tap a part: done. 13 pictures from age 3, mandalas from age 7.
 
 DRAWING
-• Draw with a finger, with every colour, an eraser and undo.
+• Draw with a finger, with every colour and an eraser.
 • Mirror mode (every stroke a mandala), stamps and up to 100 drawings (full version).
 
 PIANO
-• A toy piano with coloured keys. Play along with a song: the next key lights up. Listen plays the song to you.
+• A toy piano with coloured keys. Play along with a song: the next key lights up.
 • Ages 4-6: Frère Jacques; three more songs (full version).
 • Ages 7-10: two octaves and the Ode to Joy; Für Elise and more (full version).
 
@@ -93,10 +93,13 @@ LETTERS
 • Find the same letter among look-alikes (b and d, m and n), the first or a middle letter of a pictured word, and build a word.
 
 LITTLE HEDGEHOG
-• A hedgehog walks a garden maze picking up the alphabet, a word or numbers in order.
+• A hedgehog in a garden maze picks up the alphabet, a word or numbers in order.
 
 KANGAROO HOPS
 • Adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 (full version).
+
+MAP PUZZLE
+• Piece together the continents, Europe or your own country, and find where places are. Continents free, and every map's puzzle.
 
 MADE FOR CHILDREN
 • Every colour has its own symbol or pattern, so colour-blind children can play too.

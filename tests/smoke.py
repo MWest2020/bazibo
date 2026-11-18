@@ -14,7 +14,7 @@ hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and G
 dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -5552,6 +5552,340 @@ def kangoeroe_layouts(browser, base, problems):
         ctx.close()
 
 
+def km_state(page):
+    return page.evaluate("window.__bubbels.kaart.state()")
+
+
+def km_target(page, rid):
+    return page.evaluate(f"window.__bubbels.kaart.target('{rid}')")
+
+
+def km_chip(page, rid):
+    box = page.locator(f"#km-tray .km-chip[data-id='{rid}']").bounding_box()
+    return {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] * 0.35}
+
+
+def km_drag(page, a, b, steps=10):
+    """A real mouse drag from a to b (page px)."""
+    page.mouse.move(a["x"], a["y"])
+    page.mouse.down()
+    for k in range(1, steps + 1):
+        page.mouse.move(a["x"] + (b["x"] - a["x"]) * k / steps, a["y"] + (b["y"] - a["y"]) * k / steps)
+    page.mouse.up()
+    page.wait_for_timeout(60)
+
+
+def km_touch_drag(cdp, a, b, steps=10):
+    """A real finger drag (touch events) from a to b."""
+    pi_touch(cdp, "touchStart", [{"x": a["x"], "y": a["y"]}])
+    for k in range(1, steps + 1):
+        pi_touch(cdp, "touchMove", [{"x": a["x"] + (b["x"] - a["x"]) * k / steps, "y": a["y"] + (b["y"] - a["y"]) * k / steps}])
+    pi_touch(cdp, "touchEnd", [])
+
+
+def km_context(browser, w, h, locale="nl-NL", owned=False):
+    mobile = w < 1000
+    ctx = browser.new_context(bypass_csp=True, locale=locale, viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+    if owned:
+        ctx.add_init_script(OWNED_APP)
+    return ctx
+
+
+def km_open(page, base):
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+
+
+def kaart_flow(browser, base, problems):
+    """Kaartpuzzel at 390x844 in Dutch with real input: the tile in Leren opens the menu on the
+    child's own country (Nederland on an nl-NL device), the other rounds of that map offer only OK
+    on the web; round nl-t1-1 played to the end: one wrong drop on another province's place (a
+    bounce, counted once, not placed), the pieces by mouse drags, one by a finger (drawn above the
+    finger), one by tap-tap; 2 stars saved; the next round, back and "keep playing"; the end of the
+    free part offers only OK; "Waar ligt...?" on the free continents with two wrong taps (the right
+    one glows, no more mistakes after that); "Ander land" picks the United States (kept after a
+    reload); an en-US device starts on the United States, en-GB on the United Kingdom and de-DE
+    on no country at all. Nothing from outside, nothing spoken."""
+    ctx = km_context(browser, 390, 844)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    km_open(page, base)
+    name = page.inner_text("#tile-kaart .tile-name").strip()
+    if name != "Kaartpuzzel":
+        problems.append(f"kaart: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-kaart').closest('.tile-group').querySelector('.group-name').textContent") != "Leren":
+        problems.append("kaart: the tile is not in the Leren section")
+    page.locator("#tile-kaart").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "kaart-home-390x844.png"))
+    page.locator("#tile-kaart").tap()
+    page.wait_for_selector("#kaart-tiers .level-btn")
+    if where(page) != ["kaart-menu", False]:
+        problems.append(f"kaart: the tile opened {where(page)}")
+    packs = page.eval_on_selector_all("#kaart-menu .km-pack", "els => els.map(e => [e.textContent, e.getAttribute('aria-pressed')])")
+    if packs != [["Werelddelen", "false"], ["Europa", "false"], ["Nederland", "true"], ["Ander land…", None]]:
+        problems.append(f"kaart: the maps on an nl-NL device are {packs}")
+    locked = page.locator("#kaart-tiers .level-btn.locked").count()
+    if locked != 5:
+        problems.append(f"kaart: {locked} rounds of Nederland locked on the web, expected 5 (tiers 2 and 3)")
+    page.screenshot(path=str(SHOTS / "kaart-menu-390x844.png"), full_page=True)
+    page.locator("#kaart-tiers .level-btn[data-round='nl-t2-1']").tap()
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"]:
+        problems.append(f"kaart: a locked round offers {card_buttons(page)}, not the web's OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    if where(page) != ["kaart-menu", False] or km_state(page):
+        problems.append(f"kaart: after OK on a locked round: {where(page)}")
+
+    # round nl-t1-1 by real drags
+    page.locator("#kaart-tiers .level-btn[data-round='nl-t1-1']").tap()
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "kaart-how-390x844.png"))
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    st = km_state(page)
+    if st["kind"] != "puzzle" or not st["lines"] or len(st["items"]) != 6:
+        problems.append(f"kaart: nl-t1-1 is {st['kind']} with {len(st['items'])} pieces")
+    v = page.evaluate("window.__bubbels.kaart.view()")
+    if v["max"] != 1:
+        problems.append(f"kaart: the Dutch map offers the magnifier at 390 px ({v})")
+    first = st["items"][0]
+    other = st["items"][1]
+    km_drag(page, km_chip(page, first), km_target(page, other))
+    st = km_state(page)
+    if st["placed"] or st["mistakes"] != 1 or st["tries"].get(first) != 1:
+        problems.append(f"kaart: a drop of {first} on {other}'s place: placed {st['placed']}, mistakes {st['mistakes']}, tries {st['tries']}")
+    if "nog eens" not in page.inner_text("#km-status"):
+        problems.append(f"kaart: a wrong drop says {page.inner_text('#km-status')!r}")
+    km_drag(page, km_chip(page, first), km_target(page, other))  # the same piece wrong again: still one mistake, now it glows
+    st = km_state(page)
+    if st["mistakes"] != 1 or st["glow"] != first:
+        problems.append(f"kaart: a second wrong drop: mistakes {st['mistakes']}, glow {st['glow']}")
+    page.screenshot(path=str(SHOTS / "kaart-glow-390x844.png"))
+    did = {"mouse": 0, "finger": False, "taps": False}
+    while True:
+        st = km_state(page)
+        left = [x for x in st["items"] if x not in st["placed"]]
+        if not left:
+            break
+        rid = page.locator("#km-tray .km-chip").first.get_attribute("data-id")
+        t = km_target(page, rid)
+        if not did["finger"] and did["mouse"] >= 1:
+            # a finger: the piece is drawn above it, so the finger goes below the place
+            km_touch_drag(cdp, km_chip(page, rid), {"x": t["x"], "y": t["y"] + 44})
+            page.wait_for_timeout(80)
+            did["finger"] = True
+        elif not did["taps"] and did["mouse"] >= 1:
+            page.locator(f"#km-tray .km-chip[data-id='{rid}']").tap()
+            page.wait_for_timeout(60)
+            if "tik nu" not in page.inner_text("#km-status"):
+                problems.append(f"kaart: a tap on the piece {rid} says {page.inner_text('#km-status')!r}")
+            page.touchscreen.tap(t["x"], t["y"])
+            page.wait_for_timeout(80)
+            did["taps"] = True
+        else:
+            km_drag(page, km_chip(page, rid), t)
+            did["mouse"] += 1
+        if rid not in km_state(page)["placed"]:
+            problems.append(f"kaart: {rid} not placed by {did}")
+            page.evaluate(f"window.__bubbels.kaart.place('{rid}')")
+        if len(km_state(page)["placed"]) == 2:
+            page.screenshot(path=str(SHOTS / "kaart-puzzle-390x844.png"))
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    page.screenshot(path=str(SHOTS / "kaart-win-390x844.png"))
+    got = page.evaluate("window.__bubbels.kaart.stars()").get("nl-t1-1")
+    if page.inner_text("#ov-title").strip() != "Goed gedaan!" or got != 2:
+        problems.append(f"kaart: nl-t1-1 with one mistake ended {page.inner_text('#ov-title')!r}, stars {got}")
+    if card_buttons(page) != ["Volgende ronde", "Nog een keer", "Rondes"]:
+        problems.append(f"kaart: the end card offers {card_buttons(page)}")
+
+    # the next round; back halfway and "keep playing"
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(250)
+    st = km_state(page)
+    if st["roundId"] != "nl-t1-2":
+        problems.append(f"kaart: Volgende ronde started {st['roundId']}")
+    page.evaluate(f"window.__bubbels.kaart.place('{st['items'][0]}')")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    if where(page) != ["kaart-menu", False] or page.inner_text("#kaart-continue").strip() != "Verder spelen":
+        problems.append(f"kaart: back from a round went to {where(page)} without Verder spelen")
+    page.locator("#kaart-continue").tap()
+    page.wait_for_timeout(150)
+    st = km_state(page)
+    if where(page) != ["kaart", False] or st["roundId"] != "nl-t1-2" or len(st["placed"]) != 1 or page.locator("#km-tray .km-chip").count() < 1:
+        problems.append(f"kaart: Verder spelen opened {where(page)} with {st['placed']}")
+    # the end of the free part: the last free round of Nederland offers only OK, lands on the menu
+    for rid in st["items"][1:]:
+        page.evaluate(f"window.__bubbels.kaart.place('{rid}')")
+    page.wait_for_timeout(900)
+    if "laatste gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"kaart: the end of nl-t1-2 says {page.inner_text('#ov-text')!r}")
+    if web_offer_ok(page, "kaart nl-t1-2", "kaart-menu", problems) and page.evaluate("window.__bubbels.kaart.stars()").get("nl-t1-2") != 3:
+        problems.append(f"kaart: nl-t1-2 not saved ({page.evaluate('window.__bubbels.kaart.stars()')})")
+
+    # "Waar ligt...?" on the free continents: two wrong taps, the right one glows, then the right tap
+    page.evaluate("window.__bubbels.kaart.start('continents-t2-1')")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(200)
+    st = km_state(page)
+    want = st["items"][0]
+    wrong = next(x for x in st["items"] if x != want)
+    for k in range(2):
+        t = km_target(page, wrong)
+        page.touchscreen.tap(t["x"], t["y"])
+        page.wait_for_timeout(120)
+    st = km_state(page)
+    if st["mistakes"] != 1 or st["glow"] != want or st["found"]:
+        problems.append(f"kaart: two wrong taps: mistakes {st['mistakes']}, glow {st['glow']}, found {st['found']}")
+    if not page.locator(f"#km-regions .km-reg.glow[data-id='{want}']").count():
+        problems.append(f"kaart: {want} does not glow after two wrong taps")
+    page.screenshot(path=str(SHOTS / "kaart-where-glow-390x844.png"))
+    t = km_target(page, want)
+    page.touchscreen.tap(t["x"], t["y"])
+    page.wait_for_timeout(100)
+    st = km_state(page)
+    if st["found"] != [want] or "Goed zo" not in page.inner_text("#km-status"):
+        problems.append(f"kaart: the right tap found {st['found']}, says {page.inner_text('#km-status')!r}")
+    page.wait_for_function("window.__bubbels.kaart.state().i === 1", timeout=4000)
+    # the next ones by real taps on their centres
+    while not km_state(page)["done"]:
+        st = km_state(page)
+        if st["waiting"]:
+            page.wait_for_timeout(150)
+            continue
+        t = km_target(page, st["items"][st["i"]])
+        page.touchscreen.tap(t["x"], t["y"])
+        page.wait_for_timeout(150)
+        if km_state(page)["mistakes"] != 1:
+            problems.append(f"kaart: a tap on the centre of {st['items'][st['i']]} was wrong")
+            break
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    if page.evaluate("window.__bubbels.kaart.stars()").get("continents-t2-1") != 2:
+        problems.append(f"kaart: continents-t2-1 stars {page.evaluate('window.__bubbels.kaart.stars()')}")
+    if card_buttons(page)[0] != "Volgende ronde":
+        problems.append(f"kaart: the continents are free, yet the end card offers {card_buttons(page)}")
+    page.click("#ov-buttons button >> nth=2")
+    page.wait_for_timeout(200)
+
+    # "Ander land…": the United States, kept after a reload
+    page.locator("#kaart-country").tap()
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Nederland", "Verenigde Staten", "Verenigd Koninkrijk", "Geen land"]:
+        problems.append(f"kaart: Ander land offers {card_buttons(page)}")
+    page.click("#ov-buttons button >> nth=1")
+    page.wait_for_selector("#kaart-tiers .level-btn")
+    packs = page.eval_on_selector_all("#kaart-menu .km-pack", "els => els.map(e => [e.textContent, e.getAttribute('aria-pressed')])")
+    if packs[:3] != [["Werelddelen", "false"], ["Europa", "false"], ["Verenigde Staten", "true"]]:
+        problems.append(f"kaart: after picking the United States the maps are {packs}")
+    km_open(page, base)
+    if page.evaluate("window.__bubbels.kaart.country()") != "us":
+        problems.append("kaart: the picked country is not kept after a reload")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("kaart: something speaks")
+    if errors:
+        problems.append(f"kaart: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"kaart: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+    # the device language picks the first country (and nobody else is pushed one)
+    for locale, want_country, want_packs in (("en-US", "us", ["Continents", "Europe", "United States", "Other country…"]),
+                                            ("en-GB", "uk", ["Continents", "Europe", "United Kingdom", "Other country…"]),
+                                            ("de-DE", None, ["Werelddelen", "Europa", "Ander land…"])):
+        ctx = km_context(browser, 390, 844, locale=locale)
+        page = ctx.new_page()
+        km_open(page, base)
+        page.evaluate("window.__bubbels.games ? 0 : 0")
+        page.locator("#tile-kaart").scroll_into_view_if_needed()
+        page.locator("#tile-kaart").tap()
+        page.wait_for_selector("#kaart-tiers .level-btn")
+        got = page.eval_on_selector_all("#kaart-menu .km-pack", "els => els.map(e => e.textContent)")
+        if page.evaluate("window.__bubbels.kaart.country()") != want_country or got != want_packs:
+            problems.append(f"kaart {locale}: country {page.evaluate('window.__bubbels.kaart.country()')}, maps {got}")
+        pressed = page.eval_on_selector("#kaart-menu .km-pack[aria-pressed='true']", "e => e.dataset.pack")
+        if pressed != (want_country or "continents"):
+            problems.append(f"kaart {locale}: the menu opens on {pressed}")
+        ctx.close()
+
+
+def kaart_layouts(browser, base, problems):
+    """Kaartpuzzel on a small phone, an ordinary phone (in English), sideways both ways and on
+    desktop, in the full version: a puzzle (nl-t1-1, us-t3-1 without lines), "Where is...?" (us-t2-1)
+    and the capitals (europe-t3-2): the map, the question, the pieces and the buttons on screen, the
+    pieces 64 px or more, the buttons 44 px or more, no sideways scrolling; the magnifier only where
+    regions are tiny; on 320x568 a real tap on the asked state's centre finds it."""
+    for w, h in ((320, 568), (390, 844), (568, 320), (844, 390), (1280, 800)):
+        english = (w, h) == (390, 844)
+        ctx = km_context(browser, w, h, locale="en-GB" if english else "nl-NL", owned=True)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        km_open(page, base)
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        for rid in ("nl-t1-1", "us-t2-1", "europe-t3-2", "us-t3-1"):
+            label = f"kaart {w}x{h} {rid}"
+            page.evaluate(f"window.__bubbels.kaart.start('{rid}')")
+            page.wait_for_timeout(300)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(150)
+            st = km_state(page)
+            v = page.evaluate("window.__bubbels.kaart.view()")
+            targets = ["#kaart-back"] + (["#kaart-zoom"] if page.is_visible("#kaart-zoom") else [])
+            chips = [f"#km-tray .km-chip >> nth={k}" for k in range(page.locator("#km-tray .km-chip").count())]
+            if st["kind"] == "puzzle" and not chips:
+                problems.append(f"{label}: no pieces in the tray")
+            for sel in targets + chips + ["#km-ask", "#km-mapbox"]:
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"{label}: {sel} not on screen ({r})")
+                elif sel in targets and (r["width"] < 43.5 or r["height"] < 43.5):
+                    problems.append(f"{label}: {sel} only {r['width']:.0f}x{r['height']:.0f} px")
+                elif sel in chips and (r["width"] < 63.5 or r["height"] < 63.5):
+                    problems.append(f"{label}: the piece {sel} only {r['width']:.0f}x{r['height']:.0f} px")
+                elif sel == "#km-mapbox" and (r["height"] < 150 or r["width"] < 250):
+                    problems.append(f"{label}: the map is only {r['width']:.0f}x{r['height']:.0f} px")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"{label}: the page scrolls sideways")
+            if page.locator("#km-ask").evaluate("e => e.scrollWidth > e.clientWidth + 1"):
+                problems.append(f"{label}: the question does not fit")
+            if rid.startswith("nl") and v["max"] != 1:
+                problems.append(f"{label}: the Dutch map offers the magnifier")
+            if rid.startswith("us") and w <= 390 and v["max"] <= 1:
+                problems.append(f"{label}: no magnifier for the small states")
+            if w >= 1000 and v["max"] != 1 and rid.startswith("nl"):
+                problems.append(f"{label}: a magnifier on desktop")
+            if english and page.inner_text("#km-sub") not in ("The Netherlands", "United States", "Europe"):
+                problems.append(f"{label}: English title {page.inner_text('#km-sub')!r}")
+            if rid == "us-t2-1" and w == 320:
+                want = st["items"][0]
+                t = km_target(page, want)
+                page.touchscreen.tap(t["x"], t["y"])
+                page.wait_for_timeout(120)
+                if km_state(page)["found"] != [want]:
+                    problems.append(f"{label}: a tap on the centre of {want} did not find it ({km_state(page)})")
+                page.wait_for_timeout(1300)
+                # the magnifier: on, the map 3x, a finger drag pans it, off again
+                page.locator("#kaart-zoom").tap()
+                page.wait_for_timeout(100)
+                if page.evaluate("window.__bubbels.kaart.view()")["z"] <= 1:
+                    problems.append(f"{label}: the magnifier does not zoom")
+                page.screenshot(path=str(SHOTS / f"kaart-{rid}-zoom-{w}x{h}.png"))
+                page.locator("#kaart-zoom").tap()
+            page.screenshot(path=str(SHOTS / f"kaart-{rid}-{w}x{h}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(100)
+        if errors:
+            problems.append(f"kaart {w}x{h}: page errors {errors[:2]}")
+        ctx.close()
+
+
 PLAY_URL = "https://play.google.com/store/apps/details?id=work.westerweel.bazibo"
 APP_ONLY = "window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };"
 
@@ -5702,6 +6036,8 @@ def main():
             drums_layouts(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
+            kaart_flow(browser, base, problems)
+            kaart_layouts(browser, base, problems)
             store_links(browser, base, problems)
             browser.close()
     finally:
@@ -5719,6 +6055,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "kaart": (kaart_flow, kaart_layouts),
          "doolhof": (doolhof_play,),
          "store": (store_links,)}
 

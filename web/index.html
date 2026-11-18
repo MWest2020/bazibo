@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
+  <link rel="stylesheet" href="games/kaart/kaart.css">
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
   <link rel="stylesheet" href="games/piano/piano.css">
   <link rel="stylesheet" href="games/drums/drums.css">
@@ -709,6 +710,44 @@
           <p id="kg-status" class="klok-status" aria-live="polite"></p>
         </div>
       </div>
+    </section>
+
+    <!-- Kaartpuzzel: choose a map (the continents, Europe, your country) and a round -->
+    <section id="screen-kaart-menu" class="screen" data-i18n-aria="games.kaart" aria-label="Kaartpuzzel">
+      <header class="bar">
+        <button id="kaart-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="kaart.menu">Kaartpuzzel</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="kaart-menu" class="klok-menu"></div></div>
+    </section>
+
+    <!-- Kaartpuzzel: one round on the map (a puzzle, or "Waar ligt...?"; no voice, no timer) -->
+    <section id="screen-kaart" class="screen" data-i18n-aria="games.kaart" aria-label="Kaartpuzzel">
+      <header class="bar dogu-hud klok-hud km-hud">
+        <button id="kaart-back" class="btn icon" type="button" data-i18n-aria="kaart.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="km-sub" class="hud-level"></div>
+          <div id="km-title" class="dogu-title"></div>
+        </div>
+        <button id="kaart-zoom" class="btn icon" type="button" data-i18n-aria="kaart.zoom" aria-label="Vergrootglas" aria-pressed="false" hidden></button>
+      </header>
+      <div id="km-stage">
+        <p id="km-ask" class="km-ask" aria-live="polite"></p>
+        <div id="km-mapbox" class="km-mapbox">
+          <svg id="km-map" role="img" aria-label="De kaart"><g id="km-world"></g><g id="km-over"></g></svg>
+        </div>
+        <div id="km-tray" class="km-tray" role="group" hidden></div>
+        <div class="km-foot">
+          <div id="km-dots" class="klok-dots" role="img"></div>
+          <p id="km-status" class="klok-status" aria-live="polite"></p>
+        </div>
+      </div>
+      <svg id="km-ghost" class="km-ghost" aria-hidden="true" hidden></svg>
     </section>
 
     <!-- Egeltje: choose a round (the alphabet, words, counting) -->

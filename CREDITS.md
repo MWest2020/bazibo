@@ -1,6 +1,7 @@
 # Credits
 
-The web game (`web/`) ships no third-party code, fonts, images or recorded sound. The Android and iOS
+The web game (`web/`) ships no third-party code, fonts, images or recorded sound; its only third-party
+data are the Kaartpuzzel maps, from Natural Earth (public domain). The Android and iOS
 apps add the native wrapper and the store plugin listed under "Apps only".
 
 | Asset | Author | Licence | Source |
@@ -24,6 +25,8 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | Letters art: the mode pictures and the letter blocks (SVG drawn in code in `web/games/letters/art.js`); the word pictures reuse the Kleurplaten drawings (coloured in) and the Picturedoku fruit | MWest2020 (with Claude Code) | MIT | this repository |
 | Letters words and rounds (`web/games/letters/words.js`, `round.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Kangoeroe art: the kangaroo with a joey, the number line and the tile (SVG drawn in code in `web/games/kangoeroe/art.js` and `kangoeroe.js`); questions in `hops.js` | MWest2020 (with Claude Code) | MIT | this repository |
+| Kaartpuzzel maps (`web/games/kaart/packs/*.js`): country, state and province borders, coastlines, lakes and capitals from Natural Earth v5.1.2 (github.com/nvkelso/natural-earth-vector, commit ca96624: `ne_110m_admin_0_countries`, `ne_10m_admin_0_countries_nld`, `ne_50m_admin_0_countries`, `ne_50m_admin_0_map_units`, `ne_10m_admin_1_states_provinces`, `ne_50m_admin_1_states_provinces`, `ne_10m_lakes`, `ne_10m_populated_places_simple`), projected, clipped and simplified by `tools/gen-kaart.mjs`; Lelystad's position and the ocean label points placed by hand; names checked by hand | Natural Earth (naturalearthdata.com) | public domain | https://www.naturalearthdata.com |
+| Kaartpuzzel art: the island, the piece, the pin and the tile (SVG drawn in code in `web/games/kaart/art.js`); rounds and hit-testing in `rounds.js` and `map.js` | MWest2020 (with Claude Code) | MIT | this repository |
 | Piano art: the toy piano, its keys and the song cards (SVG and CSS drawn in code in `web/games/piano/`); the piano sound is synthesised in `web/js/audio.js` (`pianoNote`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Piano songs (`web/games/piano/songs.js`): Frère Jacques / Vader Jacob, Twinkle Twinkle / Altijd is Kortjakje ziek, Au clair de la lune (traditional) and the Ode to Joy theme (Beethoven, 1824), written down as notes for this app | traditional / Ludwig van Beethoven | public domain | this repository |
 | Drumstel art: the kit, its pads and cymbals, the pad signs and the rhythm cards (SVG and CSS drawn in code in `web/games/drums/`); the drum sounds are synthesised in `web/games/drums/sound.js` | MWest2020 (with Claude Code) | MIT | this repository |

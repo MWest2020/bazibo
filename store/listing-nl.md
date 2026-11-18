@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-18 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+19 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-18 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+19 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu achttien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken, Letters, Egeltje en Kangoeroe op de getallenlijn.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu negentien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken, Letters, Egeltje, Kangoeroe op de getallenlijn en Kaartpuzzel.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -45,7 +45,7 @@ PICTUREDOKU: SUDOKU MET PLAATJES
 • Vanaf 6 jaar 6 bij 6, vanaf 8 jaar 9 bij 9, ook met cijfers. 60 puzzels.
 
 PAARTJES
-• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen een lieve computer.
+• Draai twee kaarten om en zoek de paartjes. Alleen, samen of tegen de computer.
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
@@ -57,7 +57,7 @@ VIER OP EEN RIJ
 • Voor de kleinsten: het kleuterbord, waar drie op een rij wint.
 
 DAMMEN
-• Puppy tegen poes, of klassiek; wie moet slaan, gloeit zachtjes.
+• Puppy tegen poes, of klassiek.
 • Samen of tegen de computer op 8 bij 8. Een slimmere computer en 10 bij 10 (volledige versie).
 
 GANZENBORD
@@ -65,7 +65,7 @@ GANZENBORD
 • Samen of tegen een computergans. Tot vier spelers en een winter- en zeebord (volledige versie).
 
 KWARTET
-• Vraag de kaarten die je mist (grote knoppen met een plaatje) en leg je kwartetten neer.
+• Vraag de kaarten die je mist en leg je kwartetten neer.
 • Tegen de computer of samen op één telefoon. 4 kwartetten; 6 en 8 kwartetten en een 4e speler (volledige versie).
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
@@ -76,11 +76,11 @@ KLEURPLATEN EN MANDALA'S
 • Kies een kleur en tik op een vlak: klaar. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
 
 TEKENEN
-• Tekenen met je vinger, met alle kleuren, een gum en ongedaan maken.
+• Teken met je vinger, met alle kleuren en een gum.
 • Spiegelen (elke streep wordt een mandala), stempels en tot 100 tekeningen (volledige versie).
 
 PIANO
-• Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op, of luister eerst.
+• Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op.
 • 4-6 jaar: Vader Jacob; nog drie liedjes (volledige versie).
 • 7-10 jaar: twee octaven en de Ode aan de vreugde; Für Elise en meer (volledige versie).
 
@@ -92,13 +92,16 @@ KLOK KIJKEN
 • Van dagritme voor de kleinsten tot losse minuten en de 24-uursklok.
 
 LETTERS
-• Zoek dezelfde letter (pas op voor b en d), vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
+• Zoek dezelfde letter, vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
 
 EGELTJE
-• Een egeltje loopt door een tuindoolhof en raapt het alfabet, een woordje of getallen op volgorde op.
+• Een egeltje raapt in een tuindoolhof het alfabet, een woordje of getallen op volgorde op.
 
 KANGOEROE OP DE GETALLENLIJN
 • Plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 (volledige versie).
+
+KAARTPUZZEL
+• Leg de werelddelen, Europa of je eigen land en zoek waar iets ligt. Werelddelen gratis, en van elke kaart het leggen.
 
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
