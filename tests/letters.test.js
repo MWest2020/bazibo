@@ -249,3 +249,63 @@ test('with capitals on, tap tier 3 adds no mirrored twin (capital B, D, P and Q 
     }
   }
 });
+
+test('building: every placed letter plays a real note, also the 4th and later (a 4-letter word lost its last letter)', async () => {
+  // A stand-in AudioContext that is as strict as a browser: a frequency that is not a finite number
+  // throws. plink(1.1) used to look up PENTA[0.1] (undefined) and throw, so placeTile stopped
+  // before it drew the letter or finished the word.
+  const freqs = [];
+  const param = (isFreq) => ({
+    value: 0,
+    setValueAtTime(v) {
+      if (!Number.isFinite(v)) throw new TypeError(`non-finite value ${v}`);
+      if (isFreq) freqs.push(v);
+    },
+    exponentialRampToValueAtTime(v) {
+      if (!Number.isFinite(v)) throw new TypeError(`non-finite value ${v}`);
+    },
+    setTargetAtTime() {},
+  });
+  const node = (extra = {}) => ({ connect: (n) => n, ...extra });
+  class Ctx {
+    constructor() {
+      this.currentTime = 0;
+      this.sampleRate = 8000;
+      this.state = 'running';
+      this.destination = node();
+    }
+    resume() {
+      return Promise.resolve();
+    }
+    createGain() {
+      return node({ gain: param(false) });
+    }
+    createWaveShaper() {
+      return node({});
+    }
+    createOscillator() {
+      return node({ frequency: param(true), type: '', start() {}, stop() {} });
+    }
+    createBuffer(ch, len) {
+      const d = new Float32Array(len);
+      return { getChannelData: () => d };
+    }
+  }
+  const hadWindow = 'window' in globalThis;
+  const hadNavigator = 'navigator' in globalThis;
+  if (!hadWindow) globalThis.window = { AudioContext: Ctx };
+  if (!hadNavigator) globalThis.navigator = {};
+  try {
+    const sfx = await import('../web/js/audio.js');
+    sfx.setMuted(false);
+    sfx.unlock();
+    // the values Letters passed before the fix (0.7 + placed * 0.1), and whole notes 1 to 12
+    for (const v of [0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, ...Array.from({ length: 12 }, (_, k) => k + 1)]) {
+      assert.doesNotThrow(() => sfx.plink(v), `plink(${v})`);
+    }
+    assert.ok(freqs.length > 0 && freqs.every(Number.isFinite), 'every note has a real frequency');
+  } finally {
+    if (!hadWindow) delete globalThis.window;
+    if (!hadNavigator) delete globalThis.navigator;
+  }
+});
