@@ -49,6 +49,11 @@
         <!-- the game tiles, in sections (Puzzels, Bordspellen, ...): built by main.js from GROUPS and GAMES in js/games.js -->
         <div class="tile-groups" id="tile-groups" role="group" data-i18n-aria="home.games" aria-label="Spellen"></div>
         <p class="promise" data-i18n="home.promise">Geen reclame. Nooit.</p>
+        <!-- for parents on the website only: store-links.js shows it, never inside the app -->
+        <div class="store-links" data-store-links hidden>
+          <a id="store-play" class="btn secondary store-btn" href="https://play.google.com/store/apps/details?id=work.westerweel.bazibo" target="_blank" rel="noopener" data-i18n="home.storePlay">Download in Google Play</a>
+          <p class="store-soon" data-i18n="home.storeApple">App Store: binnenkort</p>
+        </div>
         <p class="lore" id="brand-lore">Bazibo: “bāzi” betekent spel</p>
       </div>
     </section>

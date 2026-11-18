@@ -15,3 +15,14 @@ ul { padding-left: 1.2em; }
 .meta { color: var(--soft); font-size: 0.95rem; }
 nav { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 700; }
 nav a { color: var(--primary); }
+
+/* the store links (website only: js/store-links.js shows them, never inside the app) */
+.store-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 14px 0 6px; }
+.store-links[hidden] { display: none; }
+.store-btn {
+  display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; max-width: 100%;
+  border-radius: 999px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none;
+}
+.store-btn:hover { background: #3b2fa8; }
+.store-btn:focus-visible { outline: 3px solid #ffc531; outline-offset: 3px; }
+.store-soon { color: var(--soft); font-weight: 700; }

@@ -5025,6 +5025,82 @@ def drums_layouts(browser, base, problems):
         ctx.close()
 
 
+PLAY_URL = "https://play.google.com/store/apps/details?id=work.westerweel.bazibo"
+APP_ONLY = "window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };"
+
+
+def store_links(browser, base, problems):
+    """The Google Play link and "App Store: coming soon" on the home screen and the parents' pages of
+    the website, in Dutch and English and at 320 px; the home link asks the parental gate first.
+    In a stand-in app none of them shows."""
+    pages = [("index.html?test", "#store-play"), ("nl/plannen/index.html", ".store-btn"), ("en/roadmap/index.html", ".store-btn")]
+    want = {"nl": ("Download in Google Play", "App Store: binnenkort"), "en": ("Get it on Google Play", "App Store: coming soon")}
+    for label, w, h, lang in (("phone", 390, 844, "nl"), ("320", 320, 568, "nl"), ("320-en", 320, 568, "en"), ("desktop", 1280, 800, "en")):
+        ctx = browser.new_context(locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, has_touch=w < 1000)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        for path, sel in pages:
+            page.goto(base + "/" + path)
+            if path.startswith("index"):
+                page.wait_for_selector("html[data-ready='1']")
+                texts = want[lang]
+            else:
+                texts = want["nl" if path.startswith("nl/") else "en"]
+            name = f"store {label} {path.split('?')[0]}"
+            link = page.locator(sel)
+            if not link.is_visible():
+                problems.append(f"{name}: the Google Play link is not visible")
+                continue
+            if link.get_attribute("href") != PLAY_URL or link.get_attribute("target") != "_blank" or link.get_attribute("rel") != "noopener":
+                problems.append(f"{name}: link {link.get_attribute('href')!r} target {link.get_attribute('target')!r} rel {link.get_attribute('rel')!r}")
+            block = page.locator("[data-store-links]")
+            text = " ".join(block.inner_text().split())
+            for t in texts:
+                if t not in text:
+                    problems.append(f"{name}: {t!r} missing in {text!r}")
+            box = link.bounding_box()
+            if box["height"] < 44 or box["x"] < 0 or box["x"] + box["width"] > w:
+                problems.append(f"{name}: the link is {box}")
+            wide = page.evaluate("document.scrollingElement.scrollWidth - innerWidth")
+            if wide > 0:
+                problems.append(f"{name}: the page is {wide}px too wide")
+            if path.startswith("index"):
+                # a stand-in for window.open, so the test never leaves for the real store
+                page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), {}); }")
+                link.click()
+                page.wait_for_timeout(200)
+                if not page.is_visible("#overlay"):
+                    problems.append(f"{name}: the link opened without the parental gate")
+                page.click("#ov-buttons .btn.secondary")  # cancel: nothing opens
+                page.wait_for_timeout(200)
+                if page.evaluate("window.__opened.length") or page.url.startswith("https://play"):
+                    problems.append(f"{name}: a cancelled gate still opened the store")
+                link.click()
+                solve_gate(page, lang)  # answers with Enter
+                page.wait_for_timeout(200)
+                opened = page.evaluate("window.__opened")
+                if opened != [[PLAY_URL, "_blank"]] or page.is_visible("#overlay"):
+                    problems.append(f"{name}: after the gate {opened!r}, overlay {page.is_visible('#overlay')}")
+            page.screenshot(path=str(SHOTS / f"store-{label}-{path.split('/')[0].split('.')[0]}.png"), full_page=not path.startswith("index"))
+        if errors:
+            problems.append(f"store {label}: page errors {errors[:2]}")
+        ctx.close()
+    # a stand-in app: the same files, no store link anywhere
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, has_touch=True)
+    ctx.add_init_script(APP_ONLY)
+    page = ctx.new_page()
+    for path, sel in pages:
+        page.goto(base + "/" + path)
+        if path.startswith("index"):
+            page.wait_for_selector("html[data-ready='1']")
+        else:
+            page.wait_for_load_state("load")
+        if page.locator("[data-store-links]").is_visible() or page.locator(sel).is_visible():
+            problems.append(f"store app {path}: a store link shows inside the app")
+    ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -5096,6 +5172,7 @@ def main():
             piano_big(browser, base, problems)
             drums_flow(browser, base, problems)
             drums_layouts(browser, base, problems)
+            store_links(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -5110,7 +5187,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
          "piano": (piano_flow, piano_layouts, piano_big),
          "drums": (drums_flow, drums_layouts),
-         "letters": (letters_play,)}
+         "letters": (letters_play,),
+         "store": (store_links,)}
 
 
 def report(problems):

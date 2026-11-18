@@ -12,6 +12,7 @@ import { isNativeApp, createNativeBilling } from './billing-native.js';
 import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
 import { createTransfer } from './transfer-ui.js';
+import { PLAY_URL } from './store-links.js'; // shows the store links on the website, never in the app
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
 import '../games/dogudoku/strings.js';
@@ -165,6 +166,24 @@ $('#btn-transfer').addEventListener('click', () => {
   tap();
   askParent(() => show('transfer'));
 });
+
+// The Google Play link under the home tiles (website only, see store-links.js) leaves the game, so
+// a parent opens it: the same gate as buying. It stays a real link for keyboards and screen readers.
+$('#store-play').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (starting()) return;
+  tap();
+  askParent(() => {
+    hideOverlay();
+    const w = window.open(PLAY_URL, '_blank');
+    if (w) w.opener = null;
+    else location.href = PLAY_URL; // a blocked new tab: go there in this one
+  });
+});
+// A middle click or a long press ("open in new tab", Android Chrome) would pass the gate: no menu.
+for (const ev of ['auxclick', 'contextmenu']) {
+  $('#store-play').addEventListener(ev, (e) => e.preventDefault());
+}
 
 // ---------- home tiles ----------
 

@@ -31,6 +31,12 @@ phones, 2 at 320 px, the sections side by side on wider screens.
 - Buying, restoring and any link that leaves the app go through the parental gate
   (`askParent` in `main.js`, logic in `web/js/parental-gate.js`). Store rules for kids' apps
   require it. The privacy page shows the email address as plain text, not as a link.
+- The store links on bazibo.nl ("Download in Google Play", "App Store: binnenkort"; on the home
+  screen under the tiles and on Plannen / Roadmap) are for parents on the website only: they ship
+  `hidden` inside a `data-store-links` block and `web/js/store-links.js` shows them only when it is
+  not the app (`inApp`: the Capacitor bridge, https://localhost or capacitor://localhost). The
+  home screen's link goes through the parental gate too. `tests/store-links.test.js` checks that
+  every Play link in `web/` ships hidden; an App Store link waits until the app is live there.
 - Save data only through `web/js/storage.js`: one versioned document (Preferences in the apps,
   localStorage on the web). A new game adds a section under `games`; a format change raises
   `version` and adds a step to `migrate()`. Never drop fields you do not know (a newer app
@@ -61,7 +67,8 @@ home → Letters: one round of each kind played by taps in Dutch and English (th
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
-the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Ganzenbord, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`).
+the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Ganzenbord, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
+the store links (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English) and desktop, 44 px or more and no sideways scroll, the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app.
 CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
 offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
 right. The test hook `window.__bubbels` only exists with `?test` in the address.
