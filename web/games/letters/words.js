@@ -67,6 +67,31 @@ export const LOOKALIKE = Object.freeze({
 export const lookalike = (letter) => LOOKALIKE[letter] || [];
 
 /**
+ * Small letters that look alike without being mirror images (the mirrors are in LOOKALIKE): an m
+ * next to an n, an i next to an l or a j, an o next to a c. From tier 1 on, "tap the letter" puts
+ * one of them among the tiles, so a child has to look closely instead of picking the only round
+ * one. The number of tiles is not what makes it hard for a four-year-old; the shapes are.
+ */
+export const SIMILAR = Object.freeze({
+  a: ['o', 'e', 'd'], b: ['h', 'k'], c: ['o', 'e'], d: ['a', 'o'], e: ['c', 'o'], f: ['t', 'l'],
+  g: ['y', 'q'], h: ['n', 'b'], i: ['l', 'j', 't'], j: ['i', 'y'], k: ['h', 'x'], l: ['i', 't', 'f'],
+  m: ['n', 'r'], n: ['h', 'r'], o: ['c', 'a', 'e'], p: ['r', 'g'], q: ['g', 'a'], r: ['n', 'f'],
+  s: ['z', 'c'], t: ['f', 'l'], u: ['v', 'y'], v: ['y', 'u'], w: ['v', 'x'], x: ['k', 'y'],
+  y: ['v', 'g'], z: ['s', 'x'],
+});
+
+/** The same for capitals (by their small letter: 'e' means E, which looks like F). */
+export const SIMILAR_UPPER = Object.freeze({
+  a: ['h', 'r'], b: ['p', 'r'], c: ['o', 'g'], d: ['o', 'b'], e: ['f', 'b'], f: ['e', 'p'],
+  g: ['c', 'o'], h: ['n', 'a'], i: ['t', 'j', 'l'], j: ['i', 'u'], k: ['x', 'r'], l: ['t', 'i', 'e'],
+  m: ['n', 'h'], n: ['m', 'h'], o: ['q', 'c'], p: ['r', 'b'], q: ['o', 'g'], r: ['p', 'b'],
+  s: ['z', 'c'], t: ['f', 'i'], u: ['v', 'j'], v: ['u', 'y'], w: ['v', 'm'], x: ['k', 'y'],
+  y: ['v', 'x'], z: ['s', 'n'],
+});
+/** Look-alikes of `letter` as it is drawn on the tiles: small letters or capitals. */
+export const similar = (letter, upper = false) => (upper ? SIMILAR_UPPER : SIMILAR)[letter] || [];
+
+/**
  * Letters that cannot be told apart once one is a capital and the other is not: a capital I and a
  * small l are the same stroke in most fonts. Never offered together when the cases differ.
  */
@@ -107,6 +132,71 @@ export const ALSO_A_WORD = Object.freeze({
 });
 /** The letters that would turn `word` into another word on the list. */
 export const alsoAWord = (lang, word) => ((ALSO_A_WORD[lang] || ALSO_A_WORD.nl)[word] || []).map((w) => w[0]);
+
+/**
+ * "Middle letter": per word, the letters inside it that may be left out, each with the letters that
+ * would spell another common word in that gap (kat: k_t could be kit, kot or kut, so never i, o or
+ * u). Never the first or the last letter, and never one half of a pair that makes one sound (the
+ * ui in huis, the oo in boot, the ee in peer, the ea in pear, the sh in fish, the ck in rocket), so
+ * the gap is always a sound of its own. Words without such a letter are left out. Every listed
+ * word differs from its key in that one letter only (tested).
+ */
+export const MIDDLE = Object.freeze({
+  nl: {
+    zon: { 1: ['zin', 'zen'] },
+    vis: { 1: ['vos'] },
+    kat: { 1: ['kit', 'kot', 'kut'] },
+    bal: { 1: ['bel', 'bil', 'bol', 'bul'] },
+    hond: { 1: ['hand', 'hind'], 2: ['hoed', 'houd'] },
+    bloem: { 1: [] },
+    vogel: { 1: [], 2: [], 3: [] },
+    auto: { 2: [] },
+    raket: { 1: [], 2: [], 3: [] },
+    appel: { 1: [], 3: [] },
+    banaan: { 1: [], 2: [] },
+    wortel: { 1: [], 2: [], 3: [], 4: [] },
+    druiven: { 1: [], 4: [], 5: [] },
+    olifant: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+    schildpad: { 3: [], 4: [], 5: [], 6: [], 7: [] },
+    paddenstoel: { 1: [], 4: [], 5: [], 6: [], 7: [] },
+  },
+  en: {
+    sun: { 1: ['sin', 'son'] },
+    cat: { 1: ['cut', 'cot'] },
+    dog: { 1: ['dig', 'dug', 'dag'] },
+    car: { 1: ['cur'] },
+    fish: { 1: [] },
+    ball: { 1: ['bell', 'bill', 'bull'] },
+    flower: { 1: [] },
+    apple: { 3: [] },
+    rocket: { 1: ['racket'], 4: [] },
+    grapes: { 1: [], 2: ['gripes'], 3: ['grades', 'grazes', 'graves', 'grates', 'graces'], 4: [] },
+    carrot: { 1: [], 4: [] },
+    banana: { 1: [], 2: [], 3: [], 4: [] },
+    tortoise: { 1: [], 2: [], 3: [] },
+    elephant: { 1: [], 2: [], 5: [], 6: [] },
+    mushroom: { 1: [], 4: [] },
+  },
+});
+const VOWELS = 'aeiou';
+
+/**
+ * "Middle letter" by tier, as [word, gaps]: tier 1 the short words (up to 4 letters) with a vowel
+ * in the gap, tier 2 words up to 6 letters and every gap, tier 3 every word.
+ */
+export function middleWords(lang, tier) {
+  const table = MIDDLE[lang] || MIDDLE.nl;
+  const out = [];
+  for (const [word, gaps] of Object.entries(table)) {
+    let at = Object.keys(gaps).map(Number);
+    if (tier === 't1') at = word.length <= 4 ? at.filter((k) => VOWELS.includes(word[k])) : [];
+    if (tier === 't2' && word.length > 6) at = [];
+    if (at.length) out.push([word, at]);
+  }
+  return out;
+}
+/** The letters that would turn `word` into another word with `at` changed. */
+export const middleAlso = (lang, word, at) => (((MIDDLE[lang] || MIDDLE.nl)[word] || {})[at] || []).map((w) => w[at]);
 
 /** Words that do not start with the sound of their first letter on its own (au, ...). */
 const NOT_FOR_FIRST = Object.freeze({ nl: ['auto'], en: [] });

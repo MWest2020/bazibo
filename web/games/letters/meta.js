@@ -1,6 +1,6 @@
 // What the shell needs to know about Letters, without loading the game.
-// Free: every round of the first tier in all three kinds. The other tiers and random practice are
-// part of the full version (the one app-wide purchase).
+// Free: every round of the first tier in every kind (tap, first, middle, build). The other tiers
+// and random practice are part of the full version (the one app-wide purchase).
 export const meta = Object.freeze({
   id: 'letters',
   titleKey: 'games.letters',

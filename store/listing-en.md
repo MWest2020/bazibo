@@ -91,7 +91,7 @@ TELLING TIME
 • From a daily rhythm for the youngest to single minutes and the 24-hour clock.
 
 LETTERS
-• Find the same letter, the first letter of a pictured word, and build a word.
+• Find the same letter among look-alikes (b and d, m and n), the first or a middle letter of a pictured word, and build a word.
 
 MADE FOR CHILDREN
 • Every colour has its own symbol or pattern, so colour-blind children can play too.
