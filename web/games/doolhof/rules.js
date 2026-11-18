@@ -11,8 +11,9 @@
 // Nothing is ever lost:
 //   - a wrong letter is a soft bump: the hedgehog stays where it was, the letter stays where it is,
 //     and the round counts one mistake for that letter (once). After two bumps the right one glows.
+//     A walk going on by itself stops in front of a wrong letter; only a chosen step bumps.
 //   - a crow is a friendly obstacle. A walk never runs into one: the hedgehog stops politely in
-//     front of it. Only a step straight into a crow touches it: the hedgehog curls up for a moment
+//     front of it, also when the crow stepped in front of it during the walk. Only a step straight into a crow touches it: the hedgehog curls up for a moment
 //     and rolls back to the start of its corridor (at most ROLLBACK cells), and the crow flies off to
 //     the far side of the garden. No letters are lost and stars do not count crows.
 //   - stars count wrong letters only (letters' starsFor), never time and never crows.
@@ -65,7 +66,8 @@ export const NUMBER_LOOKALIKE = Object.freeze({
   1: ['7'], 2: ['5'], 3: ['8'], 4: ['9'], 5: ['2'], 6: ['9'], 7: ['1'], 8: ['3'], 9: ['6', '4'], 10: ['16', '19'],
   12: ['21'], 13: ['31'], 14: ['41'], 16: ['19', '61'], 18: ['81'], 20: ['21', '19'],
 });
-const PLAIN_NUMBERS = ['6', '7', '8', '9'];
+// tier 1 counting (1-5): wrong numbers that look like none of them (no 7 next to the 1, no 8 next to the 3)
+const PLAIN_NUMBERS = ['6', '0', '10', '20'];
 
 /** The words of one tier in one language. */
 export function wordList(lang, tier) {
@@ -218,6 +220,22 @@ function place(state, value) {
   return false;
 }
 
+const letterLooks = (l) => [...lookalike(l), ...similar(l)];
+const numberLooks = (v) => NUMBER_LOOKALIKE[v] || [];
+
+/**
+ * Tier 1 wrong tiles are plain: never a value of the round (for words: of the word being spelled)
+ * and never one that looks like one of them, either way round (a z is never next to the s of
+ * "vis", a 7 never next to the 1). Tested on every step of every tier 1 round.
+ */
+export function plainOk(state, value) {
+  const win = state.seq.slice(state.i, windowEnd(state));
+  const base = state.mode === 'word' ? win : state.seq;
+  if (base.includes(value)) return false;
+  const looks = state.mode === 'count' ? numberLooks : letterLooks;
+  return !base.some((v) => looks(v).includes(value) || looks(value).includes(v));
+}
+
 /** Wrong values that fit this tier, best first (look-alikes of what is on the board now). */
 function decoyValues(state) {
   const win = state.seq.slice(state.i, windowEnd(state));
@@ -225,7 +243,7 @@ function decoyValues(state) {
   const ok = (v) => !win.includes(v) && !on.has(v);
   const r = state.rand;
   if (state.mode === 'count') {
-    if (state.tier === 't1') return shuffle(PLAIN_NUMBERS, r).filter(ok);
+    if (state.tier === 't1') return shuffle(PLAIN_NUMBERS, r).filter((v) => ok(v) && plainOk(state, v));
     const near = state.tier === 't3' ? win.flatMap((v) => [String(+v - 1), String(+v + 1)]) : [];
     const looks = win.flatMap((v) => NUMBER_LOOKALIKE[v] || []);
     const spare = Array.from({ length: 11 }, (_, k) => String(k + 10));
@@ -233,11 +251,7 @@ function decoyValues(state) {
   }
   const letters = [...new Set(win)];
   if (state.tier === 't1') {
-    // plain: never a letter of the round (of the word), never one that looks like one of them
-    const base = state.mode === 'word' ? letters : state.seq;
-    const looks = (l) => [...lookalike(l), ...similar(l)];
-    const all = new Set([...base, ...base.flatMap(looks), ...ALPHABET.filter((l) => looks(l).some((x) => base.includes(x)))]);
-    return shuffle(ALPHABET.filter((l) => !all.has(l)), r).filter(ok);
+    return shuffle(ALPHABET, r).filter((l) => ok(l) && plainOk(state, l));
   }
   const mirrored = state.tier === 't3' ? shuffle(letters.flatMap(lookalike), r) : [];
   const shaped = shuffle(letters.flatMap((l) => similar(l)), r);
@@ -278,17 +292,21 @@ function farCell(state, skip = -1) {
  * One step of the hedgehog. Returns what happened:
  *   { type: 'wait' }                  curled up, or the round is over
  *   { type: 'blocked' }               a hedge
+ *   { type: 'stop' }                  `auto` (a walk going on by itself): a crow or a wrong tile ahead
  *   { type: 'move' }
  *   { type: 'eat', value, word }      the right tile; `word` true when a word was finished
  *   { type: 'done', value }           the last one: the round is over
  *   { type: 'wrong', value, want }    a wrong tile: a bump, nothing moves
  *   { type: 'crow', crow, back }      walked into a crow: curled up and rolled back `back` cells
  */
-export function stepHog(state, dir) {
+export function stepHog(state, dir, { auto = false } = {}) {
   if (state.over || state.curled) return { type: 'wait' };
-  if (dir === 'left' || dir === 'right') state.face = dir;
   const to = stepFrom(state.maze, state.hog, dir);
   if (to < 0) return { type: 'blocked' };
+  // a walk going on by itself never walks into a crow (it may have stepped in since) or a wrong
+  // tile: only a step the child chose counts
+  if (auto && !freeAhead(state, to)) return { type: 'stop' };
+  if (dir === 'left' || dir === 'right') state.face = dir;
   state.started = true;
   state.dir = dir;
   const crow = crowAt(state, to);
@@ -315,21 +333,33 @@ export function stepHog(state, dir) {
     return { type: 'done', value: tile.value };
   }
   const word = !!before && state.i >= before.to;
+  if (word && state.tier === 't1') {
+    // a new word: the old word's plain wrong tiles may look like the new word's letters; they go
+    const win = new Set(state.seq.slice(state.i, windowEnd(state)));
+    state.tiles = state.tiles.filter((t) => win.has(t.value) || plainOk(state, t.value));
+  }
   refill(state);
   return { type: 'eat', value: tile.value, word };
 }
 
+/** Is `cell` free for a walk going on by itself: no crow, and no tile but the right one? */
+function freeAhead(state, cell) {
+  if (crowAt(state, cell) >= 0) return false;
+  const tile = tileAt(state, cell);
+  return !tile || tile.value === expected(state);
+}
+
 /**
  * Where a walk goes on after a step `dir`: straight on or round a bend, but it stops at a crossing
- * (more than one new way), in front of a crow or a hedge, and after a tile (null: stop).
+ * (more than one new way), at a hedge, in front of a crow or a wrong tile, and after a tile (null:
+ * stop). The controller takes the steps it gives with `auto`, so a crow that steps in between
+ * stops the walk too.
  */
 export function continueDir(state, dir) {
   if (state.over || state.curled || !dir) return null;
   const ways = exits(state.maze, state.hog).filter((d) => d !== OPPOSITE[dir]);
   if (ways.length !== 1) return null;
-  const next = beside(state.maze, state.hog, ways[0]);
-  if (crowAt(state, next) >= 0) return null;
-  return ways[0];
+  return freeAhead(state, beside(state.maze, state.hog, ways[0])) ? ways[0] : null;
 }
 
 function touchCrow(state, k) {

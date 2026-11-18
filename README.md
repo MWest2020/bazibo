@@ -422,15 +422,18 @@ with hedges between the cells, no chomping, no arcade sounds, no ghosts, no dyin
   screen), then every dead end opened and a few more gaps cut, so there are loops everywhere.
 - `rules.js` (pure): the rounds, the steps, the crows. A swipe, an arrow on the pad, an arrow key
   or a tap beside the hedgehog walks it to the next crossing; it goes round bends by itself and
-  stops in front of a hedge, a crow or a letter.
+  stops at a hedge, on the right letter, and in front of a crow or a wrong letter (also a crow that
+  stepped in during the walk): only a step the child chooses bumps or touches.
 - Only the next few values are on the board (`WINDOW`), one tile per value (a letter that comes
   twice, the p in "appel", appears when the first is picked up). A tile is never placed where it
   would cut the garden in two (`placementOk`), so every letter can be reached without walking over
   another, after every step.
-- A wrong letter is a soft bump: the hedgehog stays, the letter stays ("Boink! Dat is de d. Zoek de
-  c."), one mistake per letter; after two bumps the right one glows.
+- A chosen step onto a wrong letter is a soft bump: the hedgehog stays, the letter stays ("Boink!
+  Dat is de d. Zoek de c."), one mistake per letter; after two bumps the right one glows. Tier 1
+  wrong letters never look like the letters asked for (`plainOk`, either way round; when a word is
+  done, the old word's wrong tiles that look like the new word's letters are taken away).
 - The crows are friendly and slow (a step a second, walking only after the first step, never onto
-  the hedgehog). A walk stops in front of one; a step straight into one makes the hedgehog curl up
+  the hedgehog). A walk stops in front of one; a chosen step straight into one makes the hedgehog curl up
   for a moment and roll back to the start of its corridor (at most 3 cells, `ROLLBACK`), and the
   crow flies to the far side of the garden. No letters are lost, and stars count wrong letters
   only (Letters' `starsFor`), never crows and never time.

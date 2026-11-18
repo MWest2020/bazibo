@@ -247,11 +247,87 @@ test('rounds: a word round spells word after word, and a letter that comes twice
   assert.ok(events.includes('eat'));
 });
 
+test('tier 1 wrong tiles are plain on every step: never a look-alike of the letters or numbers asked for', () => {
+  const looksLetter = (a, b) => anyLook(a).includes(b) || anyLook(b).includes(a);
+  const looksNumber = (a, b) => (R.NUMBER_LOOKALIKE[a] || []).includes(b) || (R.NUMBER_LOOKALIKE[b] || []).includes(a);
+  let words = 0;
+  for (const mode of R.MODES) {
+    for (const lang of LANGS) {
+      for (let seed = 1; seed <= 300; seed++) {
+        const s = R.createRound({ mode, tier: 't1', lang, seed, landscape: seed % 2 === 0, round: seed % 4 });
+        const where = `${mode} t1 ${lang} seed ${seed}`;
+        const check = () => {
+          const win = s.seq.slice(s.i, R.windowEnd(s));
+          const asked = mode === 'word' ? win : s.seq;
+          for (const t of s.tiles) {
+            if (win.includes(t.value)) continue;
+            assert.ok(!asked.includes(t.value), `${where} at ${s.i}: ${t.value} is part of ${asked.join('')}`);
+            const look = asked.find((v) => (mode === 'count' ? looksNumber(v, t.value) : looksLetter(v, t.value)));
+            assert.equal(look, undefined, `${where} at ${s.i}: ${t.value} looks like the ${look} of ${asked.join('')}`);
+          }
+        };
+        check();
+        let steps = 0;
+        while (!s.over && steps++ < 4000) {
+          if (s.curled) R.uncurl(s);
+          const e = R.stepHog(s, R.pathDirection(s));
+          if (e.word) words++;
+          if (steps % 2 === 0) R.stepCrows(s);
+          check();
+        }
+        assert.ok(s.over, `${where}: not finished`);
+      }
+    }
+  }
+  assert.ok(words > 1000, `only ${words} word changes seen`);
+});
+
+test('a walk going on by itself stops in front of a crow that stepped in, and in front of a wrong letter', () => {
+  let crowsTested = 0;
+  let wrongTested = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const s = R.createRound({ mode: 'abc', tier: 't2', seed });
+    s.crows = s.crows.slice(0, 1);
+    s.started = true;
+    // a cell next to the hedgehog without a tile, and a crow put there between two steps
+    const d = exits(s.maze, s.hog).find((x) => !R.tileAt(s, beside(s.maze, s.hog, x)));
+    if (!d) continue;
+    const ahead = beside(s.maze, s.hog, d);
+    s.crows[0].cell = ahead;
+    const before = { hog: s.hog, touches: s.touches, crow: ahead };
+    assert.deepEqual(R.stepHog(s, d, { auto: true }), { type: 'stop' }, `seed ${seed}: an automatic step walked into a crow`);
+    assert.deepEqual([s.hog, s.touches, s.curled, s.crows[0].cell], [before.hog, 0, false, ahead]);
+    assert.equal(R.stepHog(s, d).type, 'crow', 'a chosen step into a crow still touches it'); // the child's own step
+    crowsTested++;
+  }
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const { s, d, wrong } = withWrongBeside(seed);
+    if (!s) continue;
+    const hog = s.hog;
+    assert.deepEqual(R.stepHog(s, d, { auto: true }), { type: 'stop' }, `seed ${seed}: an automatic step bumped ${wrong.value}`);
+    assert.deepEqual([s.hog, s.mistakes, s.bumps], [hog, 0, 0]);
+    // every corridor cell next to a wrong tile: a walk round its bend stops in front of the tile
+    for (let c = 0; c < s.cols * s.rows; c++) {
+      if (R.tileAt(s, c) || R.crowAt(s, c) >= 0 || exits(s.maze, c).length !== 2) continue;
+      for (const toTile of exits(s.maze, c)) {
+        const t = R.tileAt(s, beside(s.maze, c, toTile));
+        if (!t || t.value === R.expected(s)) continue;
+        const other = exits(s.maze, c).find((x) => x !== toTile);
+        s.hog = c;
+        assert.equal(R.continueDir(s, OPPOSITE[other]), null, `seed ${seed}: a walk goes on into ${t.value}`);
+      }
+    }
+    s.hog = hog;
+    wrongTested++;
+  }
+  assert.ok(crowsTested > SEEDS * 0.9 && wrongTested > SEEDS * 0.3, `${crowsTested} crows, ${wrongTested} wrong letters tested`);
+});
+
 // ---------- the two kind rules ----------
 
 /** A round with one wrong tile right next to the hedgehog (and the crows out of the way). */
-function withWrongBeside() {
-  for (let seed = 1; seed < 500; seed++) {
+function withWrongBeside(only = 0) {
+  for (let seed = only || 1; seed < (only ? only + 1 : 500); seed++) {
     const s = R.createRound({ mode: 'abc', tier: 't1', seed });
     s.crows = [];
     for (const d of exits(s.maze, s.hog)) {
@@ -267,6 +343,7 @@ function withWrongBeside() {
       wrong.cell = from;
     }
   }
+  if (only) return {};
   throw new Error('no round with room for a wrong tile');
 }
 

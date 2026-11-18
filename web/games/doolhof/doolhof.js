@@ -224,7 +224,7 @@ export function createDoolhof(shell) {
     if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     const lang = getLang();
     const s = createRound({ mode, tier, lang, seed, landscape, round });
-    game = { mode, tier, roundId, seed, lang, s, walk: null, pending: null, prevCrows: s.crows.map((c) => c.cell), hogAcc: 0, crowAcc: 0, curl: 0, done: false };
+    game = { mode, tier, roundId, seed, lang, s, walk: null, chosen: false, pending: null, prevCrows: s.crows.map((c) => c.cell), hogAcc: 0, crowAcc: 0, curl: 0, done: false };
     fx.bump = fx.shake = 0;
     fx.parts = [];
     shell.show('doolhof');
@@ -371,8 +371,10 @@ export function createDoolhof(shell) {
     if (s.curled) return;
     if (game.walk) {
       // already walking: turn here if that way is open, or at the next place it is
-      if (isOpen(s.maze, s.hog, dir)) game.walk = dir;
-      else game.pending = dir;
+      if (isOpen(s.maze, s.hog, dir)) {
+        game.walk = dir;
+        game.chosen = true; // the next step is the child's own
+      } else game.pending = dir;
       return;
     }
     if (!isOpen(s.maze, s.hog, dir)) {
@@ -383,6 +385,7 @@ export function createDoolhof(shell) {
     if (!s.started) setStatus('');
     // the first step lands after HOG_STEP, while the hedgehog is drawn walking towards it
     game.walk = dir;
+    game.chosen = true;
     game.pending = null;
     game.hogAcc = 0;
     startLoop();
@@ -392,8 +395,11 @@ export function createDoolhof(shell) {
     const s = game.s;
     const dir = game.walk;
     if (!dir) return;
-    const e = stepHog(s, dir);
-    if (e.type === 'blocked' || e.type === 'wait') {
+    // only the step the child chose may touch a crow or bump a wrong letter; a walk going on by
+    // itself stops in front of them (a crow may have stepped in since the last step)
+    const e = stepHog(s, dir, { auto: !game.chosen });
+    game.chosen = false;
+    if (e.type === 'blocked' || e.type === 'wait' || e.type === 'stop') {
       game.walk = null;
       game.pending = null;
       return;

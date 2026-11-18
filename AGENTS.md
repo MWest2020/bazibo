@@ -214,9 +214,13 @@ board keeps every letter reachable without walking over another after every step
 wrong-letter and crow rules, crows never onto the hedgehog, a tile or each other). It must never
 look or sound like Pac-Man (Mark, 18 Nov 2026): no Pac-like name, no yellow round chomping figure,
 no ghosts, no waka or arcade sounds, no classic maze layout. It stays calm: no dying, no game over,
-no timer. A wrong letter is a soft bump (it stays, one mistake per letter, help after two); a crow
-is never a death: a walk stops in front of it, a step into it curls the hedgehog up and rolls it
-back at most `ROLLBACK` cells while the crow flies off; crows never cost stars. Tiers are harder by
+no timer. Only a step the child chooses can bump or touch: a walk going on by itself (round a bend,
+`stepHog(..., { auto: true })`) stops in front of a wrong letter and in front of a crow, also one
+that stepped in between two steps. A chosen step onto a wrong letter is a soft bump (it stays, one
+mistake per letter, help after two); a chosen step into a crow is never a death: the hedgehog
+curls up and rolls back at most `ROLLBACK` cells while the crow flies off; crows never cost stars.
+Tier 1 wrong tiles are plain (`plainOk`: never a look-alike either way round of what is asked, also
+after a word changes; tested on every step). Tiers are harder by
 what must be told apart (Letters' `SIMILAR`/`LOOKALIKE`, `NUMBER_LOOKALIKE`) and how much of a word
 is shown (`WORD_HINT`), not by speed. Words and pictures come from Letters (`BUILD`, `LONG_WORDS`
 must have a picture in Letters' `art.js`). No voice. Free: tier 1 of every kind (`meta.freeTiers`).
