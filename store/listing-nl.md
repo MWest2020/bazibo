@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-16 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+17 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-16 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+17 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zestien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken en Letters.
+Bazibo is een app met spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. Er zitten nu zeventien spellen in: Bubbels schieten, Dogudoku, Picturedoku, Paartjes, Legpuzzel, Vier op een rij, Dammen, Ganzenbord, Kwartet, Slangetje, Kleurplaten, Tekenen, Piano, Drumstel, Klok kijken, Letters en Egeltje.
 
 De naam komt van "bāzi", het Perzische woord voor spel.
 
@@ -49,7 +49,7 @@ PAARTJES
 • 6 en 12 kaarten met fruit. 16 en 20 kaarten, prentenboek- en vormenkaarten (volledige versie).
 
 LEGPUZZEL
-• Sleep de stukjes naar hun plek; dichtbij klikken ze vast. Van 9 stukjes vanaf 3 jaar tot 60 voor 9 jaar, met een vergrootglas op de telefoon.
+• Sleep de stukjes naar hun plek; dichtbij klikken ze vast. Van 9 tot 60 stukjes, met een vergrootglas op de telefoon.
 • 9, 16 en 25 stukjes met drie plaatjes. 30, 48 en 60 stukjes en vijf plaatjes meer (volledige versie).
 
 VIER OP EEN RIJ
@@ -66,7 +66,6 @@ GANZENBORD
 
 KWARTET
 • Vraag de kaarten die je mist (grote knoppen met een plaatje) en leg je kwartetten neer.
-• Met z’n tweeën speel je met een stapel, met drie of vier zonder.
 • Tegen de computer of samen op één telefoon. 4 kwartetten; 6 en 8 kwartetten en een 4e speler (volledige versie).
 
 SLANGETJE: TELLEN, LETTERS EN KLEUREN
@@ -83,7 +82,7 @@ TEKENEN
 PIANO
 • Een speelgoedpiano met gekleurde toetsen. Speel mee: de volgende toets licht op, of luister eerst.
 • 4-6 jaar: vrij spelen en Vader Jacob; nog drie liedjes in de volledige versie.
-• 7-10 jaar: twee octaven met zwarte toetsen en de hele Ode aan de vreugde. Het Wilhelmus, Für Elise en meer (volledige versie).
+• 7-10 jaar: twee octaven met zwarte toetsen en de Ode aan de vreugde. Für Elise en meer (volledige versie).
 
 DRUMSTEL
 • Acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer (volledige versie).
@@ -94,6 +93,9 @@ KLOK KIJKEN
 
 LETTERS
 • Zoek dezelfde letter (pas op voor b en d), vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
+
+EGELTJE
+• Een egeltje loopt door een tuindoolhof en raapt het alfabet, een woordje of getallen op volgorde op.
 
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
