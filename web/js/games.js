@@ -16,6 +16,7 @@ import { meta as kleuren } from '../games/kleuren/meta.js';
 import { meta as tekenen } from '../games/tekenen/meta.js';
 import { meta as klok } from '../games/klok/meta.js';
 import { meta as letters } from '../games/letters/meta.js';
+import { meta as doolhof } from '../games/doolhof/meta.js';
 import { meta as piano } from '../games/piano/meta.js';
 import { meta as drums } from '../games/drums/meta.js';
 
@@ -48,4 +49,5 @@ export const GAMES = [
   { ...drums, status: 'ready' },
   { ...klok, status: 'ready' },
   { ...letters, status: 'ready' },
+  { ...doolhof, status: 'ready' },
 ];

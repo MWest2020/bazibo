@@ -1,0 +1,148 @@
+/* Egeltje (Little Hedgehog): home tile, the panel above the garden, the garden and the arrow pad.
+   The menu reuses Klok kijken's mode cards and round grids; the pad reuses Slangetje's .slang-pad
+   and .pad-btn. Shared look lives in css/style.css. */
+
+/* ---------- home tile and cards ---------- */
+#tile-doolhof .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-doolhof .tile-art svg { width: 100%; height: 100%; display: block; }
+.doolhof-ov { display: flex; align-items: flex-end; justify-content: center; gap: 6px; }
+.doolhof-ov svg { width: 84px; height: 74px; display: block; }
+.doolhof-ov svg + svg { width: 58px; height: 52px; }
+
+/* ---------- the garden screen ---------- */
+#doolhof-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 12px;
+}
+
+/* what to pick up now */
+.doolhof-target {
+  width: min(100%, 520px);
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  row-gap: 2px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 0 #d6cff7;
+}
+.doolhof-target-art { flex: none; width: 58px; height: 58px; display: flex; align-items: center; justify-content: center; }
+.doolhof-target-art svg { width: 100%; height: 100%; display: block; }
+.doolhof-big {
+  width: 54px;
+  height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3px solid #b58a3c;
+  background: #fff8e1;
+  color: var(--ink);
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.doolhof-target-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.doolhof-target-main .doolhof-big { width: 42px; height: 42px; font-size: 1.55rem; order: 2; }
+.doolhof-prompt { flex: 1 1 100%; font-size: 1.05rem; font-weight: 900; color: var(--primary); line-height: 1.15; }
+.doolhof-strip { flex: 1 1 0; display: flex; flex-wrap: nowrap; gap: 4px; min-width: 0; order: 1; }
+.doolhof-slot {
+  flex: 0 1 30px;
+  min-width: 16px;
+  height: 32px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #e8d9a8;
+  border-radius: 10px;
+  background: #fff8e1;
+  color: #9a8f6a;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+.doolhof-strip.word .doolhof-slot { color: var(--ink); }
+.doolhof-strip.word[data-hint="ghost"] .doolhof-slot:not(.done) { color: rgba(43, 35, 112, 0.35); }
+.doolhof-slot.done { background: #58c27d; border-color: #2a7f50; color: #fff !important; }
+.doolhof-slot.next { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 197, 49, 0.45); color: var(--ink); }
+.doolhof-progress {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 900;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+.doolhof-progress:empty { display: none; }
+.doolhof-status { flex: 1 1 100%; order: 4; min-height: 2.4em; font-size: 0.95rem; font-weight: 800; color: #b8540f; line-height: 1.2; } /* two lines kept free, so the garden never shifts */
+
+/* the garden: the canvas is centred and never pushes the layout */
+.doolhof-board { flex: 1; min-height: 0; min-width: 0; width: 100%; position: relative; touch-action: none; }
+#doolhof-canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 14px;
+  box-shadow: 0 6px 0 #9fd08f, 0 12px 26px rgba(42, 127, 80, 0.22);
+}
+
+/* sideways: the garden on the left, the panel and the pad beside it */
+#doolhof-stage.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 264px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "board target" "board pad";
+  align-items: start;
+  column-gap: 14px;
+  row-gap: 10px;
+  padding: 10px 12px;
+}
+#doolhof-stage.side .doolhof-board { grid-area: board; height: 100%; }
+#doolhof-stage.side .doolhof-target { grid-area: target; width: 100%; }
+#doolhof-stage.side .doolhof-target-main { flex: 1 1 calc(100% - 72px); } /* the count goes below, the prompt keeps the width */
+#doolhof-stage.side .doolhof-pad { grid-area: pad; align-self: center; justify-self: center; }
+
+@media (max-height: 740px) {
+  .doolhof-target-art { width: 46px; height: 46px; }
+  .doolhof-big { width: 44px; height: 44px; font-size: 1.6rem; }
+  .doolhof-prompt { font-size: 0.95rem; }
+  .doolhof-slot { height: 28px; font-size: 1.05rem; }
+}
+@media (max-height: 640px) and (orientation: portrait) {
+  #doolhof-stage { gap: 6px; padding-bottom: 8px; }
+  .doolhof-target { padding: 4px 10px; }
+  .doolhof-status { min-height: 1.2em; }
+}
+/* short sideways phones: the HUD becomes a column on the left */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-doolhof { flex-direction: row; }
+  .doolhof-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; }
+  .doolhof-hud .hud-mid { flex: 0; width: 66px; }
+  .doolhof-hud .btn.icon { width: 54px; height: 54px; }
+  .doolhof-hud .hud-level { font-size: 0.85rem; }
+  .doolhof-hud .dogu-title { white-space: normal; font-size: 0.95rem; }
+  #doolhof-stage.side { grid-template-columns: minmax(0, 1fr) 190px; column-gap: 10px; padding: 8px 10px 8px 4px; }
+  #doolhof-stage.side .doolhof-target { padding: 6px 8px; gap: 6px; }
+  .doolhof-target-art { width: 40px; height: 40px; }
+  .doolhof-big { width: 40px; height: 40px; font-size: 1.4rem; }
+  .doolhof-prompt { font-size: 0.9rem; }
+  .doolhof-slot { height: 26px; font-size: 0.95rem; border-width: 2px; }
+  .doolhof-status { font-size: 0.85rem; }
+  /* the arrows stay 48 px or more for small hands */
+  .doolhof-pad.slang-pad { grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 50px); gap: 6px; }
+}
+@media (max-width: 360px) {
+  .doolhof-status { font-size: 0.85rem; }
+  .doolhof-target { gap: 8px; padding: 6px 10px; }
+}

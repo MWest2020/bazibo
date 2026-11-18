@@ -20,6 +20,8 @@
 //   the Klok kijken menu               -> from one kind of round to the kinds, then home
 //   a Letters round (or its card)      -> its menu (the round is kept: "keep playing")
 //   the Letters menu                   -> from one kind of round to the kinds, then home
+//   an Egeltje garden (or its card)    -> its menu (the round is kept: "keep playing")
+//   the Egeltje menu                   -> from one kind of round to the kinds, then home
 //   the piano                        -> a song goes to the song list, free play to the home screen
 //   the piano's song list            -> free play (the piano)
 //   the end card of a song           -> the song list
@@ -31,7 +33,7 @@
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
   if (overlay === 'busy') return 'ignore';
-  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'kwartet' ? 'kwartet-menu' : screen === 'klok' ? 'klok-menu' : screen === 'letters' ? 'letters-menu' : screen === 'piano' ? 'piano-songs' : screen === 'drums' ? 'drums-list' : screen === 'transfer' ? 'transfer-card' : 'close';
+  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'kwartet' ? 'kwartet-menu' : screen === 'klok' ? 'klok-menu' : screen === 'letters' ? 'letters-menu' : screen === 'doolhof' ? 'doolhof-menu' : screen === 'piano' ? 'piano-songs' : screen === 'drums' ? 'drums-list' : screen === 'transfer' ? 'transfer-card' : 'close';
   if (screen === 'game') return 'pause';
   if (screen === 'dogudoku') return 'dogudoku-levels';
   if (screen === 'picturedoku') return 'picturedoku-levels';
@@ -48,6 +50,8 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'klok-menu') return 'klok-menu-back';
   if (screen === 'letters') return 'letters-menu';
   if (screen === 'letters-menu') return 'letters-menu-back';
+  if (screen === 'doolhof') return 'doolhof-menu';
+  if (screen === 'doolhof-menu') return 'doolhof-menu-back';
   if (screen === 'piano') return 'piano-back';
   if (screen === 'piano-songs') return 'piano-songs-back';
   if (screen === 'drums') return 'drums-back';
