@@ -23,6 +23,8 @@ import '../web/games/tekenen/strings.js';
 import { STAMPS } from '../web/games/tekenen/drawing.js';
 import '../web/games/klok/strings.js';
 import '../web/games/letters/strings.js';
+import '../web/games/kangoeroe/strings.js';
+import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
 import '../web/games/piano/strings.js';
 import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
 import '../web/games/drums/strings.js';
@@ -109,6 +111,9 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of DRUM_PADS) used.add(`drums.pad.${id}`);
   for (const l of DRUM_LEVELS) used.add(`drums.level.${l.id}`).add(`drums.age.${l.id}`);
   for (const n of [0, 1, 2, 3]) used.add(`drums.win${n}`);
+  for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);
+  for (const k of ['count', 'add', 'land', 'missing', 'skipOn', 'skipBack']) used.add(`kangoeroe.lead.${k}`);
+  for (const n of [1, 2, 3]) used.add(`kangoeroe.win${n}`);
   for (const key of used) assert.ok(key in tables.nl, `"${key}" is used but has no text`);
 });
 
