@@ -489,13 +489,14 @@ export function createLetters(shell) {
     if (nextLetterOk(it.word, game.placed, letter)) {
       game.placed.push(letter);
       game.tries = 0; // two wrong tries count per letter, not per word
-      sfx.plink(0.7 + game.placed.length * 0.1);
       renderSlots();
       renderOptions();
       if (game.placed.length === it.word.length) {
         $('#letters-slots').classList.add('done');
         correct();
       }
+      // a note higher with every letter, played last: a sound never stops a letter going in
+      sfx.plink(game.placed.length);
       return;
     }
     const tile = document.querySelector(`#letters-options .letters-tile[data-k="${k}"]`);

@@ -1961,6 +1961,49 @@ def transfer_flow(browser, base, problems):
         ctx.close()
 
 
+def letters_build_by_taps(page, round_id, problems, label):
+    """Play a whole build round by tapping the tile of each next letter, as a child does; every word
+    must fill all its slots and finish, with no page errors, and the round ends with 3 stars."""
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.evaluate(f"window.__bubbels.letters.start('{round_id}')")
+    page.wait_for_timeout(250)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    long_words = 0
+    for _ in range(8):
+        st = page.evaluate("window.__bubbels.letters.state()")
+        if st["done"]:
+            break
+        q = st["q"]
+        long_words += len(q["word"]) >= 4
+        for letter in q["word"]:
+            tiles = page.locator("#letters-options .letters-tile:not(.used)")
+            for k in range(tiles.count()):
+                if tiles.nth(k).get_attribute("data-letter") == letter:
+                    tiles.nth(k).click()
+                    break
+            page.wait_for_timeout(60)
+        filled = page.evaluate("[...document.querySelectorAll('#letters-slots .letters-slot.filled')].map((s) => s.textContent).join('')")
+        if filled.lower() != q["word"]:
+            problems.append(f"letters {label} build by taps: {q['word']!r} shows {filled!r} after its last letter")
+            break
+        page.wait_for_timeout(1500)
+    st = page.evaluate("window.__bubbels.letters.state()")
+    if not st["done"]:
+        problems.append(f"letters {label} build by taps: the round did not finish (question {st['i'] + 1})")
+    elif page.evaluate("window.__bubbels.letters.stars()").get(round_id) != 3:
+        problems.append(f"letters {label} build by taps: stars {page.evaluate('window.__bubbels.letters.stars()').get(round_id)}, want 3")
+    if not long_words:
+        problems.append(f"letters {label} build by taps: no word of four letters in {round_id}")
+    if errors:
+        problems.append(f"letters {label} build by taps: page errors {errors[:2]}")
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button:last-child")
+        page.wait_for_timeout(150)
+
+
 def letters_play(browser, base, problems):
     """Letters: one round of each kind played by taps (Dutch and English), with nothing spoken: the
     big letter matches its tile, the word shows a gap, the build word is traced; stars saved; a
@@ -2121,6 +2164,9 @@ def letters_play(browser, base, problems):
     page.wait_for_timeout(2400)
     if page.evaluate("window.__bubbels.letters.peeking()") or not page.is_visible("#letters-pic .letters-peek"):
         problems.append("letters t2 build: after two quick wrong taps the word stayed or the eye did not come")
+    # a round of four-letter words built by real taps with the sound on: the 4th letter used to
+    # throw in the plink (PENTA[0.1]) and was never drawn, so the word never finished
+    letters_build_by_taps(page, "build-t2-3", problems, "t2")
     page.evaluate("window.__bubbels.letters.start('build-t3-1')")
     page.wait_for_timeout(250)
     if page.locator("#letters-slots .ghost").count():
@@ -5039,7 +5085,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen
          "kwartet": (kwartet_flow, kwartet_layouts),
          "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
          "piano": (piano_flow, piano_layouts, piano_big),
-         "drums": (drums_flow, drums_layouts)}
+         "drums": (drums_flow, drums_layouts),
+         "letters": (letters_play,)}
 
 
 def report(problems):

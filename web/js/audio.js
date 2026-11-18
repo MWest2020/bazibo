@@ -205,10 +205,12 @@ export function woof() {
 // Picturedoku: every picture has its own soft note (a pentatonic scale, so any mix sounds friendly).
 const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98];
 
-/** A picture placed: a short, soft bell note for picture v (1..9). */
+/** A picture placed: a short, soft bell note for picture v (1..9, higher wraps round). */
 export function plink(v = 1) {
   if (!on()) return;
-  const f = PENTA[(Math.max(1, v) - 1) % PENTA.length];
+  // a whole note number: PENTA[0.1] is undefined, and a non-finite frequency throws in the browser
+  const k = Math.max(1, Math.round(Number(v)) || 1);
+  const f = PENTA[(k - 1) % PENTA.length];
   const t = ac.currentTime + 0.004;
   tone('sine', f, f, t, 0.22, 0.16);
   tone('triangle', f * 2, f * 2, t, 0.12, 0.04);
