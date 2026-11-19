@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Pachisi (the original race game from India), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -256,12 +256,32 @@ geese, the special squares, a die face and the three boards drawn as SVG in `art
 - Free: the classic meadow board with 2 players (a child against a computer goose, or two
   children). Full version: up to 4 players in any mix, and a winter and a sea board.
 
-### Pachisi
+### Ludo (with Pachisi)
 
-The original race game from India, in `web/games/pachisi/` (rules in `rules.js`, the computer in
-`ai.js`, the cloth, the pawns and the cowrie shells drawn as SVG in `art.js`, the screens in
-`pachisi.js`). Rules as on Wikipedia's "Pachisi" page (cited in `rules.js`), with every
-simplification listed there.
+One race game in two modes, in `web/games/pachisi/` (the id stays `pachisi` so saves and transfer
+codes keep working; on screen it is Ludo). The screens are `pachisi.js`, which plays either mode
+through `modes.js`; Ludo is the default.
+
+**Ludo**: rules in `ludo-rules.js` (Wikipedia's "Ludo", cited there), the computer in `ludo-ai.js`,
+the board and the die in `ludo-art.js`. Played the way Dutch families play this kind of game:
+
+- One die. A 6 brings a pawn from the yard onto your start square and gives another throw; with
+  pawns waiting and your start square free, a 6 must bring one out. Every 6 throws again.
+- While pawns wait in the yard, your pawn on the start square must move off it first (when it can).
+- When no pawn can move at all (all in the yard, or stuck in the home squares) you get three
+  throws to throw a 6.
+- A cross of 40 squares round a free middle; every player walks clockwise once round and then up
+  into their own 4 home squares, which need an exact throw (too high: that pawn stays).
+- Landing on an opponent sends it walking back to its yard. No safe squares. You never land on
+  your own pawn, but you may walk past it. A throw nobody can use is lost.
+- 2 to 4 players, 4 pawns each or 2 as a short game. The board is our own, drawn in code: rounded
+  squares on a pale sky, soft yards with nests, a flower in the middle, the players' sun, moon,
+  star and lotus pawns.
+- The child counts the die's pips by tapping them ("Zelf tellen"), or the die counts itself.
+
+**Pachisi**, the original race game from India (rules in `rules.js`, the computer in `ai.js`, the
+cloth, the pawns and the cowrie shells drawn as SVG in `art.js`). Rules as on Wikipedia's
+"Pachisi" page (cited in `rules.js`), with every simplification listed there.
 
 - A cross-shaped cloth: four arms of 3×8 squares round the Charkoni in the middle, 12 castle
   squares (marked with a stitched cross). Every pawn starts in the Charkoni, walks down its own
@@ -275,10 +295,10 @@ simplification listed there.
   holds. The first to bring every pawn home wins.
 - Made simpler for children: a pawn leaves the middle with any throw, home needs no exact throw,
   no extra throw for a capture, no teams, and 2 pawns each as a short game (4 is traditional).
-- Tap a glowing pawn: the square it would reach glows, with dots on the way; tap that square and it
-  walks there, with the count on every square. The last move can be taken back.
-- Free: two players, a child against the easy computer or two children. Full version: a 3rd and
-  4th player and the medium computer.
+- In both modes: tap a glowing pawn: the square it would reach glows, with dots on the way; tap
+  that square and it walks there, with the count on every square. The last move can be taken back.
+- Free, in both modes: two players, a child against the easy computer or two children. Full
+  version: a 3rd and 4th player and the medium computer.
 ### Kwartet
 
 The Dutch quartets card game, in `web/games/kwartet/` (rules in `rules.js`, the computer players in
@@ -634,7 +654,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `pachisi`, `doolhof`,
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`,
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).

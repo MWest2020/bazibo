@@ -105,6 +105,12 @@ test('every key used in index.html and in the code exists', () => {
   for (const k of ['kid', 'cpu', 'off']) used.add(`pachisi.kind.${k}`);
   for (const n of [1, 2]) used.add(`pachisi.level${n}`);
   for (const n of [2, 4]) used.add(`pachisi.pawns${n}`).add(`pachisi.pawns${n}Sub`);
+  for (const m of ['ludo', 'pachisi']) {
+    used.add(`pachisi.mode.${m}`).add(`pachisi.mode.${m}Sub`); // the two modes in the menu
+    // lines that differ per mode, built as t(`${mode}.${key}`) (tm in pachisi.js)
+    for (const k of ['how', 'boardLabel', 'trayLabel', 'trayCount', 'yourThrow', 'throw', 'countNow', 'countSelfSub', 'countAutoSub', 'pawns4Sub', 'captured', 'captured.you', 'hitStart', 'winText']) used.add(`${m}.${k}`);
+  }
+  for (const k of ['needSix', 'ownThere', 'tooFar', 'mustEnter', 'clearStart']) used.add(`ludo.${k}`); // why a pawn cannot move (modes.js)
   for (const g of GAMES) if (g.subKey) used.add(g.subKey); // the small line under a name on the home screen
   for (const e of ['bounce', 'goose', 'bridge', 'maze', 'woods', 'inn', 'well', 'prison', 'skip.inn', 'skip.well', 'skip.prison']) used.add(`ganzen.ev.${e}`);
   for (const s of ['goose', 'bridge', 'inn', 'well', 'maze', 'prison', 'woods', 'end', 'start']) used.add(`ganzen.sq.${s}`);

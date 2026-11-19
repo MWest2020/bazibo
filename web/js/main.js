@@ -44,7 +44,7 @@ import { createGanzen } from '../games/ganzen/ganzen.js';
 import { tileSvg as ganzenTileSvg } from '../games/ganzen/art.js';
 import '../games/pachisi/strings.js';
 import { createPachisi } from '../games/pachisi/pachisi.js';
-import { tileSvg as pachisiTileSvg } from '../games/pachisi/art.js';
+import { tileSvg as pachisiTileSvg } from '../games/pachisi/ludo-art.js'; // Ludo is the tile (Pachisi is its second mode)
 import '../games/kwartet/strings.js';
 import { createKwartet } from '../games/kwartet/kwartet.js';
 import { tileSvg as kwartetTileSvg } from '../games/kwartet/art.js';

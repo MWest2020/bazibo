@@ -1,28 +1,31 @@
-// Pachisi, the original game from India: throw six cowrie shells, count the ones that land open
-// (mouth up) and walk a pawn that many squares; every pawn goes from the Charkoni in the middle
-// down its own arm, round the whole cloth and back up into the middle. The rules live in
-// rules.js, the computer players in ai.js, the pictures in art.js; the shell (web/js/main.js) owns
+// Ludo and Pachisi, one race game in two modes (modes.js). Ludo is the default: throw one die,
+// a 6 brings a pawn onto your start square, walk round the cross of 40 squares into your own four
+// home squares (ludo-rules.js). Pachisi is the original game from India: throw six cowrie shells,
+// count the ones that land open (mouth up) and walk a pawn from the Charkoni in the middle down its
+// own arm, round the whole cloth and back up into the middle (rules.js). The computer players are
+// in ludo-ai.js and ai.js, the pictures in ludo-art.js and art.js; the shell (web/js/main.js) owns
 // the overlay card, the sound settings and the purchase, and passes them in as `shell`.
 //
-// "Zelf tellen" (count yourself): after the throw the child taps the open shells one by one and
-// each one shows its count; then the steps show. Without it the shells count themselves. Then the
-// pawns that can move glow; a tap on one makes the square it would reach glow (with small dots on
-// the way), and a tap on that square walks it there, hop by hop, with the count on every square.
-// When only one pawn can move it is picked already. Squares are small on a phone, so a tap goes
-// to the nearest thing that can be tapped now, within a round area of 44 px or more round it.
-// No voice (as in Ganzenbord), no timers. A captured pawn is never beaten: it walks back to the
-// middle and starts again.
+// "Zelf tellen" (count yourself): after the throw the child taps the pips of the die (or the open
+// shells) one by one and each one shows its count; then the steps show. Without it the throw
+// counts itself. Then the pawns that can move glow; a tap on one makes the square it would reach
+// glow (with small dots on the way), and a tap on that square walks it there, hop by hop, with the
+// count on every square. When only one pawn can move it is picked already. Squares are small on a
+// phone, so a tap goes to the nearest thing that can be tapped now, within a round area of 44 px
+// or more round it. No voice (as in Ganzenbord), no timers. A captured pawn is never beaten: it
+// walks back to its start and starts again.
 //
 // Players: 2 (free) to 4 (full version), each a child or the computer (easy free, medium in the
-// full version). Saved (games.pachisi): `setup` { players: ['kid'|'cpu', ...], level, pawns, count }
-// and `stars` { 'cpu-<level>': games a child won against the computer } (a counter that only goes up).
+// full version), in either mode. Saved (games.pachisi; the id stays for save compatibility):
+// `setup` { mode: 'ludo'|'pachisi', players: ['kid'|'cpu', ...], level, pawns, count } and `stars`
+// { 'ludo-cpu-<level>' / 'cpu-<level>' (Pachisi): games a child won against the computer }
+// (counters that only go up).
 import { meta } from './meta.js';
-import {
-  HOME, SIZE, MAX_PLAYERS, PAWN_COUNTS, PATHS, rowOf, colOf, isCastle,
-  newGame, applyThrow, playMove, legalMoves, stepsOf, throwShells, readThrow, opponentsOn, mulberry32,
-} from './rules.js';
-import { chooseMove } from './ai.js';
-import { pawnSvg, shellSvg, boardSvg, miniBoardSvg, LOOKS } from './art.js';
+import { MAX_PLAYERS, PAWN_COUNTS, mulberry32 } from './rules.js';
+import { MODE_IDS, PACHISI, modeOf, pachisiSpots, pachisiPlace } from './modes.js';
+import { TRIES, canMoveAtAll } from './ludo-rules.js';
+import { pawnSvg, shellSvg, miniBoardSvg as clothMiniSvg, LOOKS } from './art.js';
+import { dieSvg, miniBoardSvg as ludoMiniSvg, PIPS } from './ludo-art.js';
 import { robotBadge, kidSvg } from '../ganzen/art.js';
 import { robotSvg } from '../vier/art.js';
 import * as store from '../../js/storage.js';
@@ -32,7 +35,7 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 const SWAP = '<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 0 0-13.5-2M5 16a8 8 0 0 0 13.5 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 2.5v4h4M19 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const UNDO = '<path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
 
-export const DEFAULT_SETUP = Object.freeze({ players: Object.freeze(['kid', 'cpu']), level: 1, pawns: 4, count: true });
+export const DEFAULT_SETUP = Object.freeze({ mode: 'ludo', players: Object.freeze(['kid', 'cpu']), level: 1, pawns: 4, count: true });
 const HOP = 230; // ms per square
 const PAUSE = 900; // ms to read a message
 const CPU_WAIT = 700; // ms before the computer throws
@@ -40,13 +43,17 @@ const CPU_PICK = 550; // ms the computer's choice glows before it walks
 /** The smallest tap area round anything that can be tapped on the board, in px. */
 export const MIN_HIT = 44;
 
-/** The counter key for a child's win against the computer at a level. */
-export const winKey = (level) => `cpu-${level}`;
+/** The counter key for a child's win against the computer at a level, per mode (Pachisi keeps its first keys). */
+export const winKey = (level, mode = 'ludo') => (mode === 'pachisi' ? `cpu-${level}` : `ludo-cpu-${level}`);
 
-/** A saved setup, made safe: 2-4 players of a known kind, a known level, 2 or 4 pawns, count on or off. */
+/**
+ * A saved setup, made safe: a known mode (a save from before Ludo has none: Ludo), 2-4 players of
+ * a known kind, a known level, 2 or 4 pawns, count on or off.
+ */
 export function cleanSetup(s) {
-  const out = { players: DEFAULT_SETUP.players.slice(), level: DEFAULT_SETUP.level, pawns: DEFAULT_SETUP.pawns, count: DEFAULT_SETUP.count };
+  const out = { mode: DEFAULT_SETUP.mode, players: DEFAULT_SETUP.players.slice(), level: DEFAULT_SETUP.level, pawns: DEFAULT_SETUP.pawns, count: DEFAULT_SETUP.count };
   if (!s || typeof s !== 'object') return out;
+  if (MODE_IDS.includes(s.mode)) out.mode = s.mode;
   if (Array.isArray(s.players) && s.players.length >= 2 && s.players.length <= MAX_PLAYERS && s.players.every((p) => p === 'kid' || p === 'cpu')) out.players = s.players.slice();
   if (s.level === 1 || s.level === 2) out.level = s.level;
   if (PAWN_COUNTS.includes(s.pawns)) out.pawns = s.pawns;
@@ -54,76 +61,23 @@ export function cleanSetup(s) {
   return out;
 }
 
-/** Turn a point (in cell units, from the board's top-left) a quarter counter-clockwise `seat` times round the middle. */
-function turnPoint(x, y, seat) {
-  for (let k = 0; k < seat; k++) [x, y] = [y, SIZE - x];
-  return [x, y];
-}
-
-/**
- * Where every pawn stands, in cell units (x, y of its foot and its size), for `shown` positions:
- * on a square in the middle of it (several on one square side by side), still in the Charkoni in a
- * row in the triangle in front of their arm, home again in a smaller row nearer the middle.
- */
-export function pawnSpots(seats, shown) {
-  const groups = new Map();
-  shown.forEach((list, k) =>
-    list.forEach((pos, i) => {
-      const key = pos <= 0 ? `w${k}` : pos >= HOME ? `h${k}` : `c${PATHS[seats[k]][pos]}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push([k, i]);
-    }),
-  );
-  const out = shown.map((list) => list.map(() => null));
-  for (const [key, list] of groups) {
-    const n = list.length;
-    if (key[0] === 'c') {
-      const cell = Number(key.slice(1));
-      const cx = colOf(cell) + 0.5;
-      const cy = rowOf(cell) + 0.5;
-      const offs = n === 1 ? [[0, 0]] : n === 2 ? [[-0.24, 0], [0.24, 0]] : n === 3 ? [[-0.24, -0.16], [0.24, -0.16], [0, 0.2]] : [[-0.24, -0.18], [0.24, -0.18], [-0.24, 0.2], [0.24, 0.2]];
-      list.forEach(([k, i], j) => {
-        const [ox, oy] = offs[j % offs.length];
-        out[k][i] = { x: cx + ox, y: cy + oy, s: n === 1 ? 1.3 : 0.95 };
-      });
-    } else {
-      const k = list[0][0];
-      const seat = seats[k];
-      const home = key[0] === 'h';
-      list.forEach(([kk, i], j) => {
-        const dx = (j - (n - 1) / 2) * (home ? 0.32 : 0.6);
-        const [x, y] = turnPoint(9.5 + dx, home ? 10.05 : 10.62, seat);
-        out[kk][i] = { x, y, s: home ? 0.55 : 0.66 };
-      });
-    }
-  }
-  return out;
-}
-
-/** Where a position of player k is, in cell units (the middle of its square, or of the Charkoni's triangle / the middle). */
-export function placeOf(seats, k, pos) {
-  if (pos >= HOME) return { x: 9.5, y: 9.5 };
-  if (pos <= 0) {
-    const [x, y] = turnPoint(9.5, 10.55, seats[k]);
-    return { x, y };
-  }
-  const cell = PATHS[seats[k]][pos];
-  return { x: colOf(cell) + 0.5, y: rowOf(cell) + 0.5 };
-}
+/** Pachisi's pawn spots and places (kept here under their old names; Ludo's are in modes.js). */
+export const pawnSpots = pachisiSpots;
+export const placeOf = pachisiPlace;
 
 /**
  * What can be tapped on the board now, in cell units: the selected pawn's target first, then every
  * pawn that can move, each where pawnSpots draws it (two pawns on one square sit side by side, so
  * each can be tapped). `sel`: the selected move's `from`, or null.
  */
-export function buildHits(g, shown, sel) {
+export function buildHits(g, shown, sel, mode = PACHISI) {
   const k = g.turn;
-  const moves = legalMoves(g);
-  const spots = pawnSpots(g.seats, shown);
+  const moves = mode.legalMoves(g);
+  const spots = mode.pawnSpots(g.seats, shown);
   const out = [];
   const chosen = sel === null || sel === undefined ? null : moves.find((m) => m.from === sel);
   if (chosen) {
-    const pl = placeOf(g.seats, k, chosen.to);
+    const pl = mode.placeOf(g.seats, k, chosen.to);
     out.push({ kind: 'target', from: chosen.from, to: chosen.to, x: pl.x, y: pl.y });
   }
   for (const m of moves) {
@@ -177,7 +131,7 @@ export function createPachisi(shell) {
   let game = null; // { setup, g, shown, phase, sel, counted, history, msg, pendingThrow, pendingMove, over }
   let plays = 0; // bumps on start / leave / undo: every running animation checks it and stops
   let speed = 1; // tests make it faster
-  let forced = []; // tests: the next throws (arrays of six booleans)
+  let forced = []; // tests: the next throws (Ludo: 1-6; Pachisi: arrays of six booleans)
   let rand = Math.random; // tests: a seeded generator for the throws and the computer
   let cell = 16; // px per square
   let pawnEls = []; // [player][pawn] -> element
@@ -193,6 +147,10 @@ export function createPachisi(shell) {
   const isYou = (k) => !isCpu(k) && kids() === 1;
   const whoName = (k) => (isYou(k) ? t('pachisi.you') : nameOf(k));
   const hasCpu = () => game.setup.players.includes('cpu');
+  /** The mode being played (or chosen in the menu). */
+  const M = () => (game ? game.mode : modeOf(choice?.mode));
+  /** A line that differs per mode: `ludo.<key>` or `pachisi.<key>`. */
+  const tm = (key, vars) => t(`${M().id}.${key}`, vars);
 
   shell.unlock.onChange(() => {
     if (onScreen('pachisi-menu')) renderMenu();
@@ -204,6 +162,7 @@ export function createPachisi(shell) {
   shell.onLangChange(() => {
     if (onScreen('pachisi-menu')) renderMenu();
     if (game) {
+      $('#pachisi-board').setAttribute('aria-label', tm('boardLabel'));
       renderHud();
       renderTurn();
       renderMarks();
@@ -244,10 +203,31 @@ export function createPachisi(shell) {
       return b;
     };
 
+    // which game: Ludo (the default) or Pachisi, the original from India
+    head('pachisi.modeHead');
+    const modes = document.createElement('div');
+    modes.className = 'vier-row pachisi-modes';
+    for (const id of MODE_IDS) {
+      modes.appendChild(
+        option({
+          art: `<span class="pachisi-modeart">${id === 'ludo' ? ludoMiniSvg() : clothMiniSvg()}</span>`,
+          title: t(`pachisi.mode.${id}`),
+          sub: t(`pachisi.mode.${id}Sub`),
+          pressed: choice.mode === id,
+          cls: `mode-${id}`,
+          onPick: () => {
+            choice.mode = id;
+            renderMenu();
+          },
+        }),
+      );
+    }
+    box.appendChild(modes);
+
     const intro = document.createElement('div');
     intro.className = 'pachisi-intro';
-    intro.innerHTML = `<span class="pachisi-intro-art">${miniBoardSvg()}</span><p></p>`;
-    intro.querySelector('p').textContent = t('pachisi.how');
+    intro.innerHTML = `<span class="pachisi-intro-art">${choice.mode === 'ludo' ? dieSvg(6) : shellSvg(true)}</span><p></p>`;
+    intro.querySelector('p').textContent = tm('how');
     box.appendChild(intro);
 
     // the players: a child, the computer or (3rd and 4th) nobody
@@ -297,7 +277,7 @@ export function createPachisi(shell) {
       const counts = wins();
       for (const level of [1, 2]) {
         const isLocked = locked({ players: ['kid', 'cpu'], level });
-        const n = counts[winKey(level)] || 0;
+        const n = counts[winKey(level, choice.mode)] || 0;
         const b = document.createElement('button');
         b.type = 'button';
         b.className = `vier-level pachisi-level ${isLocked ? 'locked' : ''}`;
@@ -330,7 +310,7 @@ export function createPachisi(shell) {
         option({
           art: `<span class="pachisi-pawnrow n${n}">${pawnSvg(0).repeat(n)}</span>`,
           title: t(`pachisi.pawns${n}`),
-          sub: t(`pachisi.pawns${n}Sub`),
+          sub: n === 4 ? tm('pawns4Sub') : t('pachisi.pawns2Sub'),
           pressed: choice.pawns === n,
           cls: `pawns-${n}`,
           onPick: () => {
@@ -348,9 +328,9 @@ export function createPachisi(shell) {
     for (const on of [true, false]) {
       counting.appendChild(
         option({
-          art: on ? `<span class="pachisi-countart">${shellSvg(true)}${shellSvg(true)}${shellSvg(false)}</span>` : `<span class="pachisi-countart"><b>3</b></span>`,
+          art: on ? `<span class="pachisi-countart">${choice.mode === 'ludo' ? dieSvg(3) : shellSvg(true) + shellSvg(true) + shellSvg(false)}</span>` : `<span class="pachisi-countart"><b>3</b></span>`,
           title: t(on ? 'pachisi.countSelf' : 'pachisi.countAuto'),
-          sub: t(on ? 'pachisi.countSelfSub' : 'pachisi.countAutoSub'),
+          sub: tm(on ? 'countSelfSub' : 'countAutoSub'),
           pressed: choice.count === on,
           cls: `count-${on ? 'on' : 'off'}`,
           onPick: () => {
@@ -364,7 +344,7 @@ export function createPachisi(shell) {
 
     const actions = document.createElement('div');
     actions.className = 'vier-actions';
-    if (game && !game.over) {
+    if (game && !game.over && game.mode.id === choice.mode) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'pachisi-continue';
@@ -402,8 +382,9 @@ export function createPachisi(shell) {
     store.saveGameOption(meta.id, 'setup', setup);
     plays++;
     clearTimeout(cpuTimer);
-    const g = newGame(setup.players.length, setup.pawns);
-    game = { setup, g, shown: g.pawns.map((p) => p.slice()), phase: 'roll', sel: null, counted: new Set(), history: [], msg: '', pendingThrow: null, pendingMove: null, over: false };
+    const mode = modeOf(setup.mode);
+    const g = mode.newGame(setup.players.length, setup.pawns);
+    game = { setup, mode, g, shown: g.pawns.map((p) => p.slice()), phase: 'roll', sel: null, counted: new Set(), history: [], msg: '', pendingThrow: null, pendingMove: null, over: false };
     buildBoard();
     renderHud();
     shell.show('pachisi');
@@ -454,7 +435,9 @@ export function createPachisi(shell) {
   function buildBoard() {
     const el = $('#pachisi-board');
     el.textContent = '';
-    el.insertAdjacentHTML('afterbegin', boardSvg(game.g.seats));
+    el.classList.toggle('ludo', game.mode.id === 'ludo');
+    el.setAttribute('aria-label', tm('boardLabel'));
+    el.insertAdjacentHTML('afterbegin', game.mode.boardSvg(game.g.seats));
     for (const cls of ['pachisi-marks', 'pachisi-pawns', 'pachisi-hits']) {
       const layer = document.createElement('div');
       layer.className = cls;
@@ -471,13 +454,14 @@ export function createPachisi(shell) {
         return p;
       }),
     );
+    buildTray();
     renderTray();
     fitBoard();
   }
 
   function renderHud() {
     $('#pachisi-sub').textContent = hasCpu() ? t(`pachisi.level${game.setup.level}`) : t('pachisi.together');
-    $('#pachisi-title').textContent = t('games.pachisi');
+    $('#pachisi-title').textContent = t(`pachisi.mode.${game.mode.id}`);
   }
 
   function renderTurn() {
@@ -506,7 +490,7 @@ export function createPachisi(shell) {
       chip.classList.toggle('on', !game.over && k === cur);
       chip.classList.toggle('winner', game.over && g.winner === k);
       chip.classList.toggle('thinking', !game.over && k === cur && isCpu(k));
-      const home = game.shown[k].filter((p) => p >= HOME).length;
+      const home = game.shown[k].filter(game.mode.isDone).length;
       chip.querySelectorAll('.home-dots i').forEach((d, i) => d.classList.toggle('on', i < home));
       chip.setAttribute('aria-label', `${nameOf(k)}${isCpu(k) ? `, ${t('pachisi.kind.cpu')}` : ''}: ${t('pachisi.homeCount', { n: home, all: g.pawns[k].length })}`);
     }
@@ -514,12 +498,12 @@ export function createPachisi(shell) {
     const canThrow = !game.over && game.phase === 'roll' && !isCpu(cur);
     tray.classList.toggle('ready', canThrow);
     tray.classList.toggle('counting', game.phase === 'count');
-    tray.setAttribute('aria-label', game.phase === 'count' ? t('pachisi.shellsCount') : t('pachisi.shellsLabel'));
+    tray.setAttribute('aria-label', game.phase === 'count' ? tm('trayCount') : tm('trayLabel'));
     tray.setAttribute('aria-disabled', String(!(canThrow || game.phase === 'count')));
     let text = game.msg;
     if (!text && !game.over) {
-      if (game.phase === 'count') text = t('pachisi.countNow');
-      else if (game.phase === 'roll') text = isCpu(cur) ? t('pachisi.cpuThrows', { name: nameOf(cur) }) : kids() === 1 ? t('pachisi.yourThrow') : t('pachisi.throw', { name: nameOf(cur) });
+      if (game.phase === 'count') text = tm('countNow');
+      else if (game.phase === 'roll') text = isCpu(cur) ? t('pachisi.cpuThrows', { name: nameOf(cur) }) : kids() === 1 ? tm('yourThrow') : tm('throw', { name: nameOf(cur) });
       else if (game.phase === 'move' && !isCpu(cur)) text = t(game.sel === null ? 'pachisi.pickPawn' : 'pachisi.pickTarget');
     }
     $('#pachisi-status').textContent = text;
@@ -536,13 +520,31 @@ export function createPachisi(shell) {
     updateTurn();
   }
 
-  // ---------- the shells ----------
+  // ---------- the throw: the shells or the die ----------
 
-  /** The tray's six shells: as thrown (`shells`), or all closed before the first throw. */
+  /** The tray's insides for the mode: six shells, or one die with room for six pips. */
+  function buildTray() {
+    const tray = $('#pachisi-tray');
+    const ludo = game.mode.id === 'ludo';
+    if (tray.dataset.mode === game.mode.id) return;
+    tray.dataset.mode = game.mode.id;
+    tray.classList.toggle('die', ludo);
+    tray.innerHTML = ludo
+      ? '<span class="pdie"><span class="pdie-face"></span></span>'
+      : Array.from({ length: 6 }, (_, i) => `<span class="pshell" data-i="${i}"><span class="pshell-face"></span><span class="pshell-n" aria-hidden="true"></span></span>`).join('');
+  }
+
+  /** The roll the tray shows: as thrown, the last one, or none before the first throw. */
+  const trayRoll = () => (!game || game.phase === 'roll' ? null : game.pendingThrow?.roll || game.g.roll || game.lastRoll || null);
+
+  /** The tray: the shells as thrown (or all closed before a throw), or the die with its pips. */
   function renderTray() {
+    if (!game) return;
+    const roll = trayRoll();
+    if (game.mode.id === 'ludo') return renderDie(roll);
     const tray = $('#pachisi-tray');
     // before a throw the shells lie on their backs; after it they show the last throw
-    const shells = !game || game.phase === 'roll' ? null : game.pendingThrow?.roll.shells || game.g.roll?.shells || game.lastShells || null;
+    const shells = roll?.shells || null;
     tray.querySelectorAll('.pshell').forEach((s, i) => {
       const open = !!shells?.[i];
       const key = shells ? (open ? 'o' : 's') : 'x';
@@ -557,6 +559,28 @@ export function createPachisi(shell) {
       const n = s.querySelector('.pshell-n');
       const order = game?.countOrder?.indexOf(i) ?? -1;
       n.textContent = game?.counted.has(i) && order >= 0 ? String(order + 1) : '';
+    });
+  }
+
+  /** The die: its pips (each one a spot the child can tap and count), or a resting face. */
+  function renderDie(roll, value = roll?.value) {
+    const face = $('#pachisi-tray .pdie-face');
+    if (!face) return;
+    const resting = !value;
+    const pips = PIPS[value || 5];
+    $('#pachisi-tray .pdie').classList.toggle('resting', resting);
+    face.textContent = '';
+    pips.forEach(([c, r], i) => {
+      const counted = !resting && game.counted.has(i);
+      const order = game.countOrder?.indexOf(i) ?? -1;
+      const pip = document.createElement('span');
+      pip.className = `pdie-pip${counted ? ' counted' : ''}${game.phase === 'count' && !counted ? ' can' : ''}`;
+      pip.dataset.i = String(i);
+      // positions through the style object: the CSP allows no inline style attributes
+      pip.style.left = `${18 + c * 32}%`;
+      pip.style.top = `${18 + r * 32}%`;
+      pip.textContent = counted && order >= 0 ? String(order + 1) : '';
+      face.appendChild(pip);
     });
   }
 
@@ -579,12 +603,13 @@ export function createPachisi(shell) {
     }
   }
 
-  /** Throw the six shells: they tumble, land open or closed; then they are counted. */
+  /** Throw: the shells or the die tumble and land; then the throw is counted. */
   async function throwNow() {
     if (!game || game.over || game.phase !== 'roll') return;
     const token = plays;
     const cur = game.g.turn;
-    const shells = forced.length ? forced.shift() : throwShells(rand);
+    const mode = game.mode;
+    const thr = forced.length ? forced.shift() : mode.randomThrow(rand);
     game.phase = 'rolling';
     game.msg = '';
     game.counted = new Set();
@@ -595,6 +620,7 @@ export function createPachisi(shell) {
     tray.classList.add('tumble');
     const faces = tray.querySelectorAll('.pshell');
     for (let k = 0; k < 5; k++) {
+      if (mode.id === 'ludo') renderDie(null, 1 + Math.floor(Math.random() * 6));
       faces.forEach((f) => {
         f.dataset.face = '';
         f.querySelector('.pshell-face').innerHTML = shellSvg(Math.random() < 0.5);
@@ -604,22 +630,24 @@ export function createPachisi(shell) {
       if (token !== plays) return;
     }
     tray.classList.remove('tumble');
-    const result = applyThrow(game.g, shells);
-    game.pendingThrow = { roll: { shells: shells.slice(), ...readThrow(shells) }, game: result.game, events: result.events };
-    game.lastShells = shells.slice();
+    const result = mode.applyThrow(game.g, thr);
+    const roll = mode.readThrow(thr);
+    const items = mode.items(roll);
+    game.pendingThrow = { roll: { ...roll, items }, game: result.game, events: result.events };
+    game.lastRoll = game.pendingThrow.roll;
     renderTray();
-    const { open } = game.pendingThrow.roll;
-    tray.setAttribute('aria-label', t('pachisi.shellsShow', { open }));
+    const open = items.filter(Boolean).length;
+    tray.setAttribute('aria-label', mode.id === 'ludo' ? t('ludo.trayShow', { n: roll.value }) : t('pachisi.trayShow', { open }));
     if (game.setup.count && !isCpu(cur) && open > 0) {
       game.phase = 'count';
       renderTray();
       updateTurn();
       return; // the child taps the open shells (countShell)
     }
-    // the shells count themselves, one by one
+    // the throw counts itself, one by one
     await sleep(250);
-    for (let i = 0; i < shells.length; i++) {
-      if (!shells[i]) continue;
+    for (let i = 0; i < items.length; i++) {
+      if (!items[i]) continue;
       if (token !== plays) return;
       game.counted.add(i);
       game.countOrder.push(i);
@@ -631,10 +659,10 @@ export function createPachisi(shell) {
     await reveal(token);
   }
 
-  /** Count yourself: a tap on shell i. */
+  /** Count yourself: a tap on shell or pip i. */
   async function countShell(i) {
     if (!game || game.phase !== 'count' || !game.pendingThrow) return;
-    const { shells } = game.pendingThrow.roll;
+    const shells = game.pendingThrow.roll.items;
     if (i < 0 || i >= shells.length) return;
     if (!shells[i]) {
       const s = $(`#pachisi-tray .pshell[data-i="${i}"]`);
@@ -659,15 +687,27 @@ export function createPachisi(shell) {
     await reveal(token);
   }
 
-  /** The steps show; the throw counts. A throw no pawn can use is lost. */
+  /** What a throw says: the steps (and in Pachisi how many shells were open). */
+  function throwHead(roll) {
+    if (game.mode.id === 'ludo') return roll.value === 6 ? t('ludo.res.six') : t('ludo.res.n', { n: roll.value });
+    const { open, steps } = roll;
+    return open === 0 ? t('pachisi.res.none') : open === 1 ? t('pachisi.res.one') : open === 6 ? t('pachisi.res.six') : t('pachisi.res.n', { open, n: steps });
+  }
+
+  /** The steps show; the throw counts. A throw no pawn can use is lost (or, in Ludo, tried again). */
   async function reveal(token) {
     const p = game.pendingThrow;
-    const { open, steps, grace } = p.roll;
+    const { steps, grace } = p.roll;
     const cur = game.g.turn;
     game.phase = 'shown';
-    const head = open === 0 ? t('pachisi.res.none') : open === 1 ? t('pachisi.res.one') : open === 6 ? t('pachisi.res.six') : t('pachisi.res.n', { open, n: steps });
-    const nomove = p.events.some((e) => e.type === 'nomove');
-    setMsg(nomove ? `${head} ${t('pachisi.noMove', { n: steps })}` : grace ? `${head} ${t('pachisi.again')}` : head);
+    const head = throwHead(p.roll);
+    const nomove = p.events.find((e) => e.type === 'nomove');
+    const again = p.events.find((e) => e.type === 'again');
+    let line = grace ? `${head} ${t('pachisi.again')}` : head;
+    if (nomove && again?.reason === 'try') line = `${head} ${t('ludo.tryAgain', { left: TRIES - nomove.tries })}`;
+    else if (nomove && game.mode.id === 'ludo' && !canMoveAtAll(game.g.pawns[cur]) && !grace) line = `${head} ${t('ludo.noSix')}`;
+    else if (nomove) line = `${head} ${t('pachisi.noMove', { n: steps })}${grace ? ` ${t('pachisi.again')}` : ''}`;
+    setMsg(line);
     if (grace) sfx.chime();
     await sleep(nomove ? PAUSE * 1.6 : grace || open < 2 ? PAUSE * 1.3 : PAUSE * 0.8);
     if (token !== plays) return;
@@ -691,9 +731,9 @@ export function createPachisi(shell) {
 
   function enterMove() {
     game.phase = 'move';
-    game.lastShells = game.g.roll?.shells.slice() || game.lastShells;
+    if (game.g.roll) game.lastRoll = { ...game.g.roll, items: game.mode.items(game.g.roll) };
     game.msg = '';
-    const moves = legalMoves(game.g);
+    const moves = game.mode.legalMoves(game.g);
     game.sel = moves.length === 1 ? moves[0].from : null; // one choice: it is picked already
     renderTray();
     renderMarks();
@@ -704,7 +744,7 @@ export function createPachisi(shell) {
   function cpuMove() {
     const token = plays;
     const g = game.g;
-    const move = chooseMove(g, game.setup.level, rand);
+    const move = game.mode.chooseMove(g, game.setup.level, rand);
     clearTimeout(cpuTimer);
     cpuTimer = setTimeout(async () => {
       if (token !== plays || game?.g !== g || !onScreen('pachisi')) return;
@@ -718,7 +758,7 @@ export function createPachisi(shell) {
   }
 
   /** The move of the selected pawn, or null. */
-  const selectedMove = () => (game?.sel === null || game?.sel === undefined ? null : legalMoves(game.g).find((m) => m.from === game.sel) || null);
+  const selectedMove = () => (game?.sel === null || game?.sel === undefined ? null : game.mode.legalMoves(game.g).find((m) => m.from === game.sel) || null);
 
   /** The marks on the board (the glowing pawns, the target and the way there) and the tap areas. */
   function renderMarks() {
@@ -733,7 +773,8 @@ export function createPachisi(shell) {
     const g = game.g;
     const k = g.turn;
     const human = !isCpu(k);
-    const moves = game.phase === 'move' ? legalMoves(g) : [];
+    const mode = game.mode;
+    const moves = game.phase === 'move' ? mode.legalMoves(g) : [];
     const sel = selectedMove();
     if (game.phase === 'move') {
       for (const m of moves) {
@@ -741,26 +782,26 @@ export function createPachisi(shell) {
         for (const i of sameSpot) pawnEls[k][i].classList.add(m.from === game.sel ? 'sel' : 'can');
       }
       if (human) {
-        hits = buildHits(g, game.shown, game.sel);
+        hits = buildHits(g, game.shown, game.sel, mode);
         for (const h of hits) {
-          if (h.kind === 'target') h.label = h.to >= HOME ? t('pachisi.hitHome') : t('pachisi.hitTarget', { n: h.to - h.from });
-          else h.label = h.from === 0 ? t('pachisi.hitStart', { name: nameOf(k) }) : t('pachisi.hitPawn', { name: nameOf(k), left: HOME - h.from });
+          if (h.kind === 'target') h.label = mode.isDone(h.to) ? t('pachisi.hitHome') : t('pachisi.hitTarget', { n: h.from === 0 && mode.id === 'ludo' ? 6 : h.to - h.from });
+          else h.label = h.from === 0 ? tm('hitStart', { name: nameOf(k) }) : t('pachisi.hitPawn', { name: nameOf(k), left: mode.LAST - h.from });
         }
       }
     }
     if (sel) {
-      const way = stepsOf(sel);
+      const way = mode.stepsOf(sel);
       for (const pos of way.slice(0, -1)) {
-        const pl = placeOf(g.seats, k, pos);
+        const pl = mode.placeOf(g.seats, k, pos);
         const d = document.createElement('span');
         d.className = 'pp-dot';
         d.style.left = `${pl.x * cell}px`;
         d.style.top = `${pl.y * cell}px`;
         marks.appendChild(d);
       }
-      const pl = placeOf(g.seats, k, sel.to);
+      const pl = mode.placeOf(g.seats, k, sel.to);
       const glow = document.createElement('span');
-      glow.className = `pp-target ${sel.to >= HOME ? 'home' : ''}`;
+      glow.className = `pp-target ${mode.id === 'pachisi' && sel.to >= mode.LAST ? 'home' : ''}`;
       glow.style.left = `${pl.x * cell}px`;
       glow.style.top = `${pl.y * cell}px`;
       marks.appendChild(glow);
@@ -792,12 +833,11 @@ export function createPachisi(shell) {
   function blockedHint(cx, cy) {
     const g = game.g;
     const k = g.turn;
-    const spots = pawnSpots(g.seats, game.shown);
-    const near = g.pawns[k].findIndex((pos, i) => pos < HOME && Math.hypot(spots[k][i].x - cx, spots[k][i].y - cy) < 0.9);
+    const spots = game.mode.pawnSpots(g.seats, game.shown);
+    const near = g.pawns[k].findIndex((pos, i) => Math.hypot(spots[k][i].x - cx, spots[k][i].y - cy) < 0.9);
     if (near < 0) return;
-    const to = Math.min(HOME, g.pawns[k][near] + g.roll.steps);
-    const cellTo = PATHS[g.seats[k]][to];
-    if (to < HOME && isCastle(cellTo) && opponentsOn(g, k, cellTo).length) setMsg(t('pachisi.blocked'));
+    const why = game.mode.why(g, near);
+    if (why) setMsg(t(why));
   }
 
   function pick(h) {
@@ -826,14 +866,15 @@ export function createPachisi(shell) {
     const token = plays;
     const g0 = game.g;
     const k = g0.turn;
-    const res = playMove(g0, move);
+    const mode = game.mode;
+    const res = mode.playMove(g0, move);
     game.pendingMove = res;
     game.phase = 'moving';
     game.sel = null;
     game.msg = '';
     renderMarks();
     updateTurn();
-    const way = stepsOf(move);
+    const way = mode.stepsOf(move);
     for (let s = 0; s < way.length; s++) {
       if (token !== plays) return;
       game.shown[k][move.pawn] = way[s];
@@ -842,7 +883,7 @@ export function createPachisi(shell) {
       void el.offsetWidth;
       el.classList.add('hop');
       placePawns();
-      countPop(placeOf(g0.seats, k, way[s]), s + 1);
+      countPop(mode.placeOf(g0.seats, k, way[s]), move.from === 0 && mode.id === 'ludo' ? 6 : s + 1);
       sfx.plink(Math.min(s + 1, 9));
       await sleep(way.length > 12 ? HOP * 0.7 : HOP);
     }
@@ -852,7 +893,7 @@ export function createPachisi(shell) {
     for (const e of res.events) {
       if (token !== plays) return;
       if (e.type === 'capture') {
-        setMsg(t(isYou(e.player) ? 'pachisi.captured.you' : 'pachisi.captured', { name: nameOf(e.player) }));
+        setMsg(isYou(e.player) ? tm('captured.you') : tm('captured', { name: nameOf(e.player) }));
         said = true;
         sfx.boop();
         await walkBack(e.player, e.pawn, token);
@@ -864,9 +905,12 @@ export function createPachisi(shell) {
       }
     }
     if (token !== plays) return;
-    if (!said && move.to < HOME && isCastle(PATHS[g0.seats[k]][move.to])) {
+    if (!said && mode.safeAt(g0, k, move.to)) {
       setMsg(t('pachisi.castle'));
       await sleep(PAUSE * 0.8);
+    } else if (!said && move.from === 0 && mode.id === 'ludo') {
+      setMsg(t('ludo.enter'));
+      await sleep(PAUSE * 0.6);
     }
     if (token !== plays) return;
     game.g = res.game;
@@ -885,7 +929,7 @@ export function createPachisi(shell) {
     beginTurn();
   }
 
-  /** A captured pawn walks back to the Charkoni along its own way, quickly and calmly. */
+  /** A captured pawn walks back along its own way to its start (the yard, or the Charkoni), quickly and calmly. */
   async function walkBack(q, i, token) {
     const from = game.shown[q][i];
     const n = Math.max(1, Math.min(18, from));
@@ -921,7 +965,7 @@ export function createPachisi(shell) {
 
   function placePawns() {
     if (!game || !pawnEls.length) return;
-    const spots = pawnSpots(game.g.seats, game.shown);
+    const spots = game.mode.pawnSpots(game.g.seats, game.shown);
     spots.forEach((row, k) =>
       row.forEach((sp, i) => {
         const el = pawnEls[k]?.[i];
@@ -930,7 +974,7 @@ export function createPachisi(shell) {
         el.style.width = el.style.height = `${s}px`;
         el.style.transform = `translate(${sp.x * cell - s / 2}px, ${sp.y * cell - s * 0.7}px)`;
         el.style.zIndex = String(10 + Math.round(sp.y * 4));
-        el.classList.toggle('home', game.shown[k][i] >= HOME);
+        el.classList.toggle('home', game.mode.isDone(game.shown[k][i]));
       }),
     );
     updateTurn();
@@ -947,7 +991,7 @@ export function createPachisi(shell) {
     updateTurn();
     if (!isCpu(winner)) {
       if (hasCpu()) {
-        const key = winKey(game.setup.level);
+        const key = winKey(game.setup.level, game.mode.id);
         store.recordStars(meta.id, key, (wins()[key] || 0) + 1);
       }
       sfx.win();
@@ -961,7 +1005,7 @@ export function createPachisi(shell) {
     const winner = game.g.winner;
     const cpuWon = isCpu(winner);
     const title = cpuWon ? t('pachisi.cpuWins', { name: nameOf(winner) }) : kids() === 1 ? t('pachisi.youWin') : t('pachisi.nameWins', { name: nameOf(winner) });
-    const text = cpuWon ? t('pachisi.cpuWinsText') : t(game.g.over?.reason === 'limit' ? 'pachisi.limitText' : 'pachisi.winText');
+    const text = cpuWon ? t('pachisi.cpuWinsText') : game.g.over?.reason === 'limit' ? t('pachisi.limitText') : tm('winText');
     const buttons = [[t('pachisi.againBtn'), 'big primary', again]];
     if (canUndo()) buttons.push([t('pachisi.undo'), 'big secondary', () => (shell.hideOverlay(), undoMove())]);
     buttons.push([t('pachisi.menuBtn'), 'big secondary', () => shell.show('pachisi-menu')]);
@@ -1001,7 +1045,6 @@ export function createPachisi(shell) {
   // ---------- input ----------
 
   const tray = $('#pachisi-tray');
-  tray.innerHTML = Array.from({ length: 6 }, (_, i) => `<span class="pshell" data-i="${i}"><span class="pshell-face"></span><span class="pshell-n" aria-hidden="true"></span></span>`).join('');
   tray.addEventListener('click', (e) => {
     if (!game) return;
     if (game.phase === 'roll' && !isCpu(game.g.turn) && !game.over) {
@@ -1010,18 +1053,19 @@ export function createPachisi(shell) {
       return;
     }
     if (game.phase !== 'count') return;
-    const { shells } = game.pendingThrow.roll;
-    let s = e.target.closest('.pshell');
+    const shells = game.pendingThrow.roll.items;
+    const ludo = game.mode.id === 'ludo';
+    let s = ludo ? null : e.target.closest('.pshell');
     if (e.detail === 0) {
-      // the keyboard: the next open shell not counted yet
+      // the keyboard: the next open shell (or pip) not counted yet
       const next = shells.findIndex((open, i) => open && !game.counted.has(i));
       if (next >= 0) countShell(next);
       return;
     }
     if (!s) {
-      // between two shells: the nearest one
+      // between two shells: the nearest one; on the die: the nearest pip not counted yet
       let bestD = Infinity;
-      for (const el of tray.querySelectorAll('.pshell')) {
+      for (const el of tray.querySelectorAll(ludo ? '.pdie-pip:not(.counted)' : '.pshell')) {
         const r = el.getBoundingClientRect();
         const d = Math.hypot(r.left + r.width / 2 - e.clientX, r.top + r.height / 2 - e.clientY);
         if (d < bestD) {
@@ -1080,9 +1124,10 @@ export function createPachisi(shell) {
     const panel = $('#pachisi-stage .pachisi-side');
     const w = stage.clientWidth - 12 - (side ? panel.offsetWidth + 12 : 0);
     const h = stage.clientHeight - 10 - (side ? 0 : panel.offsetHeight + 10);
-    cell = Math.max(10, Math.min(40, Math.floor((Math.min(w, h) / SIZE) * 4) / 4));
+    const size = game.mode.SIZE;
+    cell = Math.max(10, Math.min(size < 15 ? 64 : 40, Math.floor((Math.min(w, h) / size) * 4) / 4));
     const el = $('#pachisi-board');
-    el.style.width = el.style.height = `${cell * SIZE}px`;
+    el.style.width = el.style.height = `${cell * size}px`;
     el.style.setProperty('--cell', `${cell}px`);
     placePawns();
     renderMarks();
@@ -1103,10 +1148,15 @@ export function createPachisi(shell) {
           if (onScreen('pachisi-menu')) renderMenu();
         },
         start: () => start(),
-        /** The next throws, each six booleans (true: open). */
+        /** Pachisi: the next throws, each six booleans (true: open). */
         shells: (list) => {
           if (!list.every((s) => Array.isArray(s) && s.length === 6)) throw new Error('shells: every throw is six booleans');
           forced = list.map((s) => s.map(Boolean));
+        },
+        /** Ludo: the next throws of the die, each 1-6. */
+        dice: (list) => {
+          if (!list.every((v) => Number.isInteger(v) && v >= 1 && v <= 6)) throw new Error('dice: every throw is 1-6');
+          forced = list.slice();
         },
         /** Seed the throws and the computer's choices, so a game can be played again exactly. */
         seed: (n) => (rand = n ? mulberry32(n) : Math.random),
@@ -1124,7 +1174,8 @@ export function createPachisi(shell) {
                 pending: game.pendingThrow ? { ...game.pendingThrow.roll } : null,
                 counted: [...game.counted],
                 sel: game.sel,
-                moves: game.phase === 'move' ? legalMoves(game.g).map((m) => ({ ...m, captures: m.captures.slice() })) : [],
+                mode: game.mode.id,
+                moves: game.phase === 'move' ? game.mode.legalMoves(game.g).map((m) => ({ ...m, captures: m.captures.slice() })) : [],
                 hits: hits.map((h) => ({ kind: h.kind, from: h.from, pawn: h.pawn ?? -1, x: h.x * cell, y: h.y * cell })),
                 winner: game.g.winner,
                 over: game.over,
@@ -1140,7 +1191,7 @@ export function createPachisi(shell) {
           if (!game) return;
           plays++;
           clearTimeout(cpuTimer);
-          game.g = { ...game.g, pawns: pawns.map((p) => p.slice()), turn, roll: null };
+          game.g = { ...game.g, pawns: pawns.map((p) => p.slice()), turn, roll: null, tries: 0 };
           game.shown = pawns.map((p) => p.slice());
           game.history = [];
           game.pendingThrow = null;

@@ -24,7 +24,7 @@ jobs:
     # against web/ served on 127.0.0.1; it fails on any request from the page outside that server.
     # Only the runner downloads the test tools (Playwright and its browser), the app stays vendored.
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40  # the whole suite took 26-30 minutes in Nov 2026; room for the next games
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

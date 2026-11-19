@@ -10,7 +10,7 @@
 //                 baghchal: { stars: {'cpu-goats-1': wins}, setup: {mode, level, side} },
 //                 schaak: { stars: {'cpu-1': wins}, setup: {mode, level} },
 //                 ganzen: { stars: {'won-classic': wins}, setup: {board, players: ['kid', 'cpu'], count} },
-//                 pachisi: { stars: {'cpu-1': wins against the computer}, setup: {players: ['kid', 'cpu'], level, pawns: 2|4, count} },
+//                 pachisi: { stars: {'ludo-cpu-1' (Ludo) / 'cpu-1' (Pachisi): wins against the computer}, setup: {mode: 'ludo'|'pachisi', players: ['kid', 'cpu'], level, pawns: 2|4, count} },  // shown as Ludo; no mode = Ludo
 //                 kwartet: { stars: {'won-4': wins against the computer}, setup: {sets: 4|6|8, players: ['kid', 'cpu', ...]} },
 //                 <any game>: { random: {tier: solved count} }   // random play, full version
 //                 kleuren: { art: {'p:zon': {f: {region: colour}, t, done, c?}, 'm:m1:1101': ...} },
