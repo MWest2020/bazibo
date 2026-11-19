@@ -10,8 +10,8 @@ pictures", kept after a reload; a mirrored mandala on small and sideways phones)
 real stroke, undo, mirror mode and stamps locked on the web, done, "my drawings", kept after a
 reload; mirror mode with 8 lines and a stamp on small and sideways phones), play Klok kijken (a "set the clock"
 round by dragging, a "what time is it" round with one mistake, a daily-rhythm round, + and -, the
-hint and "keep playing"; the layout at 320×568 and sideways), play Dammen and Ganzenbord (see
-dammen_flow and ganzen_flow; `tests/smoke.py dammen` or `ganzen` runs only those), end the free
+hint and "keep playing"; the layout at 320×568 and sideways), play Dammen, Tijgers en geitjes and Ganzenbord (see
+dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
 board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), check that nothing went to the network and nothing threw, that the
@@ -2670,6 +2670,372 @@ def dammen_layouts(browser, base, problems):
         ctx.close()
 
 
+# ---------- Tijgers en geitjes (Bagh-Chal) ----------
+
+def _bagh_lines():
+    """The points one step away along a line, and the jumps (over, to), as in rules.js."""
+    nbr, jumps = [], []
+    for i in range(25):
+        r, c = divmod(i, 5)
+        ns, js = [], []
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            if dr and dc and (r + c) % 2:
+                continue
+            if 0 <= r + dr < 5 and 0 <= c + dc < 5:
+                ns.append((r + dr) * 5 + c + dc)
+            if 0 <= r + 2 * dr < 5 and 0 <= c + 2 * dc < 5:
+                js.append(((r + dr) * 5 + c + dc, (r + 2 * dr) * 5 + c + 2 * dc))
+        nbr.append(ns)
+        jumps.append(js)
+    return nbr, jumps
+
+
+BAGH_NBR, BAGH_JUMPS = _bagh_lines()
+
+
+def bagh_state(page):
+    return page.evaluate("window.__bubbels.bagh.state()")
+
+
+def bagh_wait(page, timeout=20000):
+    """Until no piece is moving and the computer is not thinking."""
+    page.wait_for_function("(() => { const s = window.__bubbels.bagh.state(); return s && (!s.busy || s.over); })()", timeout=timeout)
+
+
+def bagh_capturable(board):
+    out = set()
+    for i, v in enumerate(board):
+        if v == 2:
+            for over, to in BAGH_JUMPS[i]:
+                if board[over] == 1 and not board[to]:
+                    out.add(over)
+    return out
+
+
+def bagh_after(board, m):
+    b = list(board)
+    if m["from"] < 0:
+        b[m["to"]] = 1
+    else:
+        b[m["to"]], b[m["from"]] = b[m["from"]], 0
+    if m["over"] >= 0:
+        b[m["over"]] = 0
+    return b
+
+
+def bagh_tiger_moves(board):
+    n = 0
+    for i, v in enumerate(board):
+        if v == 2:
+            n += sum(1 for j in BAGH_NBR[i] if not board[j])
+            n += sum(1 for over, to in BAGH_JUMPS[i] if board[over] == 1 and not board[to])
+    return n
+
+
+def bagh_sensible_goat(st):
+    """A child who plays the goats sensibly: keeps every goat safe when it can, and hems the tigers in."""
+    moves = st["moves"]
+    safe = [m for m in moves if not bagh_capturable(bagh_after(st["board"], m))] or moves
+    return min(safe, key=lambda m: (bagh_tiger_moves(bagh_after(st["board"], m)), m["to"], m["from"]))
+
+
+def bagh_play(page, m, how="tap"):
+    """Play one move by real input: a tap on the point (placing), tap-tap, or a mouse drag."""
+    before = bagh_state(page)["history"]
+    if m["from"] < 0:
+        page.click(f".bpt[data-i='{m['to']}']")
+    elif how == "drag":
+        a = page.locator(f".bpt[data-i='{m['from']}']").bounding_box()
+        b = page.locator(f".bpt[data-i='{m['to']}']").bounding_box()
+        page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2)
+        page.mouse.down()
+        for k in range(1, 9):
+            page.mouse.move(a["x"] + a["width"] / 2 + (b["x"] - a["x"]) * k / 8, a["y"] + a["height"] / 2 + (b["y"] - a["y"]) * k / 8)
+        page.mouse.up()
+    else:
+        if bagh_state(page)["sel"] != m["from"]:
+            page.click(f".bpt[data-i='{m['from']}']")
+        page.click(f".bpt[data-i='{m['to']}']")
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.bagh.state(); return s.history !== {before} || s.over; }})()", timeout=6000)
+    bagh_wait(page)
+
+
+def bagh_fits(page, w, h, label, problems):
+    """The field, the chips, the meadow and the HUD buttons stay on screen; points 44 px or more; no sideways scroll."""
+    for sel in ("#baghchal-board", "#baghchal-turn", "#baghchal-meadow", "#baghchal-back", "#baghchal-undo"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"baghchal {label}: {sel} off screen ({r})")
+    for sel in ("#baghchal-back", "#baghchal-undo", ".bpt >> nth=0", ".bpt >> nth=24"):
+        r = page.locator(sel).bounding_box()
+        if r and min(r["width"], r["height"]) < 44:
+            problems.append(f"baghchal {label}: {sel} only {r['width']:.0f}x{r['height']:.0f}")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"baghchal {label}: sideways scroll")
+    return page.locator(".bpt >> nth=0").bounding_box()["width"]
+
+
+def baghchal_flow(browser, base, problems):
+    """Tijgers en geitjes on the web build: medium and hard offer only OK; two players: a goat
+    placed next to a tiger is jumped by a real drag and hops off to the meadow, the take-back puts
+    it back, then the tigers capture five and win (not counted); against easy as the goats: a whole
+    game played to the end by real taps and drags (placing, tap-tap, a drag dropped off the field
+    that keeps the piece picked up), a take-back, back + keep playing, the win counted; the Android
+    back button."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, reduced_motion="reduce")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-baghchal .tile-name").strip() != "Tijgers en geitjes (Bagh\u2011Chal)":
+        problems.append(f"baghchal: tile says {page.inner_text('#tile-baghchal .tile-name')!r}")
+    group = page.evaluate("document.querySelector('#tile-baghchal').closest('.tile-group')?.contains(document.querySelector('#tile-dammen'))")
+    if not group:
+        problems.append("baghchal: the tile is not in the section with Dammen")
+    page.click("#tile-baghchal")
+    page.wait_for_timeout(250)
+    for sel in (".bagh-level[data-level='2']", ".bagh-level[data-level='3']"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"baghchal: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "baghchal-1-menu.png"), full_page=True)
+
+    # two players: a capture by a real drag, the meadow, a take-back, then the tigers win
+    page.click(".bagh-opt.mode-duo")
+    page.click("#baghchal-play")
+    page.wait_for_timeout(300)
+    bagh_fits(page, 390, 844, "390x844", problems)
+    if "Tik op een leeg punt" not in page.inner_text("#baghchal-status"):
+        problems.append(f"baghchal: the placing hint says {page.inner_text('#baghchal-status')!r}")
+    if page.locator(".bpt.place").count() != 21:
+        problems.append(f"baghchal: {page.locator('.bpt.place').count()} free points shown while placing, expected 21")
+    bagh_play(page, {"from": -1, "to": 1, "over": -1})
+    page.click(".bpt[data-i='0']")  # the corner tiger: its dots, and the goat it would jump
+    page.wait_for_timeout(100)
+    targets = page.evaluate("[...document.querySelectorAll('.bpt.target')].map((e) => Number(e.dataset.i)).sort((a, b) => a - b)")
+    if targets != [2, 5, 6] or page.locator(".bpt.over").count() != 1:
+        problems.append(f"baghchal: the corner tiger shows dots {targets} and {page.locator('.bpt.over').count()} goat to jump")
+    page.screenshot(path=str(SHOTS / "baghchal-2-duo-dots.png"))
+    bagh_play(page, {"from": 0, "to": 2, "over": 1}, how="drag")
+    st = bagh_state(page)
+    if st["captured"] != 1 or st["board"][1] or st["board"][2] != 2 or page.locator("#baghchal-meadow .bagh-spot[data-full='true']").count() != 1:
+        problems.append(f"baghchal: the drag capture left captured={st['captured']}, board {st['board'][:3]}")
+    page.screenshot(path=str(SHOTS / "baghchal-3-meadow.png"))
+    if not st["canUndo"]:
+        problems.append("baghchal: no take-back after a move in a game together")
+    page.click("#baghchal-undo")
+    page.wait_for_timeout(150)
+    st = bagh_state(page)
+    if st["captured"] != 0 or st["board"][1] != 1 or st["board"][0] != 2 or st["turn"] != 2:
+        problems.append(f"baghchal: the take-back left captured={st['captured']}, board {st['board'][:3]}, turn {st['turn']}")
+    for ply in range(80):
+        st = bagh_state(page)
+        if st["over"]:
+            break
+        if st["turn"] == 1:
+            # the goats walk into the tigers' way: a goat that can be jumped at once
+            m = next((m for m in st["moves"] if bagh_capturable(bagh_after(st["board"], m))), st["moves"][0])
+        else:
+            m = next((m for m in st["moves"] if m["over"] >= 0), st["moves"][0])
+        bagh_play(page, m, how="drag" if ply % 4 == 3 and m["from"] >= 0 else "tap")
+    st = bagh_state(page)
+    if not st["over"] or st["over"].get("winner") != 2 or st["captured"] != 5:
+        problems.append(f"baghchal: the game together did not end with five goats in the meadow: {st['over']}, {st['captured']}")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "baghchal-4-duo-win.png"))
+    if page.inner_text("#ov-title").strip() != "De tijgers winnen!":
+        problems.append(f"baghchal: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("(window.__bubbels.save().games.baghchal || {}).stars || {}"):
+        problems.append("baghchal: a game played together was counted")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+
+    # against easy as the goats: whole games by real input until the goats win (easy loses often)
+    page.click(".bagh-level[data-level='1']")
+    page.click(".bagh-opt.side-goats")
+    won = False
+    for attempt in range(4):
+        page.click("#baghchal-play")
+        page.wait_for_timeout(300)
+        bagh_wait(page)
+        dropped = took_back = kept = False
+        for ply in range(400):
+            st = bagh_state(page)
+            if st["over"]:
+                break
+            if st["turn"] != 1 or not st["moves"]:
+                bagh_wait(page)
+                continue
+            m = bagh_sensible_goat(st)
+            if attempt == 0 and not took_back and st["history"] == 4:
+                # a take-back: the child's move and the computer's answer
+                bagh_play(page, m)
+                if not bagh_state(page)["over"]:
+                    page.click("#baghchal-undo")
+                    page.wait_for_timeout(150)
+                    after = bagh_state(page)
+                    if after["history"] != 4 or after["turn"] != 1 or after["board"] != st["board"]:
+                        problems.append(f"baghchal: the take-back against easy left {after['history']} moves")
+                took_back = True
+                continue
+            if attempt == 0 and not kept and st["history"] == 8:
+                page.evaluate("window.__bubbels.back()")  # the Android back button
+                page.wait_for_timeout(200)
+                if not page.is_visible("#baghchal-continue"):
+                    problems.append("baghchal: the back button did not lead to the menu with 'keep playing'")
+                page.click("#baghchal-continue")
+                page.wait_for_timeout(200)
+                kept = True
+                continue
+            if m["from"] >= 0 and not dropped:
+                # a drag dropped off the field: the piece goes back and stays picked up
+                a = page.locator(f".bpt[data-i='{m['from']}']").bounding_box()
+                page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2)
+                page.mouse.down()
+                page.mouse.move(a["x"] + 20, a["y"] + 40)
+                page.mouse.move(195, 40)
+                page.mouse.up()
+                page.wait_for_timeout(100)
+                st2 = bagh_state(page)
+                if st2["history"] != st["history"] or st2["sel"] != m["from"]:
+                    problems.append(f"baghchal: a drag dropped off the field moved something or dropped the piece ({st2['sel']})")
+                page.screenshot(path=str(SHOTS / "baghchal-6-picked-up.png"))
+                dropped = True
+            how = "drag" if m["from"] >= 0 and ply % 3 == 0 else "tap"
+            bagh_play(page, m, how=how)
+            if attempt == 0 and ply == 30:
+                page.screenshot(path=str(SHOTS / "baghchal-5-vs-easy.png"))
+        st = bagh_state(page)
+        if not st["over"]:
+            problems.append(f"baghchal: the game against easy did not end ({st['history']} moves)")
+            break
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        if st["over"].get("winner") == 1:
+            won = True
+            page.screenshot(path=str(SHOTS / "baghchal-7-goats-win.png"))
+            if page.inner_text("#ov-title").strip() != "Jij wint!":
+                problems.append(f"baghchal: the win card says {page.inner_text('#ov-title')!r}")
+            stars = page.evaluate("(window.__bubbels.save().games.baghchal || {}).stars || {}")
+            if stars.get("cpu-goats-1") != 1:
+                problems.append(f"baghchal: the win was not counted: {stars}")
+            page.click("#ov-buttons button >> text=Menu")
+            break
+        print(f"[baghchal] easy game {attempt + 1}: {st['over']}")
+        page.click("#ov-buttons button >> text=Menu")
+        page.wait_for_timeout(200)
+    if not won:
+        problems.append("baghchal: four games as sensible goats never beat easy")
+    page.wait_for_timeout(200)
+    if "1" not in page.inner_text(".bagh-level[data-level='1']"):
+        problems.append("baghchal: the menu does not show the win on Easy")
+    page.evaluate("document.querySelector('#screen-baghchal-menu [data-go=home]').click()")
+    if errors:
+        problems.append(f"baghchal: page errors {errors[:3]}")
+    ctx.close()
+
+
+def baghchal_back_mid_move(browser, base, problems):
+    """Back while the winning move is still on its way: the game ends on the menu, and "keep
+    playing" opens the finished field with its end card (animations on, unlike baghchal_flow)."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-baghchal")
+    page.wait_for_timeout(200)
+    page.click(".bagh-opt.mode-duo")
+    page.click("#baghchal-play")
+    page.wait_for_timeout(300)
+    # four goats already in the meadow; the corner tiger can take the fifth
+    board = [2, 1, 0, 0, 2] + [0] * 5 + [0, 0, 1, 0, 0] + [0] * 5 + [2, 0, 0, 0, 2]
+    page.evaluate(f"window.__bubbels.bagh.setGame({board}, 2, 0, 4)")
+    page.wait_for_timeout(150)
+    page.click(".bpt[data-i='0']")
+    page.click(".bpt[data-i='2']")
+    page.evaluate("window.__bubbels.back()")  # the Android back button, while the tiger jumps
+    page.wait_for_timeout(150)
+    if not page.is_visible("#screen-baghchal-menu"):
+        problems.append("baghchal back mid-move: not on the menu")
+    page.wait_for_function("!!window.__bubbels.bagh.state().over", timeout=5000)
+    page.wait_for_timeout(1200)
+    if page.is_visible("#overlay"):
+        problems.append("baghchal back mid-move: an end card over the menu")
+    if page.is_visible("#baghchal-continue"):
+        page.click("#baghchal-continue")
+    else:
+        page.click("#baghchal-play")  # the menu was redrawn without "keep playing": nothing to check
+        problems.append("baghchal back mid-move: no 'keep playing' to open the finished game")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=3000)
+    if page.inner_text("#ov-title").strip() != "De tijgers winnen!":
+        problems.append(f"baghchal back mid-move: keep playing shows {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / "baghchal-8-back-mid-move.png"))
+    if errors:
+        problems.append(f"baghchal back mid-move: page errors {errors[:2]}")
+    ctx.close()
+
+
+def baghchal_layouts(browser, base, problems):
+    """Tijgers en geitjes at 320x568, sideways 844x390 and 568x320, 390x844 in English and on
+    desktop, every point 44 px or more; in the full version the hard computer (as the goats, it
+    starts) thinks in a worker while the page keeps drawing."""
+    for w, h, owned in ((320, 568, False), (844, 390, False), (568, 320, False), (390, 844, False), (1280, 800, False), (390, 844, True)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844) and not owned
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}{' en' if english else ''}"
+        if english and page.inner_text("#tile-baghchal .tile-name").strip() != "Tigers and Goats (Bagh\u2011Chal)":
+            problems.append(f"baghchal {label}: English tile says {page.inner_text('#tile-baghchal .tile-name')!r}")
+        page.click("#tile-baghchal")
+        page.wait_for_timeout(200)
+        page.screenshot(path=str(SHOTS / f"baghchal-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        if owned:
+            page.evaluate("window.__frames = 0; (function f() { window.__frames++; requestAnimationFrame(f); })()")
+        page.evaluate(f"window.__bubbels.bagh.choose({{ mode: 'cpu', level: {3 if owned else 1}, side: '{'tigers' if owned else 'goats'}' }})")
+        page.click("#baghchal-play")
+        page.wait_for_timeout(400)
+        cell = bagh_fits(page, w, h, label, problems)
+        print(f"[baghchal {label}] point {cell:.0f} px")
+        if owned:
+            bagh_wait(page)
+            st = bagh_state(page)
+            if st["turn"] != 2 or st["history"] != 1 or st["toPlace"] != 19:
+                problems.append(f"baghchal {label}: hard goats did not start ({st['history']} moves)")
+            # a tiger move by taps, and hard answers in its worker while the page keeps drawing
+            page.evaluate("window.__frames = 0")
+            bagh_play(page, next(m for m in st["moves"] if m["over"] < 0))
+            st = bagh_state(page)
+            if st["turn"] != 2 or st["history"] != 3:
+                problems.append(f"baghchal {label}: hard did not answer ({st['history']} moves)")
+            if page.evaluate("window.__frames") < 20:
+                problems.append(f"baghchal {label}: only {page.evaluate('window.__frames')} frames while the computer thought")
+        else:
+            # a few goats placed and one picked up, for the screenshot
+            for k in range(3):
+                st = bagh_state(page)
+                bagh_play(page, bagh_sensible_goat(st))
+        page.screenshot(path=str(SHOTS / f"baghchal-{w}x{h}{'-full' if owned else ''}.png"))
+        if errors:
+            problems.append(f"baghchal {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 # ---------- Ganzenbord ----------
 
 def gans_state(page):
@@ -3181,6 +3547,7 @@ def offers_others(browser, base, problems):
     # locked parts in a menu: OK leaves the player where they were
     for tile, sel, screen in (("vier", ".vier-level[data-level='3']", "vier-menu"),
                               ("dammen", ".dam-opt.board-big", "dammen-menu"),
+                              ("baghchal", ".bagh-level[data-level='2']", "baghchal-menu"),
                               ("ganzen", ".ganzen-boardopt.board-winter", "ganzen-menu"),
                               ("kleuren", "#kleur-list .kleur-card.locked >> nth=0", "kleuren-list"),
                               ("tekenen", "#teken-mirror", "tekenen")):
@@ -5251,6 +5618,18 @@ def drums_layouts(browser, base, problems):
             )
             if not kit_ok:
                 problems.append(f"drums {label} {mode}: the pads do not stand like a drum kit: {box}")
+            # the whole touch area hits, corners too (the kick's feet): no rounded button drops a tap
+            missed = page.evaluate("""() => [...document.querySelectorAll('.dpad')].flatMap((el) => {
+                const r = el.getBoundingClientRect();
+                return [[r.left + 2, r.top + 2], [r.right - 2, r.top + 2], [r.left + 2, r.bottom - 2], [r.right - 2, r.bottom - 2]]
+                    .filter(([x, y]) => document.elementFromPoint(x, y)?.closest('.dpad') !== el)
+                    .map(([x, y]) => `${el.dataset.pad} ${Math.round(x)},${Math.round(y)}`);
+            })""")
+            if missed:
+                problems.append(f"drums {label} {mode}: a tap in a pad's corner misses it: {missed[:4]}")
+            kit_box = page.locator("#drums-kit").bounding_box()
+            if abs(max(p[2] + p[4] for p in pads) - (kit_box["y"] + kit_box["height"])) > 1:
+                problems.append(f"drums {label} {mode}: the kit does not stand on the bottom of its box")
             if page.locator(".drums-stands svg path").count() < 2:
                 problems.append(f"drums {label} {mode}: no stands drawn behind the kit")
             want = "wide" if w > h else "tall"
@@ -6058,6 +6437,9 @@ def main():
             transfer_camera_race(browser, base, problems)
             dammen_flow(browser, base, problems)
             dammen_layouts(browser, base, problems)
+            baghchal_flow(browser, base, problems)
+            baghchal_back_mid_move(browser, base, problems)
+            baghchal_layouts(browser, base, problems)
             ganzen_flow(browser, base, problems)
             ganzen_layouts(browser, base, problems)
             offers_bubbels(browser, base, problems)
@@ -6086,7 +6468,8 @@ def main():
 
 
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
-PARTS = {"dammen": (dammen_flow, dammen_layouts), "ganzen": (ganzen_flow, ganzen_layouts),
+PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, baghchal_back_mid_move, baghchal_layouts),
+         "ganzen": (ganzen_flow, ganzen_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
