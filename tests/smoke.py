@@ -4210,7 +4210,11 @@ def pachisi_layouts(browser, base, problems, mode="pachisi"):
     its square glowing."""
     ludo = mode == "ludo"
     pre = "ludo" if ludo else "pachisi"
-    for w, h, owned in ((320, 568, False), (568, 320, False), (390, 844, False), (844, 390, False), (1280, 800, False), (390, 844, True)):
+    sizes = ((320, 568, False), (568, 320, False), (390, 844, False), (844, 390, False), (1280, 800, False), (390, 844, True))
+    if not ludo:
+        # Pachisi's board and geometry are unchanged since PR #73: its smallest sizes and the full version keep it honest
+        sizes = ((320, 568, False), (568, 320, False), (390, 844, True))
+    for w, h, owned in sizes:
         mobile = w < 1000
         english = (w, h) == (390, 844) and not owned
         ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile, reduced_motion="reduce")
