@@ -10,6 +10,7 @@
 //   a jigsaw (Legpuzzel)               -> its menu (the puzzle is kept: "keep puzzling")
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Dammen game                      -> its menu (the game is kept: "keep playing")
+//   a Tijgers en geitjes game          -> its menu (the game is kept: "keep playing")
 //   a Ganzenbord game                  -> its menu (the game is kept: "keep playing")
 //   a Kwartet game (or its pass card)  -> its menu (the game is kept: "keep playing")
 //   a Slangetje round                  -> its menu (the round is kept: "keep playing")
@@ -43,6 +44,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'legpuzzel') return 'legpuzzel-menu';
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'dammen') return 'dammen-menu';
+  if (screen === 'baghchal') return 'baghchal-menu';
   if (screen === 'ganzen') return 'ganzen-menu';
   if (screen === 'kwartet') return 'kwartet-menu';
   if (screen === 'slang') return 'slang-menu';

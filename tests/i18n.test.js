@@ -12,6 +12,7 @@ import '../web/games/legpuzzel/strings.js';
 import { PICTURE_IDS as PUZZEL_PICTURES } from '../web/games/legpuzzel/pictures.js';
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
+import '../web/games/baghchal/strings.js';
 import '../web/games/ganzen/strings.js';
 import '../web/games/kwartet/strings.js';
 import { SETS as KWARTET_SETS } from '../web/games/kwartet/art.js';
@@ -82,6 +83,8 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [3, 4]) used.add(`vier.row${n}`);
   for (const id of ['pup', 'bubble', 'apple', 'flower', 'fish', 'pug']) used.add(`vier.tok.${id}`);
   for (const n of [1, 2, 3]) used.add(`dam.level${n}`);
+  for (const n of [1, 2, 3]) used.add(`bagh.level${n}`);
+  for (const side of ['goats', 'tigers']) used.add(`bagh.side.${side}`).add(`bagh.side.${side}Sub`);
   for (const s of KWARTET_SETS) {
     used.add(`kwartet.set.${s.id}`);
     for (const c of s.cards) used.add(`kwartet.card.${c}`).add(`kwartet.the.${c}`);
