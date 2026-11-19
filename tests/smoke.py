@@ -2933,6 +2933,48 @@ def baghchal_flow(browser, base, problems):
     ctx.close()
 
 
+def baghchal_back_mid_move(browser, base, problems):
+    """Back while the winning move is still on its way: the game ends on the menu, and "keep
+    playing" opens the finished field with its end card (animations on, unlike baghchal_flow)."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-baghchal")
+    page.wait_for_timeout(200)
+    page.click(".bagh-opt.mode-duo")
+    page.click("#baghchal-play")
+    page.wait_for_timeout(300)
+    # four goats already in the meadow; the corner tiger can take the fifth
+    board = [2, 1, 0, 0, 2] + [0] * 5 + [0, 0, 1, 0, 0] + [0] * 5 + [2, 0, 0, 0, 2]
+    page.evaluate(f"window.__bubbels.bagh.setGame({board}, 2, 0, 4)")
+    page.wait_for_timeout(150)
+    page.click(".bpt[data-i='0']")
+    page.click(".bpt[data-i='2']")
+    page.evaluate("window.__bubbels.back()")  # the Android back button, while the tiger jumps
+    page.wait_for_timeout(150)
+    if not page.is_visible("#screen-baghchal-menu"):
+        problems.append("baghchal back mid-move: not on the menu")
+    page.wait_for_function("!!window.__bubbels.bagh.state().over", timeout=5000)
+    page.wait_for_timeout(1200)
+    if page.is_visible("#overlay"):
+        problems.append("baghchal back mid-move: an end card over the menu")
+    if page.is_visible("#baghchal-continue"):
+        page.click("#baghchal-continue")
+    else:
+        page.click("#baghchal-play")  # the menu was redrawn without "keep playing": nothing to check
+        problems.append("baghchal back mid-move: no 'keep playing' to open the finished game")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=3000)
+    if page.inner_text("#ov-title").strip() != "De tijgers winnen!":
+        problems.append(f"baghchal back mid-move: keep playing shows {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / "baghchal-8-back-mid-move.png"))
+    if errors:
+        problems.append(f"baghchal back mid-move: page errors {errors[:2]}")
+    ctx.close()
+
+
 def baghchal_layouts(browser, base, problems):
     """Tijgers en geitjes at 320x568, sideways 844x390 and 568x320, 390x844 in English and on
     desktop, every point 44 px or more; in the full version the hard computer (as the goats, it
@@ -6359,6 +6401,7 @@ def main():
             dammen_flow(browser, base, problems)
             dammen_layouts(browser, base, problems)
             baghchal_flow(browser, base, problems)
+            baghchal_back_mid_move(browser, base, problems)
             baghchal_layouts(browser, base, problems)
             ganzen_flow(browser, base, problems)
             ganzen_layouts(browser, base, problems)
@@ -6388,7 +6431,7 @@ def main():
 
 
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
-PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, baghchal_layouts),
+PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, baghchal_back_mid_move, baghchal_layouts),
          "ganzen": (ganzen_flow, ganzen_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),

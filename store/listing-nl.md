@@ -58,7 +58,7 @@ LEREN
 • Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: de werelddelen, en leggen met lijnen.
 
 ACTIE
-• Bubbels schieten: mik en laat los: drie van dezelfde kleur knallen kapot. 30 levels.
+• Bubbels schieten: mik en laat los, dan knallen drie van dezelfde kleur kapot. 30 levels.
 • Slangetje: eet de getallen op volgorde, de letters van een woord of alleen fruit met de goede kleur. 30 levels; een fout is nooit game over.
 
 GEMAAKT VOOR KINDEREN

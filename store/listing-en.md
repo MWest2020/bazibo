@@ -56,7 +56,7 @@ LEARNING
 • Map Puzzle: piece together the continents, Europe, the Netherlands, the US or the UK, and find places. Free: the continents, and every puzzle with borders.
 
 ACTION
-• Bubble Shooter: aim and let go: three of the same colour pop. 30 levels.
+• Bubble Shooter: aim and let go, and three of the same colour pop. 30 levels.
 • Snake: eat the numbers in order, the letters of a word, or only the fruit of the right colour. 30 levels; a mistake is never game over.
 
 MADE FOR CHILDREN

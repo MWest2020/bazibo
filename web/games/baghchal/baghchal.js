@@ -281,7 +281,13 @@ export function createBaghchal(shell) {
     renderTurn();
     updateBoard();
     shell.show('baghchal');
-    if (isCpu() && game.g.turn === cpuPlayer() && !game.g.over) cpuTurn();
+    if (game.g.over) {
+      // the game ended while the child was on the menu (back during the last move): its end card now
+      cancelCard();
+      showEndCard();
+      return;
+    }
+    if (isCpu() && game.g.turn === cpuPlayer()) cpuTurn();
   }
 
   function again() {
