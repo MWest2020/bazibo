@@ -96,18 +96,31 @@ export function makeMaze(cols, rows, rand) {
   return maze;
 }
 
+// The neighbours of every cell, worked out once per garden (the crows ask a lot): kept with the
+// open sides they were made from, and made again if those ever change.
+const LINKS = new WeakMap();
+function linksOf(maze) {
+  const known = LINKS.get(maze);
+  if (known && known.open.every((v, c) => v === maze.open[c])) return known.adj;
+  const adj = Array.from({ length: maze.cols * maze.rows }, (_, c) => neighbours(maze, c));
+  LINKS.set(maze, { open: Uint8Array.from(maze.open), adj });
+  return adj;
+}
+
 /**
  * Steps from `from` to every cell (-1: out of reach), not through the cells in `blocked` (a Set or
  * a function). `from` itself is never blocked.
  */
 export function distances(maze, from, blocked = null) {
   const isBlocked = typeof blocked === 'function' ? blocked : blocked ? (c) => blocked.has(c) : () => false;
-  const dist = new Int16Array(maze.cols * maze.rows).fill(-1);
+  const n = maze.cols * maze.rows;
+  const adj = linksOf(maze);
+  const dist = new Int16Array(n).fill(-1);
   dist[from] = 0;
   const queue = [from];
   for (let k = 0; k < queue.length; k++) {
     const cell = queue[k];
-    for (const to of neighbours(maze, cell)) {
+    for (const to of adj[cell]) {
       if (dist[to] >= 0 || isBlocked(to)) continue;
       dist[to] = dist[cell] + 1;
       queue.push(to);
