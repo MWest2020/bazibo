@@ -11,6 +11,7 @@
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
 //   a Dammen game                      -> its menu (the game is kept: "keep playing")
 //   a Tijgers en geitjes game          -> its menu (the game is kept: "keep playing")
+//   a Schaken game                     -> its menu (the game is kept: "keep playing")
 //   a Ganzenbord game                  -> its menu (the game is kept: "keep playing")
 //   a Pachisi game                     -> its menu (the game is kept: "keep playing")
 //   a Kwartet game (or its pass card)  -> its menu (the game is kept: "keep playing")
@@ -46,6 +47,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'vier') return 'vier-menu';
   if (screen === 'dammen') return 'dammen-menu';
   if (screen === 'baghchal') return 'baghchal-menu';
+  if (screen === 'schaak') return 'schaak-menu';
   if (screen === 'ganzen') return 'ganzen-menu';
   if (screen === 'pachisi') return 'pachisi-menu';
   if (screen === 'kwartet') return 'kwartet-menu';

@@ -8,6 +8,7 @@
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 dammen: { stars: {'cpu-small-1': wins}, setup: {variant, mode, level}, look },
 //                 baghchal: { stars: {'cpu-goats-1': wins}, setup: {mode, level, side} },
+//                 schaak: { stars: {'cpu-1': wins}, setup: {mode, level} },
 //                 ganzen: { stars: {'won-classic': wins}, setup: {board, players: ['kid', 'cpu'], count} },
 //                 pachisi: { stars: {'cpu-1': wins against the computer}, setup: {players: ['kid', 'cpu'], level, pawns: 2|4, count} },
 //                 kwartet: { stars: {'won-4': wins against the computer}, setup: {sets: 4|6|8, players: ['kid', 'cpu', ...]} },

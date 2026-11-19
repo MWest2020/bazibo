@@ -364,6 +364,18 @@ test('Pachisi: its wins per level and its setup (players as a list) travel; odd 
   assert.deepEqual(out.games.pachisi.setup, { players: ['kid', 'cpu', 'cpu'], level: 2, pawns: 4, count: true });
 });
 
+test('Schaken: its wins per level and its setup travel; odd values are dropped', () => {
+  const clean = sanitizePayload({
+    v: 1,
+    games: { schaak: { stars: { 'cpu-1': 4, 'cpu-3': 1, 'cpu-2': -1, '__proto__': 9 }, setup: { mode: 'duo', level: 2, fen: { x: 1 } } } },
+  });
+  assert.deepEqual(clean.games.schaak, { stars: { 'cpu-1': 4, 'cpu-3': 1 }, setup: { mode: 'duo', level: 2 } });
+  const mine = { version: 1, games: { schaak: { stars: { 'cpu-1': 6, 'cpu-2': 2 } } }, settings: {}, purchase: { owned: false } };
+  const out = mergeTransfer(mine, clean);
+  assert.deepEqual(out.games.schaak.stars, { 'cpu-1': 6, 'cpu-2': 2, 'cpu-3': 1 }); // counters only go up
+  assert.deepEqual(out.games.schaak.setup, { mode: 'duo', level: 2 });
+});
+
 test('Ganzenbord: its wins and setup (players as a list) travel; odd values are dropped', () => {
   const clean = sanitizePayload({
     v: 1,

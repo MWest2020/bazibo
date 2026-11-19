@@ -13,6 +13,7 @@ import { PICTURE_IDS as PUZZEL_PICTURES } from '../web/games/legpuzzel/pictures.
 import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/baghchal/strings.js';
+import '../web/games/schaak/strings.js';
 import '../web/games/ganzen/strings.js';
 import '../web/games/pachisi/strings.js';
 import { LOOKS as PACHISI_LOOKS } from '../web/games/pachisi/art.js';
@@ -87,6 +88,10 @@ test('every key used in index.html and in the code exists', () => {
   for (const n of [1, 2, 3]) used.add(`dam.level${n}`);
   for (const n of [1, 2, 3]) used.add(`bagh.level${n}`);
   for (const side of ['goats', 'tigers']) used.add(`bagh.side.${side}`).add(`bagh.side.${side}Sub`);
+  for (const n of [1, 2, 3]) used.add(`schaak.level${n}`);
+  for (const c of [1, 2]) for (let k = 1; k <= 6; k++) used.add(`schaak.p${c}.${k}`); // a square's piece, built as t(`schaak.p${color}.${kind}`)
+  for (let k = 2; k <= 5; k++) used.add(`schaak.kind.${k}`); // the promotion picker
+  for (const r of ['stalemate', 'repeat', 'fifty', 'material']) used.add(`schaak.draw.${r}`);
   for (const s of KWARTET_SETS) {
     used.add(`kwartet.set.${s.id}`);
     for (const c of s.cards) used.add(`kwartet.card.${c}`).add(`kwartet.the.${c}`);

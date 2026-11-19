@@ -36,6 +36,9 @@ import { tileSvg as dammenTileSvg } from '../games/dammen/art.js';
 import '../games/baghchal/strings.js';
 import { createBaghchal } from '../games/baghchal/baghchal.js';
 import { tileSvg as baghchalTileSvg } from '../games/baghchal/art.js';
+import '../games/schaak/strings.js';
+import { createSchaak } from '../games/schaak/schaak.js';
+import { tileSvg as schaakTileSvg } from '../games/schaak/art.js';
 import '../games/ganzen/strings.js';
 import { createGanzen } from '../games/ganzen/ganzen.js';
 import { tileSvg as ganzenTileSvg } from '../games/ganzen/art.js';
@@ -313,6 +316,10 @@ function drawDammenTile() {
 
 function drawBaghchalTile() {
   $('#tile-baghchal .tile-art').innerHTML = baghchalTileSvg();
+}
+
+function drawSchaakTile() {
+  $('#tile-schaak .tile-art').innerHTML = schaakTileSvg();
 }
 
 function drawGanzenTile() {
@@ -694,6 +701,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.schaak = createSchaak({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.ganzen = createGanzen({
     t,
     show,
@@ -853,6 +871,7 @@ async function boot() {
   drawVierTile();
   drawDammenTile();
   drawBaghchalTile();
+  drawSchaakTile();
   drawGanzenTile();
   drawPachisiTile();
   drawKwartetTile();
@@ -869,7 +888,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -882,6 +901,7 @@ async function boot() {
       vier: games.vier.testHook(),
       dam: games.dammen.testHook(),
       bagh: games.baghchal.testHook(),
+      schaak: games.schaak.testHook(),
       gans: games.ganzen.testHook(),
       pachisi: games.pachisi.testHook(),
       kwartet: games.kwartet.testHook(),
@@ -932,6 +952,7 @@ function onBack() {
   else if (action === 'vier-menu') games.vier.leave();
   else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'baghchal-menu') games.baghchal.leave();
+  else if (action === 'schaak-menu') games.schaak.leave();
   else if (action === 'ganzen-menu') games.ganzen.leave();
   else if (action === 'pachisi-menu') games.pachisi.leave();
   else if (action === 'kwartet-menu') games.kwartet.leave();
