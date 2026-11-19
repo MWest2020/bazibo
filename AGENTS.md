@@ -205,8 +205,12 @@ Ludo: rules in `web/games/pachisi/ludo-rules.js` (pure, source cited there: Wiki
 played the way Dutch families play; tested in `tests/ludo.test.js`: a cross of 40 squares on an
 11×11 grid with 4 home squares per player and a free middle, every step a neighbour, starts 10
 apart; one die; only a 6 brings a pawn onto its start square and throws again; a 6 must bring a
-pawn out when the yard has pawns and the start square is free of your own; every 6 throws again
-(no three-sixes rule); with no pawn on the track three tries (`TRIES`) to throw something usable;
+pawn out when the yard has pawns and the start square is free of your own (Schmidt's official
+rules and Wikipedia NL); while pawns wait in the yard, your own pawn on the start square must move
+first whenever it can (`whyNot` 'clear', also on the throw right after it came out); every 6 throws
+again (no three-sixes rule); three tries (`TRIES`) only when no pawn can move at all (`canMoveAtAll`:
+all in the yard, or only pawns in the home squares that cannot move up; one that can means one
+ordinary throw);
 landing on an opponent sends it to its yard, no safe squares (start squares neither); never onto
 your own pawn (walking past is fine; no blockades); the home squares need an exact throw; a throw
 nobody can use is lost; 200 seeded games with 2-4 players and 2 or 4 pawns all end, never two pawns

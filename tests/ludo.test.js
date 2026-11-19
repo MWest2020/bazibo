@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SIZE, TRACK_LEN, LAST, TRIES, MAX_THROWS, WAYS, TRACK, STARTS, MIDDLE, cellOf, rowOf, colOf, seatsFor,
-  newGame, applyThrow, playMove, legalMoves, whyNot, stepsOf, opponentsOn, leader, throwDie, readThrow, isHome, onTrack, mulberry32,
+  newGame, applyThrow, playMove, legalMoves, whyNot, canMoveAtAll, stepsOf, opponentsOn, leader, throwDie, readThrow, isHome, onTrack, mulberry32,
 } from '../web/games/pachisi/ludo-rules.js';
 import { chooseMove, sensibleMove, scoreMove, danger, EASY_CAPTURE } from '../web/games/pachisi/ludo-ai.js';
 import { LUDO, PACHISI, MODES, MODE_IDS, modeOf, ludoSpots, ludoPlace } from '../web/games/pachisi/modes.js';
@@ -123,13 +123,31 @@ test('a 6 must bring a pawn out when the start square is free of your own pawn; 
   const g = at([[0, 0, 12, 20], [0, 0, 0, 0]], 6);
   assert.deepEqual(legalMoves(g).map((m) => m.from), [0], 'only the new pawn');
   assert.equal(whyNot(g, 2), 'enter');
-  // your own pawn on the start square: no pawn can come out, the others move
+  // your own pawn on the start square: no pawn can come out, and that pawn must clear the start
   const g2 = at([[0, 1, 12, 0], [0, 0, 0, 0]], 6);
-  assert.deepEqual(legalMoves(g2).map((m) => [m.from, m.to]).sort((a, b) => a[0] - b[0]), [[1, 7], [12, 18]]);
+  assert.deepEqual(legalMoves(g2).map((m) => [m.from, m.to]), [[1, 7]]);
   assert.equal(whyNot(g2, 0), 'own');
+  assert.equal(whyNot(g2, 2), 'clear');
   // no pawns left in the yard: a 6 moves a pawn
   const g3 = at([[5, 12, 41, 42], [0, 0, 0, 0]], 6);
   assert.deepEqual(legalMoves(g3).map((m) => m.from).sort((a, b) => a - b), [5, 12]);
+});
+
+test('the start square must be cleared while pawns wait in the yard (when its pawn can move)', () => {
+  // right after a 6 brought a pawn out: the next throw moves that pawn
+  let g = playMove(at([[0, 0, 15, 0], [0, 0, 0, 0]], 6), { from: 0, to: 1 }).game;
+  g = applyThrow(g, 3).game;
+  assert.deepEqual(legalMoves(g).map((m) => [m.from, m.to]), [[1, 4]]);
+  assert.equal(whyNot(g, 2), 'clear');
+  assert.equal(LUDO.why(g, 2), 'ludo.clearStart');
+  // the start pawn cannot move (its own pawn stands where it would land): the others may
+  const g2 = at([[1, 4, 15, 0], [0, 0, 0, 0]], 3);
+  assert.deepEqual(legalMoves(g2).map((m) => [m.from, m.to]).sort((a, b) => a[0] - b[0]), [[4, 7], [15, 18]]);
+  // nobody waiting in the yard: the start pawn may stay
+  const g3 = at([[1, 15, 30, 41], [0, 0, 0, 0]], 3);
+  assert.deepEqual(legalMoves(g3).map((m) => m.from).sort((a, b) => a - b), [1, 15, 30, 41]);
+  // the computer only ever plays legal moves, so it clears its start too
+  for (let s = 1; s < 20; s++) for (const level of [1, 2]) assert.equal(chooseMove(g, level, mulberry32(s)).from, 1);
 });
 
 test('moving: exactly the steps, clockwise; a pawn never lands on its own pawn but may walk past it', () => {
@@ -212,9 +230,19 @@ test('no move: the turn passes; with no pawn on the track: up to three throws; a
     g = r.game;
   }
   assert.equal(g.tries, 0);
-  // pawns home and in the yard (none on the track): three tries too
+  // pawns stuck in the home squares and in the yard: three tries too
   r = applyThrow({ ...newGame(2), pawns: [[44, 0, 0, 0], [5, 0, 0, 0]] }, 1);
   assert.equal(r.game.turn, 0);
+  r = applyThrow({ ...newGame(2), pawns: [[43, 44, 0, 0], [5, 0, 0, 0]] }, 2);
+  assert.equal(r.game.turn, 0, '43 and 44 cannot move up any more');
+  // a pawn in the home squares that can still move up: one ordinary throw
+  r = applyThrow({ ...newGame(2), pawns: [[42, 0, 0, 0], [5, 0, 0, 0]] }, 4);
+  assert.deepEqual(r.events.map((e) => e.type), ['throw', 'nomove']);
+  assert.equal(r.game.turn, 1, '42 could move up with a 1 or 2: no three tries');
+  assert.equal(canMoveAtAll([42, 0, 0, 0]), true);
+  assert.equal(canMoveAtAll([43, 44, 0, 0]), false);
+  assert.equal(canMoveAtAll([0, 0, 0, 0]), false);
+  assert.equal(canMoveAtAll([0, 3, 0, 0]), true);
   // a six with no move still throws again
   r = applyThrow({ ...newGame(2), pawns: [[39, 44, 43, 42], [12, 0, 0, 0]] }, 6);
   assert.deepEqual(r.events.map((e) => e.type), ['throw', 'nomove', 'again']);
@@ -362,7 +390,7 @@ test('the modes: Ludo is the default, Pachisi the second; both play through the 
   assert.deepEqual(MODE_IDS, ['ludo', 'pachisi']);
   assert.equal(modeOf(undefined), LUDO);
   assert.equal(modeOf('pachisi'), PACHISI);
-  assert.equal(modeOf('parcheesi'), LUDO);
+  assert.equal(modeOf('x'), LUDO);
   for (const m of Object.values(MODES)) {
     for (const f of ['newGame', 'applyThrow', 'playMove', 'legalMoves', 'stepsOf', 'randomThrow', 'readThrow', 'items', 'isDone', 'pawnSpots', 'placeOf', 'boardSvg', 'chooseMove', 'why', 'safeAt']) assert.equal(typeof m[f], 'function', `${m.id}.${f}`);
     const rand = mulberry32(4);

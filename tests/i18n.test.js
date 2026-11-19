@@ -110,7 +110,7 @@ test('every key used in index.html and in the code exists', () => {
     // lines that differ per mode, built as t(`${mode}.${key}`) (tm in pachisi.js)
     for (const k of ['how', 'boardLabel', 'trayLabel', 'trayCount', 'yourThrow', 'throw', 'countNow', 'countSelfSub', 'countAutoSub', 'pawns4Sub', 'captured', 'captured.you', 'hitStart', 'winText']) used.add(`${m}.${k}`);
   }
-  for (const k of ['needSix', 'ownThere', 'tooFar', 'mustEnter']) used.add(`ludo.${k}`); // why a pawn cannot move (modes.js)
+  for (const k of ['needSix', 'ownThere', 'tooFar', 'mustEnter', 'clearStart']) used.add(`ludo.${k}`); // why a pawn cannot move (modes.js)
   for (const g of GAMES) if (g.subKey) used.add(g.subKey); // the small line under a name on the home screen
   for (const e of ['bounce', 'goose', 'bridge', 'maze', 'woods', 'inn', 'well', 'prison', 'skip.inn', 'skip.well', 'skip.prison']) used.add(`ganzen.ev.${e}`);
   for (const s of ['goose', 'bridge', 'inn', 'well', 'maze', 'prison', 'woods', 'end', 'start']) used.add(`ganzen.sq.${s}`);

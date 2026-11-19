@@ -23,6 +23,7 @@
 import { meta } from './meta.js';
 import { MAX_PLAYERS, PAWN_COUNTS, mulberry32 } from './rules.js';
 import { MODE_IDS, PACHISI, modeOf, pachisiSpots, pachisiPlace } from './modes.js';
+import { TRIES, canMoveAtAll } from './ludo-rules.js';
 import { pawnSvg, shellSvg, miniBoardSvg as clothMiniSvg, LOOKS } from './art.js';
 import { dieSvg, miniBoardSvg as ludoMiniSvg, PIPS } from './ludo-art.js';
 import { robotBadge, kidSvg } from '../ganzen/art.js';
@@ -703,8 +704,8 @@ export function createPachisi(shell) {
     const nomove = p.events.find((e) => e.type === 'nomove');
     const again = p.events.find((e) => e.type === 'again');
     let line = grace ? `${head} ${t('pachisi.again')}` : head;
-    if (nomove && again?.reason === 'try') line = `${head} ${t('ludo.tryAgain', { left: 3 - nomove.tries })}`;
-    else if (nomove && game.mode.id === 'ludo' && !game.g.pawns[cur].some((pos) => pos > 0 && !game.mode.isDone(pos)) && !grace) line = `${head} ${t('ludo.noSix')}`;
+    if (nomove && again?.reason === 'try') line = `${head} ${t('ludo.tryAgain', { left: TRIES - nomove.tries })}`;
+    else if (nomove && game.mode.id === 'ludo' && !canMoveAtAll(game.g.pawns[cur]) && !grace) line = `${head} ${t('ludo.noSix')}`;
     else if (nomove) line = `${head} ${t('pachisi.noMove', { n: steps })}${grace ? ` ${t('pachisi.again')}` : ''}`;
     setMsg(line);
     if (grace) sfx.chime();

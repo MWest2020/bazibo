@@ -138,7 +138,7 @@ export const PACHISI = Object.freeze({
   safeAt: (g, k, pos) => pos > 0 && pos < P.HOME && P.isCastle(P.PATHS[g.seats[k]][pos]),
 });
 
-const LUDO_WHY = { yard: 'ludo.needSix', own: 'ludo.ownThere', far: 'ludo.tooFar', enter: 'ludo.mustEnter' };
+const LUDO_WHY = { yard: 'ludo.needSix', own: 'ludo.ownThere', far: 'ludo.tooFar', enter: 'ludo.mustEnter', clear: 'ludo.clearStart' };
 
 export const LUDO = Object.freeze({
   id: 'ludo',

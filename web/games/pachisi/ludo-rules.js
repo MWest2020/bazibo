@@ -14,9 +14,14 @@
 //     (instead of Ludo's 52 squares and 5-6 home squares). Our own board, drawn in code (art).
 //   - a 6 brings a pawn from the yard onto your start square and gives another throw. A 6 must
 //     bring a pawn out when you have pawns in the yard and your start square is free of your own
-//     pawn; otherwise you move a pawn on the board as usual.
-//   - when you have no pawn on the track (all in the yard or in your home squares), you get up to
-//     three throws in a turn to throw something you can use (the familiar "three tries for a 6")
+//     pawn (Schmidt's official rules, "Besonderheiten der 6", and Wikipedia NL)
+//   - the start square must be cleared: while pawns wait in the yard, your own pawn on your start
+//     square must move first whenever it can (also with the throw right after it came out); only
+//     when it cannot may another pawn move ('clear' in whyNot)
+//   - three tries: when no pawn of yours can move at all (all in the yard, or only pawns in the
+//     home squares that cannot move up any more), you get up to three throws in a turn to throw a
+//     6 (the familiar "three tries"). A pawn in the home squares that can still move up means one
+//     ordinary throw, as with a pawn on the track
 //   - every 6 gives another throw (no limit on sixes in a row: the Dutch home rule; Wikipedia's
 //     "three sixes and the turn passes" is left out to keep it simple)
 //   - landing on an opponent's pawn sends it back to its yard (on screen it walks home, calmly)
@@ -159,9 +164,12 @@ export function whyNot(game, i, steps = game.roll?.steps) {
   const k = game.turn;
   const list = game.pawns[k];
   const from = list[i];
-  const mustEnter = steps === SIX && list.includes(0) && !list.includes(1);
+  const waiting = list.includes(0);
+  const mustEnter = steps === SIX && waiting && !list.includes(1);
   if (from === 0) return steps === SIX ? (list.includes(1) ? 'own' : null) : 'yard';
   if (mustEnter) return 'enter';
+  // the start square must be cleared while pawns wait: its pawn moves first when it can
+  if (waiting && from !== 1 && list.includes(1) && !list.includes(1 + steps)) return 'clear';
   const to = from + steps;
   if (to > LAST) return isHome(from) && from === LAST ? 'done' : 'far';
   if (list.some((p, j) => j !== i && p === to)) return 'own';
@@ -228,6 +236,20 @@ function nextPlayer(g, events, again, reason = 'six') {
 }
 
 /**
+ * Could any pawn of this list move with some throw? Not when every pawn is in the yard or stuck in
+ * the home squares (at the last one, or with every square ahead of it taken by its own pawns). A
+ * pawn on the track can always move with some throw. Only then the three tries apply.
+ */
+export function canMoveAtAll(list) {
+  return list.some((pos) => {
+    if (onTrack(pos)) return true;
+    if (!isHome(pos)) return false;
+    for (let to = pos + 1; to <= LAST; to++) if (!list.includes(to)) return true;
+    return false;
+  });
+}
+
+/**
  * The player to move throws `value` (1-6). Returns { game, events }. When no pawn can use the
  * throw it is lost: events { type: 'throw' }, { type: 'nomove' } and then the same player throws
  * again after a 6 or while they have tries left (no pawn on the track), else the next player.
@@ -245,7 +267,7 @@ export function applyThrow(game, value) {
     if (g.roll.grace) nextPlayer(g, events, true, 'six');
     else {
       g.tries = (g.tries || 0) + 1;
-      const tryAgain = !g.pawns[g.turn].some(onTrack) && g.tries < TRIES;
+      const tryAgain = !canMoveAtAll(g.pawns[g.turn]) && g.tries < TRIES;
       if (tryAgain) events[1].tries = g.tries;
       nextPlayer(g, events, tryAgain, 'try');
     }

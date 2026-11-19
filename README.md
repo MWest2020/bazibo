@@ -267,7 +267,9 @@ the board and the die in `ludo-art.js`. Played the way Dutch families play this 
 
 - One die. A 6 brings a pawn from the yard onto your start square and gives another throw; with
   pawns waiting and your start square free, a 6 must bring one out. Every 6 throws again.
-- With no pawn on the track you get three throws to throw something you can use.
+- While pawns wait in the yard, your pawn on the start square must move off it first (when it can).
+- When no pawn can move at all (all in the yard, or stuck in the home squares) you get three
+  throws to throw a 6.
 - A cross of 40 squares round a free middle; every player walks clockwise once round and then up
   into their own 4 home squares, which need an exact throw (too high: that pawn stays).
 - Landing on an opponent sends it walking back to its yard. No safe squares. You never land on
