@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -217,6 +217,26 @@ meadow drawn as SVG in `art.js`, the screens in `baghchal.js`). Rules as on Wiki
   search with alpha-beta, 3 and up to 8 moves deep, within a budget of positions, in a worker so
   the screen never freezes. The last move can be taken back. Wins against the computer are
   counted per side and level.
+
+### Schaken
+
+Chess, in `web/games/schaak/` (rules in `rules.js` after the FIDE Laws of Chess, the computer in
+`ai.js` and `ai-worker.js` through Dammen's `think.js`, the pieces drawn as SVG in `art.js`, the
+screens in `schaak.js`).
+
+- Every rule: all piece moves, check, checkmate, stalemate, castling (not out of, through or into
+  check, king and rook unmoved), en passant, promotion (the child picks; the queen first). Draws
+  are automatic: the third repetition, 50 moves each without a capture or pawn move, and too little
+  material to mate. The move generator is checked with perft against the known numbers.
+- Tap a piece and only its legal squares glow (a dot, or a ring for a capture), then tap one or
+  drag the piece; an illegal try simply does not happen. A king in check glows softly. On a 320 px
+  phone the squares are 38 px: a tap near a piece picks it up, but with a piece picked up a tap
+  inside a square always means that square, so a move never happens by accident.
+- Together on one screen, or against the computer as white: easy (free, with a hint button) plays
+  mostly at random and takes a free piece now and then; medium and hard (full version) search
+  with alpha-beta, 2 and up to 6 moves deep with captures after that, within a budget of positions
+  and a time limit, in a worker. Take-back (against the computer with its answer). Wins against
+  the computer are counted per level.
 
 ### Ganzenbord
 
@@ -590,7 +610,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `ganzen`, `doolhof`,
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `doolhof`,
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
