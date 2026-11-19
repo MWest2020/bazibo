@@ -1,8 +1,8 @@
 // Egeltje's pictures, all drawn in code (no image files): the garden with its hedges, the letter
-// stones, the hedgehog (walking, or curled up into a spiky ball) and the friendly crows on the board
-// canvas, and small SVG pictures for the home tile, the menu and the cards. A brown hedgehog seen
-// from the side and black-blue birds with an orange beak, in a green garden: nothing round and
-// yellow, no ghosts.
+// stones, the hedgehog (walking, or curled up into a spiky ball for a surprised moment) and the
+// friendly crows (walking, or fluttering off) on the board canvas, and small SVG pictures for the
+// home tile, the menu and the cards. A brown hedgehog seen from the side and black-blue birds with
+// an orange beak, in a green garden: nothing round and yellow, no ghosts.
 const TAU = Math.PI * 2;
 export const INK = '#2b2370';
 export const HOG = Object.freeze({ spines: '#7a4a2a', spinesDark: '#4f2d17', spinesLight: '#a8714a', face: '#f3d2a2', nose: '#2b1a10', cheek: '#ff9fb8' });
@@ -251,8 +251,11 @@ export function drawHog(ctx, x, y, cell, face = 'right', { walk = 0, curl = 0 } 
   ctx.restore();
 }
 
-/** A friendly crow at x, y, looking `face`; `hop` (0..1) lifts it while it walks. */
-export function drawCrow(ctx, x, y, cell, face = 'left', hop = 0) {
+/**
+ * A friendly crow at x, y, looking `face`; `hop` (0..1) lifts it while it walks. `flap` (a clock in
+ * seconds, or null) spreads its wings and flutters them while it flies off.
+ */
+export function drawCrow(ctx, x, y, cell, face = 'left', hop = 0, flap = null) {
   const s = cell / 64;
   ctx.save();
   ctx.translate(x, y - Math.sin(hop * Math.PI) * cell * 0.12);
@@ -263,6 +266,20 @@ export function drawCrow(ctx, x, y, cell, face = 'left', hop = 0) {
   ctx.beginPath();
   ctx.ellipse(33, 54, 14, 3.5, 0, 0, TAU);
   ctx.fill();
+  if (flap !== null) {
+    // two wings up and down behind the body, a quick flutter
+    const lift = Math.sin(flap * 26) * 0.7;
+    ctx.fillStyle = CROW.body;
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(32, 30);
+      ctx.rotate(side * (0.5 + lift));
+      ctx.beginPath();
+      ctx.ellipse(side * 15, -4, 15, 6, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
   ctx.fillStyle = CROW.body;
   ctx.beginPath();
   ctx.moveTo(14, 36);

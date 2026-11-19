@@ -12,10 +12,14 @@
 //   - a wrong letter is a soft bump: the hedgehog stays where it was, the letter stays where it is,
 //     and the round counts one mistake for that letter (once). After two bumps the right one glows.
 //     A walk going on by itself stops in front of a wrong letter; only a chosen step bumps.
-//   - a crow is a friendly obstacle. A walk never runs into one: the hedgehog stops politely in
-//     front of it, also when the crow stepped in front of it during the walk. Only a step straight into a crow touches it: the hedgehog curls up for a moment
-//     and rolls back to the start of its corridor (at most ROLLBACK cells), and the crow flies off to
-//     the far side of the garden. No letters are lost and stars do not count crows.
+//   - a crow is a friendly obstacle, never a wall. There is always a way to the next letter that no
+//     crow stands on (`hasFreeWay`, checked after every step in the tests): a crow never steps onto
+//     the hedgehog's way (it never makes the shortest crow-free way longer, `freeDistance`) and never
+//     next to the hedgehog, so it never boxes it in a corridor. Should a new letter land behind a
+//     crow, that crow flies off at once (`keepWay`). A walk never runs into a crow: the hedgehog stops
+//     politely in front of it. A step the child chooses into a crow only makes it flutter up and fly
+//     off to a free cell far away, off the hedgehog's way; the hedgehog stays where it is. Nothing is
+//     lost, no step back, no mistake.
 //   - stars count wrong letters only (letters' starsFor), never time and never crows.
 import { makeMaze, beside, stepFrom, exits, neighbours, distances, firstStep, OPPOSITE } from './maze.js';
 import { rng, hashSeed, starsFor } from '../letters/round.js';
@@ -42,7 +46,6 @@ export const DECOYS = Object.freeze({
 /** Word: how the word is shown. ghost: every letter faint with the next one big, word: the word only, picture: the picture only. */
 export const WORD_HINT = Object.freeze({ t1: 'ghost', t2: 'word', t3: 'picture' });
 export const WORDS_PER_ROUND = 3;
-export const ROLLBACK = 3; // cells a crow touch rolls the hedgehog back, at most
 export const DETOUR = 4; // the guide walks round a crow when that is at most this many steps longer
 export const HELP_AFTER = 2; // bumps on one letter before the right tile glows
 /** The alphabet runs per round: [from, to) in ALPHABET. Random rounds of tier 2 take any 10 in a row. */
@@ -142,13 +145,11 @@ export function createRound({ mode, tier, lang = 'nl', seed = 1, landscape = fal
       start,
       face: 'right', // the way the hedgehog looks: left or right
       dir: null, // the last way it stepped
-      trail: [start], // where it walked, for rolling back
       crows: [], // { cell, prev, face }
       missed: {}, // seq index -> true once a wrong letter was bumped for it
       mistakes: 0,
       bumps: 0, // wrong bumps for the letter it is looking for now (help after HELP_AFTER)
-      touches: 0,
-      curled: false,
+      touches: 0, // crows the hedgehog walked into (they flew off; never counted against it)
       started: false,
       over: false,
       rand,
@@ -157,16 +158,17 @@ export function createRound({ mode, tier, lang = 'nl', seed = 1, landscape = fal
     if (state.tiles.length === new Set(seq.slice(0, windowEnd(state))).size + DECOYS[mode][tier]) break;
   }
   for (let k = 0; k < CROWS[tier]; k++) {
-    const cell = farCell(state);
+    const cell = landing(state, -1);
     if (cell >= 0) state.crows.push({ cell, prev: -1, face: 'left' });
   }
+  keepWay(state);
   return state;
 }
 
 // ---------- what is where ----------
 
 export const tileAt = (state, cell) => state.tiles.find((t) => t.cell === cell) || null;
-export const crowAt = (state, cell) => state.crows.findIndex((c) => c.cell === cell);
+export const crowAt = (state, cell) => (cell < 0 ? -1 : state.crows.findIndex((c) => c.cell === cell));
 /** The value to pick up now (null when the round is over). */
 export const expected = (state) => (state.over ? null : state.seq[state.i]);
 export const targetTile = (state) => state.tiles.find((t) => t.value === expected(state)) || null;
@@ -274,33 +276,121 @@ export function refill(state) {
   }
 }
 
-/** A free cell far from the hedgehog (for a crow): no tile, no crow, among the farthest few. */
-function farCell(state, skip = -1) {
+// ---------- the crows' promise: always a way ----------
+
+/** The cells the hedgehog cannot walk on its way to the right tile: the other tiles and the crows (or `crowCells`). */
+function wayBlocked(state, crowCells) {
+  const target = targetTile(state);
+  const blocked = new Set(state.tiles.filter((t) => t !== target).map((t) => t.cell));
+  for (const c of crowCells || state.crows.map((x) => x.cell)) if (c >= 0) blocked.add(c);
+  return blocked;
+}
+
+/**
+ * Steps from the hedgehog to the right tile that no crow stands on (or would, with the crows on
+ * `crowCells`), around the other tiles; -1 when every way is blocked, 0 when the round is over.
+ */
+export function freeDistance(state, crowCells = null) {
+  const target = targetTile(state);
+  if (!target || state.over) return 0;
+  return distances(state.maze, state.hog, wayBlocked(state, crowCells))[target.cell];
+}
+
+/** The promise: a way from the hedgehog to the right tile that no crow stands on. */
+export const hasFreeWay = (state, crowCells = null) => freeDistance(state, crowCells) >= 0;
+
+/** Is `cell` next to the hedgehog (an open side between them)? */
+const besideHog = (state, cell) => neighbours(state.maze, state.hog).includes(cell);
+
+/** The cells of one shortest crow-free way from the hedgehog to the right tile (not the hedgehog's own). */
+function wayCells(state) {
+  const target = targetTile(state);
+  const way = new Set();
+  if (!target || state.over) return way;
+  const blocked = wayBlocked(state);
+  const back = distances(state.maze, target.cell, (c) => c !== state.hog && blocked.has(c));
+  if (back[state.hog] < 0) return way;
+  let cell = state.hog;
+  while (cell !== target.cell) {
+    cell = neighbours(state.maze, cell).find((x) => back[x] === back[cell] - 1 && (x === target.cell || !blocked.has(x)));
+    if (cell === undefined) break;
+    way.add(cell);
+  }
+  return way;
+}
+
+/**
+ * Where crow `k` (-1: a new crow) can land: a free cell (no tile, no crow, not the hedgehog) where
+ * the hedgehog keeps its crow-free way. Best far away, off the hedgehog's way and not next to it;
+ * the nearer and on-the-way cells only when nothing else is left. -1 if nowhere.
+ */
+function landing(state, k) {
+  const from = k >= 0 ? state.crows[k].cell : -1;
+  const others = state.crows.filter((c, j) => j !== k && c.cell >= 0).map((c) => c.cell);
   const dist = distances(state.maze, state.hog);
+  const way = wayCells(state);
   const n = state.cols * state.rows;
   const free = [];
-  for (let c = 0; c < n; c++) if (c !== state.hog && !tileAt(state, c) && crowAt(state, c) < 0 && c !== skip && dist[c] >= 0) free.push(c);
+  for (let c = 0; c < n; c++) {
+    if (c === state.hog || c === from || tileAt(state, c) || others.includes(c) || dist[c] < 0) continue;
+    if (hasFreeWay(state, [...others, c])) free.push(c);
+  }
   if (!free.length) return -1;
-  free.sort((a, b) => dist[b] - dist[a] || a - b);
-  const top = free.filter((c) => dist[c] >= dist[free[0]] - 1).slice(0, 4);
+  const far = free.filter((c) => !way.has(c) && !besideHog(state, c));
+  const pool = far.length ? far : free.filter((c) => !besideHog(state, c)).length ? free.filter((c) => !besideHog(state, c)) : free;
+  pool.sort((a, b) => dist[b] - dist[a] || a - b);
+  const top = pool.filter((c) => dist[c] >= dist[pool[0]] - 1).slice(0, 4);
   return top[Math.floor(state.rand() * top.length)];
+}
+
+/**
+ * Crow `k` flutters up and flies to a landing cell, or, when the garden has no cell left that keeps
+ * the hedgehog's crow-free way (a long single lane), out of the garden for a while (`cell` -1); it
+ * comes back on a later crow step, once there is room.
+ */
+function flyOff(state, k) {
+  const crow = state.crows[k];
+  crow.cell = -1;
+  crow.cell = landing(state, k);
+  crow.prev = -1;
+}
+
+/**
+ * Keeps the promise when something else changed the board (a new letter, a new tile): while there
+ * is no crow-free way, the nearest crow that stands on every way flies off; when it takes more than
+ * one, the nearest ones lift off together and land one by one. Returns the crows that flew.
+ */
+export function keepWay(state) {
+  if (hasFreeWay(state)) return [];
+  const dist = distances(state.maze, state.hog);
+  const order = state.crows.map((_, k) => k).filter((k) => state.crows[k].cell >= 0).sort((a, b) => dist[state.crows[a].cell] - dist[state.crows[b].cell] || a - b);
+  const without = (gone) => state.crows.map((c, j) => (gone.includes(j) ? -1 : c.cell));
+  const alone = order.find((k) => hasFreeWay(state, without([k])));
+  const lift = [];
+  if (alone !== undefined) lift.push(alone);
+  else for (const k of order) if (!hasFreeWay(state, without(lift))) lift.push(k);
+  for (const k of lift) state.crows[k].cell = -1;
+  for (const k of lift) flyOff(state, k);
+  return lift;
 }
 
 // ---------- moving ----------
 
 /**
  * One step of the hedgehog. Returns what happened:
- *   { type: 'wait' }                  curled up, or the round is over
+ *   { type: 'wait' }                  the round is over
  *   { type: 'blocked' }               a hedge
  *   { type: 'stop' }                  `auto` (a walk going on by itself): a crow or a wrong tile ahead
  *   { type: 'move' }
- *   { type: 'eat', value, word }      the right tile; `word` true when a word was finished
+ *   { type: 'eat', value, word, flew } the right tile; `word` true when a word was finished, `flew`
+ *                                     the crows that flew off to keep a way to the next one
  *   { type: 'done', value }           the last one: the round is over
  *   { type: 'wrong', value, want }    a wrong tile: a bump, nothing moves
- *   { type: 'crow', crow, back }      walked into a crow: curled up and rolled back `back` cells
+ *   { type: 'crow', crow, from, to }  walked into a crow: it fluttered up and flew from `from` to
+ *                                     `to`; the hedgehog stays where it was, nothing else changes
  */
 export function stepHog(state, dir, { auto = false } = {}) {
-  if (state.over || state.curled) return { type: 'wait' };
+  if (state.over) return { type: 'wait' };
   const to = stepFrom(state.maze, state.hog, dir);
   if (to < 0) return { type: 'blocked' };
   // a walk going on by itself never walks into a crow (it may have stepped in since) or a wrong
@@ -321,8 +411,6 @@ export function stepHog(state, dir, { auto = false } = {}) {
     return { type: 'wrong', value: tile.value, want: expected(state) };
   }
   state.hog = to;
-  state.trail.push(to);
-  if (state.trail.length > 64) state.trail.splice(0, state.trail.length - 64);
   if (!tile) return { type: 'move' };
   state.tiles.splice(state.tiles.indexOf(tile), 1);
   const before = currentWord(state);
@@ -339,7 +427,7 @@ export function stepHog(state, dir, { auto = false } = {}) {
     state.tiles = state.tiles.filter((t) => win.has(t.value) || plainOk(state, t.value));
   }
   refill(state);
-  return { type: 'eat', value: tile.value, word };
+  return { type: 'eat', value: tile.value, word, flew: keepWay(state) };
 }
 
 /** Is `cell` free for a walk going on by itself: no crow, and no tile but the right one? */
@@ -356,50 +444,41 @@ function freeAhead(state, cell) {
  * stops the walk too.
  */
 export function continueDir(state, dir) {
-  if (state.over || state.curled || !dir) return null;
+  if (state.over || !dir) return null;
   const ways = exits(state.maze, state.hog).filter((d) => d !== OPPOSITE[dir]);
   if (ways.length !== 1) return null;
   return freeAhead(state, beside(state.maze, state.hog, ways[0])) ? ways[0] : null;
 }
 
+/** Walked into crow `k`: it flutters up and flies off; the hedgehog stays, nothing is lost. */
 function touchCrow(state, k) {
   state.touches++;
-  state.curled = true;
-  // roll back along the trail, at most ROLLBACK cells, stopping at a crossing
-  let back = 0;
-  while (back < ROLLBACK && state.trail.length > 1) {
-    const prev = state.trail[state.trail.length - 2];
-    if (tileAt(state, prev) || crowAt(state, prev) >= 0) break;
-    state.trail.pop();
-    state.hog = prev;
-    back++;
-    if (exits(state.maze, prev).length >= 3) break;
-  }
-  // the crow flies off to the far side of the garden
-  const crow = state.crows[k];
-  const to = farCell(state, crow.cell);
-  if (to >= 0) {
-    crow.cell = to;
-    crow.prev = -1;
-  }
-  return { type: 'crow', crow: k, back };
-}
-
-/** The hedgehog uncurls (the controller calls this after a moment). */
-export function uncurl(state) {
-  state.curled = false;
+  const from = state.crows[k].cell;
+  flyOff(state, k);
+  return { type: 'crow', crow: k, from, to: state.crows[k].cell };
 }
 
 /**
  * The crows take one step each: on, not back the way they came unless they must, never onto the
- * hedgehog, a tile or another crow. They only walk once the hedgehog has started.
+ * hedgehog, next to it, a tile or another crow, and never onto the hedgehog's way: a step that would
+ * make the crow-free way to the right tile longer (or cut it) is not taken. A crow with no such step
+ * waits. A crow out of the garden (`cell` -1) lands far away once there is room. They only walk once
+ * the hedgehog has started. Returns the crows that had to fly off to keep a way (only when the board
+ * changed some other way; normally none).
  */
 export function stepCrows(state) {
-  if (state.over || !state.started) return;
+  if (state.over || !state.started) return [];
+  const flew = keepWay(state);
+  const away = state.crows.filter((c, k) => c.cell < 0 && !flew.includes(k));
+  for (const crow of away) flyOff(state, state.crows.indexOf(crow));
   for (const crow of state.crows) {
+    if (crow.cell < 0 || away.includes(crow)) continue;
+    const now = freeDistance(state);
     const ways = exits(state.maze, crow.cell).filter((d) => {
       const to = beside(state.maze, crow.cell, d);
-      return to !== state.hog && !tileAt(state, to) && crowAt(state, to) < 0;
+      if (to === state.hog || besideHog(state, to) || tileAt(state, to) || crowAt(state, to) >= 0) return false;
+      const after = freeDistance(state, state.crows.map((c) => (c === crow ? to : c.cell)));
+      return after >= 0 && after <= now;
     });
     const onward = ways.filter((d) => beside(state.maze, crow.cell, d) !== crow.prev);
     const pick = (onward.length ? onward : ways)[Math.floor(state.rand() * (onward.length || ways.length))];
@@ -411,6 +490,7 @@ export function stepCrows(state) {
     crow.prev = crow.cell;
     crow.cell = beside(state.maze, crow.cell, pick);
   }
+  return flew;
 }
 
 /**

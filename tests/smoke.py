@@ -2234,8 +2234,8 @@ def dh_state(page):
 
 
 def dh_idle(page, timeout=6000):
-    """Wait until the hedgehog stands still (not walking, not curled up)."""
-    page.wait_for_function("(() => { const s = window.__bubbels.doolhof.state(); return s && (s.done || (!s.walking && !s.curled)); })()", timeout=timeout)
+    """Wait until the hedgehog stands still (not walking)."""
+    page.wait_for_function("(() => { const s = window.__bubbels.doolhof.state(); return s && (s.done || !s.walking); })()", timeout=timeout)
     return dh_state(page)
 
 
@@ -2292,8 +2292,8 @@ def dh_fits(page, w, h, label, problems):
 def doolhof_play(browser, base, problems):
     """Egeltje (Little Hedgehog): the tile in Leren, a locked tier offers only OK on the web; the
     alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a
-    wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (curled up,
-    rolled back, nothing lost); the waiting garden draws no frames; back + keep playing; the Android
+    wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (it flutters
+    off, the hedgehog stays, nothing lost, the next step walks on); the waiting garden draws no frames; back + keep playing; the Android
     back button; the end of the free part offers only OK and lands on the list; no voice; the layout
     at 390x844 (Dutch and English), 320x568, 844x390, 568x320 and desktop."""
     title = {"nl": "Egeltje", "en": "Little Hedgehog"}
@@ -2376,21 +2376,28 @@ def doolhof_play(browser, base, problems):
             problems.append(f"{label}: a wrong letter was not a soft bump: {before} -> {st}")
         page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-wrong.png"))
 
-        # a crow: walked into it by an arrow key, curled up and rolled back, the crow flies off
+        # a crow: walked into it by an arrow key, it flutters off; the hedgehog stays, nothing is lost
         page.evaluate("window.__bubbels.doolhof.freeze(true)")
         d = page.evaluate("window.__bubbels.doolhof.crowBeside()")
         before = dh_state(page)
         page.keyboard.press(DH_KEYS[d])
-        page.wait_for_timeout(350)
+        page.wait_for_function("window.__bubbels.doolhof.state().touches === 1", timeout=3000)
+        page.wait_for_timeout(250)
         st = dh_state(page)
         page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-crow.png"))
-        if not st["curled"] or st["touches"] != 1 or st["i"] != before["i"] or st["mistakes"] != before["mistakes"] or len(st["tiles"]) != len(before["tiles"]):
-            problems.append(f"{label}: a crow did not curl the hedgehog up gently: {st}")
+        if st["hog"] != before["hog"] or st["i"] != before["i"] or st["mistakes"] != before["mistakes"] or st["tiles"] != before["tiles"]:
+            problems.append(f"{label}: a crow cost something (moved back, a letter or a mistake): {st}")
         if st["crows"][0] == before["crows"][0]:
             problems.append(f"{label}: the crow did not fly off")
+        if not st["flying"] and not page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"):
+            problems.append(f"{label}: no flutter drawn for the crow")
         st = dh_idle(page)
-        if st["curled"]:
-            problems.append(f"{label}: the hedgehog stayed curled up")
+        # the same way is free now: the next step walks on at once
+        page.keyboard.press(DH_KEYS[d])
+        page.wait_for_function(f"window.__bubbels.doolhof.state().hog !== {before['hog']}", timeout=3000)
+        st = dh_idle(page)
+        if st["mistakes"] != before["mistakes"] or st["touches"] != 1:
+            problems.append(f"{label}: walking on after the crow went wrong: {st}")
         page.evaluate("window.__bubbels.doolhof.freeze(false)")
 
         # the rest of the round by real input, crows walking

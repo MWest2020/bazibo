@@ -1,8 +1,8 @@
 // Egeltje (Little Hedgehog): walk a hedgehog through a garden maze and pick up the letters in
 // alphabetical order, the letters of a pictured word, or numbers in order. A swipe, an arrow on the
 // pad or an arrow key walks it to the next crossing (round bends by itself). Nothing is ever lost:
-// a wrong letter is a soft bump, a crow makes it curl up and roll back a little (rules.js). No
-// timer, no game over, nothing spoken.
+// a wrong letter is a soft bump, a crow it walks into flutters up and flies off (rules.js); there
+// is always a way no crow stands on. No timer, no game over, nothing spoken.
 // The rules live in rules.js and maze.js, the pictures in art.js; the shell (web/js/main.js) owns
 // the overlay card, the sound setting and the purchase, and passes them in as `shell`.
 //
@@ -10,7 +10,7 @@
 // which how-to cards were seen and the last tier per kind. All read from the save each time. An
 // unfinished round is kept while the app stays open ("keep playing"); it waits for the first step.
 import { meta } from './meta.js';
-import { MODES, TIER_IDS, ROUNDS_PER_TIER, AGES, CROW_MS, WORD_HINT, createRound, roundSeed, stepHog, continueDir, uncurl, stepCrows, expected, targetTile, currentWord, helpOn, pathDirection, tileAt, crowAt, placementOk, starsFor } from './rules.js';
+import { MODES, TIER_IDS, ROUNDS_PER_TIER, AGES, CROW_MS, WORD_HINT, createRound, roundSeed, stepHog, continueDir, stepCrows, expected, targetTile, currentWord, helpOn, pathDirection, tileAt, crowAt, placementOk, starsFor } from './rules.js';
 import { isOpen, beside, exits, rowOf, colOf, DIR_NAMES } from './maze.js';
 import { hogSvg, crowSvg, modeSvg, drawGarden, drawStone, drawHog, drawCrow, glyphPx } from './art.js';
 import { wordPictureSvg } from '../letters/art.js';
@@ -25,7 +25,8 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 const ARROW = '<path d="M12 4 4.5 13H9v7h6v-7h4.5z"/>';
 const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
 const HOG_STEP = 0.2; // seconds per cell: a calm walk
-const CURL_S = 1.2; // how long the hedgehog stays curled up after a crow
+const SURPRISE_S = 0.45; // a crow touch: the hedgehog curls up in surprise for a moment (only drawn; it can walk on)
+const FLY_S = 0.8; // a crow fluttering off to its new place
 const SWIPE = 22; // px of finger movement that count as a swipe while the finger is down
 const FLICK = 8; // px: a shorter movement is a tap (walk towards it)
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -37,7 +38,7 @@ export function createDoolhof(shell) {
   const randomDone = () => store.loadRandomSolved(meta.id);
   const lastTier = () => store.loadGameOption(meta.id, 'lastTier', {}) || {};
 
-  // { mode, tier, roundId (null when random), seed, lang, s (the rules' state), walk, pending, prevCrows, hogAcc, crowAcc, curl, done }
+  // { mode, tier, roundId (null when random), seed, lang, s (the rules' state), walk, pending, prevCrows, flights, hogAcc, crowAcc, curl, done }
   let game = null;
   let menuMode = null;
   let plays = 0; // counts rounds started, so a late card never lands on a newer round
@@ -224,7 +225,7 @@ export function createDoolhof(shell) {
     if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     const lang = getLang();
     const s = createRound({ mode, tier, lang, seed, landscape, round });
-    game = { mode, tier, roundId, seed, lang, s, walk: null, chosen: false, pending: null, prevCrows: s.crows.map((c) => c.cell), hogAcc: 0, crowAcc: 0, curl: 0, done: false };
+    game = { mode, tier, roundId, seed, lang, s, walk: null, chosen: false, pending: null, prevCrows: s.crows.map((c) => c.cell), flights: [], hogAcc: 0, crowAcc: 0, curl: 0, done: false };
     fx.bump = fx.shake = 0;
     fx.parts = [];
     shell.show('doolhof');
@@ -268,8 +269,8 @@ export function createDoolhof(shell) {
     if (!game) return;
     game.walk = game.pending = null;
     game.s.started = false; // the crows wait for the next step
-    if (game.s.curled) uncurl(game.s);
     game.curl = 0;
+    game.flights = [];
   }
 
   /** Android back and the menu button: to the menu, the round is kept ("keep playing"). */
@@ -368,7 +369,6 @@ export function createDoolhof(shell) {
     if (!game || game.done || !onScreen('doolhof') || overlayUp() || !DIR_NAMES.includes(dir)) return;
     sfx.unlock();
     const s = game.s;
-    if (s.curled) return;
     if (game.walk) {
       // already walking: turn here if that way is open, or at the next place it is
       if (isOpen(s.maze, s.hog, dir)) {
@@ -397,8 +397,10 @@ export function createDoolhof(shell) {
     if (!dir) return;
     // only the step the child chose may touch a crow or bump a wrong letter; a walk going on by
     // itself stops in front of them (a crow may have stepped in since the last step)
+    const crowsBefore = s.crows.map((c) => c.cell);
     const e = stepHog(s, dir, { auto: !game.chosen });
     game.chosen = false;
+    noteFlights(crowsBefore);
     if (e.type === 'blocked' || e.type === 'wait' || e.type === 'stop') {
       game.walk = null;
       game.pending = null;
@@ -421,9 +423,9 @@ export function createDoolhof(shell) {
       fx.bumpDir = dir;
       setStatus(s.mode === 'word' && WORD_HINT[s.tier] !== 'ghost' ? t('doolhof.wrongWord', { v: e.value }) : t('doolhof.wrong', { v: e.value, want: e.want }));
     } else if (e.type === 'crow') {
+      // the crow flutters up and flies off; the hedgehog stays and can walk on at once
       sfx.thud(0.2);
-      game.curl = CURL_S;
-      game.prevCrows = s.crows.map((c) => c.cell);
+      game.curl = SURPRISE_S;
       setStatus(t('doolhof.crow'));
     } else if (e.type === 'eat' || e.type === 'done') {
       sfx.plink(s.i);
@@ -526,19 +528,17 @@ export function createDoolhof(shell) {
       }
       if (!game.walk) game.hogAcc = 0;
     }
-    if (live && game.curl > 0) {
-      game.curl -= dt;
-      if (game.curl <= 0) {
-        game.curl = 0;
-        uncurl(s);
-      }
-    }
+    if (game.curl > 0) game.curl = Math.max(0, game.curl - dt);
+    for (const f of game.flights) f.t += dt;
+    game.flights = game.flights.filter((f) => f.t < FLY_S);
     if (live && s.started && !frozen) {
       game.crowAcc += dt;
       if (game.crowAcc >= crowStep()) {
         game.crowAcc -= crowStep();
-        game.prevCrows = s.crows.map((c) => c.cell);
+        const crowsBefore = s.crows.map((c) => c.cell);
+        game.prevCrows = crowsBefore;
         stepCrows(s);
+        noteFlights(crowsBefore);
       }
     }
     fx.bump = Math.max(0, fx.bump - dt * 4);
@@ -556,9 +556,25 @@ export function createDoolhof(shell) {
   /** Draw only while something moves: before the first step nothing does (no frames). */
   function needsFrames() {
     if (!game || !onScreen('doolhof')) return false;
-    if (fx.bump || fx.shake || fx.parts.length) return true;
+    if (fx.bump || fx.shake || fx.parts.length || game.flights.length || game.curl > 0) return true;
     if (game.done || overlayUp()) return false;
-    return !!game.walk || game.curl > 0 || (game.s.started && !frozen) || (helpOn(game.s) && !reducedMotion());
+    return !!game.walk || (game.s.started && !frozen) || (helpOn(game.s) && !reducedMotion());
+  }
+
+  /**
+   * A crow that did not walk one step but flew (walked into, or making way for a new letter, or out
+   * of the garden and back): its flight is drawn from where it was to where it landed.
+   */
+  function noteFlights(before) {
+    const s = game.s;
+    s.crows.forEach((c, k) => {
+      const from = before[k];
+      if (from === c.cell) return;
+      if (from >= 0 && c.cell >= 0 && exits(s.maze, from).some((d) => beside(s.maze, from, d) === c.cell)) return;
+      game.flights = game.flights.filter((f) => f.k !== k);
+      game.flights.push({ k, from, to: c.cell, t: 0 });
+      game.prevCrows[k] = c.cell;
+    });
   }
 
   function burst(c) {
@@ -607,6 +623,19 @@ export function createDoolhof(shell) {
     }
     const crowF = Math.min(1, game.crowAcc / (crowStep() * 0.4));
     s.crows.forEach((c, k) => {
+      const flight = !reduced && game.flights.find((x) => x.k === k);
+      if (flight) {
+        // fluttering: up from where it was, an arc over the garden, down where it lands (or off
+        // the top of the garden when it has to wait outside for a while)
+        const sky = (at) => [centre(at)[0], -cell];
+        const a = flight.from >= 0 ? centre(flight.from) : sky(flight.to);
+        const b = flight.to >= 0 ? centre(flight.to) : sky(flight.from);
+        const f = Math.min(1, flight.t / FLY_S);
+        const [x, y] = lerp(a, b, f);
+        drawCrow(ctx, x, y - Math.sin(f * Math.PI) * cell * 0.9, cell, b[0] < a[0] ? 'left' : 'right', 0, clock);
+        return;
+      }
+      if (c.cell < 0) return; // out of the garden for a while
       const from = game.prevCrows[k];
       const near = from !== undefined && from >= 0 && exits(s.maze, from).some((d) => beside(s.maze, from, d) === c.cell);
       const f = reduced || !near || !s.started ? 1 : crowF;
@@ -627,7 +656,7 @@ export function createDoolhof(shell) {
       hx += dx * k;
       hy += dy * k;
     }
-    drawHog(ctx, hx, hy, cell, s.face, { walk: game.walk ? walkF : 0, curl: s.curled ? 1 : 0 });
+    drawHog(ctx, hx, hy, cell, s.face, { walk: game.walk ? walkF : 0, curl: game.curl > 0 && !game.walk ? 1 : 0 });
     for (const p of fx.parts) {
       ctx.globalAlpha = Math.min(1, p.life / 0.2);
       ctx.fillStyle = p.color;
@@ -734,7 +763,8 @@ export function createDoolhof(shell) {
           crows: s.crows.map((c) => c.cell),
           mistakes: s.mistakes,
           touches: s.touches,
-          curled: s.curled,
+          surprised: game.curl > 0,
+          flying: game.flights.length,
           started: s.started,
           walking: !!game.walk,
           over: s.over,

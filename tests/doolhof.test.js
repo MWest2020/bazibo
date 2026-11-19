@@ -13,13 +13,16 @@ const LANGS = ['nl', 'en'];
 const cells = (s) => [...Array(s.cols * s.rows).keys()];
 const anyLook = (l) => [...lookalike(l), ...similar(l)];
 
-/** Every round we test: each kind, tier and language, upright and sideways, fixed and random. */
-function* rounds(n = SEEDS) {
+/**
+ * Every round we test: each kind, tier and language, upright and sideways, fixed and random.
+ * `both`: every seed upright and sideways (n per orientation) instead of taking turns.
+ */
+function* rounds(n = SEEDS, both = false) {
   for (const mode of R.MODES) {
     for (const tier of R.TIER_IDS) {
       for (const lang of LANGS) {
         for (let seed = 1; seed <= n; seed++) {
-          yield { mode, tier, lang, seed, landscape: seed % 2 === 0, round: seed % 4 };
+          for (const landscape of both ? [false, true] : [seed % 2 === 0]) yield { mode, tier, lang, seed, landscape, round: seed % 4 };
         }
       }
     }
@@ -40,39 +43,71 @@ function checkBoard(s, where) {
     seen.add(t.cell);
     values.add(t.value);
   }
-  for (const c of s.crows) {
+  const landed = s.crows.filter((c) => c.cell >= 0); // -1: out of the garden for a while
+  for (const c of landed) {
+    assert.ok(c.cell < n, `${where}: a crow outside the garden (${c.cell})`);
     assert.ok(!seen.has(c.cell), `${where}: a crow on a tile`);
     assert.notEqual(c.cell, s.hog, `${where}: a crow on the hedgehog`);
   }
-  assert.equal(new Set(s.crows.map((c) => c.cell)).size, s.crows.length, `${where}: two crows on one cell`);
+  for (const c of s.crows) assert.ok(Number.isInteger(c.cell) && c.cell >= -1, `${where}: a crow at ${c.cell}`);
+  assert.equal(new Set(landed.map((c) => c.cell)).size, landed.length, `${where}: two crows on one cell`);
+  // the promise: always a way to the right tile that no crow stands on
+  if (!s.over) assert.ok(R.hasFreeWay(s), `${where}: no crow-free way to ${R.expected(s)} (hedgehog ${s.hog}, crows ${s.crows.map((c) => c.cell)})`);
   // every cell without a tile can be reached without walking over a tile, and every tile from such a cell
   assert.ok(R.placementOk(s), `${where}: a tile cuts the garden in two`);
   if (!s.over) assert.ok(R.targetTile(s), `${where}: the letter to find (${R.expected(s)}) is not on the board`);
 }
 
+/** A sane number of steps for a whole round: a few gardens' worth per letter. */
+const budgetFor = (s) => 40 * s.seq.length + 40;
+
 /**
- * Play a round to the end like a child who knows the way: walk (to the next crossing) towards the
- * right tile, around the crows when possible; the crows step every other hedgehog step.
+ * Play a round to the end like a child. `greedy` knows the way: it walks (to the next crossing)
+ * towards the right tile, around the crows when that is not much longer, and else straight into
+ * them. `cautious` never steps into a crow: it only takes a way no crow stands on. The crows step
+ * every other hedgehog step (faster than in the game). Every step keeps the board's promises and
+ * the round must end within `budgetFor`.
  */
-function play(s, where, budget = 4000) {
+function play(s, where, policy = 'greedy') {
+  const budget = budgetFor(s);
   let steps = 0;
+  let away = 0; // crow steps in a row with a crow out of the garden
+  let walked = 0; // crow steps that went somewhere
+  let crowSteps = 0;
   const events = [];
+  const choose = () => {
+    if (policy === 'greedy') return R.pathDirection(s);
+    const target = R.targetTile(s);
+    const blocked = new Set([...s.tiles.filter((t) => t !== target).map((t) => t.cell), ...s.crows.map((c) => c.cell)]);
+    return firstStep(s.maze, s.hog, target.cell, blocked);
+  };
+  checkBoard(s, where);
   while (!s.over && steps < budget) {
-    if (s.curled) R.uncurl(s);
-    const d = R.pathDirection(s);
-    assert.ok(d, `${where}: no way to ${R.expected(s)}`);
+    const d = choose();
+    assert.ok(d, `${where}: no ${policy === 'cautious' ? 'crow-free ' : ''}way to ${R.expected(s)}`);
     let dir = d;
+    let auto = false;
     while (dir) {
-      const e = R.stepHog(s, dir);
+      if (policy === 'cautious') assert.equal(R.crowAt(s, beside(s.maze, s.hog, dir)), -1, `${where}: the cautious child's way runs into a crow`);
+      const e = R.stepHog(s, dir, { auto });
       events.push(e.type);
       steps++;
-      if (steps % 2 === 0) R.stepCrows(s);
+      if (steps % 2 === 0) {
+        const was = s.crows.map((c) => c.cell);
+        R.stepCrows(s);
+        walked += s.crows.filter((c, k) => c.cell >= 0 && c.cell !== was[k]).length;
+        crowSteps += s.crows.length;
+        away = s.crows.some((c) => c.cell < 0) ? away + 1 : 0;
+        assert.ok(away < 40, `${where}: a crow stayed out of the garden for 40 steps`);
+      }
       checkBoard(s, where);
       if (e.type !== 'move') break;
       dir = R.continueDir(s, dir); // like the game: a walk goes on to the next crossing
+      auto = true;
     }
   }
-  return { steps, events };
+  assert.ok(s.over, `${where}: the ${policy} child did not finish in ${budget} steps (${s.i} of ${s.seq.length})`);
+  return { steps, events, walked, crowSteps };
 }
 
 // ---------- the garden ----------
@@ -215,21 +250,33 @@ test('rounds: wrong tiles by tier: plain in tier 1, look-alikes in tier 2, mirro
   assert.ok(odd3 >= LANGS.length * SEEDS * 0.95, `counting in twos: odd numbers in only ${odd3} rounds`);
 });
 
-test('rounds: every round can be played to the end, every letter reachable after every step, crows walking', () => {
-  let touches = 0;
-  for (const r of rounds()) {
-    const s = R.createRound(r);
-    const where = `${r.mode} ${r.tier} ${r.lang} seed ${r.seed}`;
-    const { events } = play(s, where);
-    assert.ok(s.over, `${where}: not finished`);
-    assert.equal(s.i, s.seq.length);
-    assert.equal(s.mistakes, 0, `${where}: the guide bumped into a wrong tile`);
-    assert.ok(!events.includes('wrong'));
-    touches += events.filter((e) => e === 'crow').length;
-    assert.equal(R.starsFor(s.mistakes), 3, `${where}: crows cost stars`);
-  }
-  assert.ok(touches > 0, 'the crows never came in the way');
-});
+for (const policy of ['greedy', 'cautious']) {
+  test(`rounds: always a crow-free way; a ${policy} child finishes every round, crows walking (200 seeds per kind, tier, language and orientation)`, () => {
+    let touches = 0;
+    let played = 0;
+    let walked = 0;
+    let crowSteps = 0;
+    for (const r of rounds(SEEDS, true)) {
+      const s = R.createRound(r);
+      const where = `${policy} ${r.mode} ${r.tier} ${r.lang} ${r.landscape ? 'side' : 'up'} seed ${r.seed}`;
+      const got = play(s, where, policy);
+      const { events } = got;
+      walked += got.walked;
+      crowSteps += got.crowSteps;
+      assert.equal(s.i, s.seq.length);
+      assert.equal(s.mistakes, 0, `${where}: the child bumped into a wrong tile`);
+      assert.ok(!events.includes('wrong') && !events.includes('wait'));
+      touches += events.filter((e) => e === 'crow').length;
+      assert.equal(R.starsFor(s.mistakes), 3, `${where}: crows cost stars`);
+      played++;
+    }
+    assert.equal(played, R.MODES.length * R.TIER_IDS.length * LANGS.length * SEEDS * 2);
+    // the crows keep walking about the garden; they are not parked out of the way
+    assert.ok(walked > crowSteps * 0.8, `the crows walked only ${walked} of ${crowSteps} steps`);
+    if (policy === 'greedy') assert.ok(touches > 0, 'the crows never came in the way');
+    else assert.equal(touches, 0, 'the cautious child walked into a crow');
+  });
+}
 
 test('rounds: a word round spells word after word, and a letter that comes twice waits its turn', () => {
   const s = R.createRound({ mode: 'word', tier: 't3', lang: 'nl', seed: 5 });
@@ -269,7 +316,6 @@ test('tier 1 wrong tiles are plain on every step: never a look-alike of the lett
         check();
         let steps = 0;
         while (!s.over && steps++ < 4000) {
-          if (s.curled) R.uncurl(s);
           const e = R.stepHog(s, R.pathDirection(s));
           if (e.word) words++;
           if (steps % 2 === 0) R.stepCrows(s);
@@ -296,7 +342,7 @@ test('a walk going on by itself stops in front of a crow that stepped in, and in
     s.crows[0].cell = ahead;
     const before = { hog: s.hog, touches: s.touches, crow: ahead };
     assert.deepEqual(R.stepHog(s, d, { auto: true }), { type: 'stop' }, `seed ${seed}: an automatic step walked into a crow`);
-    assert.deepEqual([s.hog, s.touches, s.curled, s.crows[0].cell], [before.hog, 0, false, ahead]);
+    assert.deepEqual([s.hog, s.touches, s.crows[0].cell], [before.hog, 0, ahead]);
     assert.equal(R.stepHog(s, d).type, 'crow', 'a chosen step into a crow still touches it'); // the child's own step
     crowsTested++;
   }
@@ -368,16 +414,11 @@ test('a wrong letter is a soft bump: nothing moves, nothing is eaten, one mistak
   assert.ok(s.over);
 });
 
-test('a crow: a walk stops in front of it; a step into it curls up and rolls back, the crow flies off, nothing is lost', () => {
+test('a crow: a walk stops in front of it; a step into it makes it flutter off, the hedgehog stays, nothing is lost', () => {
   let tested = 0;
   for (let seed = 1; seed <= SEEDS; seed++) {
-    const s = R.createRound({ mode: 'abc', tier: 't3', seed });
-    // walk a few steps first, so there is a trail to roll back along
-    for (let k = 0; k < 6 && !s.over; k++) {
-      const d = R.pathDirection(s);
-      const e = R.stepHog(s, d);
-      if (e.type === 'crow') R.uncurl(s);
-    }
+    const s = R.createRound({ mode: 'abc', tier: 't3', seed, landscape: seed % 2 === 0 });
+    for (let k = 0; k < 6 && !s.over; k++) R.stepHog(s, R.pathDirection(s));
     if (s.over) continue;
     const d = exits(s.maze, s.hog).find((x) => {
       const c = beside(s.maze, s.hog, x);
@@ -388,49 +429,106 @@ test('a crow: a walk stops in front of it; a step into it curls up and rolls bac
     s.crows[0].cell = crowCell;
     s.crows[0].prev = -1;
     // walking towards it from behind stops in front of it
-    const back = OPPOSITE[d];
-    if (isOpen(s.maze, s.hog, back) && exits(s.maze, s.hog).length === 2) assert.equal(R.continueDir(s, d), null, `seed ${seed}: a walk ran into a crow`);
-    const before = { i: s.i, tiles: JSON.stringify(s.tiles), mistakes: s.mistakes, hog: s.hog, trail: [...s.trail] };
+    if (exits(s.maze, s.hog).length === 2) assert.equal(R.continueDir(s, d), null, `seed ${seed}: a walk ran into a crow`);
+    assert.deepEqual(R.stepHog(s, d, { auto: true }), { type: 'stop' });
+    const before = { i: s.i, tiles: JSON.stringify(s.tiles), mistakes: s.mistakes, hog: s.hog, other: s.crows[1].cell };
     const e = R.stepHog(s, d);
-    assert.equal(e.type, 'crow', `seed ${seed}`);
-    assert.equal(s.curled, true);
-    assert.ok(e.back <= R.ROLLBACK);
-    assert.equal(s.hog, before.trail[before.trail.length - 1 - e.back], `seed ${seed}: rolled back off its own trail`);
+    assert.deepEqual(e, { type: 'crow', crow: 0, from: crowCell, to: s.crows[0].cell }, `seed ${seed}`);
+    assert.equal(s.hog, before.hog, `seed ${seed}: the hedgehog moved (rolled back?)`);
     assert.deepEqual([s.i, JSON.stringify(s.tiles), s.mistakes], [before.i, before.tiles, before.mistakes], `seed ${seed}: a crow cost something`);
+    assert.equal(s.crows[1].cell, before.other, `seed ${seed}: the other crow moved`);
     assert.equal(s.touches, 1);
-    const dist = distances(s.maze, s.hog);
-    assert.notEqual(s.crows[0].cell, crowCell, `seed ${seed}: the crow stayed`);
-    assert.ok(dist[s.crows[0].cell] >= 3, `seed ${seed}: the crow landed ${dist[s.crows[0].cell]} steps away`);
+    const at = s.crows[0].cell;
+    assert.notEqual(at, crowCell, `seed ${seed}: the crow stayed`);
+    if (at >= 0) {
+      const dist = distances(s.maze, s.hog);
+      assert.ok(dist[at] >= 2, `seed ${seed}: the crow landed ${dist[at]} steps away`);
+      // off the hedgehog's way: its crow-free way is as short as without the crow
+      assert.equal(R.freeDistance(s), R.freeDistance(s, [s.crows[1].cell]), `seed ${seed}: the crow landed on the hedgehog's way`);
+    }
     checkBoard(s, `seed ${seed} after a crow`);
-    // curled up: no steps until it uncurls
-    assert.equal(R.stepHog(s, exits(s.maze, s.hog)[0]).type, 'wait');
-    R.uncurl(s);
+    // the hedgehog can walk on at once: the next step is a real one
+    assert.notEqual(R.stepHog(s, d).type, 'wait', `seed ${seed}: the hedgehog has to wait`);
     play(s, `seed ${seed} after a crow`);
-    assert.ok(s.over);
     assert.equal(R.starsFor(s.mistakes), 3, 'a crow cost a star');
     tested++;
   }
   assert.ok(tested >= SEEDS * 0.8, `only ${tested} crow touches tested`);
+  assert.equal(R.ROLLBACK, undefined, 'there is no rolling back any more');
 });
 
-test('crows never trap the hedgehog: never onto it, a tile or each other, and never stuck for long', () => {
+test('a crow on the only way (a new letter landed behind it) flies off at once, the nearest one first', () => {
+  let tested = 0;
   for (let seed = 1; seed <= SEEDS; seed++) {
-    const s = R.createRound({ mode: 'count', tier: 't3', seed });
+    const s = R.createRound({ mode: 'count', tier: 't3', seed, landscape: seed % 2 === 1 });
     s.started = true;
-    const still = s.crows.map(() => 0);
-    for (let k = 0; k < 300; k++) {
-      const before = s.crows.map((c) => c.cell);
-      R.stepCrows(s);
-      checkBoard(s, `seed ${seed} crow step ${k}`);
-      s.crows.forEach((c, j) => {
-        if (c.cell === before[j]) still[j]++;
-        else assert.ok(neighbours(s.maze, before[j]).includes(c.cell), `seed ${seed}: a crow jumped`);
-      });
+    const target = R.targetTile(s);
+    // put crows on the way until there is none
+    const blocked = new Set(s.tiles.filter((t) => t !== target).map((t) => t.cell));
+    const cut = [];
+    for (let k = 0; k < s.crows.length && R.hasFreeWay(s, cut); k++) {
+      const d = firstStep(s.maze, s.hog, target.cell, new Set([...blocked, ...cut]));
+      let c = beside(s.maze, s.hog, d);
+      // one step further along when it can, so it is not next to the hedgehog
+      const d2 = c !== target.cell && firstStep(s.maze, c, target.cell, new Set([...blocked, ...cut]));
+      if (d2 && beside(s.maze, c, d2) !== target.cell) c = beside(s.maze, c, d2);
+      if (c === target.cell) break;
+      cut.push(c);
     }
-    for (const n of still) assert.ok(n < 30, `seed ${seed}: a crow stood still ${n} of 300 steps`);
-    // from where the hedgehog stands, every tile can be reached, crows or not: they are never walls
-    for (const t of s.tiles) assert.ok(R.placementOk(s), `seed ${seed}: ${t.value} cut off`);
+    if (R.hasFreeWay(s, cut)) continue;
+    cut.forEach((c, k) => (s.crows[k].cell = c));
+    const flew = R.keepWay(s);
+    assert.ok(flew.length >= 1, `seed ${seed}: no crow flew`);
+    assert.ok(R.hasFreeWay(s), `seed ${seed}: still no way`);
+    checkBoard(s, `seed ${seed} after keepWay`);
+    for (const k of flew) assert.notEqual(s.crows[k].cell, cut[k], `seed ${seed}: crow ${k} flew to where it was`);
+    // and stepCrows does the same by itself
+    cut.forEach((c, k) => (s.crows[k].cell = c));
+    R.stepCrows(s);
+    assert.ok(R.hasFreeWay(s), `seed ${seed}: the crows' step kept no way`);
+    tested++;
   }
+  assert.ok(tested >= SEEDS * 0.5, `only ${tested} blocked ways tested`);
+});
+
+test('crows never trap the hedgehog: never onto it, next to it, a tile, each other or its way; they only wait when they must', () => {
+  let stood = 0;
+  let steps = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    for (const landscape of [false, true]) {
+      const s = R.createRound({ mode: 'count', tier: 't3', seed, landscape });
+      s.started = true;
+      for (let k = 0; k < 300; k++) {
+        const before = s.crows.map((c) => c.cell);
+        const free = R.freeDistance(s);
+        R.stepCrows(s);
+        const where = `seed ${seed} ${landscape ? 'side' : 'up'} crow step ${k}`;
+        checkBoard(s, where);
+        assert.ok(R.freeDistance(s) <= free, `${where}: a crow made the hedgehog's way longer`);
+        const nearHog = neighbours(s.maze, s.hog);
+        s.crows.forEach((c, j) => {
+          if (c.cell !== before[j]) {
+            assert.ok(neighbours(s.maze, before[j]).includes(c.cell), `${where}: a crow jumped`);
+            assert.ok(!nearHog.includes(c.cell), `${where}: a crow stepped next to the hedgehog`);
+            return;
+          }
+          // it waited: only when every step was onto the hedgehog, next to it, a tile, a crow or its way
+          stood++;
+          const now = s.crows.map((x, i) => (i < j ? x.cell : before[i]));
+          const free = R.freeDistance(s, now);
+          for (const to of neighbours(s.maze, c.cell)) {
+            const after = R.freeDistance(s, now.map((x, i) => (i === j ? to : x)));
+            const ok = to !== s.hog && !nearHog.includes(to) && !R.tileAt(s, to) && !now.includes(to) && after >= 0 && after <= free;
+            assert.ok(!ok, `${where}: crow ${j} waited although it could step to ${to}`);
+          }
+        });
+        steps += s.crows.length;
+      }
+      assert.ok(R.placementOk(s), `seed ${seed}: a tile cut off`);
+    }
+  }
+  // with the hedgehog standing still most crows still find room to walk
+  assert.ok(stood < steps * 0.4, `the crows waited ${stood} of ${steps} steps`);
   // they wait for the hedgehog's first step
   const s = R.createRound({ mode: 'abc', tier: 't3', seed: 1 });
   const at = s.crows.map((c) => c.cell);
