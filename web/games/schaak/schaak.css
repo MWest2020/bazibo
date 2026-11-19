@@ -1,0 +1,248 @@
+/* Schaken: home tile, menu extras, board, hints and the promotion picker. The menu, HUD and turn
+   chips reuse Vier op een rij's classes (games/vier/vier.css); shared look lives in css/style.css. */
+
+/* ---------- home tile ---------- */
+#tile-schaak .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-schaak .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
+
+/* ---------- menu ---------- */
+.schaak-level { position: relative; }
+.schaak-level.locked { color: var(--ink-soft); }
+.schaak-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.schaak-how { margin: 0 4px; font-size: 0.98rem; font-weight: 700; line-height: 1.4; color: var(--ink-soft); max-width: 34em; }
+#screen-schaak-menu .levels-scroll { padding-bottom: 0; }
+
+/* ---------- HUD ---------- */
+#schaak-undo:disabled { opacity: 0.45; }
+#schaak-undo svg { width: 30px; height: 30px; }
+
+/* ---------- board ---------- */
+#schaak-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 2px 4px;
+}
+#schaak-stage.side { flex-direction: row; gap: 12px; padding: 3px 6px; }
+.schaak-board {
+  --cell: 44px;
+  position: relative;
+  flex: none;
+  padding: calc(var(--cell) * 0.1);
+  border-radius: calc(var(--cell) * 0.2);
+  background: #6f5fe6;
+  box-shadow: inset 0 -4px 0 rgba(43, 35, 112, 0.25), 0 6px 0 #c9c1ff, 0 12px 26px rgba(59, 47, 168, 0.22);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.schaak-grid {
+  display: grid;
+  grid-template-columns: repeat(8, var(--cell));
+  grid-template-rows: repeat(8, var(--cell));
+  border-radius: calc(var(--cell) * 0.1);
+  overflow: hidden;
+}
+.ssq {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+.ssq.light { background: #fdf3e1; }
+.ssq.dark { background: #a495ee; }
+.ssq:disabled { cursor: default; }
+.ssq:focus-visible { outline: 4px solid var(--gold); outline-offset: -4px; z-index: 2; }
+.ssq.last.light { background: #ffe7a8; }
+.ssq.last.dark { background: #c7a9e8; }
+.ssq > .pc { position: absolute; inset: 0; display: block; z-index: 1; pointer-events: none; }
+.ssq > .pc > svg.piece { position: absolute; inset: 4%; width: 92%; height: 92%; display: block; transition: opacity 0.14s ease, transform 0.14s ease; }
+.ssq .coord { position: absolute; z-index: 0; font-size: max(9px, calc(var(--cell) * 0.22)); font-weight: 900; line-height: 1; pointer-events: none; }
+.ssq .coord.file { right: 3px; bottom: 2px; }
+.ssq .coord.rank { left: 3px; top: 2px; }
+.ssq.light .coord { color: #9a8de0; }
+.ssq.dark .coord { color: #fdf3e1; }
+.schaak-fly { position: absolute; pointer-events: none; z-index: 4; }
+.schaak-fly > svg.piece { position: absolute; inset: 4%; width: 92%; height: 92%; display: block; filter: drop-shadow(0 5px 3px rgba(43, 35, 112, 0.3)); }
+.schaak-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; }
+.schaak-ghost > svg.piece { width: 100%; height: 100%; display: block; filter: drop-shadow(0 8px 6px rgba(43, 35, 112, 0.35)); }
+
+/* the chosen piece: a golden ring on its square, the piece lifted a little */
+.ssq.sel::after {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  z-index: 0;
+  border-radius: 22%;
+  background: rgba(255, 197, 49, 0.45);
+  box-shadow: inset 0 0 0 calc(var(--cell) * 0.07) #ffc531;
+  pointer-events: none;
+}
+.ssq.sel > .pc > svg.piece { transform: translateY(-6%) scale(1.06); }
+/* where it can go: a round dot on an empty square */
+.ssq.target::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 36%;
+  height: 36%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: calc(var(--cell) * 0.06) solid var(--gold);
+  box-shadow: 0 2px 0 rgba(43, 35, 112, 0.25);
+  animation: schaak-dot 1s ease-in-out infinite;
+  pointer-events: none;
+}
+/* a piece it can capture: a thick ring round the square's corners instead of a dot */
+.ssq.capture::after {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  z-index: 2;
+  border-radius: 50%;
+  border: calc(var(--cell) * 0.09) solid #ff8a3d;
+  box-shadow: 0 0 calc(var(--cell) * 0.12) rgba(255, 138, 61, 0.7);
+  animation: schaak-ring 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.ssq.hover::before { content: ""; position: absolute; inset: 0; z-index: 0; background: rgba(255, 197, 49, 0.55); pointer-events: none; }
+/* the king in check: a soft warm glow under it */
+.ssq.check::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(circle, rgba(255, 92, 92, 0.85) 0%, rgba(255, 120, 120, 0.55) 45%, rgba(255, 150, 150, 0) 75%);
+  animation: schaak-check 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+/* the hint (easy): the two squares of a good move glow green */
+.ssq.hint { box-shadow: inset 0 0 0 calc(var(--cell) * 0.08) #4cc38a; }
+.ssq.hint:not(.sel)::before { content: ""; position: absolute; inset: 0; z-index: 0; background: rgba(76, 195, 138, 0.35); pointer-events: none; }
+.ssq.taken > .pc > svg.piece { opacity: 0; transform: scale(0.6); }
+.ssq.wiggle > .pc > svg.piece { animation: schaak-wiggle 0.4s ease; }
+
+/* ---------- the promotion picker ---------- */
+.schaak-promo {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(43, 35, 112, 0.45);
+}
+.schaak-promo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 12px);
+  padding: 10px 10px 12px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 0 #c9c1ff, 0 14px 30px rgba(43, 35, 112, 0.35);
+}
+.schaak-promo-head { margin: 0; font-size: 1rem; font-weight: 900; color: var(--primary); text-align: center; }
+.schaak-promo-row { display: flex; gap: 6px; }
+.schaak-promo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  min-height: 76px;
+  padding: 4px 2px 6px;
+  border: 0;
+  border-radius: 14px;
+  background: #f1edff;
+  box-shadow: 0 3px 0 #d6cff8;
+  color: var(--primary-dark);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.schaak-promo-btn svg { width: 48px; height: 48px; display: block; }
+.schaak-promo-btn.first { background: #fff3c9; box-shadow: 0 0 0 3px #ffc531, 0 3px 0 #e8b62a; }
+.schaak-promo-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.schaak-promo-cancel { min-height: 44px; padding: 0 18px; font-size: 0.95rem; }
+
+/* ---------- turn chips and the hint button ---------- */
+#schaak-stage.side .vier-side { width: 236px; flex: none; }
+#schaak-stage.side .vier-turn { flex-direction: column; align-self: stretch; }
+#schaak-stage.side .schaak-chip { box-sizing: border-box; width: 100%; }
+#schaak-stage.side .schaak-chip.on, #schaak-stage.side .schaak-chip.winner { transform: none; }
+.schaak-chip .piece { width: 44px; height: 44px; flex: none; }
+.schaak-chip.thinking .piece { animation: vier-think 1s ease-in-out infinite; }
+.schaak-side { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#schaak-hint { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 18px; }
+#schaak-hint[hidden] { display: none; }
+#schaak-hint svg { width: 26px; height: 26px; }
+#schaak-hint:disabled { opacity: 0.45; }
+.ov-art .schaak-ov svg { width: 84px; height: 84px; }
+.ov-art .schaak-ov.won svg { width: 104px; height: 104px; }
+
+/* short sideways phones: the HUD becomes a column on the left */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-schaak { flex-direction: row; }
+  .schaak-hud { flex-direction: column; justify-content: space-between; flex: none; width: 108px; padding: 8px 6px 8px 10px; }
+  .schaak-hud .hud-mid { flex: 0; min-width: 0; text-align: center; }
+  .schaak-hud .hud-level { font-size: 0.8rem; line-height: 1.15; white-space: normal; }
+  .schaak-hud .dogu-title { font-size: 1.05rem; line-height: 1.15; white-space: normal; }
+  .schaak-hud .btn.icon { width: 52px; height: 52px; }
+  #schaak-stage { padding: 3px 6px; }
+  #schaak-stage.side .vier-side { width: 150px; }
+  #schaak-stage.side .vier-turn { gap: 8px; align-self: stretch; }
+  .schaak-chip { gap: 5px; padding: 3px 8px 3px 3px; font-size: 0.85rem; min-width: 0; }
+  .schaak-chip .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .schaak-chip .name .robot { display: none; }
+  .schaak-chip .piece { width: 34px; height: 34px; }
+  .schaak-chip.on, .schaak-chip.winner { transform: none; }
+  .schaak-chip.on .arrow { left: 10px; top: -12px; }
+  #schaak-status { font-size: 0.85rem; }
+  #schaak-hint { padding: 0 12px; }
+  .schaak-promo-btn { width: 54px; min-height: 64px; }
+  .schaak-promo-btn svg { width: 40px; height: 40px; }
+}
+/* phones: both chips fit side by side */
+@media (max-width: 420px) {
+  .schaak-chip { gap: 6px; padding: 4px 10px 4px 4px; font-size: 0.95rem; }
+  .schaak-chip .piece { width: 38px; height: 38px; }
+  .schaak-chip .name .robot { display: none; }
+  #schaak-stage .vier-turn { gap: 10px; }
+}
+@media (max-width: 360px) {
+  .schaak-chip { padding: 4px 8px 4px 4px; font-size: 0.9rem; }
+  .schaak-chip .piece { width: 34px; height: 34px; }
+  .schaak-chip.on, .schaak-chip.winner { transform: none; }
+  #schaak-stage .vier-turn { gap: 8px; }
+  .schaak-promo-btn { width: 56px; }
+}
+@media (max-height: 600px) {
+  .ov-art .schaak-ov svg { width: 60px; height: 60px; }
+  .ov-art .schaak-ov.won svg { width: 72px; height: 72px; }
+}
+
+@keyframes schaak-dot { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.15); } }
+@keyframes schaak-ring { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes schaak-check { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+@keyframes schaak-wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8%); } 75% { transform: translateX(8%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ssq.target::after, .ssq.capture::after, .ssq.check::before, .ssq.wiggle > .pc > svg.piece, .schaak-chip.thinking .piece { animation: none !important; }
+}

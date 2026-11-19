@@ -3292,6 +3292,320 @@ def baghchal_layouts(browser, base, problems):
         ctx.close()
 
 
+# ---------- Schaken ----------
+
+def sk_sq(name):
+    """'e2' -> the square's index (a8 is 0, h1 63), as in rules.js."""
+    return (8 - int(name[1])) * 8 + "abcdefgh".index(name[0])
+
+
+def sk_state(page):
+    return page.evaluate("window.__bubbels.schaak.state()")
+
+
+def sk_wait(page, timeout=20000):
+    """Until no piece is moving and the computer is not thinking."""
+    page.wait_for_function("(() => { const s = window.__bubbels.schaak.state(); return s && (!s.busy || s.over); })()", timeout=timeout)
+
+
+def sk_click(page, name):
+    page.click(f".ssq[data-sq='{name}']")
+
+
+def sk_drag(page, a, b, end=None):
+    """A real mouse drag from square a to square b (or to a point `end`)."""
+    ra = page.locator(f".ssq[data-sq='{a}']").bounding_box()
+    x0, y0 = ra["x"] + ra["width"] / 2, ra["y"] + ra["height"] / 2
+    if end is None:
+        rb = page.locator(f".ssq[data-sq='{b}']").bounding_box()
+        end = (rb["x"] + rb["width"] / 2, rb["y"] + rb["height"] / 2)
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    for k in range(1, 9):
+        page.mouse.move(x0 + (end[0] - x0) * k / 8, y0 + (end[1] - y0) * k / 8)
+    page.mouse.up()
+
+
+def sk_move(page, text, how="tap", promo_kind=None):
+    """Play one move ('e2e4', 'c7c8n') by real input: tap-tap or a drag, and the picker for a promotion."""
+    before = sk_state(page)["history"]
+    a, b = text[:2], text[2:4]
+    if how == "drag":
+        sk_drag(page, a, b)
+    else:
+        if sk_state(page)["sel"] != sk_sq(a):
+            sk_click(page, a)
+        sk_click(page, b)
+    if len(text) == 5:
+        page.wait_for_selector(".schaak-promo")
+        page.click(f".schaak-promo-btn[data-kind='{promo_kind or {'q': 5, 'r': 4, 'b': 3, 'n': 2}[text[4]]}']")
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.schaak.state(); return s.history !== {before} || s.over; }})()", timeout=6000)
+    sk_wait(page)
+
+
+def sk_fits(page, w, h, label, problems):
+    """The board, the chips, the status and the HUD buttons stay on screen; no sideways scroll."""
+    for sel in ("#schaak-board", "#schaak-turn", "#schaak-status", "#schaak-back", "#schaak-undo"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"schaak {label}: {sel} off screen ({r})")
+    for sel in ("#schaak-back", "#schaak-undo") + (("#schaak-hint",) if page.is_visible("#schaak-hint") else ()):
+        r = page.locator(sel).bounding_box()
+        if r and min(r["width"], r["height"]) < 44:
+            problems.append(f"schaak {label}: {sel} only {r['width']:.0f}x{r['height']:.0f}")
+        if r and (r["y"] + r["height"] > h + 0.5 or r["x"] + r["width"] > w + 0.5):
+            problems.append(f"schaak {label}: {sel} off screen ({r})")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"schaak {label}: sideways scroll")
+    board = page.locator("#schaak-board").bounding_box()
+    cell = page.locator(".ssq >> nth=0").bounding_box()["width"]
+    if w < 500 and board["width"] < w - 12:
+        problems.append(f"schaak {label}: the board uses {board['width']:.0f} of {w} px")
+    return cell
+
+
+# a two-player game by real taps and drags: en passant, a promotion (to a knight), castling, mate
+SK_DUO = ["e2e4", "a7a6", "e4e5", "d7d5", "e5d6", "c8d7", "d6c7", "a6a5", "c7c8n", "a8a6", "g1h3", "a5a4",
+          "f1c4", "a6c6", "e1g1", "b7b6", "d1h5", "b6b5", "h5f7"]
+
+
+def schaak_flow(browser, base, problems):
+    """Schaken on the web build: the tile in Bordspellen, medium and hard offer only OK; two players
+    by real taps and drags with en passant, a promotion (the picker, "not yet", then a knight),
+    castling and Scholar's-mate style checkmate (not counted); the glow on a piece's squares, a
+    ring on a capture, a drag dropped off the board that keeps the piece picked up; against easy: a
+    move, the computer's answer, the take-back of both, a move by drag, the hint, back + keep
+    playing, a king in check glowing with only its saving moves, and a mate that is counted."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, reduced_motion="reduce")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-schaak .tile-name").strip() != "Schaken":
+        problems.append(f"schaak: tile says {page.inner_text('#tile-schaak .tile-name')!r}")
+    if not page.evaluate("document.querySelector('#tile-schaak').closest('.tile-group')?.contains(document.querySelector('#tile-dammen'))"):
+        problems.append("schaak: the tile is not in the section with Dammen")
+    page.click("#tile-schaak")
+    page.wait_for_timeout(250)
+    for sel in (".schaak-level[data-level='2']", ".schaak-level[data-level='3']"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"schaak: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "schaak-1-menu.png"), full_page=True)
+
+    # two players
+    page.click(".schaak-opt.mode-duo")
+    page.click("#schaak-play")
+    page.wait_for_timeout(300)
+    sk_fits(page, 390, 844, "390x844", problems)
+    if page.is_visible("#schaak-hint"):
+        problems.append("schaak: the hint button shows in a game together")
+    sk_click(page, "g1")
+    glow = sorted(page.evaluate("[...document.querySelectorAll('.ssq.target')].map((e) => e.dataset.sq)"))
+    if glow != ["f3", "h3"]:
+        problems.append(f"schaak: the knight on g1 shows {glow}")
+    sk_click(page, "e7")  # a black piece is no target: the knight is put down, nothing moves
+    if sk_state(page)["sel"] is not None or sk_state(page)["history"] != 0:
+        problems.append("schaak: a tap on the other side's piece did something")
+    for ply, mv in enumerate(SK_DUO):
+        if mv == "e5d6":
+            sk_click(page, "e5")
+            caps = page.evaluate("[...document.querySelectorAll('.ssq.capture')].map((e) => e.dataset.sq)")
+            if caps != ["d6"]:
+                problems.append(f"schaak: en passant is not shown as a capture on d6: {caps}")
+            page.screenshot(path=str(SHOTS / "schaak-2-en-passant.png"))
+        if mv == "c7c8n":
+            sk_click(page, "c7")
+            sk_click(page, "c8")
+            page.wait_for_selector(".schaak-promo")
+            kinds = page.evaluate("[...document.querySelectorAll('.schaak-promo-btn')].map((e) => Number(e.dataset.kind))")
+            if kinds != [5, 4, 3, 2] or "first" not in (page.get_attribute(".schaak-promo-btn >> nth=0", "class") or ""):
+                problems.append(f"schaak: the promotion picker offers {kinds}")
+            for sel in (".schaak-promo-btn >> nth=0", ".schaak-promo-cancel"):
+                r = page.locator(sel).bounding_box()
+                if min(r["width"], r["height"]) < 44:
+                    problems.append(f"schaak: {sel} in the picker is only {r['width']:.0f}x{r['height']:.0f}")
+            page.screenshot(path=str(SHOTS / "schaak-3-promotion.png"))
+            page.click(".schaak-promo-cancel")  # not yet: the pawn stays picked up
+            page.wait_for_timeout(100)
+            st = sk_state(page)
+            if st["promo"] or st["sel"] != sk_sq("c7") or st["history"] != ply:
+                problems.append(f"schaak: 'not yet' left promo {st['promo']}, sel {st['sel']}")
+            sk_click(page, "c8")
+            page.wait_for_selector(".schaak-promo")
+            before = sk_state(page)["history"]
+            page.click(".schaak-promo-btn[data-kind='2']")
+            page.wait_for_function(f"window.__bubbels.schaak.state().history !== {before}", timeout=5000)
+            sk_wait(page)
+            if sk_state(page)["board"][sk_sq("c8")] != 2:
+                problems.append("schaak: the pawn did not become a knight on c8")
+            continue
+        if mv == "d1h5":
+            # a drag dropped off the board: nothing moves, the queen stays picked up
+            sk_drag(page, "d1", None, end=(195, 40))
+            page.wait_for_timeout(100)
+            st = sk_state(page)
+            if st["history"] != ply or st["sel"] != sk_sq("d1"):
+                problems.append(f"schaak: a drag dropped off the board moved something or dropped the piece ({st['sel']})")
+        sk_move(page, mv, how="drag" if mv in ("g1h3", "f1c4", "a6c6") else "tap")
+        st = sk_state(page)
+        if mv == "e5d6" and st["board"][sk_sq("d5")]:
+            problems.append("schaak: en passant left the pawn on d5")
+        if mv == "e1g1":
+            if st["board"][sk_sq("g1")] != 6 or st["board"][sk_sq("f1")] != 4 or st["board"][sk_sq("h1")]:
+                problems.append("schaak: castling did not put the king on g1 and the rook on f1")
+            page.screenshot(path=str(SHOTS / "schaak-4-castled.png"))
+    st = sk_state(page)
+    if st["over"] != {"winner": 1, "reason": "mate"}:
+        problems.append(f"schaak: the two-player game did not end in mate: {st['over']}")
+    if st["check"] != sk_sq("e8") or page.locator(".ssq.check").count() != 1:
+        problems.append(f"schaak: the mated king does not glow ({st['check']})")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    page.screenshot(path=str(SHOTS / "schaak-5-mate.png"))
+    if page.inner_text("#ov-title").strip() != "Schaakmat! Wit wint!":
+        problems.append(f"schaak: end card says {page.inner_text('#ov-title')!r}")
+    if page.evaluate("(window.__bubbels.save().games.schaak || {}).stars || {}"):
+        problems.append("schaak: a game played together was counted")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+
+    # against easy: a move, the answer, the take-back, a drag, the hint, back + keep playing
+    page.click(".schaak-level[data-level='1']")
+    page.click("#schaak-play")
+    page.wait_for_timeout(300)
+    if not page.is_visible("#schaak-hint"):
+        problems.append("schaak: no hint button against easy")
+    sk_move(page, "e2e4")
+    sk_wait(page)
+    st = sk_state(page)
+    if st["history"] != 2 or st["turn"] != 1:
+        problems.append(f"schaak: after one move against easy: {st['history']} moves, turn {st['turn']}")
+    page.screenshot(path=str(SHOTS / "schaak-6-vs-easy.png"))
+    page.click("#schaak-undo")
+    page.wait_for_timeout(150)
+    st = sk_state(page)
+    if st["history"] != 0 or st["turn"] != 1 or st["board"][sk_sq("e2")] != 1:
+        problems.append(f"schaak: the take-back left {st['history']} moves, turn {st['turn']}")
+    sk_move(page, "d2d4", how="drag")
+    sk_wait(page)
+    if sk_state(page)["history"] != 2:
+        problems.append("schaak: a drag against easy did not play")
+    page.click("#schaak-hint")
+    page.wait_for_timeout(150)
+    st = sk_state(page)
+    if not st["hint"] or page.locator(".ssq.hint").count() != 2 or st["sel"] != st["hint"]["from"]:
+        problems.append(f"schaak: the hint shows {st['hint']} on {page.locator('.ssq.hint').count()} squares")
+    page.screenshot(path=str(SHOTS / "schaak-7-hint.png"))
+    to = st["hint"]["to"]
+    before = st["history"]
+    page.click(f".ssq[data-i='{to}']")
+    if page.is_visible(".schaak-promo"):
+        page.click(".schaak-promo-btn >> nth=0")
+    page.wait_for_function(f"window.__bubbels.schaak.state().history !== {before}", timeout=5000)
+    sk_wait(page)
+    page.evaluate("window.__bubbels.back()")  # the Android back button
+    page.wait_for_timeout(200)
+    if not page.is_visible("#schaak-continue"):
+        problems.append("schaak: the back button did not lead to the menu with 'keep playing'")
+    page.click("#schaak-continue")
+    page.wait_for_timeout(200)
+    if sk_state(page)["history"] != 4:
+        problems.append(f"schaak: keep playing lost moves ({sk_state(page)['history']})")
+
+    # a king in check: it glows, only saving moves count, a piece that cannot help says so
+    page.evaluate("window.__bubbels.schaak.setFen('4k3/8/8/8/8/8/4q3/R3K3 w - - 0 1')")
+    page.wait_for_timeout(150)
+    if sk_state(page)["check"] != sk_sq("e1") or "Schaak" not in page.inner_text("#schaak-status"):
+        problems.append(f"schaak: check shows {sk_state(page)['check']}, status {page.inner_text('#schaak-status')!r}")
+    sk_click(page, "a1")
+    if "schaak" not in page.inner_text("#schaak-status").lower() or sk_state(page)["sel"] is not None:
+        problems.append(f"schaak: a rook that cannot help says {page.inner_text('#schaak-status')!r}")
+    sk_click(page, "e1")
+    if page.evaluate("[...document.querySelectorAll('.ssq.capture')].map((e) => e.dataset.sq)") != ["e2"]:
+        problems.append("schaak: the king in check does not show the capture on e2")
+    page.screenshot(path=str(SHOTS / "schaak-8-check.png"))
+
+    # a mate against easy is counted
+    page.evaluate("window.__bubbels.schaak.setFen('6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1')")
+    page.wait_for_timeout(150)
+    sk_move(page, "a1a8")
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if page.inner_text("#ov-title").strip() != "Schaakmat! Jij wint!":
+        problems.append(f"schaak: the win card says {page.inner_text('#ov-title')!r}")
+    stars = page.evaluate("(window.__bubbels.save().games.schaak || {}).stars || {}")
+    if stars.get("cpu-1") != 1:
+        problems.append(f"schaak: the win was not counted: {stars}")
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+    if "1" not in page.inner_text(".schaak-level[data-level='1']"):
+        problems.append("schaak: the menu does not show the win on Easy")
+    page.evaluate("document.querySelector('#screen-schaak-menu [data-go=home]').click()")
+    if errors:
+        problems.append(f"schaak: page errors {errors[:3]}")
+    ctx.close()
+
+
+def schaak_layouts(browser, base, problems):
+    """Schaken at 320x568, 568x320, 390x844 in English, 844x390 and on desktop: everything on
+    screen, the board as wide as the phone, a near tap reaching a piece where squares are under 44
+    px; in the full version the hard computer thinks in a worker while the page keeps drawing
+    (animations on)."""
+    for w, h, owned in ((320, 568, False), (568, 320, False), (390, 844, False), (844, 390, False), (1280, 800, False), (390, 844, True)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844) and not owned
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}{' en' if english else ''}"
+        if english and page.inner_text("#tile-schaak .tile-name").strip() != "Chess":
+            problems.append(f"schaak {label}: English tile says {page.inner_text('#tile-schaak .tile-name')!r}")
+        page.click("#tile-schaak")
+        page.wait_for_timeout(200)
+        page.screenshot(path=str(SHOTS / f"schaak-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        page.evaluate(f"window.__bubbels.schaak.choose({{ mode: 'cpu', level: {3 if owned else 1} }})")
+        page.click("#schaak-play")
+        page.wait_for_timeout(400)
+        cell = sk_fits(page, w, h, label, problems)
+        print(f"[schaak {label}] square {cell:.0f} px")
+        if english and page.inner_text("#schaak-status").strip() != "Your turn":
+            problems.append(f"schaak {label}: the status says {page.inner_text('#schaak-status')!r}")
+        if cell < 44:
+            # small squares: a tap just over the edge of the e2 pawn's square (on the king) still picks the pawn
+            r = page.locator(".ssq[data-sq='e2']").bounding_box()
+            page.mouse.click(r["x"] + r["width"] / 2, r["y"] + r["height"] + 3)
+            if sk_state(page)["sel"] != sk_sq("e2"):
+                problems.append(f"schaak {label}: a near tap reached {sk_state(page)['sel']}, not the e2 pawn")
+            sk_click(page, "e2")  # put it down
+        if owned:
+            page.evaluate("window.__frames = 0; (function f() { window.__frames++; requestAnimationFrame(f); })()")
+            sk_move(page, "e2e4")
+            sk_wait(page)
+            st = sk_state(page)
+            if st["turn"] != 1 or st["history"] != 2:
+                problems.append(f"schaak {label}: hard did not answer ({st['history']} moves)")
+            if page.evaluate("window.__frames") < 20:
+                problems.append(f"schaak {label}: only {page.evaluate('window.__frames')} frames while the computer thought")
+        else:
+            sk_click(page, "g1")
+        page.screenshot(path=str(SHOTS / f"schaak-{w}x{h}{'-full' if owned else ''}.png"))
+        if errors:
+            problems.append(f"schaak {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 # ---------- Ganzenbord ----------
 
 def gans_state(page):
@@ -3804,6 +4118,7 @@ def offers_others(browser, base, problems):
     for tile, sel, screen in (("vier", ".vier-level[data-level='3']", "vier-menu"),
                               ("dammen", ".dam-opt.board-big", "dammen-menu"),
                               ("baghchal", ".bagh-level[data-level='2']", "baghchal-menu"),
+                              ("schaak", ".schaak-level[data-level='3']", "schaak-menu"),
                               ("ganzen", ".ganzen-boardopt.board-winter", "ganzen-menu"),
                               ("kleuren", "#kleur-list .kleur-card.locked >> nth=0", "kleuren-list"),
                               ("tekenen", "#teken-mirror", "tekenen")):
@@ -6698,6 +7013,8 @@ def main():
             baghchal_flow(browser, base, problems)
             baghchal_back_mid_move(browser, base, problems)
             baghchal_layouts(browser, base, problems)
+            schaak_flow(browser, base, problems)
+            schaak_layouts(browser, base, problems)
             ganzen_flow(browser, base, problems)
             ganzen_layouts(browser, base, problems)
             offers_bubbels(browser, base, problems)
@@ -6727,6 +7044,7 @@ def main():
 
 # the parts that can be run on their own: `uv run --with playwright python tests/smoke.py dammen`
 PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, baghchal_back_mid_move, baghchal_layouts),
+         "schaak": (schaak_flow, schaak_layouts),
          "ganzen": (ganzen_flow, ganzen_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),

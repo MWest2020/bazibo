@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-51b14d4478';
+const VERSION = 'bubbels-922b638c6e';
 const ASSETS = [
   './',
   'index.html',
@@ -93,6 +93,14 @@ const ASSETS = [
   'games/baghchal/meta.js',
   'games/baghchal/rules.js',
   'games/baghchal/strings.js',
+  'games/schaak/ai.js',
+  'games/schaak/ai-worker.js',
+  'games/schaak/art.js',
+  'games/schaak/meta.js',
+  'games/schaak/rules.js',
+  'games/schaak/schaak.css',
+  'games/schaak/schaak.js',
+  'games/schaak/strings.js',
   'games/ganzen/art.js',
   'games/ganzen/board.js',
   'games/ganzen/ganzen.css',

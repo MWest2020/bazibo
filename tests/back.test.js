@@ -53,6 +53,10 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'baghchal', overlay: 'card' }), 'close');
   assert.equal(backAction({ screen: 'baghchal-menu', overlay: 'card' }), 'close'); // the offer for a locked level
   assert.equal(backAction({ screen: 'baghchal', overlay: 'busy' }), 'ignore');
+  assert.equal(backAction({ screen: 'schaak' }), 'schaak-menu'); // the game is kept
+  assert.equal(backAction({ screen: 'schaak-menu' }), 'home');
+  assert.equal(backAction({ screen: 'schaak', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'schaak-menu', overlay: 'card' }), 'close'); // the offer for a locked level
   assert.equal(backAction({ screen: 'ganzen' }), 'ganzen-menu');
   assert.equal(backAction({ screen: 'kwartet' }), 'kwartet-menu');
   assert.equal(backAction({ screen: 'kwartet-menu' }), 'home');
