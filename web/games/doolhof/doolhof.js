@@ -574,6 +574,9 @@ export function createDoolhof(shell) {
       game.flights = game.flights.filter((f) => f.k !== k);
       game.flights.push({ k, from, to: c.cell, t: 0 });
       game.prevCrows[k] = c.cell;
+      // the crows' next walking step waits for the landing (CROW_MS is longer than FLY_S), so a
+      // landing crow never hops on a cell straight away
+      game.crowAcc = 0;
     });
   }
 

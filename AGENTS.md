@@ -229,14 +229,18 @@ Egeltje (id `doolhof`): a garden maze. The maze in `web/games/doolhof/maze.js`, 
 steps and crows in `rules.js` (both pure, tested: every garden one piece without dead ends, every
 board keeps every letter reachable without walking over another after every step (`placementOk`),
 200 seeds per kind, tier, language and orientation played to the end with the crows walking by a
-greedy child and by a cautious one that never steps into a crow, each within a step budget, the
+greedy child, a cautious one that never steps into a crow and one that keeps to the short way and
+turns back to it after a detour, each within a step budget, the
 wrong-letter and crow rules, crows never onto the hedgehog, next to it, a tile or each other).
 There must always be a way for the hedgehog (Mark, 19 Nov 2026): after every step there is a way to
 the right tile that no crow stands on (`hasFreeWay`, checked on every step of every tested round).
 A crow never takes a step that makes that way longer or cuts it (`freeDistance`) and never steps
-next to the hedgehog; when a new letter lands behind a crow, the nearest blocking crow flies off at
-once (`keepWay`); a garden with no room left for a crow off the way sends it out of the garden for
-a while (`cell` -1) until there is. It must never
+next to the hedgehog; a crow that has stood still `STILL_FLY` crow steps on the hedgehog's short
+way (crows ignored) or next to it flies off; when a new letter lands behind a crow, the nearest
+blocking crow flies off at once (`keepWay`); a garden with no room left for a crow off the way
+sends it out of the garden for a while (`cell` -1, tested) until there is. A crow lands off both
+ways. The controller restarts the crows' step clock when a flight starts, so a crow never walks
+during its flight or hops on as it lands. It must never
 look or sound like Pac-Man (Mark, 18 Nov 2026): no Pac-like name, no yellow round chomping figure,
 no ghosts, no waka or arcade sounds, no classic maze layout. It stays calm: no dying, no game over,
 no timer. Only a step the child chooses can bump or touch: a walk going on by itself (round a bend,
