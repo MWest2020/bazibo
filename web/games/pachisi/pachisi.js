@@ -111,6 +111,62 @@ export function placeOf(seats, k, pos) {
   return { x: colOf(cell) + 0.5, y: rowOf(cell) + 0.5 };
 }
 
+/**
+ * What can be tapped on the board now, in cell units: the selected pawn's target first, then every
+ * pawn that can move, each where pawnSpots draws it (two pawns on one square sit side by side, so
+ * each can be tapped). `sel`: the selected move's `from`, or null.
+ */
+export function buildHits(g, shown, sel) {
+  const k = g.turn;
+  const moves = legalMoves(g);
+  const spots = pawnSpots(g.seats, shown);
+  const out = [];
+  const chosen = sel === null || sel === undefined ? null : moves.find((m) => m.from === sel);
+  if (chosen) {
+    const pl = placeOf(g.seats, k, chosen.to);
+    out.push({ kind: 'target', from: chosen.from, to: chosen.to, x: pl.x, y: pl.y });
+  }
+  for (const m of moves) {
+    g.pawns[k].forEach((pos, i) => {
+      if (pos === m.from) out.push({ kind: 'pawn', from: m.from, pawn: i, x: spots[k][i].x, y: spots[k][i].y });
+    });
+  }
+  return out;
+}
+
+/**
+ * The hit a tap at (x, y) (cell units) goes to: the nearest one within its round area of `MIN_HIT`
+ * px or more (`cell`: px per square), or null. The glowing target wins over a pawn that stands on
+ * or right next to it (within half a square more), so a pawn can always walk onto its own pawn.
+ */
+export function pickHit(hits, x, y, cell) {
+  const reach = (Math.max(MIN_HIT, cell * 1.8) * 0.62) / cell;
+  let best = null;
+  let bestD = Infinity;
+  for (const h of hits) {
+    const d = Math.hypot(h.x - x, h.y - y);
+    if (d < bestD) {
+      bestD = d;
+      best = h;
+    }
+  }
+  if (!best || bestD > reach) return null;
+  const target = hits.find((h) => h.kind === 'target');
+  if (target && best !== target) {
+    const dT = Math.hypot(target.x - x, target.y - y);
+    if (dT <= reach && dT <= bestD + 0.5) return target;
+  }
+  return best;
+}
+
+/**
+ * A tap on a pawn that is selected already, with another movable pawn drawn right beside it on the
+ * same square (a tiny phone square): the other one, so a second tap switches. Else null.
+ */
+export function otherOnSquare(hits, h) {
+  return hits.find((o) => o.kind === 'pawn' && o.from !== h.from && Math.hypot(o.x - h.x, o.y - h.y) < 0.75) || null;
+}
+
 export function createPachisi(shell) {
   const { t, tap } = shell;
   const $ = (sel) => document.querySelector(sel);
@@ -683,9 +739,12 @@ export function createPachisi(shell) {
       for (const m of moves) {
         const sameSpot = g.pawns[k].map((pos, i) => (pos === m.from ? i : -1)).filter((i) => i >= 0);
         for (const i of sameSpot) pawnEls[k][i].classList.add(m.from === game.sel ? 'sel' : 'can');
-        if (human) {
-          const pl = placeOf(g.seats, k, m.from);
-          hits.push({ kind: 'pawn', from: m.from, x: pl.x, y: pl.y, label: m.from === 0 ? t('pachisi.hitStart', { name: nameOf(k) }) : t('pachisi.hitPawn', { name: nameOf(k), left: HOME - m.from }) });
+      }
+      if (human) {
+        hits = buildHits(g, game.shown, game.sel);
+        for (const h of hits) {
+          if (h.kind === 'target') h.label = h.to >= HOME ? t('pachisi.hitHome') : t('pachisi.hitTarget', { n: h.to - h.from });
+          else h.label = h.from === 0 ? t('pachisi.hitStart', { name: nameOf(k) }) : t('pachisi.hitPawn', { name: nameOf(k), left: HOME - h.from });
         }
       }
     }
@@ -705,7 +764,6 @@ export function createPachisi(shell) {
       glow.style.left = `${pl.x * cell}px`;
       glow.style.top = `${pl.y * cell}px`;
       marks.appendChild(glow);
-      if (human) hits.push({ kind: 'target', from: sel.from, x: pl.x, y: pl.y, label: sel.to >= HOME ? t('pachisi.hitHome') : t('pachisi.hitTarget', { n: sel.to - sel.from }) });
     }
     const size = Math.max(MIN_HIT, cell * 1.8);
     for (const h of hits) {
@@ -725,17 +783,8 @@ export function createPachisi(shell) {
 
   /** A tap on the board at (x, y) px from its corner: the nearest thing that can be tapped, within its area. */
   function tapAt(x, y) {
-    const size = Math.max(MIN_HIT, cell * 1.8);
-    let best = null;
-    let bestD = Infinity;
-    for (const h of hits) {
-      const d = Math.hypot(h.x * cell - x, h.y * cell - y);
-      if (d < bestD) {
-        bestD = d;
-        best = h;
-      }
-    }
-    if (best && bestD <= size * 0.62) pick(best);
+    const best = pickHit(hits, x / cell, y / cell, cell);
+    if (best) pick(best);
     else if (game?.phase === 'move' && !isCpu(game.g.turn)) blockedHint(x / cell, y / cell);
   }
 
@@ -754,8 +803,10 @@ export function createPachisi(shell) {
   function pick(h) {
     if (!game || game.phase !== 'move' || isCpu(game.g.turn)) return;
     if (h.kind === 'pawn') {
-      if (game.sel !== h.from) {
-        game.sel = h.from;
+      // tapped the selected pawn again with another one beside it on the same square: switch
+      const pickFrom = game.sel === h.from ? otherOnSquare(hits, h)?.from ?? h.from : h.from;
+      if (game.sel !== pickFrom) {
+        game.sel = pickFrom;
         sfx.tick();
         game.msg = '';
         renderMarks();
@@ -1074,7 +1125,7 @@ export function createPachisi(shell) {
                 counted: [...game.counted],
                 sel: game.sel,
                 moves: game.phase === 'move' ? legalMoves(game.g).map((m) => ({ ...m, captures: m.captures.slice() })) : [],
-                hits: hits.map((h) => ({ kind: h.kind, from: h.from, x: h.x * cell, y: h.y * cell })),
+                hits: hits.map((h) => ({ kind: h.kind, from: h.from, pawn: h.pawn ?? -1, x: h.x * cell, y: h.y * cell })),
                 winner: game.g.winner,
                 over: game.over,
                 throws: game.g.throws,

@@ -3566,14 +3566,23 @@ def pa_wait(page, timeout=20000):
     )
 
 
-def pa_hit(page, kind, frm=None):
-    """A real tap on the board where a pawn (or the target) can be tapped, by its centre."""
+def pa_hit(page, kind, frm=None, pawn=None):
+    """A real tap where the thing is drawn: on the pawn (its picture, not a hit centre) or on the
+    glowing target."""
     st = pa_state(page)
-    h = next((h for h in st["hits"] if h["kind"] == kind and (frm is None or h["from"] == frm)), None)
-    if not h:
-        raise AssertionError(f"pachisi: nothing to tap for {kind} {frm}: {st['hits']}")
-    box = page.locator("#pachisi-board").bounding_box()
-    page.mouse.click(box["x"] + h["x"], box["y"] + h["y"])
+    if kind == "target":
+        box = page.locator("#pachisi-board .pp-target").bounding_box()
+        if not box:
+            raise AssertionError(f"pachisi: no glowing target: {st['hits']}")
+        page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        return
+    k = st["turn"]
+    if pawn is None:
+        pawn = next((i for i, pos in enumerate(st["pawns"][k]) if pos == frm), None)
+    if pawn is None:
+        raise AssertionError(f"pachisi: no pawn on {frm}: {st['pawns'][k]}")
+    box = page.locator(f"#pachisi-board .ppawn[data-player='{k}'][data-pawn='{pawn}']").bounding_box()
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.62)
 
 
 def pa_count(page, problems=None, wrong=False):
@@ -3705,6 +3714,38 @@ def pachisi_flow(browser, base, problems):
     st = pa_state(page)
     if st["pawns"][1][0] != 0:
         problems.append(f"pachisi: the capture after the take-back left {st['pawns']}")
+    # a pawn walks onto its own pawn: the glowing target wins over the pawn standing there
+    page.evaluate("window.__bubbels.pachisi.setGame([[10, 13, 0, 0], [0, 0, 0, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, true, true, false, false, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+    pa_count(page)
+    pa_wait(page)
+    pa_hit(page, "pawn", 10)
+    page.wait_for_timeout(80)
+    if pa_state(page)["sel"] != 10:
+        problems.append(f"pachisi: a tap on the pawn on 10 picked {pa_state(page)['sel']}")
+    pa_hit(page, "target")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'roll'", timeout=6000)
+    if pa_state(page)["pawns"][0][:2] != [13, 13]:
+        problems.append(f"pachisi: the pawn on 10 did not walk onto its own pawn on 13: {pa_state(page)['pawns'][0]}")
+    # two pawns on one square (8 on the way out, 76 on the way home): a tap on each picks that one
+    page.evaluate("window.__bubbels.pachisi.setGame([[8, 76, 0, 0], [0, 0, 0, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, true, false, false, false, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+    pa_count(page)
+    pa_wait(page)
+    for pawn, frm in ((1, 76), (0, 8), (1, 76)):
+        pa_hit(page, "pawn", pawn=pawn)
+        page.wait_for_timeout(80)
+        if pa_state(page)["sel"] != frm:
+            problems.append(f"pachisi: a tap on the drawn pawn {pawn} (on {frm}) picked {pa_state(page)['sel']}")
+    page.screenshot(path=str(SHOTS / "pachisi-4b-shared-square.png"))
+    pa_hit(page, "target")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'roll'", timeout=6000)
+    if pa_state(page)["pawns"][0][:2] != [8, 78]:
+        problems.append(f"pachisi: the pawn on 76 did not walk on: {pa_state(page)['pawns'][0]}")
     if page.evaluate("(window.__bubbels.save().games.pachisi || {}).stars || {}"):
         problems.append("pachisi: a game together was counted")
     page.click("#pachisi-back")

@@ -7,7 +7,7 @@ import {
 } from '../web/games/pachisi/rules.js';
 import { chooseMove, sensibleMove, scoreMove, danger, EASY_CAPTURE } from '../web/games/pachisi/ai.js';
 import { meta } from '../web/games/pachisi/meta.js';
-import { winKey, cleanSetup, pawnSpots, placeOf, DEFAULT_SETUP, MIN_HIT } from '../web/games/pachisi/pachisi.js';
+import { winKey, cleanSetup, pawnSpots, placeOf, buildHits, pickHit, otherOnSquare, DEFAULT_SETUP, MIN_HIT } from '../web/games/pachisi/pachisi.js';
 
 /** Six shells with `open` of them mouth up. */
 const shells = (open) => Array.from({ length: SHELLS }, (_, i) => i < open);
@@ -401,4 +401,51 @@ test('pawn spots: on their square, in the Charkoni in front of their own arm, an
   assert.equal(new Set(all).size, all.length);
   assert.deepEqual(placeOf(seats, 0, HOME), { x: 9.5, y: 9.5 });
   assert.ok(MIN_HIT >= 44);
+});
+
+test('taps: the selected pawn\'s glowing target wins over an own pawn standing on it', () => {
+  const g = at([[10, 13, 0, 0], [0, 0, 0, 0]], 3);
+  for (const cell of [12, 16, 20, 37]) {
+    const hits = buildHits(g, g.pawns, 10);
+    const target = hits.find((h) => h.kind === 'target');
+    assert.equal(target.to, 13);
+    const on13 = hits.find((h) => h.kind === 'pawn' && h.from === 13);
+    assert.ok(Math.hypot(on13.x - target.x, on13.y - target.y) < 0.01, 'the pawn on 13 stands on the target');
+    // a tap on the target (or on the pawn drawn there) walks, never picks the other pawn
+    for (const [dx, dy] of [[0, 0], [0.2, -0.2], [-0.3, 0.1]]) assert.equal(pickHit(hits, target.x + dx, target.y + dy, cell).kind, 'target', `cell ${cell}`);
+    // a tap on the pawn on 10 still picks that pawn
+    const on10 = hits.find((h) => h.kind === 'pawn' && h.from === 10);
+    assert.equal(pickHit(hits, on10.x, on10.y, cell).from, 10);
+    // nothing selected yet: a tap on 13 picks the pawn on 13
+    assert.equal(pickHit(buildHits(g, g.pawns, null), on13.x, on13.y, cell).from, 13);
+  }
+});
+
+test('taps: two pawns on one square (8 and 76) are drawn apart and each tap picks the one drawn there', () => {
+  const g = at([[8, 76, 0, 0], [0, 0, 0, 0]], 2);
+  assert.equal(PATHS[0][8], PATHS[0][76]);
+  const spots = pawnSpots(g.seats, g.pawns);
+  for (const sel of [null, 8, 76]) {
+    const hits = buildHits(g, g.pawns, sel);
+    for (const cell of [12, 20, 37]) {
+      assert.equal(pickHit(hits, spots[0][0].x, spots[0][0].y, cell).from, 8);
+      assert.equal(pickHit(hits, spots[0][1].x, spots[0][1].y, cell).from, 76);
+    }
+  }
+  // a second tap on the selected one switches to the other on the same square
+  const hits = buildHits(g, g.pawns, 8);
+  assert.equal(otherOnSquare(hits, hits.find((h) => h.kind === 'pawn' && h.from === 8)).from, 76);
+  // far from everything: nothing
+  assert.equal(pickHit(hits, 1, 1, 20), null);
+});
+
+test('taps: every hit area is round and 44 px or more, every movable pawn has one', () => {
+  const g = at([[0, 0, 30, 60], [0, 0, 0, 0]], 4);
+  const hits = buildHits(g, g.pawns, 30);
+  assert.equal(hits.filter((h) => h.kind === 'pawn').length, 4);
+  assert.equal(hits.filter((h) => h.kind === 'target').length, 1);
+  // at 12 px squares a tap 18 px (1.5 squares) from a lone pawn still reaches it
+  const lone = hits.find((h) => h.from === 60);
+  assert.equal(pickHit(hits, lone.x + 1.5, lone.y, 12)?.from, 60);
+  assert.ok(MIN_HIT * 0.62 >= 27);
 });

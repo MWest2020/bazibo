@@ -192,8 +192,11 @@ the middle and starts again, nothing is beaten; no timers, no voice. "Zelf telle
 the open shells one by one (a closed one only wiggles), then the steps show; a tap on a glowing
 pawn makes its target square glow with dots on the way, a tap there walks it with the count on
 every square; with one possible move it is picked already. The squares are small on a phone (12-20
-px), so taps go to the nearest thing that can be tapped now (`hits`, invisible buttons of
-`MIN_HIT` 44 px or more for the keyboard and screen readers). The computer in `ai.js` (pure, seeded
+px), so taps go to the nearest thing that can be tapped now (`buildHits`/`pickHit`, pure and tested:
+each movable pawn where `pawnSpots` draws it, so two pawns on one square are two hits; the selected
+pawn's glowing target wins over a pawn standing on it; a second tap on the selected pawn switches to
+one beside it on the same square; invisible buttons of `MIN_HIT` 44 px or more for the keyboard and
+screen readers). The smoke test taps where a pawn is drawn, never a hit centre. The computer in `ai.js` (pure, seeded
 in the tests: only legal moves; easy picks at random and takes a capture only now and then, so a
 sensible child wins at least 3 in 4 games with 4 pawns; medium weighs captures, home, castles and
 danger and beats easy in at least 80 of 100). Take-back: the child's last move with the same throw.
