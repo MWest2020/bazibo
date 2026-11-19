@@ -12,9 +12,11 @@
 // counters in `stars` ('cpu-<level>'), and the last menu choice ('setup': { mode, level }). Games
 // played together are not counted.
 //
-// Small squares: on a 320 px phone a square is under 44 px, so a tap goes to the nearest square
-// that can be tapped right now (a piece that can move, or a glowing square) when it is within a
-// finger (TOUCH_REACH) of it; a tap right on another square is that square.
+// Small squares: on a 320 px phone a square is under 44 px. A tap inside a square always means that
+// square once a piece is picked up (a glowing square plays, anything else puts the piece down), so a
+// tap never plays a move by snapping to a neighbour. Only picking a piece up snaps: with nothing
+// picked up, a tap within a finger (TOUCH_REACH) of a piece that can move picks it up; and a tap
+// between the squares (on the frame) goes to the nearest tappable square within reach (resolveTap).
 import { meta } from './meta.js';
 import {
   WHITE, BLACK, KING, FLAG_EP, FLAG_CASTLE_K, FLAG_CASTLE_Q, PROMOTIONS,
@@ -38,6 +40,21 @@ const STEP_MS = 260;
 const DRAG_START = 8; // px a finger moves before a press becomes a drag
 export const TOUCH_REACH = 26; // px from a square's centre: a finger's reach for small squares
 const KID = WHITE; // against the computer the child plays white (and starts)
+
+/**
+ * Which square a tap or a drop means (pure). `hit`: the square the point is inside (-1: none, e.g.
+ * the frame); `picked`: a piece is picked up; `cands`: the squares that can be tapped now (pieces
+ * that can move, and with a piece picked up its targets); `near`: the nearest of those with its
+ * distance { i, d } (or null); `own`: the hit square holds a piece of the side to move.
+ * A square that was hit means that square, except that with nothing picked up a tap on an empty or
+ * immovable spot within reach of a movable piece picks that piece up (never a move).
+ */
+export function resolveTap({ hit, picked, cands, near, reach, own = false }) {
+  const inReach = !!near && near.d <= reach;
+  if (hit < 0) return inReach ? near.i : -1;
+  if (picked || cands.includes(hit) || own) return hit;
+  return inReach ? near.i : hit;
+}
 
 /** The counter key for a result. */
 export const winKey = (setup) => `cpu-${setup.level}`;
@@ -554,7 +571,6 @@ export function createSchaak(shell) {
     const hitEl = document.elementFromPoint(x, y)?.closest?.('.ssq');
     const hit = hitEl ? Number(hitEl.dataset.i) : -1;
     const cands = tappable();
-    if (hit >= 0 && cands.includes(hit)) return hit;
     let best = -1;
     let bestD = Infinity;
     let cell = 44;
@@ -567,11 +583,11 @@ export function createSchaak(shell) {
         best = i;
       }
     }
-    if (best >= 0 && bestD <= Math.max(cell / 2, TOUCH_REACH)) return best;
-    return hit;
+    const v = hit >= 0 ? game.g.pos.board[hit] : 0;
+    return resolveTap({ hit, picked: sel !== null, cands, near: best >= 0 ? { i: best, d: bestD } : null, reach: Math.max(cell / 2, TOUCH_REACH), own: !!v && colorOf(v) === game.g.pos.turn });
   }
 
-  /** The square at a point (for a drop): under the finger, or the nearest target within reach. */
+  /** The square at a point (for a drop): the square under the finger; off the board, the nearest target within reach. */
   function dropAt(x, y, from) {
     const grid = board.querySelector('.schaak-grid')?.getBoundingClientRect();
     if (!grid) return -1;
@@ -580,17 +596,12 @@ export function createSchaak(shell) {
     const r = Math.floor((y - grid.top) / cell);
     const under = r >= 0 && r < 8 && c >= 0 && c < 8 ? r * 8 + c : -1;
     const tos = targetsFrom(legal(), from).map((tg) => tg.to);
-    if (tos.includes(under)) return under;
-    let best = under;
-    let bestD = Infinity;
+    let near = null;
     for (const i of tos) {
       const d = Math.hypot(grid.left + ((i & 7) + 0.5) * cell - x, grid.top + ((i >> 3) + 0.5) * cell - y);
-      if (d < bestD) {
-        bestD = d;
-        if (d <= Math.max(cell / 2, TOUCH_REACH)) best = i;
-      }
+      if (!near || d < near.d) near = { i, d };
     }
-    return best;
+    return resolveTap({ hit: under, picked: true, cands: tos, near, reach: Math.max(cell / 2, TOUCH_REACH) });
   }
 
   board.addEventListener('pointerdown', (e) => {

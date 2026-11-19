@@ -172,8 +172,9 @@ one and never leave the queen hanging, a simple greedy player beats easy in most
 ends); medium and hard search with a node budget and `THINK_MS` in `ai-worker.js` through Dammen's
 `think.js` (a FEN and the repetition keys go in), on the page with `PAGE_NODES` when a worker cannot
 start. Only legal targets glow (a dot, a ring for a capture, en passant too); a promotion asks with
-the queen first; a tap goes to the nearest tappable square within `TOUCH_REACH` (squares are 38 px
-at 320). The pieces in `art.js` keep the classic shapes (children learn the real pieces); no clocks.
+the queen first. Squares are 38 px at 320: with a piece picked up a tap inside a square is that
+square (never a snap to a neighbouring target, so no accidental move); only picking a piece up, or
+a tap on the frame, snaps within `TOUCH_REACH` (`resolveTap`, tested). The pieces in `art.js` keep the classic shapes (children learn the real pieces); no clocks.
 Free: together and easy with its hint (`meta.freeLevels`); the full version adds medium and hard.
 Saved: wins per level (`cpu-<level>`) and the last setup.
 Ganzenbord: rules in `web/games/ganzen/rules.js` (pure, tested with a seeded die: every special

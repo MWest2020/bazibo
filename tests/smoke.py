@@ -3583,12 +3583,20 @@ def schaak_layouts(browser, base, problems):
         if english and page.inner_text("#schaak-status").strip() != "Your turn":
             problems.append(f"schaak {label}: the status says {page.inner_text('#schaak-status')!r}")
         if cell < 44:
-            # small squares: a tap just over the edge of the e2 pawn's square (on the king) still picks the pawn
+            # small squares: a tap just over the edge of the e2 pawn's square (on the empty e3) still picks the pawn up
             r = page.locator(".ssq[data-sq='e2']").bounding_box()
-            page.mouse.click(r["x"] + r["width"] / 2, r["y"] + r["height"] + 3)
+            page.mouse.click(r["x"] + r["width"] / 2, r["y"] - 3)
             if sk_state(page)["sel"] != sk_sq("e2"):
                 problems.append(f"schaak {label}: a near tap reached {sk_state(page)['sel']}, not the e2 pawn")
             sk_click(page, "e2")  # put it down
+        # a piece picked up: a tap inside the empty g3, right next to the glowing f3, plays nothing
+        sk_click(page, "g1")
+        r = page.locator(".ssq[data-sq='g3']").bounding_box()
+        page.mouse.click(r["x"] + 3, r["y"] + r["height"] / 2)
+        page.wait_for_timeout(150)
+        st = sk_state(page)
+        if st["history"] != 0 or st["sel"] is not None:
+            problems.append(f"schaak {label}: a tap on g3 next to a target played or kept the knight ({st['history']} moves, sel {st['sel']})")
         if owned:
             page.evaluate("window.__frames = 0; (function f() { window.__frames++; requestAnimationFrame(f); })()")
             sk_move(page, "e2e4")

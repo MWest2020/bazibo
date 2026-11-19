@@ -230,7 +230,8 @@ screens in `schaak.js`).
   material to mate. The move generator is checked with perft against the known numbers.
 - Tap a piece and only its legal squares glow (a dot, or a ring for a capture), then tap one or
   drag the piece; an illegal try simply does not happen. A king in check glows softly. On a 320 px
-  phone the squares are 38 px, so a tap goes to the nearest tappable square within a finger.
+  phone the squares are 38 px: a tap near a piece picks it up, but with a piece picked up a tap
+  inside a square always means that square, so a move never happens by accident.
 - Together on one screen, or against the computer as white: easy (free, with a hint button) plays
   mostly at random and takes a free piece now and then; medium and hard (full version) search
   with alpha-beta, 2 and up to 6 moves deep with captures after that, within a budget of positions

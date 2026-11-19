@@ -8,7 +8,7 @@ import {
 } from '../web/games/schaak/rules.js';
 import { chooseMove, hintMove, evaluate, mulberry32, freeCaptures, VALUE, THINK_MS, EASY_TAKE } from '../web/games/schaak/ai.js';
 import { meta } from '../web/games/schaak/meta.js';
-import { winKey, targetsFrom, movesTo, TOUCH_REACH } from '../web/games/schaak/schaak.js';
+import { winKey, targetsFrom, movesTo, resolveTap, TOUCH_REACH } from '../web/games/schaak/schaak.js';
 
 const sq = squareOf;
 const from = (fen) => fromFen(fen);
@@ -494,6 +494,24 @@ test('targetsFrom and movesTo: a promotion is one target with four moves, the qu
   assert.deepEqual(movesTo(moves, sq('e1'), sq('e2')).length, 1);
   assert.deepEqual(movesTo(moves, sq('e1'), sq('a1')), []);
   assert.ok(TOUCH_REACH >= 22);
+});
+
+test('resolveTap: with a piece picked up, a tap inside a square means that square, never a neighbouring target', () => {
+  const reach = TOUCH_REACH;
+  // the knight on g1 picked up (f3 and h3 glow); a tap on the empty g3 right next to f3: no move, the piece is put down
+  const cands = [sq('f3'), sq('h3'), sq('e2'), sq('g1')];
+  assert.equal(resolveTap({ hit: sq('g3'), picked: true, cands, near: { i: sq('f3'), d: 22 }, reach }), sq('g3'));
+  assert.ok(!targetsFrom(legalMoves(from(START_FEN)), sq('g1')).some((x) => x.to === sq('g3')));
+  // a glowing square that is hit plays it
+  assert.equal(resolveTap({ hit: sq('f3'), picked: true, cands, near: { i: sq('f3'), d: 5 }, reach }), sq('f3'));
+  // between the squares (on the frame) a target within reach still counts; out of reach nothing
+  assert.equal(resolveTap({ hit: -1, picked: true, cands, near: { i: sq('f3'), d: 20 }, reach }), sq('f3'));
+  assert.equal(resolveTap({ hit: -1, picked: true, cands, near: { i: sq('f3'), d: 40 }, reach }), -1);
+  // nothing picked up: a tap just over the edge of a movable piece picks it up (no move can happen)
+  assert.equal(resolveTap({ hit: sq('e1'), picked: false, cands: [sq('e2')], near: { i: sq('e2'), d: 22 }, reach }), sq('e2'));
+  // ... but a tap on the side's own piece is that piece (for its message), and far taps stay where they are
+  assert.equal(resolveTap({ hit: sq('e1'), picked: false, cands: [sq('e2')], near: { i: sq('e2'), d: 22 }, reach: 26, own: true }), sq('e1'));
+  assert.equal(resolveTap({ hit: sq('e4'), picked: false, cands: [sq('e2')], near: { i: sq('e2'), d: 76 }, reach }), sq('e4'));
 });
 
 test('free: together and easy; locked: medium and hard', () => {
