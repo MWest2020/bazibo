@@ -1,4 +1,5 @@
-// Drumstel: a colourful drum kit with 8 pads (kick, snare, hi-hat, three toms, crash and ride).
+// Drumstel: a colourful drum kit with 8 pads (kick, snare, hi-hat, three toms, crash and ride),
+// standing like a real kit (kitLayout in kit.js, the stands from standsSvg in art.js).
 //   Vrij spelen   every pad sounds; two fingers hit two pads at once
 //   Ritmes        play along: after a count-in ("1 2 3 4") the next pad glows on its beat. For 4-6 the
 //                 rhythm waits for the child (only the order counts); for 7-10 it runs on and a step
@@ -10,8 +11,8 @@
 //
 // Saved (games.drums): stars per rhythm played to the end (`stars`, only ever raised).
 import { meta } from './meta.js';
-import { PADS, LEVELS, RHYTHMS, SHAPES, kitShape, rhythmById, levelOf, schedule, beatMs, createRun, starsFor, timedStars, COUNT_IN, KEYBOARD_MAP } from './kit.js';
-import { padSvg, padGlyph, cardSvg } from './art.js';
+import { PADS, LEVELS, RHYTHMS, kitLayout, rhythmById, levelOf, schedule, beatMs, createRun, starsFor, timedStars, COUNT_IN, KEYBOARD_MAP } from './kit.js';
+import { padSvg, padGlyph, cardSvg, standsSvg } from './art.js';
 import * as sound from './sound.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
@@ -50,14 +51,18 @@ export function createDrums(shell) {
 
   const stage = $('#drums-stage');
   const kitEl = $('#drums-kit');
+  let standsEl = null;
   function buildKit() {
     kitEl.textContent = '';
+    standsEl = document.createElement('div');
+    standsEl.className = 'drums-stands';
+    standsEl.setAttribute('aria-hidden', 'true');
+    kitEl.appendChild(standsEl);
     for (const p of PADS) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = `dpad ${p.kind}`;
       b.dataset.pad = p.id;
-      b.style.gridArea = p.id;
       b.innerHTML = `<span class="dpad-face">${padSvg(p.id)}<span class="dpad-ring" aria-hidden="true"></span></span>`;
       // pointers are handled on the whole kit (below); a click from a screen reader or the keyboard
       // (Enter, Space) comes with detail 0 and hits the pad too
@@ -77,21 +82,21 @@ export function createDrums(shell) {
     for (const p of PADS) padEls[p.id].setAttribute('aria-label', t(`drums.pad.${p.id}`));
   }
 
-  /** Four across on a wide stage, two across on a tall one; the drawn drum fits its cell. */
+  /**
+   * The kit like a real one (kitLayout in kit.js): every pad placed in the kit's box, its drawing
+   * filling it, the stands and the rug behind. A box too small for the kit gets the plain grid.
+   */
   function layout() {
-    const r = stage.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const name = kitShape(r.width, r.height);
-    const shape = SHAPES[name];
-    kitEl.dataset.shape = name;
-    kitEl.style.gridTemplateColumns = `repeat(${shape.cols}, minmax(0, 1fr))`;
-    kitEl.style.gridTemplateRows = `repeat(${shape.rows}, minmax(0, 1fr))`;
-    kitEl.style.gridTemplateAreas = shape.areas.map((row) => `"${row.join(' ')}"`).join(' ');
     const k = kitEl.getBoundingClientRect();
-    const gap = parseFloat(getComputedStyle(kitEl).rowGap) || 0;
-    const cw = (k.width - gap * (shape.cols - 1)) / shape.cols;
-    const ch = (k.height - gap * (shape.rows - 1)) / shape.rows;
-    kitEl.style.setProperty('--cell', `${Math.max(0, Math.floor(Math.min(cw, ch)))}px`);
+    if (!k.width || !k.height) return;
+    const gap = k.width <= 360 ? 6 : 8;
+    const lay = kitLayout(k.width, k.height, gap);
+    kitEl.dataset.shape = lay.shape;
+    for (const p of PADS) {
+      const c = lay.cells[p.id];
+      Object.assign(padEls[p.id].style, { left: `${c.x}px`, top: `${c.y}px`, width: `${c.w}px`, height: `${c.h}px` });
+    }
+    standsEl.innerHTML = standsSvg(lay, k.width, k.height);
   }
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => onScreen('drums') && layout()).observe(stage);
 

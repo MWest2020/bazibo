@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as D from '../web/games/drums/kit.js';
 import { meta } from '../web/games/drums/meta.js';
-import { tileSvg, cardSvg, padSvg, padGlyph } from '../web/games/drums/art.js';
+import { tileSvg, cardSvg, padSvg, padGlyph, standsSvg } from '../web/games/drums/art.js';
 import * as sound from '../web/games/drums/sound.js';
 import * as sfx from '../web/js/audio.js';
 import * as store from '../web/js/storage.js';
@@ -20,36 +20,91 @@ test('the kit: 8 pads (kick, snare, hi-hat, three toms, crash, ride), each its o
   assert.equal(D.padById('cowbell'), null);
 });
 
-test('the layout: every pad once, four across when wide and two across when tall, big enough from 320 px', () => {
-  for (const [name, shape] of Object.entries(D.SHAPES)) {
-    const flat = shape.areas.flat();
-    assert.deepEqual([...flat].sort(), [...D.PAD_IDS].sort(), name);
+test('the layout: a real kit, the kick big and low in the middle, the toms on it, cymbals above', () => {
+  const mid = (r) => r[0] + r[2] / 2;
+  const bottom = (r) => r[1] + r[3];
+  for (const [name, kit] of Object.entries(D.KITS)) {
+    const p = kit.pads;
+    assert.deepEqual(Object.keys(p).sort(), [...D.PAD_IDS].sort(), name);
+    for (const [id, [x, y, w, h]] of Object.entries(p)) assert.ok(x >= 0 && y >= 0 && x + w <= kit.w && y + h <= kit.h, `${name}: ${id} outside the kit`);
+    // the kick: the lowest, in the middle, the biggest drum
+    for (const id of D.PAD_IDS) if (id !== 'kick') assert.ok(bottom(p[id]) <= bottom(p.kick), `${name}: ${id} below the kick`);
+    assert.ok(Math.abs(mid(p.kick) - kit.w / 2) < kit.w * 0.06, `${name}: the kick is not in the middle`);
+    assert.ok(p.kick[2] * p.kick[3] >= Math.max(...D.PAD_IDS.filter((id) => id !== 'kick').map((id) => p[id][2] * p[id][3])), `${name}: the kick is not the biggest`);
+    // the toms above the kick and around its middle, the high tom left; the cymbals on top
+    assert.ok(bottom(p.tom1) <= p.kick[1] && bottom(p.tom2) <= p.kick[1], name);
+    assert.ok(mid(p.tom1) < mid(p.kick) && mid(p.tom2) > mid(p.kick), name);
+    for (const c of ['crash', 'ride']) assert.ok(p[c][1] < p.tom1[1] + p.tom1[3] / 2 && p[c][1] < p.hihat[1] && p[c][1] < p.floor[1], `${name}: ${c} not high`);
+    // the hi-hat far left, the snare left of the middle, the floor tom right, the crash left, the ride right
+    assert.ok(mid(p.hihat) < mid(p.snare) && mid(p.snare) <= mid(p.kick) && mid(p.floor) > mid(p.kick), name);
+    assert.ok(mid(p.crash) < mid(p.kick) && mid(p.ride) > mid(p.kick), name);
+    assert.equal(Math.min(...D.PAD_IDS.map((id) => mid(p[id]))), mid(p.hihat), `${name}: the hi-hat is not the leftmost`);
+  }
+  for (const [name, shape] of Object.entries(D.GRIDS)) {
+    assert.deepEqual([...shape.areas.flat()].sort(), [...D.PAD_IDS].sort(), name);
     assert.equal(shape.areas.length, shape.rows);
     for (const row of shape.areas) assert.equal(row.length, shape.cols);
-    // the cymbals on top, the kick at the bottom, like a kit seen from the stool
-    assert.ok(shape.areas[0].includes('crash') && shape.areas[0].includes('ride'), name);
-    assert.ok(shape.areas[shape.rows - 1].includes('kick'), name);
   }
   assert.equal(D.kitShape(844, 300), 'wide');
   assert.equal(D.kitShape(1280, 650), 'wide');
   assert.equal(D.kitShape(390, 650), 'tall');
   assert.equal(D.kitShape(300, 300), 'tall');
-  // the stage sizes the smoke test sees (rhythm mode, the bar above the kit): every pad's touch area
-  // stays a big target, and never overlaps another
-  for (const [w, h] of [[300, 400], [370, 600], [820, 290], [550, 220], [1260, 620]]) {
-    const cells = Object.values(D.kitCells(w, h));
-    assert.equal(cells.length, 8);
-    for (const c of cells) {
-      assert.ok(Math.min(c.w, c.h) >= 88, `${w}x${h}: a pad of ${c.w.toFixed(0)}x${c.h.toFixed(0)}`);
-      assert.ok(c.x >= 0 && c.y >= 0 && c.x + c.w <= w + 1e-9 && c.y + c.h <= h + 1e-9);
-    }
-    for (let i = 0; i < cells.length; i++)
-      for (let j = i + 1; j < cells.length; j++) {
-        const a = cells[i];
-        const b = cells[j];
-        assert.ok(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y, `${w}x${h}: pads overlap`);
-      }
+});
+
+/** Every pad inside the box, at least `min` px each way, and no two touch areas overlapping. */
+function checkCells(label, cells, w, h, min) {
+  const list = Object.entries(cells);
+  assert.equal(list.length, 8, label);
+  for (const [id, c] of list) {
+    assert.ok(Math.min(c.w, c.h) >= min, `${label}: ${id} is ${c.w.toFixed(0)}x${c.h.toFixed(0)}`);
+    assert.ok(c.x >= -1e-9 && c.y >= -1e-9 && c.x + c.w <= w + 1e-9 && c.y + c.h <= h + 1e-9, `${label}: ${id} off screen`);
   }
+  for (let i = 0; i < list.length; i++)
+    for (let j = i + 1; j < list.length; j++) {
+      const [ia, a] = list[i];
+      const [ib, b] = list[j];
+      assert.ok(a.x + a.w <= b.x + 1e-9 || b.x + b.w <= a.x + 1e-9 || a.y + a.h <= b.y + 1e-9 || b.y + b.h <= a.y + 1e-9, `${label}: ${ia} and ${ib} overlap`);
+    }
+}
+
+test('the layout on every screen: the kit shape, every pad 80 px or more, inside the box, none overlapping', () => {
+  // the kit's box as the smoke test measures it (free play, then a rhythm with the bar above the kit)
+  const boxes = [
+    ['320x568', 'tall', [308, 472], [308, 373]],
+    ['360x640', 'tall', [348, 544], [348, 462]],
+    ['390x844', 'tall', [370, 744], [370, 645]],
+    ['768x1024', 'tall', [748, 924], [748, 842]],
+    ['568x320', 'wide', [548, 250], [548, 244]],
+    ['844x390', 'wide', [824, 320], [824, 314]],
+    ['1024x768', 'wide', [1004, 668], [1004, 586]],
+    ['1280x800', 'wide', [1100, 700], [1100, 618]],
+  ];
+  for (const [screen, shape, ...sizes] of boxes) {
+    for (const [w, h] of sizes) {
+      const lay = D.kitLayout(w, h);
+      assert.equal(lay.shape, shape, `${screen} (${w}x${h}): ${lay.shape}`);
+      checkCells(`${screen} (${w}x${h})`, lay.cells, w, h, D.MIN_PAD);
+      assert.deepEqual(D.kitCells(w, h), lay.cells);
+      // the kit keeps its shape: never stretched more than STRETCH one way
+      const k = D.KITS[shape];
+      const sx = lay.box.w / k.w;
+      const sy = lay.box.h / k.h;
+      assert.ok(Math.max(sx / sy, sy / sx) <= D.STRETCH + 1e-9, `${screen}: stretched ${sx.toFixed(2)} by ${sy.toFixed(2)}`);
+    }
+  }
+  // a box too small for the kit: the plain grid, when it gives bigger pads
+  const low = D.kitLayout(548, 175);
+  assert.equal(low.shape, 'grid-wide');
+  checkCells('548x175', low.cells, 548, 175, 80);
+  const narrow = D.kitLayout(250, 360);
+  assert.equal(narrow.shape, 'grid-tall');
+  checkCells('250x360', narrow.cells, 250, 360, 80);
+  // every box from small phones to desktop: never overlapping, always inside
+  for (let w = 240; w <= 1400; w += 37)
+    for (let h = 160; h <= 1000; h += 41) {
+      const lay = D.kitLayout(w, h);
+      checkCells(`${w}x${h}`, lay.cells, w, h, 0);
+    }
 });
 
 test('parseRhythm reads pads, pairs, lengths and rests, and refuses what a child cannot play', () => {
@@ -297,7 +352,7 @@ test('listening: steps follow each other by their lengths, each lit shorter than
 });
 
 test('the pictures are self-contained SVG (no ids, no links)', () => {
-  for (const svg of [tileSvg(), cardSvg('free'), ...D.RHYTHM_IDS.map(cardSvg), ...D.PAD_IDS.map(padSvg), ...D.PAD_IDS.map(padGlyph)]) {
+  for (const svg of [tileSvg(), cardSvg('free'), ...D.RHYTHM_IDS.map(cardSvg), ...D.PAD_IDS.map(padSvg), ...D.PAD_IDS.map(padGlyph), standsSvg(D.kitLayout(824, 314), 824, 314), standsSvg(D.kitLayout(308, 373), 308, 373), standsSvg(D.kitLayout(548, 175), 548, 175)]) {
     assert.match(svg, /^<svg [^>]*viewBox=/);
     assert.doesNotMatch(svg, /\bid=|url\(|href|NaN|undefined/);
   }

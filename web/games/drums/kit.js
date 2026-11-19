@@ -33,27 +33,101 @@ export const padById = (id) => BY_ID[id] || null;
 export const KEYBOARD_MAP = Object.freeze(Object.fromEntries(PADS.map((p) => [p.key, p.id])));
 
 /**
- * The kit's arrangement for a box of `w`x`h`: four across and two down on a wide box (sideways
- * phones, tablets, desktop), two across and four down on a tall one. The cymbals sit on top, the
- * kick at the bottom, like a kit seen from the drum stool. Every grid cell is one pad's touch area.
+ * The kit's arrangement, drawn like a real drum kit seen from the drum stool: the bass drum (kick)
+ * big and low in the middle with the two toms on top of it, the snare in front of it on the left,
+ * the hi-hat on its stand further left, the floor tom on the right, the crash and the ride cymbals
+ * above on their stands. Every pad is a rectangle `[x, y, w, h]` in the kit's own units (`w`x`h`);
+ * that rectangle is the pad's touch area and the drawing sits inside it.
+ *   wide  sideways phones, tablets and desktop: the whole kit as one picture
+ *   tall  upright phones: the same kit stacked up (cymbals, toms, hi-hat / snare / floor tom, kick)
+ * `kitLayout` scales a kit to the box, x and y each by their own factor but never one more than
+ * `STRETCH` times the other (so the kit keeps its shape), and centres it. A box too small for every
+ * pad to stay `MIN_PAD` px falls back to a plain grid (`GRIDS`) when that gives bigger pads.
  */
-export const SHAPES = Object.freeze({
+export const KITS = Object.freeze({
+  wide: Object.freeze({
+    w: 98,
+    h: 46,
+    pads: Object.freeze({
+      crash: [2, 0, 24, 15.5],
+      tom1: [31.5, 2.5, 17, 16],
+      tom2: [50.5, 2.5, 17, 16],
+      ride: [72, 4, 26, 15.5],
+      hihat: [0, 17, 19, 16],
+      snare: [20, 26, 17, 17],
+      kick: [38, 20, 25, 26],
+      floor: [64, 24, 20, 20],
+    }),
+  }),
+  tall: Object.freeze({
+    w: 60,
+    h: 77,
+    pads: Object.freeze({
+      crash: [0, 0, 27, 17],
+      ride: [33, 1.5, 27, 17],
+      tom1: [11.5, 18, 18, 17],
+      tom2: [30.5, 19.5, 18, 17],
+      hihat: [0, 36, 19.5, 17],
+      snare: [20.5, 38.5, 19, 17],
+      floor: [40.5, 38, 19.5, 18],
+      kick: [14, 57, 32, 20],
+    }),
+  }),
+});
+
+/** The plain grids, for a box too small for the kit: four across and two down, or the other way. */
+export const GRIDS = Object.freeze({
   wide: Object.freeze({ cols: 4, rows: 2, areas: Object.freeze([['crash', 'tom1', 'tom2', 'ride'], ['hihat', 'snare', 'kick', 'floor']]) }),
   tall: Object.freeze({ cols: 2, rows: 4, areas: Object.freeze([['crash', 'ride'], ['tom1', 'tom2'], ['hihat', 'snare'], ['kick', 'floor']]) }),
 });
+
+/** Every pad stays at least this many px in its smallest direction: a small hand hits it. */
+export const MIN_PAD = 80;
+/** How much more the kit may be stretched one way than the other. */
+export const STRETCH = 1.2;
 
 export function kitShape(w, h) {
   return w >= h * 1.1 ? 'wide' : 'tall';
 }
 
-/** The touch area of every pad (x, y, w, h) in a box of `w`x`h` with `gap` between cells. */
+const minSide = (cells) => Math.min(...Object.values(cells).map((c) => Math.min(c.w, c.h)));
+
+function placeKit(kit, w, h) {
+  let sx = w / kit.w;
+  let sy = h / kit.h;
+  sx = Math.min(sx, sy * STRETCH);
+  sy = Math.min(sy, sx * STRETCH);
+  const x0 = (w - kit.w * sx) / 2;
+  const y0 = (h - kit.h * sy) / 2;
+  const cells = {};
+  for (const [id, [x, y, cw, ch]] of Object.entries(kit.pads)) cells[id] = { x: x0 + x * sx, y: y0 + y * sy, w: cw * sx, h: ch * sy };
+  return { cells, box: { x: x0, y: y0, w: kit.w * sx, h: kit.h * sy } };
+}
+
+function placeGrid(grid, w, h, gap) {
+  const cw = (w - gap * (grid.cols - 1)) / grid.cols;
+  const ch = (h - gap * (grid.rows - 1)) / grid.rows;
+  const cells = {};
+  grid.areas.forEach((row, r) => row.forEach((id, c) => (cells[id] = { x: c * (cw + gap), y: r * (ch + gap), w: cw, h: ch })));
+  return { cells, box: { x: 0, y: 0, w, h } };
+}
+
+/**
+ * Where every pad goes in a box of `w`x`h`: `{ shape, cells: { id: { x, y, w, h } }, box }`, with
+ * `shape` 'wide' or 'tall' for the kit and 'grid-wide' or 'grid-tall' for the fallback, and `box`
+ * the part of the box the kit fills (the stands and the rug are drawn there).
+ */
+export function kitLayout(w, h, gap = 8) {
+  const name = kitShape(w, h);
+  const kit = placeKit(KITS[name], w, h);
+  if (minSide(kit.cells) >= MIN_PAD) return { shape: name, ...kit };
+  const grid = placeGrid(GRIDS[name], w, h, gap);
+  return minSide(grid.cells) > minSide(kit.cells) ? { shape: `grid-${name}`, ...grid } : { shape: name, ...kit };
+}
+
+/** The touch area of every pad (x, y, w, h) in a box of `w`x`h`. */
 export function kitCells(w, h, gap = 8) {
-  const shape = SHAPES[kitShape(w, h)];
-  const cw = (w - gap * (shape.cols - 1)) / shape.cols;
-  const ch = (h - gap * (shape.rows - 1)) / shape.rows;
-  const out = {};
-  shape.areas.forEach((row, r) => row.forEach((id, c) => (out[id] = { x: c * (cw + gap), y: r * (ch + gap), w: cw, h: ch })));
-  return out;
+  return kitLayout(w, h, gap).cells;
 }
 
 const TOKEN = { K: 'kick', S: 'snare', H: 'hihat', C: 'crash', R: 'ride', 1: 'tom1', 2: 'tom2', 3: 'floor' };

@@ -1,8 +1,9 @@
-// Drumstel pictures, drawn in code: every pad (a drum seen from the stool, the kick from the front,
-// the cymbals as gold plates), the small pad signs in the strip of steps to come, the home tile and
-// the cards in the rhythm list. Each pad differs by shape as well as colour: drums have a white head
-// and a coloured shell, the snare a ring of wires, the cymbals rings and a bell (the crash rays,
-// the ride a big bell, the hi-hat two plates).
+// Drumstel pictures, drawn in code: every pad (a drum seen a little from the front and above, the
+// kick from the front, the cymbals as tilted gold plates), the stands and the rug behind them, the
+// small pad signs in the strip of steps to come, the home tile and the cards in the rhythm list.
+// Each pad differs by shape as well as colour: drums have a white head and a coloured shell, the
+// snare a ring of wires, the cymbals rings and a bell (the crash rays, the ride a big bell, the
+// hi-hat two plates on a rod).
 import { padById, rhythmById } from './kit.js';
 
 const INK = '#2b2370';
@@ -11,31 +12,42 @@ const METAL = '#c9cde0';
 
 const f = (n) => Math.round(n * 10) / 10;
 
-/** A drum seen from above: shell rim, white head, little tension lugs around it. */
-function drumTop(cx, cy, r, color, extra = '') {
-  let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="${INK}" stroke-width="${f(r * 0.07)}"/>`;
-  for (let k = 0; k < 8; k++) {
-    const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
-    const x = cx + Math.cos(a) * r * 0.91;
-    const y = cy + Math.sin(a) * r * 0.91;
-    s += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r * 0.06)}" fill="${METAL}" stroke="${INK}" stroke-width="${f(r * 0.03)}"/>`;
+/** A drum seen a little from above and in front: a coloured shell with lugs, a white head on top. */
+function drumSide(cx, top, rx, ry, depth, color, extra = '') {
+  const l = cx - rx;
+  const r = cx + rx;
+  const bottom = top + depth;
+  let s = `<path d="M${l} ${top} V${bottom} A${rx} ${ry} 0 0 0 ${r} ${bottom} V${top} Z" fill="${color}" stroke="${INK}" stroke-width="3.2" stroke-linejoin="round"/>`;
+  s += `<path d="M${f(l + rx * 0.22)} ${f(top + ry * 0.9)} V${f(bottom + ry * 0.55)}" stroke="#fff" stroke-width="${f(rx * 0.12)}" stroke-linecap="round" opacity="0.35"/>`;
+  // the lugs on the shell
+  for (const k of [-0.62, 0, 0.62]) {
+    const x = cx + k * rx;
+    const y = top + ry * Math.sqrt(1 - k * k) + depth * 0.18;
+    s += `<rect x="${f(x - 3.4)}" y="${f(y)}" width="6.8" height="${f(Math.max(8, depth * 0.38))}" rx="3.4" fill="${METAL}" stroke="${INK}" stroke-width="1.8"/>`;
   }
-  s += `<circle cx="${cx}" cy="${cy}" r="${f(r * 0.78)}" fill="${HEAD}" stroke="${INK}" stroke-width="${f(r * 0.045)}"/>`;
-  s += `<ellipse cx="${f(cx - r * 0.28)}" cy="${f(cy - r * 0.32)}" rx="${f(r * 0.22)}" ry="${f(r * 0.1)}" transform="rotate(-35 ${f(cx - r * 0.28)} ${f(cy - r * 0.32)})" fill="#fff" opacity="0.9"/>`;
+  // the hoop and the head
+  s += `<ellipse cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}" fill="${color}" stroke="${INK}" stroke-width="3.2"/>`;
+  s += `<ellipse cx="${cx}" cy="${top}" rx="${f(rx * 0.86)}" ry="${f(ry * 0.78)}" fill="${HEAD}" stroke="${INK}" stroke-width="2.2"/>`;
+  s += `<ellipse cx="${f(cx - rx * 0.4)}" cy="${f(top - ry * 0.32)}" rx="${f(rx * 0.18)}" ry="${f(ry * 0.16)}" fill="#fff"/>`;
   return s + extra;
 }
 
-/** A cymbal: a gold plate with grooves and a bell. */
-function cymbal(cx, cy, r, color, groove, bell, extra = '') {
-  let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="${INK}" stroke-width="${f(r * 0.06)}"/>`;
-  for (const k of [0.78, 0.58]) s += `<circle cx="${cx}" cy="${cy}" r="${f(r * k)}" fill="none" stroke="${groove}" stroke-width="${f(r * 0.045)}"/>`;
+/** A cymbal tilted towards you: a gold plate with grooves and a bell, on its stand's tip. */
+function plate(cx, cy, rx, ry, tilt, color, groove, bell, extra = '') {
+  let s = `<g transform="rotate(${tilt} ${cx} ${cy})">`;
+  s += `<ellipse cx="${cx}" cy="${f(cy + ry * 0.12)}" rx="${rx}" ry="${ry}" fill="${groove}" stroke="${INK}" stroke-width="3"/>`;
+  s += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${color}" stroke="${INK}" stroke-width="3"/>`;
+  for (const k of [0.76, 0.54]) s += `<ellipse cx="${cx}" cy="${cy}" rx="${f(rx * k)}" ry="${f(ry * k)}" fill="none" stroke="${groove}" stroke-width="2.4"/>`;
   s += extra;
-  s += `<circle cx="${cx}" cy="${cy}" r="${f(r * bell)}" fill="${groove}" stroke="${INK}" stroke-width="${f(r * 0.045)}"/>`;
-  s += `<circle cx="${cx}" cy="${cy}" r="${f(r * 0.06)}" fill="${INK}"/>`;
-  return s;
+  s += `<ellipse cx="${cx}" cy="${f(cy - ry * 0.08)}" rx="${f(rx * bell)}" ry="${f(ry * bell * 1.1)}" fill="${groove}" stroke="${INK}" stroke-width="2.2"/>`;
+  s += `<circle cx="${cx}" cy="${f(cy - ry * 0.12)}" r="3" fill="${INK}"/>`;
+  return `${s}</g>`;
 }
 
-/** The drawing of one pad, in a 100x100 box with some room around it. */
+/** The size of each pad's drawing (its viewBox), close to the shape of its touch area. */
+const VIEW = { crash: [150, 100], ride: [160, 100], hihat: [120, 100], snare: [110, 100], tom1: [100, 100], tom2: [100, 100], floor: [100, 100], kick: [100, 100] };
+
+/** The drawing of one pad, in its own box (`VIEW`) with some room around it. */
 function padShape(id) {
   const p = padById(id);
   if (!p) return '';
@@ -49,39 +61,89 @@ function padShape(id) {
     return s;
   }
   if (id === 'snare') {
-    // the snare: a dashed ring on the head (the wires showing through)
-    return drumTop(50, 50, 42, p.color, `<circle cx="50" cy="50" r="22" fill="none" stroke="#e7d9b8" stroke-width="3" stroke-dasharray="5 4"/>`);
+    // a shallow drum with a dashed ring on its head (the wires showing through)
+    return drumSide(55, 40, 50, 18, 26, p.color, `<ellipse cx="55" cy="40" rx="26" ry="9" fill="none" stroke="#d9c79e" stroke-width="3" stroke-dasharray="5 4"/>`);
   }
   if (p.kind === 'tom') {
-    const r = { tom1: 38, tom2: 41, floor: 45 }[id];
     const dots = { tom1: 1, tom2: 2, floor: 3 }[id]; // one, two or three dots: high, middle, floor tom
     let mark = '';
-    for (let k = 0; k < dots; k++) mark += `<circle cx="${50 + (k - (dots - 1) / 2) * 11}" cy="50" r="4.2" fill="${p.color}" stroke="${INK}" stroke-width="1.6"/>`;
-    return drumTop(50, 50, r, p.color, mark);
+    const top = { tom1: 30, tom2: 28, floor: 22 }[id];
+    for (let k = 0; k < dots; k++) mark += `<ellipse cx="${50 + (k - (dots - 1) / 2) * 12}" cy="${top}" rx="4.6" ry="3.4" fill="${p.color}" stroke="${INK}" stroke-width="1.6"/>`;
+    if (id === 'floor') {
+      // the floor tom stands on three legs
+      const legs = `<path d="M12 50 L5 97 M88 50 L95 97 M50 80 L50 97" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M12 50 L5 97 M88 50 L95 97" stroke="${METAL}" stroke-width="1.8" stroke-linecap="round"/>`;
+      return legs + drumSide(50, top, 44, 15, 50, p.color, mark);
+    }
+    return id === 'tom1' ? drumSide(50, top, 40, 14, 36, p.color, mark) : drumSide(50, top, 44, 15, 40, p.color, mark);
   }
   if (id === 'crash') {
     let rays = '';
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2;
-      rays += `<path d="M${f(50 + Math.cos(a) * 16)} ${f(50 + Math.sin(a) * 16)} L${f(50 + Math.cos(a) * 34)} ${f(50 + Math.sin(a) * 34)}" stroke="#fff3b0" stroke-width="3" stroke-linecap="round"/>`;
+      rays += `<path d="M${f(75 + Math.cos(a) * 20)} ${f(50 + Math.sin(a) * 8.5)} L${f(75 + Math.cos(a) * 46)} ${f(50 + Math.sin(a) * 19.5)}" stroke="#fff3b0" stroke-width="3" stroke-linecap="round"/>`;
     }
-    return cymbal(50, 50, 44, p.color, '#e0a400', 0.2, rays);
+    return plate(75, 50, 70, 30, -8, p.color, '#e0a400', 0.18, rays);
   }
   if (id === 'ride') {
-    return cymbal(50, 50, 46, p.color, '#c56f0c', 0.32);
+    return plate(80, 50, 75, 32, 7, p.color, '#c56f0c', 0.27);
   }
   if (id === 'hihat') {
-    // two plates, the top one a little higher
-    let s = `<ellipse cx="50" cy="60" rx="42" ry="30" fill="#b9bfd6" stroke="${INK}" stroke-width="3"/>`;
-    s += cymbal(50, 45, 40, p.color, '#a3aac4', 0.24);
+    // two plates on a rod, the top one a little apart from the bottom one
+    let s = `<path d="M60 10 V100" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>`;
+    s += `<ellipse cx="60" cy="66" rx="55" ry="17" fill="#b9bfd6" stroke="${INK}" stroke-width="3"/>`;
+    s += plate(60, 50, 55, 19, 0, p.color, '#a3aac4', 0.22);
+    s += `<rect x="54" y="20" width="12" height="9" rx="3" fill="${METAL}" stroke="${INK}" stroke-width="2"/>`;
     return s;
   }
   return '';
 }
 
-/** A pad's picture: the whole box, centred, scaled to fit. */
+/** A pad's picture: its own box, centred, scaled to fit the touch area. */
 export function padSvg(id) {
-  return `<svg class="dpad-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${padShape(id)}</svg>`;
+  const [w, h] = VIEW[id] || [100, 100];
+  return `<svg class="dpad-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${padShape(id)}</svg>`;
+}
+
+/**
+ * What holds the kit together, behind the pads: a rug under it, the stands of the cymbals, the
+ * hi-hat (with its pedal) and the snare, and the holder that carries the toms on the bass drum.
+ * `layout` is `kitLayout(w, h)` from kit.js for a box of `w`x`h`; a plain grid gets nothing.
+ */
+export function standsSvg(layout, w, h) {
+  const { cells: c, box, shape } = layout;
+  let s = '';
+  if (shape === 'wide' || shape === 'tall') {
+    const u = Math.min(c.kick.w, c.kick.h) / 20; // one "unit" of hardware, from the size of the kick
+    const floor = c.kick.y + c.kick.h - u * 0.6;
+    const mid = (r) => r.x + r.w / 2;
+    const pole = (x1, y1, x2, y2) => `M${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)}`;
+    const tripod = (x, spread) => `${pole(x, floor - spread * 0.9, x - spread, floor)} ${pole(x, floor - spread * 0.9, x + spread, floor)}`;
+    // the rug, under the lower half of the kit
+    const top = shape === 'wide' ? Math.min(c.snare.y, c.floor.y) + c.snare.h * 0.45 : c.hihat.y + c.hihat.h * 0.5;
+    const rugX = box.x - u;
+    s += `<rect x="${f(rugX)}" y="${f(top)}" width="${f(box.w + u * 2)}" height="${f(floor + u * 1.6 - top)}" rx="${f(u * 4)}" fill="#8f7fe8" opacity="0.16"/>`;
+    s += `<rect x="${f(rugX + u * 1.2)}" y="${f(top + u * 1.2)}" width="${f(box.w - u * 0.4)}" height="${f(floor + u * 0.4 - top)}" rx="${f(u * 3)}" fill="none" stroke="#8f7fe8" stroke-width="${f(u * 0.5)}" stroke-dasharray="${f(u * 1.4)} ${f(u * 1)}" opacity="0.3"/>`;
+    let d = '';
+    // the crash stands just right of the hi-hat, the ride leans in from further out
+    const crashFoot = c.hihat.x + c.hihat.w * 0.85;
+    const rideFoot = Math.min(box.x + box.w - u * 2.5, mid(c.ride) + u * 2.5);
+    d += `${pole(mid(c.crash), c.crash.y + c.crash.h * 0.5, crashFoot, floor - u * 2)} ${tripod(crashFoot, u * 2.2)}`;
+    d += ` ${pole(mid(c.ride), c.ride.y + c.ride.h * 0.5, rideFoot, floor - u * 2)} ${tripod(rideFoot, u * 2.2)}`;
+    const hx = mid(c.hihat);
+    d += ` ${pole(hx, c.hihat.y + c.hihat.h * 0.6, hx, floor - u * 2)} ${tripod(hx, u * 2)}`;
+    const sx = mid(c.snare);
+    d += ` ${pole(sx, c.snare.y + c.snare.h * 0.6, sx, floor - u * 1.8)} ${tripod(sx, u * 1.8)}`;
+    // the tom holder: up from the bass drum, an arm to each tom
+    const kx = mid(c.kick);
+    const armY = Math.max(c.tom1.y, c.tom2.y) + Math.max(c.tom1.h, c.tom2.h) * 0.62;
+    d += ` ${pole(kx, c.kick.y + c.kick.h * 0.3, kx, armY)} ${pole(mid(c.tom1), armY, mid(c.tom2), armY)}`;
+    const sw = f(Math.max(3, u * 0.55));
+    s += `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${f(sw * 1.9)}" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+    s += `<path d="${d}" fill="none" stroke="${METAL}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // the hi-hat pedal
+    s += `<rect x="${f(hx - u * 1.3)}" y="${f(floor - u * 0.3)}" width="${f(u * 2.6)}" height="${f(u * 1.1)}" rx="${f(u * 0.4)}" fill="${METAL}" stroke="${INK}" stroke-width="${f(sw * 0.6)}"/>`;
+  }
+  return `<svg class="drums-stands-svg" viewBox="0 0 ${f(w)} ${f(h)}" width="${f(w)}" height="${f(h)}" aria-hidden="true">${s}</svg>`;
 }
 
 /** A small sign of a pad, for the strip of steps to come: its colour and its shape, simplified. */
