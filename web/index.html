@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="games/legpuzzel/legpuzzel.css">
   <link rel="stylesheet" href="games/vier/vier.css">
   <link rel="stylesheet" href="games/dammen/dammen.css">
+  <link rel="stylesheet" href="games/baghchal/baghchal.css">
   <link rel="stylesheet" href="games/ganzen/ganzen.css">
   <link rel="stylesheet" href="games/kwartet/kwartet.css">
   <link rel="stylesheet" href="games/slang/slang.css">
@@ -400,6 +401,40 @@
         <div class="vier-side dam-side">
           <div id="dammen-turn" class="vier-turn" role="group" data-i18n-aria="dam.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="dammen-status" class="vier-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tijgers en geitjes (Bagh-Chal): choose the opponent and, against the computer, the side -->
+    <section id="screen-baghchal-menu" class="screen" data-i18n-aria="games.baghchal" aria-label="Tijgers en geitjes (Bagh-Chal)">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="bagh.menu">Tijgers en geitjes</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="baghchal-menu" class="vier-menu bagh-menu"></div></div>
+    </section>
+
+    <!-- Tijgers en geitjes (Bagh-Chal): the field and the meadow -->
+    <section id="screen-baghchal" class="screen" data-i18n-aria="games.baghchal" aria-label="Tijgers en geitjes (Bagh-Chal)">
+      <header class="bar dogu-hud vier-hud bagh-hud">
+        <button id="baghchal-back" class="btn icon" type="button" data-i18n-aria="bagh.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="baghchal-sub" class="hud-level"></div>
+          <div id="baghchal-title" class="dogu-title"></div>
+        </div>
+        <button id="baghchal-undo" class="btn icon" type="button" data-i18n-aria="bagh.undo" aria-label="Zet terugnemen"></button>
+      </header>
+      <div id="baghchal-stage">
+        <div id="baghchal-board" class="bagh-board" role="group" data-i18n-aria="bagh.boardLabel" aria-label="Het speelveld: tik op een stuk en dan op waar het heen gaat"></div>
+        <div class="vier-side bagh-side">
+          <div id="baghchal-turn" class="vier-turn" role="group" data-i18n-aria="bagh.turnAria" aria-label="Wie is aan de beurt"></div>
+          <div id="baghchal-meadow" class="bagh-meadow" role="img" aria-label="De wei"></div>
+          <p id="baghchal-status" class="vier-status" aria-live="polite"></p>
         </div>
       </div>
     </section>

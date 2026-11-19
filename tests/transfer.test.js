@@ -340,6 +340,18 @@ test('Dammen: its wins, board choice and look travel; odd values are dropped', (
   assert.deepEqual(out.games.dammen.setup, { variant: 'big', mode: 'cpu', level: 3 });
 });
 
+test('Tijgers en geitjes: its wins per side and level and its setup travel; odd values are dropped', () => {
+  const clean = sanitizePayload({
+    v: 1,
+    games: { baghchal: { stars: { 'cpu-goats-1': 3, 'cpu-tigers-3': 1, 'cpu-goats-2': 'many' }, setup: { mode: 'cpu', level: 3, side: 'tigers', board: [1, 2, { x: 1 }] } } },
+  });
+  assert.deepEqual(clean.games.baghchal, { stars: { 'cpu-goats-1': 3, 'cpu-tigers-3': 1 }, setup: { mode: 'cpu', level: 3, side: 'tigers' } });
+  const mine = { version: 1, games: { baghchal: { stars: { 'cpu-goats-1': 5 } } }, settings: {}, purchase: { owned: false } };
+  const out = mergeTransfer(mine, clean);
+  assert.deepEqual(out.games.baghchal.stars, { 'cpu-goats-1': 5, 'cpu-tigers-3': 1 }); // counters only go up
+  assert.deepEqual(out.games.baghchal.setup, { mode: 'cpu', level: 3, side: 'tigers' });
+});
+
 test('Ganzenbord: its wins and setup (players as a list) travel; odd values are dropped', () => {
   const clean = sanitizePayload({
     v: 1,
