@@ -103,8 +103,11 @@ test('every key used in index.html and in the code exists', () => {
   for (const p of PICTURES) used.add(`kleur.pic.${p.name}`); // built as t(`kleur.pic.${name}`)
   for (let c = 0; c < PALETTE.length; c++) used.add(`kleur.colour.${c}`);
   for (const s of STAMPS) used.add(`teken.stamp.${s}`); // built as t(`teken.stamp.${name}`)
-  for (const m of ['set', 'read', 'day']) used.add(`klok.mode.${m}`).add(`klok.mode.${m}Sub`).add(`klok.how.${m}`);
+  for (const m of ['set', 'read', 'day', 'dig']) used.add(`klok.mode.${m}`).add(`klok.mode.${m}Sub`).add(`klok.how.${m}`);
   for (const k of ['t1', 't2', 't3', 't4', 't5', 'day']) used.add(`klok.tier.${k}`);
+  for (const k of ['t1', 't2', 't3']) used.add(`klok.digTier.${k}`);
+  for (const k of ['d2a', 'a2d', 'setA', 'say', 'later']) used.add(`klok.dig.${k}`); // the one-line digital questions
+  for (const p of ['hour', 'minute']) used.add(`klok.dig.${p}Plus`).add(`klok.dig.${p}Minus`);
   for (const n of [1, 2, 3]) used.add(`klok.win${n}`);
   for (const a of ['breakfast', 'school', 'lunch', 'play', 'dinner', 'bath', 'bed']) used.add(`klok.act.${a}`);
   for (const id of PIANO_SONGS) used.add(`piano.song.${id}`); // built as t(`piano.song.${id}`)

@@ -2,6 +2,8 @@
 //   Zet de klok    turn the hands (drag, or + and -) to the time in words and digits
 //   Hoe laat is het?   pick the right time for the clock shown
 //   Dagritme       (youngest) pick the clock for breakfast, school, bedtime, with a sun or a moon
+//   Digitaal       digital clocks: to and from the analogue clock, set one with steppers, say it
+//                  in words, the 24-hour clock with the parts of the day (three tiers, time.js)
 // Five tiers from whole hours to single minutes and the 24-hour clock; a round is 10 questions and
 // earns stars by mistakes. The time logic lives in time.js, the pictures in art.js; the shell
 // (web/js/main.js) owns the overlay card, the sound settings and the purchase, passed in as `shell`.
@@ -12,7 +14,6 @@
 import { meta } from './meta.js';
 import {
   TIERS,
-  TIER_IDS,
   MODES,
   ROUND_LEN,
   ROUNDS_PER_TIER,
@@ -32,8 +33,19 @@ import {
   nudge,
   hintHand,
   minutePosition,
+  tiersOf,
+  DIG_TIERS,
+  DIG_SET_KINDS,
+  digLabel,
+  digIs24,
+  digStep,
+  digital12,
+  phrase24,
+  partWord,
+  dayPart,
+  stepDigit,
 } from './time.js';
-import { clockSvg, setHands, modeSvg, activitySvg } from './art.js';
+import { clockSvg, setHands, modeSvg, activitySvg, digitalSvg, dayStripSvg } from './art.js';
 import { getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
@@ -43,7 +55,6 @@ const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const BULB = '<path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zm-3 18h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/>';
-const tiersOf = (mode) => (mode === 'day' ? ['t1'] : TIER_IDS);
 
 export function createKlok(shell) {
   const { t, tap } = shell;
@@ -63,6 +74,8 @@ export function createKlok(shell) {
   const locked = (mode, tier) => meta.isLocked({ mode, tier }, shell.unlock.owned);
   const tierInfo = () => TIERS[game.tier];
   const q = () => game.qs[game.i];
+  const isDig = () => game?.mode === 'dig';
+  const digSetting = () => isDig() && DIG_SET_KINDS.includes(q()?.kind);
 
   shell.unlock.onChange(() => {
     if (onScreen('klok-menu')) renderMenu();
@@ -87,10 +100,14 @@ export function createKlok(shell) {
     return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
   }
 
-  // The menu has two levels: first the three kinds of round (the daily rhythm first, for the
-  // youngest), then the rounds of one kind by age. `menuMode` is the kind being shown, or null.
+  // The menu has two levels: first the four kinds of round (the daily rhythm first, for the
+  // youngest; the digital clock last, for the oldest), then the rounds of one kind by age.
+  // `menuMode` is the kind being shown, or null.
   let menuMode = null;
-  const MENU_ORDER = ['day', 'set', 'read'];
+  const MENU_ORDER = ['day', 'set', 'read', 'dig'];
+  const modeAge = (mode) => (mode === 'day' ? '4-6' : mode === 'dig' ? '7-10' : '5-10');
+  const tierAge = (mode, tier) => (mode === 'day' ? '4-6' : mode === 'dig' ? DIG_TIERS[tier].age : TIERS[tier].age);
+  const tierWhat = (mode, tier) => t(mode === 'day' ? 'klok.tier.day' : mode === 'dig' ? `klok.digTier.${tier}` : `klok.tier.${tier}`);
   const lastTier = () => store.loadGameOption(meta.id, 'lastTier', {}) || {};
 
   function renderMenu() {
@@ -118,7 +135,7 @@ export function createKlok(shell) {
         b.innerHTML = `<span class="klok-mode-art">${modeSvg(mode)}</span><span class="klok-mode-text"><span class="klok-mode-title"></span><span class="klok-mode-sub"></span><span class="klok-mode-age"></span></span>`;
         b.querySelector('.klok-mode-title').textContent = t(`klok.mode.${mode}`);
         b.querySelector('.klok-mode-sub').textContent = t(`klok.mode.${mode}Sub`);
-        b.querySelector('.klok-mode-age').textContent = t('klok.ages', { age: mode === 'day' ? '4-6' : '5-10' });
+        b.querySelector('.klok-mode-age').textContent = t('klok.ages', { age: modeAge(mode) });
         b.addEventListener('click', () => {
           tap();
           menuMode = mode;
@@ -140,7 +157,7 @@ export function createKlok(shell) {
       randomCard({
         t,
         tap,
-        title: tiers.length > 1 ? `${t('random.play')} · ${t(`klok.tier.${rtier}`)}` : null,
+        title: tiers.length > 1 ? `${t('random.play')} · ${tierWhat(mode, rtier)}` : null,
         locked: !shell.unlock.owned,
         solved: done[`${mode}-${rtier}`] || 0,
         done: true,
@@ -152,7 +169,7 @@ export function createKlok(shell) {
     for (const tier of tiers) {
       const line = document.createElement('p');
       line.className = 'klok-age';
-      line.textContent = t('klok.tierLine', { age: mode === 'day' ? '4-6' : TIERS[tier].age, what: t(mode === 'day' ? 'klok.tier.day' : `klok.tier.${tier}`) });
+      line.textContent = t('klok.tierLine', { age: tierAge(mode, tier), what: tierWhat(mode, tier) });
       box.appendChild(line);
       const grid = document.createElement('div');
       grid.className = 'level-grid klok-grid';
@@ -186,7 +203,7 @@ export function createKlok(shell) {
     }
   }
 
-  /** The menu's back: from one kind of round to the three kinds, from there to the home screen. */
+  /** The menu's back: from one kind of round to the four kinds, from there to the home screen. */
   function menuBack() {
     if (menuMode) {
       menuMode = null;
@@ -206,7 +223,7 @@ export function createKlok(shell) {
 
   function startRound(id) {
     const [mode, tier, r] = id.split('-');
-    if (!MODES.includes(mode) || !TIERS[tier] || !(Number(r) >= 1 && Number(r) <= ROUNDS_PER_TIER)) return;
+    if (!MODES.includes(mode) || !tiersOf(mode).includes(tier) || !(Number(r) >= 1 && Number(r) <= ROUNDS_PER_TIER)) return;
     if (locked(mode, tier)) {
       offer();
       return;
@@ -227,8 +244,10 @@ export function createKlok(shell) {
     menuMode = mode; // "Rounds" and the back button land on this kind of round
     if (lastTier()[mode] !== tier) store.saveGameOption(meta.id, 'lastTier', { ...lastTier(), [mode]: tier });
     clearTimer();
-    const qs = makeRound({ mode, tier, seed, lang: getLang(), round: roundId ? Number(roundId.split('-')[2]) : 0 });
-    game = { mode, tier, roundId, seed, qs, i: 0, cur: qs[0].start ?? 0, mistakes: 0, results: [], waiting: false, done: false, hint: false };
+    const round = roundId ? Number(roundId.split('-')[2]) : 0;
+    const qs = makeRound({ mode, tier, seed, lang: getLang(), round });
+    const step = mode === 'dig' ? digStep(tier, round) : TIERS[tier].step; // the minute steppers of the digital clock
+    game = { mode, tier, roundId, seed, qs, step, i: 0, cur: qs[0].start ?? 0, mistakes: 0, results: [], waiting: false, done: false, hint: false };
     shell.show('klok');
     render();
     if (!seenHow()[mode]) {
@@ -272,6 +291,7 @@ export function createKlok(shell) {
     $('#klok-sub').textContent = t(`klok.mode.${mode}`);
     $('#klok-title').textContent = game.roundId ? t('klok.round', { n: game.roundId.split('-')[2] }) : t('random.title');
     $('#screen-klok').dataset.mode = mode;
+    $('#screen-klok').dataset.kind = q().kind || '';
     renderPrompt();
     renderFace();
     renderControls();
@@ -284,7 +304,8 @@ export function createKlok(shell) {
     box.textContent = '';
     const lang = getLang();
     const it = q();
-    if (game.mode === 'set') {
+    if (isDig()) renderDigPrompt(box, it, lang);
+    else if (game.mode === 'set') {
       const lead = document.createElement('span');
       lead.className = 'klok-lead';
       lead.textContent = t('klok.setTo');
@@ -321,7 +342,9 @@ export function createKlok(shell) {
   function renderFace() {
     const face = $('#klok-face');
     const it = q();
-    if (game.mode === 'set') {
+    face.dataset.face = '';
+    if (isDig()) renderDigFace(face, it);
+    else if (game.mode === 'set') {
       face.innerHTML = clockSvg(game.cur, { id: 'kc' });
       face.setAttribute('aria-label', t('klok.clockAria'));
       face.classList.add('interactive');
@@ -344,7 +367,8 @@ export function createKlok(shell) {
     box.dataset.mode = game.mode;
     const lang = getLang();
     const it = q();
-    if (game.mode === 'set') {
+    if (isDig()) renderDigControls(box, it, lang);
+    else if (game.mode === 'set') {
       const step = Math.min(tierInfo().step, 60);
       const group = (hand, labelKey, minusKey, plusKey, by) => {
         const g = document.createElement('div');
@@ -428,6 +452,7 @@ export function createKlok(shell) {
   // ---------- setting the clock ----------
 
   function setTime(next) {
+    if (digSetting()) return digSet(((next % 720) + 720) % 720);
     if (!game || game.mode !== 'set' || game.waiting) return;
     if (next === game.cur) return;
     game.cur = next;
@@ -437,7 +462,14 @@ export function createKlok(shell) {
   }
 
   function check_() {
-    if (!game || game.mode !== 'set' || game.waiting) return;
+    if (!game || game.waiting) return;
+    if (digSetting()) {
+      const it = q();
+      if (sameFace(game.cur, it.target)) correct();
+      else wrong(() => showSetter(it.target));
+      return;
+    }
+    if (game.mode !== 'set') return;
     const it = q();
     if (sameFace(game.cur, it.target)) correct();
     else {
@@ -496,7 +528,7 @@ export function createKlok(shell) {
   // ---------- answering ----------
 
   function answer(k) {
-    if (!game || game.mode === 'set' || game.waiting) return;
+    if (!game || game.mode === 'set' || digSetting() || game.waiting) return;
     const it = q();
     const o = it.options[k];
     const buttons = [...document.querySelectorAll('#klok-controls .klok-option')];
@@ -536,15 +568,16 @@ export function createKlok(shell) {
     showRight();
     const it = q();
     const lang = getLang();
+    const dig = isDig() ? digWhy(it, lang) : null;
     const time = game.mode === 'day' ? `${phrase(it.target, lang)} ${dayPartWord(it.target)}` : tierInfo().digital24 ? digital(it.target, { h24: true }) : phrase(it.target, lang);
-    const text = game.mode === 'day' ? t('klok.whyDay', { what: t(`klok.act.${it.activity}`), time }) : `${t('klok.itIs', { time })} ${explain(it.target)}`;
+    const text = dig ? dig.text : game.mode === 'day' ? t('klok.whyDay', { what: t(`klok.act.${it.activity}`), time }) : `${t('klok.itIs', { time })} ${explain(it.target)}`;
     const token = plays;
     // a moment to see the right answer on the clock or the buttons, then the explanation
     timer = setTimeout(() => {
       timer = null;
       if (token !== plays || !onScreen('klok')) return;
       shell.showOverlay({
-        art: `<span class="klok-ov">${clockSvg(it.target, { dayPart: game.mode !== 'set' && (game.mode === 'day' || tierInfo().dayPart), small: true })}</span>`,
+        art: dig ? dig.art : `<span class="klok-ov">${clockSvg(it.target, { dayPart: game.mode !== 'set' && (game.mode === 'day' || tierInfo().dayPart), small: true })}</span>`,
         title: t('klok.wrongTitle'),
         text,
         buttons: [[t('klok.goOn'), 'big primary', () => (shell.hideOverlay(), nextQuestion())]],
@@ -566,7 +599,7 @@ export function createKlok(shell) {
       const n = m % 5;
       why = t(n === 1 ? 'klok.whyMark1' : 'klok.whyMarks', { n, pos: before, h, next });
     }
-    if (tierInfo().digital24) {
+    if (game.mode !== 'dig' && tierInfo().digital24) {
       const day = (((target % 1440) + 1440) % 1440);
       const am = day % 720;
       const pm = am + 720;
@@ -575,9 +608,9 @@ export function createKlok(shell) {
     return why;
   }
 
+  /** "’s middags": the parts of the day are in time.js (dayPart), 0-6 night, 6-12 morning, 12-18 afternoon. */
   function dayPartWord(time) {
-    const h = Math.floor((((time % 1440) + 1440) % 1440) / 60);
-    return h < 6 ? t('klok.night') : h < 12 ? t('klok.morning') : h < 18 ? t('klok.afternoon') : t('klok.evening');
+    return partWord(time, getLang());
   }
 
   function nextQuestion() {
@@ -634,13 +667,176 @@ export function createKlok(shell) {
     return k >= 0 && k + 1 < tiers.length ? `${mode}-${tiers[k + 1]}-1` : null;
   }
 
+  // ---------- digital clocks ----------
+
+  const digLabels = () => [t('klok.dig.hours'), t('klok.dig.minutes')];
+
+  function renderDigPrompt(box, it, lang) {
+    const span = (cls, text) => {
+      const el = document.createElement('span');
+      el.className = cls;
+      el.textContent = text;
+      return el;
+    };
+    const k = it.kind;
+    if (k === 'setP') box.append(span('klok-lead', t('klok.dig.setP')), span('klok-target', capital(phrase(it.target, lang))));
+    else if (k === 'write24') box.append(span('klok-lead', t('klok.dig.write24')), span('klok-target', capital(phrase24(it.target, lang))));
+    else if (k === 'clock24') box.append(span('klok-lead', t('klok.dig.clock24')), span('klok-target', t('klok.dig.partIs', { part: partWord(it.target, lang) })));
+    else box.append(span('klok-target small', t(`klok.dig.${k === 'say24' ? 'say' : k}`)));
+  }
+
+  function renderDigFace(face, it) {
+    const k = it.kind;
+    face.classList.remove('interactive', 'activity');
+    if (k === 'd2a' || k === 'say' || k === 'say24') {
+      const text = k === 'say24' ? digital(it.target, { h24: true }) : digital12(it.target);
+      face.innerHTML = digitalSvg(text, { blink: true });
+      face.setAttribute('aria-label', `${t('klok.dig.clockAria')}: ${text}`);
+      face.dataset.face = 'digital';
+    } else if (k === 'write24' || k === 'later') {
+      face.innerHTML = dayStripSvg({ part: k === 'write24' ? dayPart(it.target) : null });
+      face.setAttribute('aria-label', t('klok.dig.stripAria'));
+      face.dataset.face = 'strip';
+    } else {
+      // the analogue clock: the question (a2d, setA, clock24), or following the steppers (setP)
+      face.innerHTML = clockSvg(k === 'setP' ? game.cur : it.target, { id: 'kc' });
+      face.setAttribute('aria-label', t('klok.readAria'));
+      face.dataset.face = 'analog';
+    }
+  }
+
+  function renderDigControls(box, it, lang) {
+    const k = it.kind;
+    if (DIG_SET_KINDS.includes(k)) {
+      const setter = document.createElement('div');
+      setter.className = 'klok-setter';
+      const disp = document.createElement('div');
+      disp.id = 'klok-setter-display';
+      disp.className = 'klok-setter-display';
+      disp.setAttribute('role', 'img');
+      const steps = (part) => {
+        const g = document.createElement('div');
+        g.className = `klok-steps ${part}`;
+        for (const dir of [-1, 1]) {
+          const key = `klok.dig.${part}${dir > 0 ? 'Plus' : 'Minus'}`;
+          const b = button(dir > 0 ? '+' : '−', `klok-btn round ${part}`, () => digSet(stepDigit(game.cur, part, dir, game.step)), t(key));
+          b.dataset.step = `${part}${dir > 0 ? '+' : '-'}`;
+          g.appendChild(b);
+        }
+        return g;
+      };
+      setter.append(disp, steps('hour'), steps('minute'));
+      const check = button(t('klok.check'), 'btn big primary klok-check', check_);
+      check.id = 'klok-check';
+      const row = document.createElement('div');
+      row.className = 'klok-setrow';
+      row.append(setter, check);
+      box.appendChild(row);
+      showSetter(game.cur);
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.setAttribute('role', 'group');
+    grid.setAttribute('aria-label', t('klok.options'));
+    if (k === 'd2a') {
+      grid.className = 'klok-options clocks';
+      it.options.forEach((o, n) => {
+        const b = button('', 'klok-option clock', () => answer(n), phrase(o.t, lang));
+        b.innerHTML = clockSvg(o.t, { small: true });
+        b.dataset.option = String(n);
+        grid.appendChild(b);
+      });
+    } else if (k === 'say' || k === 'say24') {
+      grid.className = `klok-options words n${it.options.length}`;
+      it.options.forEach((o, n) => {
+        const b = button(capital(digLabel(k, o.t, lang)), 'klok-option', () => answer(n));
+        b.dataset.option = String(n);
+        grid.appendChild(b);
+      });
+    } else {
+      grid.className = `klok-options digis n${it.options.length}`;
+      it.options.forEach((o, n) => {
+        const text = digLabel(k, o.t, lang);
+        const b = button('', 'klok-option digi', () => answer(n), text);
+        b.innerHTML = digitalSvg(text);
+        b.dataset.option = String(n);
+        b.dataset.time = text;
+        grid.appendChild(b);
+      });
+    }
+    box.appendChild(grid);
+  }
+
+  /** The digital clock being set shows `x` (and the analogue clock follows it when it is not the question). */
+  function showSetter(x) {
+    const disp = $('#klok-setter-display');
+    if (disp) {
+      disp.innerHTML = digitalSvg(digital12(x), { labels: digLabels() });
+      disp.setAttribute('aria-label', `${t('klok.dig.clockAria')}: ${digital12(x)}`);
+      disp.dataset.time = digital12(x);
+    }
+    if (q()?.kind === 'setP') setHands($('#klok-face'), 'kc', x);
+  }
+
+  function digSet(next) {
+    if (!game || !digSetting() || game.waiting) return;
+    if (next === game.cur) return;
+    game.cur = next;
+    showSetter(next);
+    sfx.ticktock(tickN++);
+    if (game.hint) showHint(); // the highlighted steppers follow what is still wrong
+  }
+
+  /** The explanation card of a digital question: the time both ways and why. */
+  function digWhy(it, lang) {
+    const k = it.kind;
+    const d24 = (x) => digital(x, { h24: true });
+    if (k === 'later') {
+      const early = it.options.find((o) => !o.correct).t;
+      return {
+        text: t('klok.dig.whyLater', { late: d24(it.target), early: d24(early), lateSay: phrase24(it.target, lang), earlySay: phrase24(early, lang) }),
+        art: `<span class="klok-ov strip">${dayStripSvg({ marks: [{ t: early, text: d24(early) }, { t: it.target, text: d24(it.target), good: true }] })}</span>`,
+      };
+    }
+    const pair = (text) => `<span class="klok-ov pair">${clockSvg(it.target, { small: true })}${digitalSvg(text)}</span>`;
+    if (digIs24(k)) {
+      const am = it.target % 720;
+      const pm = am + 720;
+      const why = t('klok.why24', { a: d24(am), aPart: dayPartWord(am), b: d24(pm), bPart: dayPartWord(pm) });
+      return { text: `${t('klok.dig.is', { dig: d24(it.target), say: phrase24(it.target, lang) })} ${why}`, art: pair(d24(it.target)) };
+    }
+    return { text: `${t('klok.dig.is', { dig: digital12(it.target), say: phrase(it.target, lang) })} ${explain(it.target)}`, art: pair(digital12(it.target)) };
+  }
+
+  function digHint(face) {
+    const k = q().kind;
+    document.querySelectorAll('#klok-controls [data-step]').forEach((b) => b.classList.remove('hint'));
+    if (DIG_SET_KINDS.includes(k)) {
+      const part = hintHand(game.cur, q().target);
+      document.querySelectorAll(`#klok-controls [data-step^="${part}"]`).forEach((b) => b.classList.add('hint'));
+      setStatus(t(part === 'minute' ? 'klok.dig.hintMinute' : 'klok.dig.hintHour'));
+    } else if (k === 'a2d') {
+      face.querySelector('#kc-minute')?.classList.add('hint');
+      setStatus(t('klok.hintRead'));
+    } else if (k === 'd2a') {
+      face.querySelectorAll('.klok-dig-part.minute').forEach((g) => g.classList.add('hint'));
+      setStatus(t('klok.dig.hintDigits'));
+    } else if (k === 'say') setStatus(t('klok.dig.hintSay'));
+    else if (k === 'later') setStatus(t('klok.dig.hintLater'));
+    else {
+      if (k === 'clock24') face.querySelector('#kc-hour')?.classList.add('hint');
+      setStatus(t('klok.dig.hint24'));
+    }
+  }
+
   // ---------- hint ----------
 
   function showHint() {
     if (!game || game.waiting) return;
     const face = $('#klok-face');
-    face.querySelectorAll('.klok-hand').forEach((h) => h.classList.remove('hint'));
-    if (game.mode === 'set') {
+    face.querySelectorAll('.klok-hand, .klok-dig-part').forEach((h) => h.classList.remove('hint'));
+    if (isDig()) digHint(face);
+    else if (game.mode === 'set') {
       const hand = hintHand(game.cur, q().target);
       face.querySelector(`#kc-${hand}`)?.classList.add('hint');
       setStatus(t(hand === 'minute' ? 'klok.hintMinute' : 'klok.hintHour'));
@@ -667,7 +863,13 @@ export function createKlok(shell) {
   document.addEventListener('keydown', (e) => {
     if (!game || !onScreen('klok') || overlayUp() || game.waiting) return;
     if (e.target?.closest?.('button') && (e.key === 'Enter' || e.key === ' ')) return; // the button itself does it
-    if (game.mode === 'set') {
+    if (digSetting()) {
+      if (e.key === 'ArrowUp') digSet(stepDigit(game.cur, 'hour', 1));
+      else if (e.key === 'ArrowDown') digSet(stepDigit(game.cur, 'hour', -1));
+      else if (e.key === 'ArrowRight') digSet(stepDigit(game.cur, 'minute', 1, game.step));
+      else if (e.key === 'ArrowLeft') digSet(stepDigit(game.cur, 'minute', -1, game.step));
+      else if (e.key === 'Enter') check_();
+    } else if (game.mode === 'set') {
       const step = Math.min(tierInfo().step, 60);
       if (e.key === 'ArrowUp' || e.key === 'ArrowRight') setTime(nudge(game.cur, step));
       else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') setTime(nudge(game.cur, -step));
@@ -693,6 +895,7 @@ export function createKlok(shell) {
         state: () =>
           game && {
             mode: game.mode,
+            kind: game.qs[game.i]?.kind || null,
             tier: game.tier,
             roundId: game.roundId,
             i: game.i,

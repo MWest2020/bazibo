@@ -1,6 +1,6 @@
 // Klok kijken: the time logic, with no DOM, so all of it can be tested.
 // A time is a number of minutes since midnight, 0..1439. The analogue clock shows it modulo 720
-// (twelve hours); the oldest tier also reads and writes 24-hour digital times.
+// (twelve hours); the oldest tier and the digital rounds also read and write 24-hour times.
 //
 // Dutch telling time works around the half hour: 2:25 is "vijf voor half drie", 2:30 "half drie",
 // 2:40 "tien over half drie". English counts past and to the whole hour.
@@ -73,6 +73,43 @@ export function digital(t, { h24 = false } = {}) {
   const mm = String(m).padStart(2, '0');
   if (h24) return `${String(Math.floor(mod(t, DAY) / 60)).padStart(2, '0')}:${mm}`;
   return `${hour12(t)}:${mm}`;
+}
+
+/** Digital, 12-hour, as a digital clock shows it: always two digits for the hour ("03:30", "12:05"). */
+export function digital12(t) {
+  return `${String(hour12(t)).padStart(2, '0')}:${String(minuteOf(t)).padStart(2, '0')}`;
+}
+
+// ---------- the parts of the day (the 24-hour clock) ----------
+// As Dutch schools teach it: 00:00-05:59 night, 06:00-11:59 morning, 12:00-17:59 afternoon,
+// 18:00-23:59 evening. So 12:00 is "twaalf uur ’s middags", 18:00 "zes uur ’s avonds" and 00:00
+// "twaalf uur ’s nachts". (The sun or moon on the face, isDay below, is a separate, older rule.)
+
+export const DAY_PARTS = Object.freeze([
+  Object.freeze({ id: 'night', from: 0 }),
+  Object.freeze({ id: 'morning', from: 6 * 60 }),
+  Object.freeze({ id: 'afternoon', from: 12 * 60 }),
+  Object.freeze({ id: 'evening', from: 18 * 60 }),
+]);
+const PART_WORDS = Object.freeze({
+  nl: Object.freeze({ night: '’s\u00a0nachts', morning: '’s\u00a0ochtends', afternoon: '’s\u00a0middags', evening: '’s\u00a0avonds' }), // never broken after ’s
+  en: Object.freeze({ night: 'at night', morning: 'in the morning', afternoon: 'in the afternoon', evening: 'in the evening' }),
+});
+
+/** The part of the day of a time: 'night', 'morning', 'afternoon' or 'evening'. */
+export function dayPart(t) {
+  const h = Math.floor(mod(t, DAY) / 60);
+  return h < 6 ? 'night' : h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+}
+
+/** The part of the day in words: "’s middags", "in the afternoon". */
+export function partWord(t, lang = 'nl') {
+  return (PART_WORDS[lang] || PART_WORDS.nl)[dayPart(t)];
+}
+
+/** A 24-hour time in words: "vijf voor half drie ’s middags" (14:25), "twenty-five past two in the afternoon". */
+export function phrase24(t, lang = 'nl') {
+  return `${phrase(t, lang)} ${partWord(t, lang)}`;
 }
 
 /** Day or night on the clock face (oldest tier and the daily rhythm): 06:00 to 18:00 is day. */
@@ -192,7 +229,11 @@ function shuffle(rng, list) {
 
 /** A random time on the tier's grid. Up to the 5-minute tier on a 12-hour face (1:00..12:55). */
 export function randomTime(tierId, rng) {
-  const tier = TIERS[tierId];
+  return randomOn(TIERS[tierId], rng);
+}
+
+/** The same for any grid `{ step, digital24 }` (the digital rounds use their own grids). */
+function randomOn(tier, rng) {
   const m = Math.floor(rng() * (60 / tier.step)) * tier.step;
   if (tier.digital24) return Math.floor(rng() * 24) * 60 + m;
   const h = 1 + Math.floor(rng() * 12);
@@ -214,7 +255,15 @@ export function label(t, tierId, lang) {
  * together.
  */
 export function answerOptions(t, tierId, rng, lang = 'nl') {
-  const tier = TIERS[tierId];
+  return optionsOn(t, TIERS[tierId], rng, (x) => label(x, tierId, lang));
+}
+
+/**
+ * The options on any grid `{ step, options, digital24 }`, each written by `labelOf` (which must
+ * write different times differently: the words, 12-hour digits for the face, 24-hour digits or
+ * the words with the part of the day).
+ */
+function optionsOn(t, tier, rng, labelOf) {
   const step = tier.step;
   const span = tier.digital24 ? DAY : FACE;
   const n = tier.options;
@@ -229,7 +278,7 @@ export function answerOptions(t, tierId, rng, lang = 'nl') {
     step: step >= 60 ? [120, 180] : [step, 2 * step],
     other: [...(step <= 30 ? [30] : []), step >= 60 ? 240 : 3 * bigStep],
   };
-  const right = label(t, tierId, lang);
+  const right = labelOf(t);
   const out = [{ t: mod(t, DAY), text: right, correct: true }];
   const seen = new Set([right]);
   const offs = new Set();
@@ -239,7 +288,7 @@ export function answerOptions(t, tierId, rng, lang = 'nl') {
     if (out.length >= n || !onGrid(x) || sameAsRight(x)) return false;
     const off = rel(x);
     if (Math.abs(off) === 60 && offs.has(-off)) return false; // never an hour on both sides
-    const text = label(x, tierId, lang);
+    const text = labelOf(x);
     if (seen.has(text)) return false;
     seen.add(text);
     offs.add(off);
@@ -252,7 +301,7 @@ export function answerOptions(t, tierId, rng, lang = 'nl') {
   const extras = () => {
     const xs = [swapped];
     if (tier.digital24) xs.push(t + 720, t - 720);
-    for (let k = 0; k < 6; k++) xs.push(randomTime(tierId, rng));
+    for (let k = 0; k < 6; k++) xs.push(randomOn(tier, rng));
     return shuffle(rng, xs);
   };
   for (const side of shuffle(rng, [-1, 1])) {
@@ -275,7 +324,7 @@ export function answerOptions(t, tierId, rng, lang = 'nl') {
     }
     for (let d = step; got < need[side] && d < span / 2; d += step) if (add(t + side * d)) got++;
   }
-  for (let guard = 0; out.length < n && guard < 200; guard++) add(randomTime(tierId, rng));
+  for (let guard = 0; out.length < n && guard < 200; guard++) add(randomOn(tier, rng));
   return shuffle(rng, out);
 }
 
@@ -310,15 +359,19 @@ export function dayOptions(activityId, rng, { easy = false } = {}) {
 
 // ---------- rounds ----------
 
-export const MODES = Object.freeze(['set', 'read', 'day']);
+export const MODES = Object.freeze(['set', 'read', 'day', 'dig']);
 export const ROUND_LEN = 10;
 export const ROUNDS_PER_TIER = 3;
 
-/** The fixed rounds: set and read have 3 rounds per tier, the daily rhythm 3 rounds. */
+/** The tiers of a kind of round: the daily rhythm has one, the digital clock three, the rest five. */
+export function tiersOf(mode) {
+  return mode === 'day' ? ['t1'] : mode === 'dig' ? DIG_TIER_IDS : TIER_IDS;
+}
+
+/** The fixed rounds: 3 per tier of every kind. */
 export function roundIds() {
   const ids = [];
-  for (const mode of ['set', 'read']) for (const tier of TIER_IDS) for (let r = 1; r <= ROUNDS_PER_TIER; r++) ids.push(`${mode}-${tier}-${r}`);
-  for (let r = 1; r <= ROUNDS_PER_TIER; r++) ids.push(`day-t1-${r}`);
+  for (const mode of ['set', 'read', 'day', 'dig']) for (const tier of tiersOf(mode)) for (let r = 1; r <= ROUNDS_PER_TIER; r++) ids.push(`${mode}-${tier}-${r}`);
   return ids;
 }
 
@@ -332,6 +385,7 @@ export function parseRoundId(id) {
  * set:  { target, start }   read: { target, options }   day: { activity, target, options }
  */
 export function makeRound({ mode, tier, seed, lang = 'nl', round = 0 }) {
+  if (mode === 'dig') return makeDigRound({ tier, seed, lang, round });
   const rng = mulberry32(seed);
   const qs = [];
   if (mode === 'day') {
@@ -372,4 +426,114 @@ export function hintHand(current, target) {
 export function minutePosition(t) {
   const m = minuteOf(t);
   return m % 5 === 0 ? (m === 0 ? 12 : m / 5) : null;
+}
+
+// ---------- digital clocks (Digitaal), as groep 4-5 learns them ----------
+// Three tiers. t1: a digital time to its analogue clock and back, whole hours (round 1) and half
+// hours, 12-hour. t2: quarters (round 1) and five minutes: set a digital clock (hour and minute
+// steppers) to an analogue clock or to the words, and say a digital time in words ("04:25" is
+// "vijf voor half vijf"). t3: the 24-hour clock: "14:25" to and from "vijf voor half drie
+// ’s middags", an analogue clock with its part of the day to the 24-hour time, and which of two
+// times is later. Analogue and digital always show the same time: everything is drawn from `t`.
+
+export const DIG_TIERS = Object.freeze({
+  t1: Object.freeze({ age: '7-8', kinds: Object.freeze({ d2a: 5, a2d: 5 }), steps: Object.freeze([60, 30]), options: 3, h24: false }),
+  t2: Object.freeze({ age: '7-9', kinds: Object.freeze({ setA: 3, setP: 3, say: 4 }), steps: Object.freeze([15, 5]), options: 4, h24: false }),
+  t3: Object.freeze({ age: '8-10', kinds: Object.freeze({ say24: 3, write24: 2, clock24: 3, later: 2 }), steps: Object.freeze([15, 5]), options: 4, h24: true }),
+});
+export const DIG_TIER_IDS = Object.keys(DIG_TIERS);
+/** The kinds of question that are set with the steppers; the others pick one of the options. */
+export const DIG_SET_KINDS = Object.freeze(['setA', 'setP']);
+
+/** The minute grid of a digital round: round 1 the easier one, rounds 2-3 and random the finer one. */
+export function digStep(tierId, round = 0) {
+  const { steps } = DIG_TIERS[tierId];
+  return round === 1 ? steps[0] : steps[1];
+}
+
+/** How an option of a kind of question is written (and so what makes two options different). */
+export function digLabel(kind, t, lang = 'nl') {
+  if (kind === 'd2a' || kind === 'a2d' || kind === 'setA' || kind === 'setP') return digital12(t);
+  if (kind === 'say') return phrase(t, lang);
+  if (kind === 'say24') return phrase24(t, lang);
+  return digital(t, { h24: true }); // write24, clock24, later
+}
+
+/** Does this kind of question read the whole day (24 hours) or only the face (12 hours)? */
+export function digIs24(kind) {
+  return kind === 'say24' || kind === 'write24' || kind === 'clock24' || kind === 'later';
+}
+
+/**
+ * The digital clock's steppers: the hour goes round 1..12 and the minutes round 00..55 on their
+ * own (like a real digital clock being set, the hour does not move with the minutes). 12-hour.
+ */
+export function stepDigit(t, part, dir, step = 5) {
+  const x = mod(t, FACE);
+  const h = Math.floor(x / 60);
+  const m = x % 60;
+  if (part === 'hour') return mod(h + dir, 12) * 60 + m;
+  return h * 60 + mod(m + dir * step, 60);
+}
+
+/**
+ * Which is later in the day: two times at least an hour apart. `tricky` asks for a pair where the
+ * 12-hour reading points the wrong way (09:40 and 21:15: 9:40 looks later than 9:15), the other
+ * pairs read the same either way.
+ */
+function laterPair(rng, step, tricky, used) {
+  const grid = { step, digital24: true };
+  let pair = null;
+  for (let g = 0; g < 400; g++) {
+    const a = randomOn(grid, rng);
+    const b = randomOn(grid, rng);
+    if (Math.abs(a - b) < 60 || used.has(Math.max(a, b))) continue;
+    pair = [a, b];
+    const misleads = mod(a, FACE) !== mod(b, FACE) && mod(a, FACE) > mod(b, FACE) !== a > b;
+    if (misleads === tricky) break;
+  }
+  return pair;
+}
+
+/**
+ * The questions of a digital round. Every question has a `kind` and a `target`; set kinds have a
+ * `start` (never the target), the others `options` ({ t, text, correct }; one right, no time twice).
+ */
+export function makeDigRound({ tier, seed, lang = 'nl', round = 0 }) {
+  const info = DIG_TIERS[tier];
+  const rng = mulberry32(seed);
+  const step = digStep(tier, round);
+  const kinds = shuffle(rng, Object.entries(info.kinds).flatMap(([k, n]) => Array(n).fill(k)));
+  const used = new Set(); // targets so far: the face for 12-hour kinds, the whole day for 24-hour
+  const usedFace = new Set();
+  let tricky = rng() < 0.5;
+  const qs = [];
+  for (const kind of kinds) {
+    const h24 = digIs24(kind);
+    const grid = { step, digital24: h24, options: kind === 'later' ? 2 : info.options };
+    if (kind === 'later') {
+      const [a, b] = laterPair(rng, step, tricky, used);
+      tricky = !tricky;
+      const target = Math.max(a, b);
+      used.add(target);
+      usedFace.add(mod(target, FACE));
+      const options = shuffle(rng, [a, b].map((x) => ({ t: x, text: digLabel(kind, x, lang), correct: x === target })));
+      qs.push({ kind, target, options });
+      continue;
+    }
+    let target = randomOn(grid, rng);
+    const taken = (x) => (h24 ? used.has(mod(x, DAY)) : usedFace.has(mod(x, FACE)));
+    for (let g = 0; g < 80 && taken(target); g++) target = randomOn(grid, rng);
+    if (!h24) target = mod(target, FACE); // a 12-hour question: the face only
+    used.add(mod(target, DAY));
+    usedFace.add(mod(target, FACE));
+    if (DIG_SET_KINDS.includes(kind)) {
+      let start = mod(randomOn(grid, rng), FACE);
+      for (let g = 0; g < 50 && (sameFace(start, target) || minuteOf(start) === minuteOf(target) || hour12(start) === hour12(target)); g++) start = mod(randomOn(grid, rng), FACE);
+      qs.push({ kind, target, start });
+    } else {
+      qs.push({ kind, target, options: optionsOn(target, grid, rng, (x) => digLabel(kind, x, lang)) });
+    }
+  }
+  return qs;
 }
