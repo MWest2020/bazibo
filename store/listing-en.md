@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-19 games for children aged 3 to 10. No ads, no account, no trackers.
+20 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-19 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
+20 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,79 +27,37 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo is an app of games for children aged 3 to 10, with no ads. It has nineteen games now: Bubble Shooter, Dogudoku, Picturedoku, Pairs, Jigsaw, Four in a Row, Checkers, Game of the Goose, Quartets, Snake, Colouring, Drawing, Piano, Drums, Telling Time, Letters, Little Hedgehog, Kangaroo Hops and Map Puzzle. More games will follow.
+Bazibo: twenty games for children aged 3 to 10, with no ads, and more will follow. The name comes from "bāzi", Persian for play.
 
-The name comes from "bāzi", the Persian word for play.
+PUZZLES
+• Dogudoku: hide the puppies, one per row and column, and they may not touch, not even diagonally. From a 4 by 4 garden to coloured beds from age 5; 60 puzzles.
+• Picturedoku: sudoku with pictures. From age 3, 4 by 4 with fruit, no numbers or reading; 6 by 6 from age 6 and 9 by 9 from age 8, with numbers if you like. 60 puzzles.
+• Pairs: find the pairs, on your own, together or against the computer. 6 and 12 cards with fruit; full version: 16 and 20 cards, picture-book and shapes cards.
+• Jigsaw: 9, 16 and 25 pieces with three pictures, and a magnifier on phones; full version: 30, 48 and 60 pieces and five more pictures.
 
-BUBBLE SHOOTER
-• Drag to aim and let go: three of the same colour pop. 30 levels.
+BOARD GAMES: TOGETHER OR AGAINST THE COMPUTER
+• Four in a Row, also on a little board where three in a row wins. Hard in the full version.
+• Checkers: puppy against kitten, or classic, on 8 by 8. Full version: a smarter computer and 10 by 10.
+• Tigers and Goats (Bagh-Chal), an old game from Nepal: the goats hem the tigers in, the tigers jump over goats. Captured goats nap in the meadow. Play the goats or the tigers; a smarter computer in the full version.
+• Game of the Goose: our own board; your child counts by tapping every square. Against a computer goose; full version: up to four players and winter and sea boards.
+• Quartets: ask for the cards you are missing. 4 sets; full version: 6 and 8 sets and a 4th player.
 
-DOGUDOKU: HIDE THE PUPPIES
-• One puppy per row and column, and puppies may not touch, not even diagonally.
-• From a 4 by 4 garden for the youngest to coloured beds from age 5. 60 puzzles.
+CREATIVE
+• Colouring: pick a colour and tap a part. 13 pictures from age 3, mandalas from age 7.
+• Drawing: with a finger, every colour and an eraser. Full version: mirror mode (every stroke a mandala), stamps and up to 100 drawings.
+• Piano: a toy piano with coloured keys; play along, the next key lights up. Ages 4-6: Frère Jacques; 7-10: two octaves and the Ode to Joy. More songs, like Für Elise, in the full version.
+• Drums: eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms in the full version.
 
-PICTUREDOKU: SUDOKU WITH PICTURES
-• From age 3: 4 by 4 with fruit, no numbers and no reading.
-• From age 6, 6 by 6; from age 8, 9 by 9, with numbers if you like. 60 puzzles.
+LEARNING
+• Telling Time: set the clock to "half past two" or pick what time it is, from a daily rhythm to single minutes and the 24-hour clock.
+• Letters: find the same letter among look-alikes, the first or a middle letter of a pictured word, and build a word.
+• Little Hedgehog: a hedgehog in a garden maze picks up the alphabet, a word or numbers in order.
+• Kangaroo Hops: adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 in the full version.
+• Map Puzzle: piece together the continents, Europe, the Netherlands, the US or the UK, and find places. Free: the continents, and every puzzle with borders.
 
-PAIRS
-• Turn over two cards and find the pairs. On your own, together, or against the computer.
-• 6 and 12 cards with fruit. 16 and 20 cards, picture-book and shapes cards (full version).
-
-JIGSAW
-• Drag the pieces to their places. From 9 to 60 pieces, with a magnifier on phones.
-• 9, 16 and 25 pieces with three pictures. 30, 48 and 60 pieces and five more pictures (full version).
-
-FOUR IN A ROW
-• Together on one screen or against the computer; Hard in the full version.
-• For the youngest: the little board, where three in a row wins.
-
-CHECKERS
-• Puppy against kitten, or classic.
-• Together or against the computer on 8 by 8. A smarter computer and 10 by 10 (full version).
-
-GAME OF THE GOOSE
-• Our own board; your child counts by tapping every square.
-• Together or against a computer goose. Up to four players and winter and sea boards (full version).
-
-QUARTETS
-• Ask for the cards you are missing and lay down your sets of four.
-• Against the computer or together on one phone. 4 sets; 6 and 8 sets and a 4th player (full version).
-
-SNAKE: COUNTING, LETTERS AND COLOURS
-• Eat the numbers in order, the letters of a word, or only the fruit of the right colour.
-• 30 levels; a mistake is never game over.
-
-COLOURING PAGES AND MANDALAS
-• Pick a colour and tap a part: done. 13 pictures from age 3, mandalas from age 7.
-
-DRAWING
-• Draw with a finger, with every colour and an eraser.
-• Mirror mode (every stroke a mandala), stamps and up to 100 drawings (full version).
-
-PIANO
-• A toy piano with coloured keys. Play along with a song: the next key lights up.
-• Ages 4-6: Frère Jacques; three more songs (full version).
-• Ages 7-10: two octaves and the Ode to Joy; Für Elise and more (full version).
-
-DRUMS
-• Eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms (full version).
-
-TELLING TIME
-• Set the clock to "half past two", or pick what time it is.
-• From a daily rhythm for the youngest to single minutes and the 24-hour clock.
-
-LETTERS
-• Find the same letter among look-alikes, the first or a middle letter of a pictured word, and build a word.
-
-LITTLE HEDGEHOG
-• A hedgehog in a garden maze picks up the alphabet, a word or numbers in order.
-
-KANGAROO HOPS
-• Adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 (full version).
-
-MAP PUZZLE
-• Piece together the continents, Europe, the Netherlands, the US or the UK, and find places. Free: the continents, and every puzzle with borders.
+ACTION
+• Bubble Shooter: aim and let go, and three of the same colour pop. 30 levels.
+• Snake: eat the numbers in order, the letters of a word, or only the fruit of the right colour. 30 levels; a mistake is never game over.
 
 MADE FOR CHILDREN
 • Every colour has its own symbol or pattern, so colour-blind children can play too.

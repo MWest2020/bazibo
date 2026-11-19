@@ -7,6 +7,7 @@
 //                 legpuzzel: { stars: {'garden-p9': 1 (laid once)}, size: 'p9', ghost: true, zoom: false },
 //                 vier: { stars: {'cpu-big-1': wins, 'duo-small-2': wins}, setup, tokens },
 //                 dammen: { stars: {'cpu-small-1': wins}, setup: {variant, mode, level}, look },
+//                 baghchal: { stars: {'cpu-goats-1': wins}, setup: {mode, level, side} },
 //                 ganzen: { stars: {'won-classic': wins}, setup: {board, players: ['kid', 'cpu'], count} },
 //                 kwartet: { stars: {'won-4': wins against the computer}, setup: {sets: 4|6|8, players: ['kid', 'cpu', ...]} },
 //                 <any game>: { random: {tier: solved count} }   // random play, full version

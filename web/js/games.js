@@ -9,6 +9,7 @@ import { meta as memory } from '../games/memory/meta.js';
 import { meta as legpuzzel } from '../games/legpuzzel/meta.js';
 import { meta as vier } from '../games/vier/meta.js';
 import { meta as dammen } from '../games/dammen/meta.js';
+import { meta as baghchal } from '../games/baghchal/meta.js';
 import { meta as ganzen } from '../games/ganzen/meta.js';
 import { meta as kwartet } from '../games/kwartet/meta.js';
 import { meta as slang } from '../games/slang/meta.js';
@@ -42,6 +43,7 @@ export const GAMES = [
   { ...legpuzzel, status: 'ready' },
   { ...vier, status: 'ready' },
   { ...dammen, status: 'ready' },
+  { ...baghchal, status: 'ready' },
   { ...ganzen, status: 'ready' },
   { ...kwartet, status: 'ready' },
   { ...slang, status: 'ready' },

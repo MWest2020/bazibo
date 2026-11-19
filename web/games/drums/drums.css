@@ -84,42 +84,41 @@
   padding: 8px 10px 12px;
 }
 .drums-kit {
-  --cell: 120px;
+  position: relative;
   flex: 1;
   max-width: 1100px;
   min-height: 0;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-  grid-template-areas: "crash ride" "tom1 tom2" "hihat snare" "kick floor";
   touch-action: none; /* fingers drum, they never scroll or zoom */
   -webkit-user-select: none;
   user-select: none;
 }
+/* the stands and the rug, behind the pads; only the pads are hit */
+.drums-stands { position: absolute; inset: 0; pointer-events: none; }
+.drums-stands-svg { display: block; overflow: visible; }
+/* every pad is placed by drums.js (kitLayout in kit.js): its touch area, the drawing fills it */
 .dpad {
-  position: relative;
+  position: absolute;
+  z-index: 1;
   min-width: 0;
   min-height: 0;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.28);
+  border-radius: 0; /* a rounded button drops taps in its corners: the whole touch area hits */
+  background: transparent;
   font: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
 }
+/* the rounded light behind a pad (glow, lit, the grid's cells) is only a picture, never the hit box */
+.dpad::before { content: ""; position: absolute; inset: 0; border-radius: 28px; pointer-events: none; }
+/* the plain grid for a box too small for the kit: each cell shows its touch area */
+.drums-kit[data-shape^="grid"] .dpad::before { background: rgba(255, 255, 255, 0.28); }
 .dpad:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; z-index: 3; }
-/* the drawn drum: a square as big as the cell allows, in the middle of it */
 .dpad-face {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--cell);
-  height: var(--cell);
-  transform: translate(-50%, -50%);
+  inset: 3px;
   pointer-events: none;
 }
 .dpad-svg { width: 100%; height: 100%; display: block; overflow: visible; transition: transform 0.06s ease; }
@@ -127,12 +126,13 @@
 .dpad.hit .dpad-svg { animation: drums-bounce 0.22s ease-out; }
 .dpad.cymbal.hit .dpad-svg, .dpad.ride.hit .dpad-svg, .dpad.hihat.hit .dpad-svg { animation: drums-wobble 0.5s ease-out; }
 .dpad.lit .dpad-svg { filter: brightness(1.12) drop-shadow(0 0 10px #fff); transform: scale(0.95); }
-.dpad.lit { background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 0 4px var(--gold); }
+.dpad.lit::before { background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 0 4px var(--gold); }
 
 /* the pad to hit: it glows and breathes */
-.dpad.glow { z-index: 1; background: rgba(255, 255, 255, 0.75); box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.9); }
+.dpad.glow { z-index: 2; }
+.dpad.glow::before { background: rgba(255, 255, 255, 0.75); box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.9); }
 .dpad.glow .dpad-svg { animation: drums-breathe 0.9s ease-in-out infinite; }
-.dpad.good { animation: drums-good 0.35s ease-out; }
+.dpad.good::before { animation: drums-good 0.35s ease-out; }
 .dpad.nudge { animation: drums-nudge 0.4s ease-in-out 2; }
 /* on the beat: a ring closes in on the glowing pad and lands on its beat */
 .dpad-ring {
@@ -225,7 +225,7 @@
   100% { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dpad.glow .dpad-svg, .dpad.hit .dpad-svg, .dpad.nudge, .dpad.good, .drums-count.pop { animation: none; }
+  .dpad.glow .dpad-svg, .dpad.hit .dpad-svg, .dpad.nudge, .dpad.good::before, .drums-count.pop { animation: none; }
 }
 
 /* ---------- the rhythm list ---------- */
@@ -272,7 +272,6 @@
   .drums-card-title { font-size: 1.1rem; }
   .drums-card-art { width: 64px; height: 46px; }
   #drums-stage { padding: 6px 6px 10px; }
-  .drums-kit { gap: 6px; }
 }
 /* short sideways phones: the bar and the strip share one row, the kit gets the rest */
 @media (orientation: landscape) and (max-height: 520px) {
@@ -296,7 +295,6 @@
   .drums-status { display: none; }
   .drums-muted { grid-column: 1 / 3; grid-row: 2; }
   #drums-stage { grid-column: 1 / 3; grid-row: 3; padding: 4px 10px 8px; }
-  .drums-kit { gap: 6px; }
   .drums-count { width: 90px; height: 90px; margin: -45px 0 0 -45px; font-size: 3rem; }
   .btn.drums-go { height: 64px; font-size: 1.3rem; }
 }
