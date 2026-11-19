@@ -2,7 +2,7 @@
 // a purple rim with two little bells, numbers 1-12, minute marks, a short orange hour hand and a
 // long blue minute hand. The interactive clock keeps its hands as elements, so a drag only turns
 // them (setHands); the small clocks for answers and the home tile are plain strings.
-import { hourAngle, minuteAngle, isDay } from './time.js';
+import { hourAngle, minuteAngle, isDay, DAY_PARTS } from './time.js';
 
 const INK = '#2b2370';
 const RIM = '#5b4bdb';
@@ -132,6 +132,9 @@ export function modeSvg(mode) {
   if (mode === 'read') {
     return `<svg viewBox="0 0 70 52" aria-hidden="true"><circle cx="26" cy="27" r="22" fill="${FACE}" stroke="${RIM}" stroke-width="4"/><path d="M26 27 L26 12" stroke="${MINUTE}" stroke-width="4" stroke-linecap="round"/><path d="M26 27 L16 33" stroke="${HOUR}" stroke-width="5" stroke-linecap="round"/><circle cx="26" cy="27" r="3" fill="${GOLD}"/><text x="58" y="36" text-anchor="middle" font-size="26" font-weight="900" fill="${RIM}" font-family="ui-rounded, Nunito, system-ui, sans-serif">?</text></svg>`;
   }
+  if (mode === 'dig') {
+    return `<svg viewBox="0 0 70 52" aria-hidden="true"><rect x="3" y="9" width="64" height="34" rx="9" fill="${RIM}" stroke="${INK}" stroke-width="2.5"/><rect x="8" y="14" width="54" height="24" rx="5" fill="${FACE}"/><g transform="translate(12.5 17) scale(0.19)">${digitsInner('12:30', { off: false })}</g></svg>`;
+  }
   return `<svg viewBox="0 0 70 52" aria-hidden="true"><circle cx="20" cy="22" r="11" fill="${GOLD}" stroke="${HOUR}" stroke-width="2.5"/><path d="M50 10 a14 14 0 1 0 12 22 a11 11 0 1 1 -12 -22 z" fill="#8f86e8" stroke="${RIM}" stroke-width="2.5" stroke-linejoin="round"/><path d="M6 46 Q35 32 64 46" fill="none" stroke="#7cc46f" stroke-width="4" stroke-linecap="round"/></svg>`;
 }
 
@@ -158,3 +161,132 @@ export function activitySvg(id) {
   return `<svg class="klok-activity" viewBox="0 0 80 72" aria-hidden="true">${ICONS[id] || ''}</svg>`;
 }
 export const ACTIVITY_IDS = Object.keys(ICONS);
+
+// ---------- the digital clock (seven segments, drawn in code; no fonts) ----------
+
+const SEG_W = 44; // one digit cell
+const SEG_H = 76;
+const SEG_T = 10; // segment thickness
+const DIGIT_X = [0, 52, 128, 180]; // HH:MM; the colon sits between 104 and 124
+const DIG_HOUR = '#e2581f'; // the hour digits share the short hand's orange,
+const DIG_MIN = '#2563eb'; //  the minutes the long hand's blue
+const DIG_OFF = '#efeafc';
+const SEGS = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+
+const pts = (list) => list.map(([x, y]) => `${x},${y}`).join(' ');
+function hSeg(x, y, len) {
+  const w = SEG_T / 2;
+  return pts([[x, y], [x + w, y - w], [x + len - w, y - w], [x + len, y], [x + len - w, y + w], [x + w, y + w]]);
+}
+function vSeg(x, y, len) {
+  const w = SEG_T / 2;
+  return pts([[x, y], [x + w, y + w], [x + w, y + len - w], [x, y + len], [x - w, y + len - w], [x - w, y + w]]);
+}
+function segments(ox) {
+  const g = 2;
+  const l = ox + SEG_T / 2;
+  const r = ox + SEG_W - SEG_T / 2;
+  const top = SEG_T / 2;
+  const mid = SEG_H / 2;
+  const bot = SEG_H - SEG_T / 2;
+  return {
+    a: hSeg(l + g, top, r - l - 2 * g),
+    g: hSeg(l + g, mid, r - l - 2 * g),
+    d: hSeg(l + g, bot, r - l - 2 * g),
+    f: vSeg(l, top + g, mid - top - 2 * g),
+    b: vSeg(r, top + g, mid - top - 2 * g),
+    e: vSeg(l, mid + g, bot - mid - 2 * g),
+    c: vSeg(r, mid + g, bot - mid - 2 * g),
+  };
+}
+const SEG_CACHE = DIGIT_X.map(segments);
+
+/** The four digits and the colon of "HH:MM" in a 224 x 76 box (for digitalSvg and the menu picture). */
+function digitsInner(text, { off = true, colonCls = '' } = {}) {
+  const ds = String(text).replace(':', '').padStart(4, '0').slice(-4);
+  let s = '<g transform="skewX(-6) translate(8 0)">';
+  for (let k = 0; k < 4; k++) {
+    const on = SEGS[ds[k]] || '';
+    const colour = k < 2 ? DIG_HOUR : DIG_MIN;
+    const part = k < 2 ? 'hour' : 'minute';
+    s += `<g class="klok-dig-part ${part}">`;
+    for (const [id, p] of Object.entries(SEG_CACHE[k])) {
+      if (on.includes(id)) s += `<polygon points="${p}" fill="${colour}"/>`;
+      else if (off) s += `<polygon points="${p}" fill="${DIG_OFF}"/>`;
+    }
+    s += '</g>';
+  }
+  s += `<g class="klok-colon${colonCls ? ` ${colonCls}` : ''}"><circle cx="114" cy="24" r="6" fill="${INK}"/><circle cx="114" cy="52" r="6" fill="${INK}"/></g>`;
+  return `${s}</g>`;
+}
+
+/**
+ * A digital clock showing "HH:MM" (always four digits: "03:30", "14:25"): a purple case like the
+ * analogue clock's rim, a light screen, the hour digits orange and the minutes blue. `blink` lets
+ * the colon blink calmly (CSS, only on the big clock).
+ */
+export function digitalSvg(text, { blink = false, cls = '', labels = null } = {}) {
+  const extra = labels ? 22 : 0; // a line under the digits: "uur" and "minuten"
+  const words = labels
+    ? `<text x="54" y="100" text-anchor="middle" font-size="17" font-weight="900" fill="${DIG_HOUR}" font-family="ui-rounded, Nunito, system-ui, sans-serif">${labels[0]}</text>` +
+      `<text x="182" y="100" text-anchor="middle" font-size="17" font-weight="900" fill="${DIG_MIN}" font-family="ui-rounded, Nunito, system-ui, sans-serif">${labels[1]}</text>`
+    : '';
+  return (
+    `<svg class="klok-dig ${cls}" viewBox="-20 -18 268 ${112 + extra}" aria-hidden="true">` +
+    `<rect x="-17" y="-15" width="262" height="${106 + extra}" rx="22" fill="${RIM}" stroke="${INK}" stroke-width="3"/>` +
+    `<rect x="-7" y="-6" width="242" height="${88 + extra}" rx="13" fill="${FACE}"/>` +
+    digitsInner(text, { colonCls: blink ? 'blink' : '' }) +
+    words +
+    `</svg>`
+  );
+}
+
+/**
+ * The day as a strip from 0 to 24 hours: night, morning, afternoon and evening in their colours
+ * with a moon, a rising sun, a high sun and a setting sun. `part` lights up one part; `marks` are
+ * times to point at ({ t, text, good }).
+ */
+export function dayStripSvg({ part = null, marks = [] } = {}) {
+  const W = 288;
+  const X = (t) => 6 + (t / 1440) * W;
+  const fills = { night: '#3b3486', morning: '#ffe7a3', afternoon: '#bfe3ff', evening: '#ffb98a' };
+  let s = `<svg class="klok-strip" viewBox="0 0 300 120" aria-hidden="true">`;
+  DAY_PARTS.forEach((p, k) => {
+    const to = k + 1 < DAY_PARTS.length ? DAY_PARTS[k + 1].from : 1440;
+    const dim = part && p.id !== part ? ' opacity="0.35"' : '';
+    s += `<rect class="klok-strip-part" data-part="${p.id}" x="${X(p.from)}" y="40" width="${X(to) - X(p.from)}" height="44" fill="${fills[p.id]}"${dim}/>`;
+    const cx = (X(p.from) + X(to)) / 2;
+    s += `<g${dim}>${partIcon(p.id, cx, 62)}</g>`;
+  });
+  s += `<rect x="6" y="40" width="${W}" height="44" rx="4" fill="none" stroke="${INK}" stroke-width="3"/>`;
+  for (const h of [0, 6, 12, 18, 24]) {
+    s += `<line x1="${X(h * 60)}" y1="84" x2="${X(h * 60)}" y2="92" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+    s += `<text x="${Math.min(Math.max(X(h * 60), 12), 288)}" y="110" text-anchor="middle" font-size="15" font-weight="900" fill="${INK}" font-family="ui-rounded, Nunito, system-ui, sans-serif">${h}</text>`;
+  }
+  for (const m of marks) {
+    const x = Math.min(Math.max(X(m.t), 30), 270);
+    const col = m.good ? '#2f8f46' : INK;
+    s += `<path d="M${X(m.t)} 44 l-7 -10 h14 z" fill="${col}"/>`;
+    s += `<rect x="${x - 27}" y="4" width="54" height="26" rx="8" fill="#fff" stroke="${col}" stroke-width="3"/>`;
+    s += `<text x="${x}" y="23" text-anchor="middle" font-size="16" font-weight="900" fill="${col}" font-family="ui-rounded, Nunito, system-ui, sans-serif">${m.text}</text>`;
+  }
+  return `${s}</svg>`;
+}
+
+function partIcon(id, cx, cy) {
+  if (id === 'night') {
+    return `<path d="M${cx + 3} ${cy - 13} a13 13 0 1 0 10 20 a10 10 0 1 1 -10 -20 z" fill="#fff3c4"/><circle cx="${cx - 16}" cy="${cy - 9}" r="1.8" fill="#fff3c4"/><circle cx="${cx + 18}" cy="${cy + 8}" r="1.5" fill="#fff3c4"/>`;
+  }
+  if (id === 'morning') {
+    return `<path d="M${cx - 16} ${cy + 14} a16 16 0 0 1 32 0 z" fill="${GOLD}" stroke="${HOUR}" stroke-width="2"/><path d="M${cx} ${cy - 8} v-6 M${cx - 13} ${cy - 2} l-4 -4 M${cx + 13} ${cy - 2} l4 -4" stroke="${HOUR}" stroke-width="2.4" stroke-linecap="round"/>`;
+  }
+  if (id === 'afternoon') {
+    let rays = '';
+    for (let i = 0; i < 8; i++) {
+      const a = (i * 45 * Math.PI) / 180;
+      rays += `<line x1="${(cx + 11 * Math.sin(a)).toFixed(1)}" y1="${(cy - 11 * Math.cos(a)).toFixed(1)}" x2="${(cx + 15 * Math.sin(a)).toFixed(1)}" y2="${(cy - 15 * Math.cos(a)).toFixed(1)}" stroke="${HOUR}" stroke-width="2.4" stroke-linecap="round"/>`;
+    }
+    return `${rays}<circle cx="${cx}" cy="${cy}" r="8.5" fill="${GOLD}" stroke="${HOUR}" stroke-width="2"/>`;
+  }
+  return `<path d="M${cx - 15} ${cy + 14} a15 15 0 0 1 30 0 z" fill="${HOUR}" stroke="#c2410c" stroke-width="2"/><circle cx="${cx + 16}" cy="${cy - 12}" r="1.8" fill="#fff"/>`;
+}

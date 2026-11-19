@@ -10,7 +10,8 @@ pictures", kept after a reload; a mirrored mandala on small and sideways phones)
 real stroke, undo, mirror mode and stamps locked on the web, done, "my drawings", kept after a
 reload; mirror mode with 8 lines and a stamp on small and sideways phones), play Klok kijken (a "set the clock"
 round by dragging, a "what time is it" round with one mistake, a daily-rhythm round, + and -, the
-hint and "keep playing"; the layout at 320×568 and sideways), play Dammen, Tijgers en geitjes and Ganzenbord (see
+hint and "keep playing"; the layout at 320×568 and sideways; the digital rounds: klok_digital and
+klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes and Ganzenbord (see
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
@@ -902,8 +903,8 @@ def play_klok(page, name, say, problems):
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-k1-menu.png"))
     modes = page.eval_on_selector_all(".klok-modecard", "els => els.map(e => e.dataset.mode)")
-    if modes != ["day", "set", "read"]:
-        problems.append(f"{name}: Klok menu shows the kinds {modes}, expected the daily rhythm first")
+    if modes != ["day", "set", "read", "dig"]:
+        problems.append(f"{name}: Klok menu shows the kinds {modes}, expected the daily rhythm first and the digital clock last")
     klok_mode(page, "set")
     page.screenshot(path=str(SHOTS / f"{name}-k1-set-menu.png"))
     if page.locator(".klok-random .random-btn").count() != 1:
@@ -1019,6 +1020,261 @@ def play_klok(page, name, say, problems):
         problems.append(f"{name}: Klok menu back did not return to the kinds of round")
     page.click("#klok-menu-back")  # home
     page.wait_for_timeout(200)
+
+
+def klok_hhmm(t, h24=False):
+    """A time (minutes) as the digital clock writes it: "03:30" (12-hour) or "14:25"."""
+    t %= 1440
+    h = t // 60 if h24 else (t // 60) % 12 or 12
+    return f"{h:02d}:{t % 60:02d}"
+
+
+def klok_dig_state(page):
+    return page.evaluate("window.__bubbels.klok.state()")
+
+
+def klok_dig_agree(page, where, problems):
+    """Analogue and digital show the same time: the clock's hands, the digital face and every option."""
+    st = klok_dig_state(page)
+    kind, target = st["kind"], st["target"]
+    h24 = kind in ("say24", "write24", "clock24", "later")
+    face = page.get_attribute("#klok-face", "aria-label") or ""
+    if kind in ("d2a", "say", "say24") and not face.endswith(klok_hhmm(target, h24)):
+        problems.append(f"{where}: the digital clock says {face!r}, the answer is {klok_hhmm(target, h24)}")
+    if kind in ("a2d", "setA", "clock24"):
+        hm = page.evaluate("[document.querySelector('#kc-hour').getAttribute('transform'), document.querySelector('#kc-minute').getAttribute('transform')]")
+        want = [f"rotate({(target % 720) / 2:.2f} 100 100)", f"rotate({(target % 60) * 6:.2f} 100 100)"]
+        if hm != want:
+            problems.append(f"{where}: the hands {hm} do not show {klok_hhmm(target)} ({want})")
+    k = st["correctOption"]
+    if kind in ("a2d", "write24", "clock24", "later") and page.get_attribute(f"#klok-controls .klok-option[data-option='{k}']", "data-time") != klok_hhmm(target, h24):
+        problems.append(f"{where}: the right option is not {klok_hhmm(target, h24)}")
+
+
+def klok_dig_set(page, where, problems, check_mirror=False):
+    """Set the digital clock by real taps on its + and − to the target, then tap Klaar."""
+    st = klok_dig_state(page)
+    target = st["target"] % 720
+    for _ in range(40):
+        cur = klok_dig_state(page)["cur"] % 720
+        if cur == target:
+            break
+        dh = (target // 60 - cur // 60) % 12
+        dm = (target % 60 - cur % 60) % 60
+        if dh:
+            page.click("#klok-controls [data-step='hour+']" if dh <= 6 else "#klok-controls [data-step='hour-']")
+        else:
+            page.click("#klok-controls [data-step='minute+']" if dm <= 30 else "#klok-controls [data-step='minute-']")
+    shown = page.get_attribute("#klok-setter-display", "data-time")
+    if shown != klok_hhmm(target):
+        problems.append(f"{where}: the digital clock shows {shown}, wanted {klok_hhmm(target)}")
+    if check_mirror:
+        rot = page.get_attribute("#kc-minute", "transform")
+        if rot != f"rotate({(target % 60) * 6:.2f} 100 100)":
+            problems.append(f"{where}: the clock does not follow the digital clock ({rot})")
+    page.click("#klok-check")
+
+
+def klok_digital(browser, base, problems):
+    """Klok kijken, Digitaal: the kind in the menu, a locked tier on the web offers only OK; tier 1
+    round 1 played to the end by real taps with one wrong answer (its card shows both clocks), 2
+    stars saved; then in the full version a tier 2 round (setting the digital clock with its + and −,
+    to a clock and to words, the clock following; the hint) and a tier 3 round on the 24-hour clock,
+    each with 3 stars; analogue and digital agree on every question."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-klok")
+    page.wait_for_timeout(200)
+    klok_mode(page, "dig")
+    page.screenshot(path=str(SHOTS / "klok-dig-menu.png"))
+    page.click(".klok-grid .level-btn[data-round='dig-t2-1']")
+    page.wait_for_timeout(200)
+    if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"] or page.evaluate("window.__bubbels.klok.state()"):
+        problems.append("klok dig: a locked digital round did not just offer OK")
+    page.click("#ov-buttons button")
+    page.click(".klok-grid .level-btn[data-round='dig-t1-1']")
+    page.wait_for_timeout(300)
+    if not page.is_visible("#overlay") or "digitale klok" not in page.inner_text("#ov-text"):
+        problems.append("klok dig: the how-to card is missing")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    kinds = set()
+    for i in range(10):
+        st = klok_dig_state(page)
+        kinds.add(st["kind"])
+        klok_dig_agree(page, f"klok dig t1 q{i}", problems)
+        if i == 0:
+            page.screenshot(path=str(SHOTS / f"klok-dig-t1-{st['kind']}.png"))
+            klok_answer(page, right=False)
+            page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+            text = page.inner_text("#ov-text")
+            if page.inner_text("#ov-title").strip() != "Bijna!" or klok_hhmm(st["target"]) not in text or not page.locator("#ov-art .klok-svg").count() or not page.locator("#ov-art .klok-dig").count():
+                problems.append(f"klok dig: the mistake card {page.inner_text('#ov-title')!r} / {text!r}")
+            page.screenshot(path=str(SHOTS / "klok-dig-t1-almost.png"))
+            page.click("#ov-buttons button")
+        else:
+            klok_answer(page)
+        klok_next(page, i)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if kinds != {"d2a", "a2d"}:
+        problems.append(f"klok dig t1: the kinds were {kinds}")
+    got = page.evaluate("window.__bubbels.klok.stars()").get("dig-t1-1")
+    if got != 2:
+        problems.append(f"klok dig t1: one mistake should give 2 stars, saved {got}")
+    page.screenshot(path=str(SHOTS / "klok-dig-t1-won.png"))
+    page.click("#ov-buttons button >> nth=-1")  # Rondes
+    page.wait_for_timeout(200)
+    if not page.is_visible("#screen-klok-menu") or page.inner_text("#klok-menu-title").strip() != "Digitaal":
+        problems.append("klok dig: Rondes did not land on the digital rounds")
+    if errors:
+        problems.append(f"klok dig: page errors {errors[:3]}")
+    ctx.close()
+
+    # the full version: tier 2 (set the digital clock) and tier 3 (the 24-hour clock)
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(OWNED_APP)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.wait_for_function("window.__bubbels.full()", timeout=8000)
+    page.click("#tile-klok")
+    page.wait_for_timeout(200)
+    klok_mode(page, "dig")
+    for rid in ("dig-t2-1", "dig-t3-1"):
+        page.click(f".klok-grid .level-btn[data-round='{rid}']")
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+            page.wait_for_timeout(150)
+        seen = set()
+        for i in range(10):
+            st = klok_dig_state(page)
+            where = f"klok dig {rid} q{i} {st['kind']}"
+            klok_dig_agree(page, where, problems)
+            if st["kind"] not in seen:
+                seen.add(st["kind"])
+                page.screenshot(path=str(SHOTS / f"klok-dig-{rid}-{st['kind']}.png"))
+            if st["kind"] in ("setA", "setP"):
+                if "hint" not in seen:
+                    seen.add("hint")
+                    page.click("#klok-hint")
+                    if not page.locator("#klok-controls .klok-btn.hint").count() or not page.inner_text("#klok-status").strip():
+                        problems.append(f"{where}: the hint lights up nothing")
+                klok_dig_set(page, where, problems, check_mirror=st["kind"] == "setP")
+            else:
+                if st["kind"] == "later":
+                    times = page.eval_on_selector_all("#klok-controls .klok-option", "els => els.map(e => e.dataset.time)")
+                    if klok_hhmm(st["target"], True) != max(times):
+                        problems.append(f"{where}: the later of {times} is not the answer")
+                klok_answer(page)
+            klok_next(page, i)
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        want = {"dig-t2-1": {"setA", "setP", "say", "hint"}, "dig-t3-1": {"say24", "write24", "clock24", "later"}}[rid]
+        if seen != want:
+            problems.append(f"klok dig {rid}: the kinds were {seen}")
+        got = page.evaluate("window.__bubbels.klok.stars()").get(rid)
+        if got != 3:
+            problems.append(f"klok dig {rid}: stars {got}, expected 3")
+        page.click("#ov-buttons button >> nth=-1")
+        page.wait_for_timeout(200)
+    if errors:
+        problems.append(f"klok dig (full): page errors {errors[:3]}")
+    ctx.close()
+
+
+KLOK_DIG_FIT_JS = """() => {
+  const bad = [];
+  for (const b of document.querySelectorAll('#klok-controls button, #klok-hint, #klok-back')) {
+    const r = b.getBoundingClientRect();
+    const name = (b.dataset.option || b.dataset.step || b.id || b.textContent).slice(0, 20);
+    if (r.left < -0.5 || r.right > innerWidth + 0.5 || r.top < -0.5 || r.bottom > innerHeight + 0.5) bad.push(`${name} off screen`);
+    if (r.width < 48 || r.height < 48) bad.push(`${name} ${Math.round(r.width)}x${Math.round(r.height)}`);
+    if (b.scrollWidth > b.clientWidth + 1) bad.push(`${name} overflows`);
+  }
+  return bad;
+}"""
+
+
+def klok_digital_layouts(browser, base, problems):
+    """Digitaal at 320x568, 390x844 in English, 568x320, 844x390 and desktop: every kind of question
+    with the prompt, the clock, the answers and the dots on screen, the clock 110 px or more, every
+    button 48 px or more, no sideways scroll."""
+    for w, h, lang in ((320, 568, "nl"), (390, 844, "en"), (568, 320, "nl"), (844, 390, "en"), (1280, 800, "nl")):
+        mobile = w < 1000
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if lang == "en" else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.click("#tile-klok")
+        page.wait_for_timeout(150)
+        page.evaluate("window.__bubbels.klok.menu('dig')")
+        page.wait_for_timeout(100)
+        page.screenshot(path=str(SHOTS / f"klok-dig-{w}x{h}-{lang}-menu.png"))
+        for rid in ("dig-t1-2", "dig-t2-2", "dig-t3-2"):
+            page.evaluate(f"window.__bubbels.klok.start('{rid}')")
+            page.wait_for_timeout(250)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(150)
+            seen = set()
+            for i in range(10):
+                st = klok_dig_state(page)
+                kind = st["kind"]
+                if kind not in seen:
+                    seen.add(kind)
+                    where = f"klok dig {w}x{h} {lang} {kind}"
+                    for sel in ("#klok-prompt", "#klok-face", "#klok-controls", "#klok-dots"):
+                        r = page.locator(sel).bounding_box()
+                        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                            problems.append(f"{where}: {sel} off screen ({r})")
+                    face = page.locator("#klok-face svg").first.bounding_box()
+                    if not face or face["width"] < 110 or (kind not in ("d2a", "say", "say24", "write24", "later") and face["height"] < 110):
+                        problems.append(f"{where}: the clock is too small ({face})")
+                    if page.evaluate("document.documentElement.scrollWidth") > w:
+                        problems.append(f"{where}: sideways scroll")
+                    bad = page.evaluate(KLOK_DIG_FIT_JS)
+                    if bad:
+                        problems.append(f"{where}: buttons {bad}")
+                    page.screenshot(path=str(SHOTS / f"klok-dig-{w}x{h}-{lang}-{kind}.png"))
+                if kind in ("setA", "setP"):
+                    page.evaluate(f"window.__bubbels.klok.setTime({st['target']})")
+                    page.evaluate("window.__bubbels.klok.check()")
+                else:
+                    page.evaluate(f"window.__bubbels.klok.answer({st['correctOption']})")
+                klok_next(page, i)
+            page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+            page.click("#ov-buttons button >> nth=-1")
+            page.wait_for_timeout(150)
+        # a mistake card on the 24-hour clock and on "which is later"
+        page.evaluate("window.__bubbels.klok.start('dig-t3-1')")
+        page.wait_for_timeout(250)
+        for i in range(10):
+            st = klok_dig_state(page)
+            if st["kind"] == "later":
+                break
+            page.evaluate(f"window.__bubbels.klok.answer({st['correctOption']})")
+            klok_next(page, i)
+        st = klok_dig_state(page)
+        page.evaluate(f"window.__bubbels.klok.answer({(st['correctOption'] + 1) % 2})")
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        r = page.locator("#ov-card, #overlay .card").first.bounding_box() if page.locator("#ov-card, #overlay .card").count() else None
+        art = page.locator("#ov-art").bounding_box()
+        if not art or art["y"] < -0.5 or art["y"] + art["height"] > h + 0.5:
+            problems.append(f"klok dig {w}x{h}: the mistake card's picture is off screen ({art}, card {r})")
+        page.screenshot(path=str(SHOTS / f"klok-dig-{w}x{h}-{lang}-almost-later.png"))
+        if errors:
+            problems.append(f"klok dig {w}x{h}: page errors {errors[:3]}")
+        ctx.close()
 
 
 KLOK_FIT_JS = """() => [...document.querySelectorAll('#klok-controls button, #klok-hint, #klok-back')].filter((b) => {
@@ -6431,6 +6687,8 @@ def main():
             tekenen_locked_four(browser, base, problems)
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
+            klok_digital(browser, base, problems)
+            klok_digital_layouts(browser, base, problems)
             letters_play(browser, base, problems)
             doolhof_play(browser, base, problems)
             transfer_flow(browser, base, problems)
@@ -6480,6 +6738,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
          "kaart": (kaart_flow, kaart_layouts),
          "doolhof": (doolhof_play,),
+         "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links,)}
 
 

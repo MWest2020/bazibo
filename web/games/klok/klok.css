@@ -1,4 +1,5 @@
-/* Klok kijken: home tile, round menu, the question screen (prompt, clock, controls, progress).
+/* Klok kijken: home tile, round menu, the question screen (prompt, clock, controls, progress),
+   and the digital rounds (the digital clock, the day strip, the steppers).
    Shared look lives in css/style.css. */
 
 /* ---------- home tile ---------- */
@@ -238,7 +239,74 @@
   .klok-status { min-height: 1.2em; }
 }
 
+/* ---------- Digitaal: the digital clock, the day strip, the steppers ---------- */
+.klok-face .klok-dig { width: min(100%, 340px); height: auto; max-height: 100%; display: block; }
+.klok-face .klok-strip { width: min(100%, 400px); height: auto; max-height: 100%; display: block; }
+.klok-colon.blink { animation: klok-blink 2s ease-in-out infinite; } /* calm: once every two seconds */
+@keyframes klok-blink {
+  0%, 45% { opacity: 1; }
+  55%, 95% { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+.klok-dig-part.hint, .klok-btn.hint { animation: klok-pulse 0.75s ease-in-out infinite alternate; }
+.klok-options.words { grid-template-columns: minmax(0, 1fr); max-width: 400px; gap: 8px; }
+.klok-options.words .klok-option { hyphens: manual; }
+.klok-options.digis { max-width: 420px; }
+.klok-options.digis.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 480px; }
+.klok-option.digi { padding: 6px; display: flex; align-items: center; justify-content: center; }
+.klok-option.digi .klok-dig { width: 100%; max-width: 170px; height: auto; display: block; }
+#screen-klok[data-mode="dig"] .klok-option { min-height: 54px; }
+.klok-setrow { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+/* the digital clock being set, with + above and − below on each side: hours left, minutes right */
+.klok-setter { width: min(100%, 340px); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0 8px; }
+.klok-setter-display { grid-column: 2; grid-row: 1; width: 100%; }
+.klok-setter-display .klok-dig { width: 100%; height: auto; display: block; }
+.klok-steps { display: flex; flex-direction: column-reverse; gap: 8px; }
+.klok-steps.hour { grid-column: 1; grid-row: 1; }
+.klok-steps.minute { grid-column: 3; grid-row: 1; }
+.klok-steps .klok-btn.round { width: 54px; height: 54px; }
+.klok-ov.pair { width: auto; height: auto; gap: 10px; align-items: center; }
+.klok-ov.pair .klok-svg { width: 104px; height: 112px; }
+.klok-ov.pair .klok-dig { width: 128px; height: auto; }
+.klok-ov.strip { width: min(260px, 70vw); height: auto; }
+.klok-ov.strip svg { height: auto; }
+@media (max-height: 420px) {
+  .klok-ov.pair .klok-svg { width: 78px; height: 84px; }
+  .klok-ov.pair .klok-dig { width: 100px; }
+  .klok-ov.strip { width: 190px; }
+}
+
+@media (max-height: 640px) {
+  #screen-klok[data-mode="dig"] .klok-option { min-height: 48px; }
+  .klok-steps .klok-btn.round { width: 48px; height: 48px; font-size: 1.5rem; }
+  .klok-steps { gap: 6px; }
+  #screen-klok[data-mode="dig"] .klok-check { min-height: 48px; padding-block: 6px; }
+  .klok-option.digi .klok-dig { max-width: 140px; }
+}
+
+/* sideways phones: a smaller clock on the left, so the answers and the steppers get the room */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-klok[data-mode="dig"] .klok-face { height: min(calc(100vh - 16px), 32vw); max-width: 32vw; }
+  #screen-klok[data-mode="dig"] .klok-face[data-face="digital"], #screen-klok[data-mode="dig"] .klok-face[data-face="strip"] { aspect-ratio: auto; height: auto; width: 32vw; align-self: center; }
+  #screen-klok[data-mode="dig"] .klok-target { font-size: 1.1rem; }
+  #screen-klok[data-mode="dig"] .klok-target.small { font-size: 1rem; }
+  #screen-klok[data-mode="dig"] .klok-lead { font-size: 0.85rem; }
+  .klok-setter { max-width: 300px; gap: 0 6px; }
+  .klok-setrow { gap: 8px; }
+  .klok-options.words { gap: 6px; }
+  .klok-options.words .klok-option { font-size: 0.92rem; padding: 4px 8px; }
+  .klok-options.digis.n3 { grid-template-columns: minmax(0, 1fr); max-width: 220px; gap: 6px; }
+  .klok-options.digis { gap: 6px; }
+  .klok-option.digi { padding: 4px; }
+  .klok-option.digi .klok-dig { max-width: 120px; }
+}
+@media (orientation: landscape) and (max-height: 400px) {
+  #screen-klok[data-mode="dig"] .klok-option { min-height: 48px; }
+  .klok-option.digi .klok-dig { max-width: 100px; }
+  .klok-setter-display .klok-dig { max-height: 86px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .klok-hand.hint, .klok-daypart.hint { animation: none; filter: drop-shadow(0 0 6px rgba(255, 170, 0, 1)); }
-  .klok-face.happy .klok-svg, .klok-option.wrong { animation: none; }
+  .klok-hand.hint, .klok-daypart.hint, .klok-dig-part.hint, .klok-btn.hint { animation: none; filter: drop-shadow(0 0 6px rgba(255, 170, 0, 1)); }
+  .klok-face.happy .klok-svg, .klok-option.wrong, .klok-colon.blink { animation: none; }
 }
