@@ -104,15 +104,17 @@
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 28px;
+  border-radius: 0; /* a rounded button drops taps in its corners: the whole touch area hits */
   background: transparent;
   font: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
 }
+/* the rounded light behind a pad (glow, lit, the grid's cells) is only a picture, never the hit box */
+.dpad::before { content: ""; position: absolute; inset: 0; border-radius: 28px; pointer-events: none; }
 /* the plain grid for a box too small for the kit: each cell shows its touch area */
-.drums-kit[data-shape^="grid"] .dpad { background: rgba(255, 255, 255, 0.28); }
+.drums-kit[data-shape^="grid"] .dpad::before { background: rgba(255, 255, 255, 0.28); }
 .dpad:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; z-index: 3; }
 .dpad-face {
   position: absolute;
@@ -124,12 +126,13 @@
 .dpad.hit .dpad-svg { animation: drums-bounce 0.22s ease-out; }
 .dpad.cymbal.hit .dpad-svg, .dpad.ride.hit .dpad-svg, .dpad.hihat.hit .dpad-svg { animation: drums-wobble 0.5s ease-out; }
 .dpad.lit .dpad-svg { filter: brightness(1.12) drop-shadow(0 0 10px #fff); transform: scale(0.95); }
-.dpad.lit { background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 0 4px var(--gold); }
+.dpad.lit::before { background: rgba(255, 255, 255, 0.6); box-shadow: 0 0 0 4px var(--gold); }
 
 /* the pad to hit: it glows and breathes */
-.dpad.glow { z-index: 2; background: rgba(255, 255, 255, 0.75); box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.9); }
+.dpad.glow { z-index: 2; }
+.dpad.glow::before { background: rgba(255, 255, 255, 0.75); box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.9); }
 .dpad.glow .dpad-svg { animation: drums-breathe 0.9s ease-in-out infinite; }
-.dpad.good { animation: drums-good 0.35s ease-out; }
+.dpad.good::before { animation: drums-good 0.35s ease-out; }
 .dpad.nudge { animation: drums-nudge 0.4s ease-in-out 2; }
 /* on the beat: a ring closes in on the glowing pad and lands on its beat */
 .dpad-ring {
@@ -222,7 +225,7 @@
   100% { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dpad.glow .dpad-svg, .dpad.hit .dpad-svg, .dpad.nudge, .dpad.good, .drums-count.pop { animation: none; }
+  .dpad.glow .dpad-svg, .dpad.hit .dpad-svg, .dpad.nudge, .dpad.good::before, .drums-count.pop { animation: none; }
 }
 
 /* ---------- the rhythm list ---------- */

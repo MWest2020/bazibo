@@ -5244,6 +5244,18 @@ def drums_layouts(browser, base, problems):
             )
             if not kit_ok:
                 problems.append(f"drums {label} {mode}: the pads do not stand like a drum kit: {box}")
+            # the whole touch area hits, corners too (the kick's feet): no rounded button drops a tap
+            missed = page.evaluate("""() => [...document.querySelectorAll('.dpad')].flatMap((el) => {
+                const r = el.getBoundingClientRect();
+                return [[r.left + 2, r.top + 2], [r.right - 2, r.top + 2], [r.left + 2, r.bottom - 2], [r.right - 2, r.bottom - 2]]
+                    .filter(([x, y]) => document.elementFromPoint(x, y)?.closest('.dpad') !== el)
+                    .map(([x, y]) => `${el.dataset.pad} ${Math.round(x)},${Math.round(y)}`);
+            })""")
+            if missed:
+                problems.append(f"drums {label} {mode}: a tap in a pad's corner misses it: {missed[:4]}")
+            kit_box = page.locator("#drums-kit").bounding_box()
+            if abs(max(p[2] + p[4] for p in pads) - (kit_box["y"] + kit_box["height"])) > 1:
+                problems.append(f"drums {label} {mode}: the kit does not stand on the bottom of its box")
             if page.locator(".drums-stands svg path").count() < 2:
                 problems.append(f"drums {label} {mode}: no stands drawn behind the kit")
             want = "wide" if w > h else "tall"
