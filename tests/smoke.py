@@ -5183,8 +5183,9 @@ def drums_flow(browser, base, problems):
 
 def drums_layouts(browser, base, problems):
     """Drumstel on a small phone, an ordinary phone (in English), sideways and on desktop, free play
-    and a rhythm: every pad on screen, big enough for a small hand, none overlapping, the bar above
-    the kit, Begin on screen, no sideways scrolling; in the full version every rhythm open."""
+    and a rhythm: the pads stand like a real drum kit (never the plain grid at these sizes), every
+    pad on screen, big enough for a small hand, none overlapping, the bar above the kit, Begin on
+    screen, no sideways scrolling; in the full version every rhythm open."""
     for w, h, owned in ((320, 568, False), (390, 844, False), (844, 390, True), (568, 320, False), (1280, 800, False)):
         mobile = w < 1000
         english = (w, h) == (390, 844)
@@ -5235,6 +5236,23 @@ def drums_layouts(browser, base, problems):
             print(f"[drums {label} {mode}] {page.evaluate('window.__bubbels.drums.state().shape')}: pads at least {small:.0f} px, drawn {face:.0f} px")
             if small < 80 or face < 70:
                 problems.append(f"drums {label} {mode}: pads only {small:.0f} px (drawn {face:.0f})")
+            # it looks like a real kit: the kick lowest and in the middle, the toms on it, the cymbals
+            # above, the hi-hat on the left and the floor tom on the right, with the stands drawn
+            box = {p[0]: p[1:5] for p in pads}
+            mx = lambda k: box[k][0] + box[k][2] / 2
+            low = lambda k: box[k][1] + box[k][3]
+            kit_ok = (
+                all(low(k) <= low("kick") + 0.5 for k in box)
+                and mx("tom1") < mx("kick") < mx("tom2")
+                and max(low("tom1"), low("tom2")) <= box["kick"][1] + 0.5
+                and box["crash"][1] < box["hihat"][1] and box["ride"][1] < box["floor"][1]
+                and mx("hihat") == min(mx(k) for k in box)
+                and mx("hihat") < mx("snare") <= mx("kick") < mx("floor")
+            )
+            if not kit_ok:
+                problems.append(f"drums {label} {mode}: the pads do not stand like a drum kit: {box}")
+            if page.locator(".drums-stands svg path").count() < 2:
+                problems.append(f"drums {label} {mode}: no stands drawn behind the kit")
             want = "wide" if w > h else "tall"
             if page.evaluate("window.__bubbels.drums.state().shape") != want:
                 problems.append(f"drums {label} {mode}: the kit is {page.evaluate('window.__bubbels.drums.state().shape')}, expected {want}")
