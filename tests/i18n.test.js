@@ -14,6 +14,8 @@ import '../web/games/vier/strings.js';
 import '../web/games/dammen/strings.js';
 import '../web/games/baghchal/strings.js';
 import '../web/games/ganzen/strings.js';
+import '../web/games/pachisi/strings.js';
+import { LOOKS as PACHISI_LOOKS } from '../web/games/pachisi/art.js';
 import '../web/games/kwartet/strings.js';
 import { SETS as KWARTET_SETS } from '../web/games/kwartet/art.js';
 import '../web/games/slang/strings.js';
@@ -94,6 +96,11 @@ test('every key used in index.html and in the code exists', () => {
   for (const b of ['classic', 'winter', 'sea']) used.add(`ganzen.board.${b}`).add(`ganzen.board.${b}Sub`);
   for (const g of ['white', 'yellow', 'blue', 'pink']) used.add(`ganzen.goose.${g}`);
   for (const k of ['kid', 'cpu', 'off']) used.add(`ganzen.kind.${k}`);
+  for (const l of PACHISI_LOOKS) used.add(`pachisi.p.${l.id}`);
+  for (const k of ['kid', 'cpu', 'off']) used.add(`pachisi.kind.${k}`);
+  for (const n of [1, 2]) used.add(`pachisi.level${n}`);
+  for (const n of [2, 4]) used.add(`pachisi.pawns${n}`).add(`pachisi.pawns${n}Sub`);
+  for (const g of GAMES) if (g.subKey) used.add(g.subKey); // the small line under a name on the home screen
   for (const e of ['bounce', 'goose', 'bridge', 'maze', 'woods', 'inn', 'well', 'prison', 'skip.inn', 'skip.well', 'skip.prison']) used.add(`ganzen.ev.${e}`);
   for (const s of ['goose', 'bridge', 'inn', 'well', 'maze', 'prison', 'woods', 'end', 'start']) used.add(`ganzen.sq.${s}`);
   for (const id of ['small', 'big']) used.add(`dam.${id}`).add(`dam.${id}Sub`);

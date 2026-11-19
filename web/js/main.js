@@ -39,6 +39,9 @@ import { tileSvg as baghchalTileSvg } from '../games/baghchal/art.js';
 import '../games/ganzen/strings.js';
 import { createGanzen } from '../games/ganzen/ganzen.js';
 import { tileSvg as ganzenTileSvg } from '../games/ganzen/art.js';
+import '../games/pachisi/strings.js';
+import { createPachisi } from '../games/pachisi/pachisi.js';
+import { tileSvg as pachisiTileSvg } from '../games/pachisi/art.js';
 import '../games/kwartet/strings.js';
 import { createKwartet } from '../games/kwartet/kwartet.js';
 import { tileSvg as kwartetTileSvg } from '../games/kwartet/art.js';
@@ -238,6 +241,14 @@ function buildTiles() {
       name.dataset.i18n = game.titleKey;
       name.textContent = t(game.titleKey);
       tile.append(art, name);
+      if (game.subKey) {
+        // a small second line under the name (Pachisi: "the original game from India")
+        const sub = document.createElement('span');
+        sub.className = 'tile-sub';
+        sub.dataset.i18n = game.subKey;
+        sub.textContent = t(game.subKey);
+        tile.append(sub);
+      }
       tiles.append(tile);
     }
     section.append(head, tiles);
@@ -306,6 +317,10 @@ function drawBaghchalTile() {
 
 function drawGanzenTile() {
   $('#tile-ganzen .tile-art').innerHTML = ganzenTileSvg();
+}
+
+function drawPachisiTile() {
+  $('#tile-pachisi .tile-art').innerHTML = pachisiTileSvg();
 }
 
 function drawKwartetTile() {
@@ -690,6 +705,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.pachisi = createPachisi({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.kwartet = createKwartet({
     t,
     show,
@@ -828,6 +854,7 @@ async function boot() {
   drawDammenTile();
   drawBaghchalTile();
   drawGanzenTile();
+  drawPachisiTile();
   drawKwartetTile();
   drawSlangTile();
   drawKleurenTile();
@@ -842,7 +869,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.ganzen.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -856,6 +883,7 @@ async function boot() {
       dam: games.dammen.testHook(),
       bagh: games.baghchal.testHook(),
       gans: games.ganzen.testHook(),
+      pachisi: games.pachisi.testHook(),
       kwartet: games.kwartet.testHook(),
       slang: games.slang.testHook(),
       kleur: games.kleuren.testHook(),
@@ -905,6 +933,7 @@ function onBack() {
   else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'baghchal-menu') games.baghchal.leave();
   else if (action === 'ganzen-menu') games.ganzen.leave();
+  else if (action === 'pachisi-menu') games.pachisi.leave();
   else if (action === 'kwartet-menu') games.kwartet.leave();
   else if (action === 'slang-menu') games.slang.leave();
   else if (action === 'kleuren-list') games.kleuren.leave();

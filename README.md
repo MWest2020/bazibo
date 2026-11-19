@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Ganzenbord ("Game of the Goose"), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Ganzenbord ("Game of the Goose"), Pachisi (the original race game from India), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -235,6 +235,30 @@ geese, the special squares, a die face and the three boards drawn as SVG in `art
   the same big numbers. No voice.
 - Free: the classic meadow board with 2 players (a child against a computer goose, or two
   children). Full version: up to 4 players in any mix, and a winter and a sea board.
+
+### Pachisi
+
+The original race game from India, in `web/games/pachisi/` (rules in `rules.js`, the computer in
+`ai.js`, the cloth, the pawns and the cowrie shells drawn as SVG in `art.js`, the screens in
+`pachisi.js`). Rules as on Wikipedia's "Pachisi" page (cited in `rules.js`), with every
+simplification listed there.
+
+- A cross-shaped cloth: four arms of 3×8 squares round the Charkoni in the middle, 12 castle
+  squares (marked with a stitched cross). Every pawn starts in the Charkoni, walks down its own
+  arm's middle column, counter-clockwise round the whole board and back up into the middle: 84
+  steps.
+- Six cowrie shells: the shells that land open give the steps (2 to 6 open: that many; 1 open: 10;
+  none open: 25, "pachisi"); a 6, 10 or 25 throws again. The child counts the open shells by
+  tapping them ("Zelf tellen"), or they count themselves.
+- Landing on another player's pawn outside a castle sends it walking back to the middle, where it
+  starts again; on a castle nobody can be captured, and nobody may land on a castle someone else
+  holds. The first to bring every pawn home wins.
+- Made simpler for children: a pawn leaves the middle with any throw, home needs no exact throw,
+  no extra throw for a capture, no teams, and 2 pawns each as a short game (4 is traditional).
+- Tap a glowing pawn: the square it would reach glows, with dots on the way; tap that square and it
+  walks there, with the count on every square. The last move can be taken back.
+- Free: two players, a child against the easy computer or two children. Full version: a 3rd and
+  4th player and the medium computer.
 ### Kwartet
 
 The Dutch quartets card game, in `web/games/kwartet/` (rules in `rules.js`, the computer players in
@@ -590,7 +614,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `ganzen`, `doolhof`,
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `ganzen`, `pachisi`, `doolhof`,
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
