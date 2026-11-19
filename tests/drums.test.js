@@ -90,6 +90,9 @@ test('the layout on every screen: the kit shape, every pad 80 px or more, inside
       const sx = lay.box.w / k.w;
       const sy = lay.box.h / k.h;
       assert.ok(Math.max(sx / sy, sy / sx) <= D.STRETCH + 1e-9, `${screen}: stretched ${sx.toFixed(2)} by ${sy.toFixed(2)}`);
+      // centred across, standing on the bottom of the box (close to the thumbs)
+      assert.ok(Math.abs(lay.box.x * 2 + lay.box.w - w) < 1e-6 && Math.abs(lay.box.y + lay.box.h - h) < 1e-6, `${screen}: the kit does not stand on the bottom`);
+      assert.ok(Math.abs(Math.max(...Object.values(lay.cells).map((c) => c.y + c.h)) - h) < 1e-6, `${screen}: the kick is not on the bottom`);
     }
   }
   // a box too small for the kit: the plain grid, when it gives bigger pads

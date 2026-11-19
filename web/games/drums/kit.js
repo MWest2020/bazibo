@@ -41,7 +41,8 @@ export const KEYBOARD_MAP = Object.freeze(Object.fromEntries(PADS.map((p) => [p.
  *   wide  sideways phones, tablets and desktop: the whole kit as one picture
  *   tall  upright phones: the same kit stacked up (cymbals, toms, hi-hat / snare / floor tom, kick)
  * `kitLayout` scales a kit to the box, x and y each by their own factor but never one more than
- * `STRETCH` times the other (so the kit keeps its shape), and centres it. A box too small for every
+ * `STRETCH` times the other (so the kit keeps its shape), centres it across and stands it on the
+ * bottom of the box (close to the thumbs; any room left over goes above it). A box too small for every
  * pad to stay `MIN_PAD` px falls back to a plain grid (`GRIDS`) when that gives bigger pads.
  */
 export const KITS = Object.freeze({
@@ -98,7 +99,7 @@ function placeKit(kit, w, h) {
   sx = Math.min(sx, sy * STRETCH);
   sy = Math.min(sy, sx * STRETCH);
   const x0 = (w - kit.w * sx) / 2;
-  const y0 = (h - kit.h * sy) / 2;
+  const y0 = h - kit.h * sy; // standing on the bottom of the box, close to the thumbs
   const cells = {};
   for (const [id, [x, y, cw, ch]] of Object.entries(kit.pads)) cells[id] = { x: x0 + x * sx, y: y0 + y * sy, w: cw * sx, h: ch * sy };
   return { cells, box: { x: x0, y: y0, w: kit.w * sx, h: kit.h * sy } };
