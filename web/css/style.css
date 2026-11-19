@@ -218,6 +218,8 @@ html, body {
 .tile-art > span { flex: none; } /* the drawn mini boards keep their shape */
 /* the longest single words ("Kleurplaten", "Ganzenbord") must fit whole in a 3-column tile at 360 px */
 .tile-name { font-size: min(0.92rem, 13.4cqi); font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
+/* a small second line under a name (meta.subKey), e.g. Pachisi's "the original game from India" */
+.tile-sub { margin-top: -4px; font-size: min(0.7rem, 10.5cqi); font-weight: 800; line-height: 1.1; color: var(--ink-soft); }
 .tile.soon { background: rgba(255, 255, 255, 0.72); color: var(--ink-soft); }
 .tile.soon .tile-art { opacity: 0.6; }
 .badge {

@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-21 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+22 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-21 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+22 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo: eenentwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
+Bazibo: tweeëntwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
 
 PUZZELS
 • Dogudoku: verstop de hondjes, één per rij en kolom, en ze raken elkaar niet, ook niet schuin. Van 4 bij 4 tot kleurvakken vanaf 5 jaar; 60 puzzels.
@@ -43,6 +43,7 @@ BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
 • Tijgers en geitjes (Bagh-Chal), een oud spel uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Gevangen geitjes slapen in de wei. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
 • Schaken: met alle echte regels. Tik op een stuk en zie waar het heen mag. Makkelijk met een tip; een slimmere computer in de volledige versie.
 • Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers en een winter- en zeebord.
+• Pachisi, het oorspronkelijke spel uit India: gooi zes schelpen, tel de open schelpen en loop het hele bord rond naar huis. Volledige versie: vier spelers, een slimmere computer.
 • Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten en een 4e speler.
 
 CREATIEF

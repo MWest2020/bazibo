@@ -3856,6 +3856,389 @@ window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android',
 """
 
 
+# ---------- Pachisi ----------
+
+def _pa_paths():
+    """Every seat's path (positions 1-83) as (row, col), as in rules.js."""
+    def turn(r, c, seat):
+        for _ in range(seat):
+            r, c = 18 - c, r
+        return (r, c)
+    p = [None] + [(r, 9) for r in range(11, 19)] + [(r, 10) for r in range(18, 10, -1)]
+    for seat in (1, 2, 3):
+        p += [turn(r, 8, seat) for r in range(11, 19)] + [turn(18, 9, seat)] + [turn(r, 10, seat) for r in range(18, 10, -1)]
+    p += [(r, 8) for r in range(11, 19)] + [(18, 9)] + [(r, 9) for r in range(17, 10, -1)]
+    return [[None] + [turn(*p[i], seat) for i in range(1, 84)] for seat in range(4)]
+
+
+PA_PATHS = _pa_paths()
+PA_HOME = 84
+
+
+def pa_state(page):
+    return page.evaluate("window.__bubbels.pachisi.state()")
+
+
+def pa_wait(page, timeout=20000):
+    """Until the game waits for a child (a throw, a count or a move) or is over."""
+    page.wait_for_function(
+        "(() => { const s = window.__bubbels.pachisi.state(); if (!s) return false; if (s.over) return true;"
+        " const kid = s.setup.players[s.turn] === 'kid'; return kid && ['roll', 'count', 'move'].includes(s.phase); })()",
+        timeout=timeout,
+    )
+
+
+def pa_hit(page, kind, frm=None, pawn=None):
+    """A real tap where the thing is drawn: on the pawn (its picture, not a hit centre) or on the
+    glowing target."""
+    st = pa_state(page)
+    if kind == "target":
+        box = page.locator("#pachisi-board .pp-target").bounding_box()
+        if not box:
+            raise AssertionError(f"pachisi: no glowing target: {st['hits']}")
+        page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        return
+    k = st["turn"]
+    if pawn is None:
+        pawn = next((i for i, pos in enumerate(st["pawns"][k]) if pos == frm), None)
+    if pawn is None:
+        raise AssertionError(f"pachisi: no pawn on {frm}: {st['pawns'][k]}")
+    box = page.locator(f"#pachisi-board .ppawn[data-player='{k}'][data-pawn='{pawn}']").bounding_box()
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.62)
+
+
+def pa_count(page, problems=None, wrong=False):
+    """Count yourself: tap every open shell (first a closed one, when `wrong`)."""
+    st = pa_state(page)
+    shells = st["pending"]["shells"]
+    if wrong and not all(shells):
+        page.click(f"#pachisi-tray .pshell[data-i='{shells.index(False)}']")
+        page.wait_for_timeout(100)
+        after = pa_state(page)
+        if problems is not None and (after["counted"] or "dicht" not in after["msg"]):
+            problems.append(f"pachisi: a closed shell counted or said nothing: {after['counted']}, {after['msg']!r}")
+    for i, open_ in enumerate(shells):
+        if open_:
+            page.click(f"#pachisi-tray .pshell[data-i='{i}']")
+
+
+def pa_pick(st):
+    """A sensible child: a capture, else home, else a castle-free... the pawn furthest along."""
+    moves = st["moves"]
+    return max(moves, key=lambda m: (bool(m["captures"]), m["to"] >= PA_HOME, m["to"]))
+
+
+def pa_play_move(page, m):
+    """Tap the pawn (unless it is picked already), then the glowing square; wait for the next turn."""
+    before = (None, pa_state(page)["history"])
+    if pa_state(page)["sel"] != m["from"]:
+        pa_hit(page, "pawn", m["from"])
+        page.wait_for_timeout(60)
+    pa_hit(page, "target")
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.pachisi.state(); return (s.history !== {before[1]} && s.phase !== 'moving') || s.over; }})()", timeout=8000)
+
+
+def pa_fits(page, w, h, label, problems):
+    """The cloth, the chips, the shells, the line and the HUD buttons on screen; every target 44 px or more; no sideways scroll."""
+    for sel in ("#pachisi-board", "#pachisi-turn", "#pachisi-tray", "#pachisi-status", "#pachisi-back", "#pachisi-undo"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"pachisi {label}: {sel} off screen ({r})")
+    sizes = page.evaluate("[...document.querySelectorAll('#pachisi-back, #pachisi-undo, #pachisi-tray .pshell, #pachisi-board .pp-hit')].map((e) => { const r = e.getBoundingClientRect(); return [e.id || e.className, Math.min(r.width, r.height)]; })")
+    for name, size in sizes:
+        if size < 44:
+            problems.append(f"pachisi {label}: {name} only {size:.0f} px")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"pachisi {label}: sideways scroll")
+    return len(sizes)
+
+
+def pachisi_flow(browser, base, problems):
+    """Pachisi on the web build: the tile with its subtitle in Bordspellen; a 3rd player and medium
+    offer only OK; two children: the shells thrown by a tap, counted by taps (a closed shell does not
+    count), a pawn tapped and its square glowing, a capture that sends the other pawn walking home,
+    taken back and played again; against easy with 2 pawns, a whole game by real taps (count
+    yourself) to the child's win, with a take-back, back + keep playing and the Android back
+    button, the win counted."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, reduced_motion="reduce")
+    page = ctx.new_page()
+    errors, audio = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: "/voice/" in r.url and audio.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    name = page.inner_text("#tile-pachisi .tile-name").strip()
+    sub = page.inner_text("#tile-pachisi .tile-sub").strip()
+    if name != "Pachisi" or sub != "het oorspronkelijke Indiase spel":
+        problems.append(f"pachisi: tile says {name!r} / {sub!r}")
+    if not page.evaluate("document.querySelector('#tile-pachisi').closest('.tile-group')?.contains(document.querySelector('#tile-ganzen'))"):
+        problems.append("pachisi: the tile is not in the section with Ganzenbord")
+    page.locator("#tile-pachisi").evaluate("e => e.closest('.tile-group').scrollIntoView()")
+    page.screenshot(path=str(SHOTS / "pachisi-0-tile.png"))
+    page.click("#tile-pachisi")
+    page.wait_for_timeout(250)
+    for sel in (".pachisi-slot.slot-2", ".pachisi-slot.slot-3", ".pachisi-level[data-level='2']"):
+        page.click(sel)
+        page.wait_for_timeout(200)
+        labels = page.locator("#ov-buttons button").all_inner_texts()
+        if labels != ["Oké"]:
+            problems.append(f"pachisi: locked {sel} offers {labels}")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    page.screenshot(path=str(SHOTS / "pachisi-1-menu.png"), full_page=True)
+
+    # two children: a capture by taps, taken back, made again
+    page.click(".pachisi-slot.slot-1")  # the computer -> a child
+    page.wait_for_timeout(100)
+    if page.locator(".pachisi-level").count():
+        problems.append("pachisi: the computer's levels show without a computer playing")
+    page.evaluate("window.__bubbels.pachisi.fast(true)")
+    page.click("#pachisi-play")
+    page.wait_for_timeout(300)
+    pa_fits(page, 390, 844, "390x844 duo", problems)
+    if "Zon mag gooien" not in page.inner_text("#pachisi-status"):
+        problems.append(f"pachisi: the first line says {page.inner_text('#pachisi-status')!r}")
+    cell = PA_PATHS[0][47]
+    q = PA_PATHS[2].index(cell)
+    page.evaluate(f"window.__bubbels.pachisi.setGame([[44, 0, 0, 0], [{q}, 0, 0, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, false, true, false, true, false], [true, false, true, false, true, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+    page.screenshot(path=str(SHOTS / "pachisi-2-thrown.png"))
+    pa_count(page, problems, wrong=True)
+    pa_wait(page)
+    st = pa_state(page)
+    if st["phase"] != "move" or st["roll"]["steps"] != 3 or page.inner_text("#pachisi-result").strip() != "3":
+        problems.append(f"pachisi: after counting three open shells: {st['phase']}, {st['roll']}, result {page.inner_text('#pachisi-result')!r}")
+    if st["sel"] is not None:
+        problems.append("pachisi: a pawn was picked while two could move")
+    pa_hit(page, "pawn", 44)
+    page.wait_for_timeout(100)
+    st = pa_state(page)
+    if st["sel"] != 44 or page.locator(".pp-target").count() != 1 or page.locator(".pp-dot").count() != 2:
+        problems.append(f"pachisi: the picked pawn shows {page.locator('.pp-target').count()} targets and {page.locator('.pp-dot').count()} dots")
+    page.screenshot(path=str(SHOTS / "pachisi-3-target.png"))
+    pa_hit(page, "target")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'roll'", timeout=6000)
+    st = pa_state(page)
+    if st["pawns"] != [[47, 0, 0, 0], [0, 0, 0, 0]] or st["turn"] != 1:
+        problems.append(f"pachisi: the capture left {st['pawns']}, turn {st['turn']}")
+    page.screenshot(path=str(SHOTS / "pachisi-4-captured.png"))
+    if not st["canUndo"]:
+        problems.append("pachisi: no take-back after a move together")
+    page.click("#pachisi-undo")
+    page.wait_for_timeout(150)
+    st = pa_state(page)
+    if st["pawns"] != [[44, 0, 0, 0], [q, 0, 0, 0]] or st["phase"] != "move" or st["roll"]["steps"] != 3:
+        problems.append(f"pachisi: the take-back left {st['pawns']}, {st['phase']}, {st['roll']}")
+    pa_play_move(page, {"from": 44})
+    st = pa_state(page)
+    if st["pawns"][1][0] != 0:
+        problems.append(f"pachisi: the capture after the take-back left {st['pawns']}")
+    # a pawn walks onto its own pawn: the glowing target wins over the pawn standing there
+    page.evaluate("window.__bubbels.pachisi.setGame([[10, 13, 0, 0], [0, 0, 0, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, true, true, false, false, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+    pa_count(page)
+    pa_wait(page)
+    pa_hit(page, "pawn", 10)
+    page.wait_for_timeout(80)
+    if pa_state(page)["sel"] != 10:
+        problems.append(f"pachisi: a tap on the pawn on 10 picked {pa_state(page)['sel']}")
+    pa_hit(page, "target")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'roll'", timeout=6000)
+    if pa_state(page)["pawns"][0][:2] != [13, 13]:
+        problems.append(f"pachisi: the pawn on 10 did not walk onto its own pawn on 13: {pa_state(page)['pawns'][0]}")
+    # two pawns on one square (8 on the way out, 76 on the way home): a tap on each picks that one
+    page.evaluate("window.__bubbels.pachisi.setGame([[8, 76, 0, 0], [0, 0, 0, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, true, false, false, false, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+    pa_count(page)
+    pa_wait(page)
+    for pawn, frm in ((1, 76), (0, 8), (1, 76)):
+        pa_hit(page, "pawn", pawn=pawn)
+        page.wait_for_timeout(80)
+        if pa_state(page)["sel"] != frm:
+            problems.append(f"pachisi: a tap on the drawn pawn {pawn} (on {frm}) picked {pa_state(page)['sel']}")
+    page.screenshot(path=str(SHOTS / "pachisi-4b-shared-square.png"))
+    pa_hit(page, "target")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'roll'", timeout=6000)
+    if pa_state(page)["pawns"][0][:2] != [8, 78]:
+        problems.append(f"pachisi: the pawn on 76 did not walk on: {pa_state(page)['pawns'][0]}")
+    if page.evaluate("(window.__bubbels.save().games.pachisi || {}).stars || {}"):
+        problems.append("pachisi: a game together was counted")
+    page.click("#pachisi-back")
+    page.wait_for_timeout(200)
+
+    # against easy with 2 pawns: whole games by real taps until the child wins
+    page.click(".pachisi-slot.slot-1")  # a child -> the computer
+    page.click(".pachisi-opt.pawns-2")
+    page.click(".pachisi-opt.count-on")
+    won = False
+    for attempt, seed in enumerate((11, 12, 13, 14)):
+        page.evaluate(f"window.__bubbels.pachisi.seed({seed})")
+        page.click("#pachisi-play")
+        page.wait_for_timeout(300)
+        took_back = kept = False
+        for turn in range(600):
+            pa_wait(page)
+            st = pa_state(page)
+            if st["over"]:
+                break
+            if st["phase"] == "roll":
+                page.click("#pachisi-tray")
+                page.wait_for_function("['count', 'move', 'shown', 'roll', 'moving'].includes(window.__bubbels.pachisi.state().phase) && window.__bubbels.pachisi.state().phase !== 'rolling'", timeout=4000)
+                continue
+            if st["phase"] == "count":
+                pa_count(page, problems, wrong=(turn == 0 and attempt == 0))
+                continue
+            m = pa_pick(st)
+            if attempt == 0 and not took_back and st["history"] >= 3:
+                pa_play_move(page, m)
+                pa_wait(page)
+                after = pa_state(page)
+                if not after["over"] and after["canUndo"]:
+                    page.click("#pachisi-undo")
+                    page.wait_for_timeout(150)
+                    back = pa_state(page)
+                    if back["pawns"] != st["pawns"] or back["roll"] != st["roll"] or back["phase"] != "move":
+                        problems.append(f"pachisi: the take-back against easy left {back['pawns']} (was {st['pawns']})")
+                took_back = True
+                continue
+            if attempt == 0 and not kept and st["history"] >= 6:
+                page.evaluate("window.__bubbels.back()")  # the Android back button
+                page.wait_for_timeout(200)
+                if not page.is_visible("#pachisi-continue"):
+                    problems.append("pachisi: the back button did not lead to the menu with 'keep playing'")
+                page.click("#pachisi-continue")
+                page.wait_for_timeout(200)
+                kept = True
+                continue
+            if attempt == 0 and st["history"] == 12:
+                page.screenshot(path=str(SHOTS / "pachisi-5-vs-easy.png"))
+            pa_play_move(page, m)
+        st = pa_state(page)
+        if not st["over"]:
+            problems.append(f"pachisi: the game against easy did not end ({st['throws']} throws)")
+            break
+        page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+        if st["winner"] == 0:
+            won = True
+            page.screenshot(path=str(SHOTS / "pachisi-6-win.png"))
+            if page.inner_text("#ov-title").strip() != "Jij wint!":
+                problems.append(f"pachisi: the win card says {page.inner_text('#ov-title')!r}")
+            stars = page.evaluate("(window.__bubbels.save().games.pachisi || {}).stars || {}")
+            if stars.get("cpu-1") != 1:
+                problems.append(f"pachisi: the win was not counted: {stars}")
+            page.click("#ov-buttons button >> text=Menu")
+            break
+        print(f"[pachisi] easy game {attempt + 1} (seed {seed}): the computer won after {st['throws']} throws")
+        page.click("#ov-buttons button >> text=Menu")
+        page.wait_for_timeout(200)
+    if not won:
+        problems.append("pachisi: four games by a sensible child never beat easy")
+    page.wait_for_timeout(200)
+    if "1 keer gewonnen" not in page.inner_text(".pachisi-level[data-level='1']"):
+        problems.append("pachisi: the menu does not show the win on Easy")
+    if audio:
+        problems.append(f"pachisi: a voice clip was loaded: {audio[:1]}")
+    if errors:
+        problems.append(f"pachisi: page errors {errors[:3]}")
+    ctx.close()
+
+
+def pachisi_back_mid_walk(browser, base, problems):
+    """With animations on: back while the winning pawn is still walking home ends the game with its
+    card (still a win), and two computers play a whole short game to the end without errors."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#tile-pachisi")
+    page.wait_for_timeout(200)
+    page.evaluate("window.__bubbels.pachisi.choose({ players: ['kid', 'kid'], pawns: 2, count: false })")
+    page.click("#pachisi-play")
+    page.wait_for_timeout(300)
+    page.evaluate("window.__bubbels.pachisi.setGame([[84, 80], [10, 0]], 0)")
+    page.evaluate("window.__bubbels.pachisi.shells([[true, true, true, true, true, false]])")
+    page.click("#pachisi-tray")
+    page.wait_for_function("window.__bubbels.pachisi.state().phase === 'move'", timeout=8000)
+    pa_hit(page, "target")  # one pawn can move: it is picked already
+    page.wait_for_timeout(250)
+    page.evaluate("window.__bubbels.back()")  # the Android back button, halfway the walk
+    page.wait_for_timeout(300)
+    st = pa_state(page)
+    if not st["over"] or st["winner"] != 0:
+        problems.append(f"pachisi back mid-walk: the winning move did not count ({st['over']}, {st['pawns']})")
+    if not page.is_visible("#overlay") or page.inner_text("#ov-title").strip() != "Zon wint!":
+        problems.append("pachisi back mid-walk: no win card")
+    page.screenshot(path=str(SHOTS / "pachisi-7-back-mid-walk.png"))
+    page.click("#ov-buttons button >> text=Menu")
+    page.wait_for_timeout(200)
+    if page.is_visible("#pachisi-continue"):
+        problems.append("pachisi back mid-walk: 'keep playing' behind a finished game")
+    # two computers, 2 pawns, animations on (a little faster): a whole game
+    page.evaluate("window.__bubbels.pachisi.choose({ players: ['cpu', 'cpu'], pawns: 2, count: true }); window.__bubbels.pachisi.fast(true); window.__bubbels.pachisi.seed(3)")
+    page.click("#pachisi-play")
+    page.wait_for_function("window.__bubbels.pachisi.state().over", timeout=240000)
+    page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
+    if errors:
+        problems.append(f"pachisi back mid-walk: page errors {errors[:2]}")
+    ctx.close()
+
+
+def pachisi_layouts(browser, base, problems):
+    """Pachisi at 320x568, 568x320, 390x844 in English, 844x390 and desktop, and four players with
+    medium in the full version: the cloth, the chips, the shells and the line on screen, every tap
+    area 44 px or more, a pawn picked and its square glowing."""
+    for w, h, owned in ((320, 568, False), (568, 320, False), (390, 844, False), (844, 390, False), (1280, 800, False), (390, 844, True)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844) and not owned
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile, reduced_motion="reduce")
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}{' en' if english else ''}"
+        if english and (page.inner_text("#tile-pachisi .tile-name").strip(), page.inner_text("#tile-pachisi .tile-sub").strip()) != ("Pachisi", "the original game from India"):
+            problems.append(f"pachisi {label}: English tile says {page.inner_text('#tile-pachisi').strip()!r}")
+        page.click("#tile-pachisi")
+        page.wait_for_timeout(200)
+        page.screenshot(path=str(SHOTS / f"pachisi-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        players = "['kid', 'cpu', 'cpu', 'kid']" if owned else "['kid', 'cpu']"
+        page.evaluate(f"window.__bubbels.pachisi.choose({{ players: {players}, level: {2 if owned else 1}, pawns: 4, count: true }}); window.__bubbels.pachisi.fast(true)")
+        page.click("#pachisi-play")
+        page.wait_for_timeout(300)
+        pawns = "[[0, 5, 30, 84], [0, 12, 40, 0], [3, 3, 0, 0], [0, 0, 60, 70]]" if owned else "[[0, 5, 30, 84], [0, 12, 40, 0]]"
+        page.evaluate(f"window.__bubbels.pachisi.setGame({pawns}, 0)")
+        page.evaluate("window.__bubbels.pachisi.shells([[true, true, false, true, false, false]])")
+        page.click("#pachisi-tray")
+        page.wait_for_function("window.__bubbels.pachisi.state().phase === 'count'", timeout=4000)
+        pa_count(page)
+        pa_wait(page)
+        pa_hit(page, "pawn", 5)
+        page.wait_for_timeout(150)
+        n = pa_fits(page, w, h, label, problems)
+        st = pa_state(page)
+        if st["sel"] != 5 or not any(x["kind"] == "target" for x in st["hits"]):
+            problems.append(f"pachisi {label}: the tapped pawn was not picked ({st['sel']})")
+        print(f"[pachisi {label}] square {page.evaluate('window.__bubbels.pachisi.cell()')} px, {n} targets checked")
+        page.screenshot(path=str(SHOTS / f"pachisi-{w}x{h}{'-full' if owned else ''}.png"))
+        if errors:
+            problems.append(f"pachisi {label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def where(page):
     """[the screen being shown, is a card open]"""
     return page.evaluate("[document.querySelector('.screen.active').id.replace('screen-', ''), !document.querySelector('#overlay').hidden]")
@@ -4128,6 +4511,7 @@ def offers_others(browser, base, problems):
                               ("baghchal", ".bagh-level[data-level='2']", "baghchal-menu"),
                               ("schaak", ".schaak-level[data-level='3']", "schaak-menu"),
                               ("ganzen", ".ganzen-boardopt.board-winter", "ganzen-menu"),
+                              ("pachisi", ".pachisi-level[data-level='2']", "pachisi-menu"),
                               ("kleuren", "#kleur-list .kleur-card.locked >> nth=0", "kleuren-list"),
                               ("tekenen", "#teken-mirror", "tekenen")):
         page.click(f"#tile-{tile}")
@@ -7025,6 +7409,9 @@ def main():
             schaak_layouts(browser, base, problems)
             ganzen_flow(browser, base, problems)
             ganzen_layouts(browser, base, problems)
+            pachisi_flow(browser, base, problems)
+            pachisi_back_mid_walk(browser, base, problems)
+            pachisi_layouts(browser, base, problems)
             offers_bubbels(browser, base, problems)
             offers_others(browser, base, problems)
             memory_flow(browser, base, problems)
@@ -7054,6 +7441,7 @@ def main():
 PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, baghchal_back_mid_move, baghchal_layouts),
          "schaak": (schaak_flow, schaak_layouts),
          "ganzen": (ganzen_flow, ganzen_layouts),
+         "pachisi": (pachisi_flow, pachisi_back_mid_walk, pachisi_layouts),
          "offers": (offers_bubbels, offers_others), "bubbels": (offers_bubbels,),
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),

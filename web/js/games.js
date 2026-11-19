@@ -12,6 +12,7 @@ import { meta as dammen } from '../games/dammen/meta.js';
 import { meta as baghchal } from '../games/baghchal/meta.js';
 import { meta as schaak } from '../games/schaak/meta.js';
 import { meta as ganzen } from '../games/ganzen/meta.js';
+import { meta as pachisi } from '../games/pachisi/meta.js';
 import { meta as kwartet } from '../games/kwartet/meta.js';
 import { meta as slang } from '../games/slang/meta.js';
 import { meta as kleuren } from '../games/kleuren/meta.js';
@@ -47,6 +48,7 @@ export const GAMES = [
   { ...baghchal, status: 'ready' },
   { ...schaak, status: 'ready' },
   { ...ganzen, status: 'ready' },
+  { ...pachisi, status: 'ready' },
   { ...kwartet, status: 'ready' },
   { ...slang, status: 'ready' },
   { ...kleuren, status: 'ready' },

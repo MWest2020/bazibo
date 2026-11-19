@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="games/baghchal/baghchal.css">
   <link rel="stylesheet" href="games/schaak/schaak.css">
   <link rel="stylesheet" href="games/ganzen/ganzen.css">
+  <link rel="stylesheet" href="games/pachisi/pachisi.css">
   <link rel="stylesheet" href="games/kwartet/kwartet.css">
   <link rel="stylesheet" href="games/slang/slang.css">
   <link rel="stylesheet" href="games/kleuren/kleuren.css">
@@ -470,6 +471,43 @@
           <div id="schaak-turn" class="vier-turn" role="group" data-i18n-aria="schaak.turnAria" aria-label="Wie is aan de beurt"></div>
           <p id="schaak-status" class="vier-status" aria-live="polite"></p>
           <button id="schaak-hint" class="btn secondary" type="button" hidden><span data-i18n="schaak.hint">Tip</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pachisi: choose the players, the computer, the pawns and counting -->
+    <section id="screen-pachisi-menu" class="screen" data-i18n-aria="games.pachisi" aria-label="Pachisi">
+      <header class="bar">
+        <button class="btn icon" type="button" data-go="home" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="pachisi.menu">Pachisi</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="pachisi-menu" class="vier-menu pachisi-menu"></div></div>
+    </section>
+
+    <!-- Pachisi: the cloth, whose turn, the shells -->
+    <section id="screen-pachisi" class="screen" data-i18n-aria="games.pachisi" aria-label="Pachisi">
+      <header class="bar dogu-hud vier-hud pachisi-hud">
+        <button id="pachisi-back" class="btn icon" type="button" data-i18n-aria="pachisi.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="pachisi-sub" class="hud-level"></div>
+          <div id="pachisi-title" class="dogu-title"></div>
+        </div>
+        <button id="pachisi-undo" class="btn icon" type="button" data-i18n-aria="pachisi.undo" aria-label="Zet terugnemen"></button>
+      </header>
+      <div id="pachisi-stage">
+        <div id="pachisi-board" class="pachisi-board" role="group" data-i18n-aria="pachisi.boardLabel" aria-label="Het Pachisi-bord: tik op een pion die gloeit en dan op het vakje dat gloeit"></div>
+        <div class="pachisi-side">
+          <div id="pachisi-turn" class="vier-turn pachisi-turn" role="group" data-i18n-aria="pachisi.turnAria" aria-label="Wie is aan de beurt"></div>
+          <button id="pachisi-tray" class="pachisi-tray" type="button" data-i18n-aria="pachisi.shellsLabel" aria-label="De zes schelpen: tik om te gooien"></button>
+          <div class="pachisi-line">
+            <span id="pachisi-result" class="pachisi-result" aria-hidden="true" hidden></span>
+            <p id="pachisi-status" class="pachisi-status" aria-live="polite"></p>
+          </div>
         </div>
       </div>
     </section>

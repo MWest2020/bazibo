@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-3803cc32eb';
+const VERSION = 'bubbels-211516c292';
 const ASSETS = [
   './',
   'index.html',
@@ -109,6 +109,13 @@ const ASSETS = [
   'games/ganzen/rules.js',
   'games/ganzen/scene.js',
   'games/ganzen/strings.js',
+  'games/pachisi/ai.js',
+  'games/pachisi/art.js',
+  'games/pachisi/meta.js',
+  'games/pachisi/pachisi.css',
+  'games/pachisi/pachisi.js',
+  'games/pachisi/rules.js',
+  'games/pachisi/strings.js',
   'games/kwartet/ai.js',
   'games/kwartet/art.js',
   'games/kwartet/kwartet.css',
