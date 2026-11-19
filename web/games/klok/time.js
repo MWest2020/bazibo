@@ -109,6 +109,7 @@ export function partWord(t, lang = 'nl') {
 
 /** A 24-hour time in words: "vijf voor half drie ’s middags" (14:25), "twenty-five past two in the afternoon". */
 export function phrase24(t, lang = 'nl') {
+  if (lang === 'en' && mod(t, DAY) === 12 * 60) return 'twelve o’clock, midday'; // not "in the afternoon"
   return `${phrase(t, lang)} ${partWord(t, lang)}`;
 }
 
@@ -476,6 +477,14 @@ export function stepDigit(t, part, dir, step = 5) {
   return h * 60 + mod(m + dir * step, 60);
 }
 
+/** A time as a child reads the 12-hour digits: 12:45 reads as the biggest hour, 00:25 as 12:25. */
+const read12 = (x) => hour12(x) * 60 + minuteOf(x);
+
+/** Would the 12-hour reading of two times point at the wrong one as later (09:40 against 21:15)? */
+export function laterMisleads(a, b) {
+  return read12(a) !== read12(b) && read12(a) > read12(b) !== mod(a, DAY) > mod(b, DAY);
+}
+
 /**
  * Which is later in the day: two times at least an hour apart. `tricky` asks for a pair where the
  * 12-hour reading points the wrong way (09:40 and 21:15: 9:40 looks later than 9:15), the other
@@ -489,8 +498,7 @@ function laterPair(rng, step, tricky, used) {
     const b = randomOn(grid, rng);
     if (Math.abs(a - b) < 60 || used.has(Math.max(a, b))) continue;
     pair = [a, b];
-    const misleads = mod(a, FACE) !== mod(b, FACE) && mod(a, FACE) > mod(b, FACE) !== a > b;
-    if (misleads === tricky) break;
+    if (laterMisleads(a, b) === tricky) break;
   }
   return pair;
 }

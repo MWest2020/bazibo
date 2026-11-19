@@ -341,7 +341,7 @@ test('phrase24: every 5-minute step of all 24 hours in Dutch and English', () =>
       for (const [m, two] of Object.entries(lang === 'nl' ? NL : EN)) {
         const [a, b, NUM, PART] = lang === 'nl' ? ['drie', 'twee', NUM_NL, PART_NL] : ['three', 'two', NUM_EN, PART_EN];
         const words = two.replace(a, '§').replace(b, NUM[h % 12]).replace('§', NUM[(h + 1) % 12]);
-        const want = `${words} ${PART[partOfHour(h)]}`;
+        const want = lang === 'en' && h === 12 && m === '0' ? 'twelve o’clock, midday' : `${words} ${PART[partOfHour(h)]}`;
         const got = T.phrase24(at(h, Number(m)), lang);
         assert.equal(got, want, `${lang} ${h}:${m}`);
         seen.add(got);
@@ -360,7 +360,9 @@ test('phrase24: the examples and the boundaries, as a child hears them', () => {
   assert.equal(nl(9, 40), 'tien over half tien ’s ochtends');
   assert.equal(nl(0, 0), 'twaalf uur ’s nachts');
   assert.equal(nl(12, 0), 'twaalf uur ’s middags');
-  assert.equal(en(12, 0), 'twelve o’clock in the afternoon');
+  assert.equal(en(12, 0), 'twelve o’clock, midday');
+  assert.equal(en(12, 5), 'five past twelve in the afternoon');
+  assert.equal(en(0, 0), 'twelve o’clock at night');
   assert.equal(nl(5, 55), 'vijf voor zes ’s nachts');
   assert.equal(nl(6, 0), 'zes uur ’s ochtends');
   assert.equal(nl(11, 55), 'vijf voor twaalf ’s ochtends');
@@ -445,7 +447,7 @@ test('digital rounds: the kinds, the grid, one right answer, no time twice, anal
               assert.ok(Math.abs(a - b) >= 60, where);
               assert.equal(q.target, Math.max(a, b));
               laters++;
-              if (a % 720 !== b % 720 && a % 720 > b % 720 !== a > b) tricky++;
+              if (T.laterMisleads(a, b)) tricky++;
             }
           }
         }
@@ -453,6 +455,16 @@ test('digital rounds: the kinds, the grid, one right answer, no time twice, anal
     }
     if (laters) assert.ok(tricky / laters > 0.35 && tricky / laters < 0.65, `${tier}: ${tricky} of ${laters} "later" pairs mislead on a 12-hour reading`);
   }
+});
+
+test('which is later: misleading as the 12-hour digits read (12 is the biggest hour)', () => {
+  assert.equal(T.laterMisleads(at(12, 45), at(7, 50)), false); // 12:45 reads later, and is
+  assert.equal(T.laterMisleads(at(0, 25), at(9, 15)), true); // 00:25 reads as 12:25, but is earlier
+  assert.equal(T.laterMisleads(at(9, 40), at(21, 15)), true);
+  assert.equal(T.laterMisleads(at(21, 15), at(9, 40)), true);
+  assert.equal(T.laterMisleads(at(8, 0), at(15, 0)), true); // 8:00 against 3:00
+  assert.equal(T.laterMisleads(at(3, 0), at(20, 0)), false);
+  assert.equal(T.laterMisleads(at(9, 40), at(21, 40)), false); // the same reading: no direction
 });
 
 test('digital rounds: tier 1 whole hours first, then half hours; tier 2 quarters first, then five minutes', () => {
