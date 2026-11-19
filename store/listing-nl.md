@@ -43,7 +43,7 @@ BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
 • Tijgers en geitjes (Bagh-Chal), een oud spel uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Gevangen geitjes slapen in de wei. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
 • Schaken: met alle echte regels. Tik op een stuk en zie waar het heen mag. Makkelijk met een tip; een slimmere computer in de volledige versie.
 • Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers en een winter- en zeebord.
-• Pachisi, het oorspronkelijke spel uit India: gooi zes schelpen, tel de open schelpen en loop het hele bord rond naar huis. Volledige versie: vier spelers, een slimmere computer.
+• Ludo: met een 6 kom je op het bord, loop rond naar je vier huisjes, en wie op een ander komt, stuurt die terug. Je kind telt zelf de stippen. Ook Pachisi, het Indiase origineel met zes schelpen. Volledige versie: vier spelers, een slimmere computer.
 • Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten en een 4e speler.
 
 CREATIEF

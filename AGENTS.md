@@ -3,14 +3,14 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the original Indian race game `pachisi` (shown as Pachisi with the line "het oorspronkelijke Indiase spel" / "the original game from India" under it), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle)). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the race game `pachisi` (shown as Ludo with the line "met één dobbelsteen" / "with one die" under it; Ludo is the default mode, Pachisi, the original from India, the second), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new
-game picks one); an optional `subKey` puts a small second line under the name (Pachisi). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
+game picks one); an optional `subKey` puts a small second line under the name (Ludo). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
 phones, 2 at 320 px, the sections side by side on wider screens.
 
 **Hard rules**
@@ -58,7 +58,8 @@ home → Dammen: medium, hard and the 10×10 board offer only OK on the web, a t
 home → Tijgers en geitjes (`tests/smoke.py baghchal`): the tile in Bordspellen, medium and hard offer only OK on the web; two players: a goat placed next to a tiger shows the tiger's dots and the goat it would jump, jumped by a real drag (the goat hops to the meadow), taken back, then the tigers capture five and win (not counted); against easy as the goats whole games by real taps and drags (placing, tap-tap, a drag dropped off the field keeps the piece picked up) until the goats win, with a take-back, back + keep playing and the win counted; the layout at 320x568, 844x390, 568x320, 390x844 in English and desktop, every point 44 px or more, and hard (as the goats, it starts) thinking in a worker while the page keeps drawing;
 home → Schaken (`tests/smoke.py schaak`): the tile in Bordspellen, medium and hard offer only OK on the web; two players by real taps and drags with en passant (shown as a ring on d6), a promotion (the picker with the queen first, "not yet", then a knight), castling and a mate on f7 (the king glows, not counted), a drag dropped off the board keeping the piece picked up; against easy a move and its answer taken back, a drag, the hint, back + keep playing, a king in check glowing with a gentle message, and a counted mate; the layout at 320x568, 568x320, 390x844 in English, 844x390 and desktop (the board the phone's full width, a near tap reaching a piece under 44 px) and hard thinking in a worker while the page keeps drawing;
 home → Ganzenbord: the winter and sea boards and a 3rd and 4th goose offer only OK on the web, a game against the computer goose played to a win by "count yourself" taps (a wrong tap only shows where), the goose chain and the win card, back + keep playing halfway a throw, the Android back button, no voice clip loaded; the layout at 320x568, sideways and on desktop, four geese on the winter and sea boards, a near tap counts and a tap on the next stone does not (`tests/smoke.py ganzen`);
-home → Pachisi (`tests/smoke.py pachisi`): the tile with its subtitle in Bordspellen, a 3rd and 4th player and medium offer only OK on the web; two children: the shells thrown by a tap and counted by taps (a closed shell does not count), the picked pawn's square glowing with dots on the way, a capture by real taps (the other pawn walks back to the middle), taken back and made again (not counted); against easy with 2 pawns a whole seeded game by real taps with "count yourself" to the child's win, with a take-back, back + keep playing and the Android back button, the win counted; the layout at 320x568, 568x320, 390x844 in English, 844x390, desktop and four players in the full version, every tap area (shells, pawns, the target, the HUD) 44 px or more, no voice clip loaded;
+home → Ludo (`tests/smoke.py ludo`): the tile "Ludo / met één dobbelsteen" in Bordspellen with Ludo picked, a 3rd and 4th player and medium offer only OK on the web; two children: two throws that cannot be used keep the turn (three tries), a 6 counted by tapping the die's pips brings a pawn out by real taps and throws again, a pawn picked with its square glowing and dots on the way, a capture by real taps (the other pawn walks back to its yard), taken back and made again, a tap on a pawn that would land on its own pawn says why (not counted); against easy with 2 pawns whole seeded games by real taps with "count yourself" to the child's win, with a take-back, back + keep playing and the Android back button, the win counted as Ludo's (`ludo-cpu-1`); back during the winning walk still ends with the win card; two computers play a whole game; the layout at 320x568, 568x320, 390x844 in English, 844x390, desktop and four players in the full version, every tap area (the die, pawns, the target, the HUD) 44 px or more;
+home → Ludo → Pachisi (`tests/smoke.py pachisi`): the mode picked by a tap in the menu, a 3rd and 4th player and medium offer only OK on the web; two children: the shells thrown by a tap and counted by taps (a closed shell does not count), the picked pawn's square glowing with dots on the way, a capture by real taps (the other pawn walks back to the middle), taken back and made again (not counted); against easy with 2 pawns a whole seeded game by real taps with "count yourself" to the child's win, with a take-back, back + keep playing and the Android back button, the win counted as Pachisi's (`cpu-1`); the layout at 320x568, 568x320, 390x844 in English, 844x390, desktop and four players in the full version, every tap area (shells, pawns, the target, the HUD) 44 px or more, no voice clip loaded;
 home → Kwartet: 6 and 8 sets and a 4th player offer only OK on the web, a seeded game against two computers (a question that gets "no", the computers' turns slow and visible with speech bubbles, back + keep playing during a question, then won by asking well and counted, "More sets" offers only OK), two children with the pass-the-phone card hiding the cards (also after keep playing); a seeded game against one computer with the pile (5 cards each and 6 on the pile, a "no" makes the pile glow, a tap draws its top card with a card flying into the hand, the computer draws slowly and visibly, back + keep playing while drawing, played to the end with an empty pile); the layout at 320x568, sideways and on desktop with 4, 6 and 8 sets, two to four players and the pile (`tests/smoke.py kwartet`);
 home → Slangetje: a locked level offers only OK on the web, counting level 1 and letters level 13 played to the end (a swipe and the arrow pad), the pause card and "keep playing"; also 320x568 and sideways;
 home → Kleurplaten: a locked page offers only OK on the web, the sun coloured by tapping, undo, done, "my pictures", kept after a reload; a mirrored new mandala at 320x568, 568x320 and 844x390;
@@ -73,7 +74,7 @@ home → Egeltje (`tests/smoke.py doolhof`): the tile in Leren, a locked tier of
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
-the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Tijgers en geitjes, Ganzenbord, Pachisi, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
+the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Tijgers en geitjes, Ganzenbord, Ludo, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
 the store links (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English) and desktop, 44 px or more and no sideways scroll, the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app.
 CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
 offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
@@ -190,14 +191,36 @@ meadow, winter, the sea); never copy a publisher's board. No voice in this game 
 robot voice): "count yourself" is visual only (the square to tap glows, the count pops up big),
 and the only sounds are the shell's effects, which follow the sound setting. Free: the classic
 board with 2 players; the full version adds 3-4 players and the winter and sea boards.
-Pachisi (id `pachisi`): the traditional race game from India (public domain), our own version made
-for children. Mark (19 Nov 2026) wants Pachisi instead of the trademarked modern spin-offs: never use the names "Mens erger je
-niet", "Mensch ärgere Dich nicht", "Parcheesi" or "Ludo" anywhere (code, strings, store texts), and
-never their classic cross with red, yellow, green and blue home corners. Our board is an
+Ludo (id `pachisi`, kept so saves, transfer codes and older app versions keep working; never rename
+it): one race game in two modes, played by `pachisi.js` through `modes.js` (pure: each mode's rules,
+geometry, board, computer and what the child counts); Ludo is the default, Pachisi the second mode,
+picked in the game's menu (`setup.mode`; a setup saved without a mode opens Ludo). Mark (19 Nov 2026,
+after playtesting Pachisi): the main game is Ludo, with the rules Dutch children know. "Ludo" is a
+generic public-domain name and may be used; never use the names "Mens erger je niet", "Mensch
+ärgere Dich nicht" or "Parcheesi" anywhere (code, strings, store texts), and never copy a
+publisher's board or artwork (no yellow board with round holes, no red/yellow/green/blue corners).
+Players are Zon, Maan, Ster, Lotus (Sun, Moon, Star, Lotus) in both modes: beehive pawns in saffron,
+violet, teal and rose, each with its own symbol (`art.js`).
+Ludo: rules in `web/games/pachisi/ludo-rules.js` (pure, source cited there: Wikipedia's "Ludo",
+played the way Dutch families play; tested in `tests/ludo.test.js`: a cross of 40 squares on an
+11×11 grid with 4 home squares per player and a free middle, every step a neighbour, starts 10
+apart; one die; only a 6 brings a pawn onto its start square and throws again; a 6 must bring a
+pawn out when the yard has pawns and the start square is free of your own; every 6 throws again
+(no three-sixes rule); with no pawn on the track three tries (`TRIES`) to throw something usable;
+landing on an opponent sends it to its yard, no safe squares (start squares neither); never onto
+your own pawn (walking past is fine; no blockades); the home squares need an exact throw; a throw
+nobody can use is lost; 200 seeded games with 2-4 players and 2 or 4 pawns all end, never two pawns
+on one square; `MAX_THROWS` as the fallback). The board in `ludo-art.js`: our own, rounded squares
+on a pale sky, soft yards with nests, a flower in the middle. The die: one face with tappable pips;
+"Zelf tellen" taps the pips (a tap anywhere on the die counts the nearest pip not counted yet).
+The computer in `ludo-ai.js` (pure, seeded: only legal moves; easy picks at random and takes a
+capture only now and then, so a sensible child wins at least 3 in 4 games with 4 pawns; medium
+weighs captures, the home squares, a new pawn out, danger (a pawn 1-6 behind) and progress, and
+beats easy in at least 70 of 100). Saved wins: `ludo-cpu-<level>`.
+Pachisi (mode `pachisi`): the traditional race game from India (public domain), our own version made
+for children. Our board is an
 Indian-inspired cloth drawn in code (`art.js`: madder cloth, gold stitching, cream squares, saffron
-castles with the stitched cross, paisleys, a lotus on the Charkoni); players are Zon, Maan, Ster,
-Lotus (Sun, Moon, Star, Lotus): beehive pawns in saffron, violet, teal and rose, each with its own
-symbol. Rules in `web/games/pachisi/rules.js` (pure, source cited there: Wikipedia's "Pachisi";
+castles with the stitched cross, paisleys, a lotus on the Charkoni). Rules in `web/games/pachisi/rules.js` (pure, source cited there: Wikipedia's "Pachisi";
 tested: the 3×8 arms round the Charkoni, the 84-step path down the own middle column, round
 counter-clockwise and back up, the 12 castles (the 25-from-home one too), the six-shell table
 (2-6 open shells = 2-6 steps, 1 open = 10, none = 25; 6, 10 and 25 throw again), captures outside a
@@ -206,22 +229,24 @@ throw, the win, 200 seeded games with 2-4 players and 2 or 4 pawns that all end)
 children, each in `rules.js`: a pawn leaves the Charkoni with any throw (no grace needed); coming
 home needs no exact throw; a usable throw must be used; no extra throw for a capture; no
 partnerships; 2 pawns each as a short game besides the traditional 4; after `MAX_THROWS` the
-player furthest along wins (never reached in the tests). Keep it calm: a captured pawn walks back to
-the middle and starts again, nothing is beaten; no timers, no voice. "Zelf tellen": the child taps
-the open shells one by one (a closed one only wiggles), then the steps show; a tap on a glowing
-pawn makes its target square glow with dots on the way, a tap there walks it with the count on
-every square; with one possible move it is picked already. The squares are small on a phone (12-20
-px), so taps go to the nearest thing that can be tapped now (`buildHits`/`pickHit`, pure and tested:
-each movable pawn where `pawnSpots` draws it, so two pawns on one square are two hits; the selected
-pawn's glowing target wins over a pawn standing on it; a second tap on the selected pawn switches to
-one beside it on the same square; invisible buttons of `MIN_HIT` 44 px or more for the keyboard and
-screen readers). The smoke test taps where a pawn is drawn, never a hit centre. The computer in `ai.js` (pure, seeded
+player furthest along wins (never reached in the tests). "Zelf tellen": the child taps
+the open shells one by one (a closed one only wiggles). The computer in `ai.js` (pure, seeded
 in the tests: only legal moves; easy picks at random and takes a capture only now and then, so a
 sensible child wins at least 3 in 4 games with 4 pawns; medium weighs captures, home, castles and
-danger and beats easy in at least 80 of 100). Take-back: the child's last move with the same throw.
-Free: two players (a child against easy, or two children) with 2 or 4 pawns; the full version adds a
-3rd and 4th player and medium. Saved: wins against the computer per level (`cpu-<level>`) and the
-last setup.
+danger and beats easy in at least 80 of 100). Saved wins: `cpu-<level>` (its keys from before Ludo).
+Both modes: keep it calm: a captured pawn walks back and starts again, nothing is beaten; no timers,
+no voice. After the count the steps show; a tap on a glowing pawn makes its target square glow with
+dots on the way, a tap there walks it with the count on every square; with one possible move it is
+picked already. The squares are small on a phone (Pachisi 12-20 px), so taps go to the nearest thing
+that can be tapped now (`buildHits`/`pickHit`, pure and tested for both modes: each movable pawn
+where the mode's `pawnSpots` draws it, so two pawns on one square are two hits; the selected pawn's
+glowing target wins over a pawn standing on or next to it; a second tap on the selected pawn switches
+to one beside it on the same square; invisible buttons of `MIN_HIT` 44 px or more for the keyboard and
+screen readers). The smoke test taps where a pawn is drawn, never a hit centre. Inline `style`
+attributes are blocked by the CSP: position things through `el.style`, never in an HTML string.
+Take-back: the child's last move with the same throw. Free (both modes): two players (a child
+against easy, or two children) with 2 or 4 pawns; the full version adds a 3rd and 4th player and
+medium. Saved: wins against the computer per mode and level and the last setup (with its mode).
 Kwartet: rules in `web/games/kwartet/rules.js` (pure, tested: every card dealt once, asking only
 for a missing card of a set you hold and only someone with cards, a yes keeps the turn and a no
 passes it round the table, a whole set is laid down at once (also after the deal), players without

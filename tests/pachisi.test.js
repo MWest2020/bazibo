@@ -367,12 +367,12 @@ test('free and full version: 2 players with easy free; a 3rd or 4th player and m
   assert.equal(meta.isLocked({ players: ['kid', 'cpu'], level: 2 }, false), true);
   assert.equal(meta.isLocked({ players: ['kid', 'cpu', 'cpu'], level: 1 }, false), true);
   assert.equal(meta.isLocked({ players: ['kid', 'cpu', 'cpu', 'kid'], level: 2 }, true), false);
-  assert.equal(winKey(1), 'cpu-1');
+  assert.equal(winKey(1, 'pachisi'), 'cpu-1', 'Pachisi keeps the keys it had before Ludo came');
 });
 
-test('a saved setup is made safe', () => {
+test('a saved setup is made safe (Pachisi mode)', () => {
   assert.deepEqual(cleanSetup(null), { ...DEFAULT_SETUP, players: ['kid', 'cpu'] });
-  assert.deepEqual(cleanSetup({ players: ['kid', 'kid', 'cpu'], level: 2, pawns: 2, count: false }), { players: ['kid', 'kid', 'cpu'], level: 2, pawns: 2, count: false });
+  assert.deepEqual(cleanSetup({ mode: 'pachisi', players: ['kid', 'kid', 'cpu'], level: 2, pawns: 2, count: false }), { mode: 'pachisi', players: ['kid', 'kid', 'cpu'], level: 2, pawns: 2, count: false });
   assert.deepEqual(cleanSetup({ players: ['kid'], level: 7, pawns: 3, count: 'yes' }), { ...DEFAULT_SETUP, players: ['kid', 'cpu'] });
   assert.deepEqual(cleanSetup({ players: ['kid', 'dog'] }).players, ['kid', 'cpu']);
 });

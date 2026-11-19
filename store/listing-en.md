@@ -41,7 +41,7 @@ BOARD GAMES: TOGETHER OR AGAINST THE COMPUTER
 • Tigers and Goats (Bagh-Chal), an old game from Nepal: the goats hem the tigers in, the tigers jump over goats. Captured goats nap in the meadow. Play the goats or the tigers; a smarter computer in the full version.
 • Chess: all the real rules. Tap a piece to see where it may go. Easy with a hint; a smarter computer in the full version.
 • Game of the Goose: our own board; your child counts by tapping every square. Against a computer goose; full version: up to four players and winter and sea boards.
-• Pachisi, the original game from India: throw six shells, count the open ones and walk all the way round the board home. Full version: four players, a smarter computer.
+• Ludo: a 6 brings a pawn onto the board, walk round to your four home squares, and land on someone to send them back. Your child counts the dots. Also Pachisi, the original from India with six shells. Full version: four players, a smarter computer.
 • Quartets: ask for the cards you are missing. 4 sets; full version: 6 and 8 sets and a 4th player.
 
 CREATIVE

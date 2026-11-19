@@ -1,4 +1,5 @@
-/* Pachisi: home tile, menu extras, the cloth board, the pawns, the shells and the hints. The menu,
+/* Ludo and Pachisi (one game, two modes): home tile, menu extras, the boards, the pawns, the die,
+   the shells and the hints. The menu,
    HUD and turn chips reuse Vier op een rij's classes (games/vier/vier.css) and the player slots
    Ganzenbord's (games/ganzen/ganzen.css). */
 
@@ -23,6 +24,10 @@
 .pachisi-countart svg { width: 18px; height: 24px; flex: none; }
 .pachisi-countart b { font-size: 1.9rem; font-weight: 900; color: var(--primary); }
 #screen-pachisi-menu .levels-scroll { padding-bottom: 0; }
+.pachisi-modeart { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; }
+.pachisi-modeart svg { width: 54px; height: 54px; display: block; border-radius: 12px; }
+.pachisi-intro-art .die-svg, .pachisi-intro-art .shell-svg { width: 52px; height: 52px; }
+.pachisi-countart .die-svg { width: 40px; height: 40px; }
 
 /* ---------- HUD ---------- */
 #pachisi-undo:disabled { opacity: 0.45; }
@@ -53,6 +58,7 @@
   -webkit-user-select: none;
   user-select: none;
 }
+.pachisi-board.ludo { border-radius: calc(var(--cell) * 1.2); box-shadow: 0 7px 0 rgba(43, 35, 112, 0.18), 0 14px 30px rgba(59, 47, 168, 0.18); }
 .pachisi-board > svg.pachisi-cloth { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: inherit; }
 .pachisi-marks, .pachisi-pawns, .pachisi-hits { position: absolute; inset: 0; }
 .pachisi-marks, .pachisi-pawns { pointer-events: none; }
@@ -144,6 +150,17 @@
 .pshell.wiggle .pshell-face { animation: pachisi-wiggle 0.45s ease; }
 .pshell-n { position: absolute; top: -9px; right: -5px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--primary); color: #fff; font-weight: 900; font-size: 0.85rem; line-height: 22px; text-align: center; }
 .pshell-n:empty { display: none; }
+
+/* Ludo's die: one big face; every pip can be tapped and counted (a tap anywhere on the die counts the nearest pip not counted yet) */
+.pachisi-tray.die { grid-template-columns: auto; padding: 6px 14px; border-radius: 26px; background: #e4f1ff; box-shadow: inset 0 -4px 0 rgba(43, 35, 112, 0.12), 0 4px 0 #bcd9f7; }
+#pachisi-stage.side .pachisi-tray.die { grid-template-columns: auto; }
+.pdie { position: relative; display: block; width: 76px; height: 76px; border-radius: 20px; background: #fff; box-shadow: inset 0 0 0 4px var(--ink, #2b2370), 0 3px 0 rgba(43, 35, 112, 0.3); }
+.pdie-face { position: absolute; inset: 0; }
+.pdie-pip { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #2b2370; color: #fff; font-weight: 900; font-size: 0.72rem; line-height: 18px; text-align: center; }
+.pdie.resting .pdie-pip { opacity: 0.25; }
+.pdie-pip.can { box-shadow: 0 0 0 3px #ffc531; }
+.pdie-pip.counted { background: var(--primary); box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary); width: 22px; height: 22px; margin: -11px 0 0 -11px; line-height: 22px; }
+.pachisi-tray.tumble .pdie { animation: pachisi-tumble 0.18s linear infinite; }
 .pachisi-result { flex: none; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff; color: var(--primary-dark); font-size: 1.6rem; font-weight: 900; box-shadow: 0 0 0 4px var(--primary), 0 4px 0 4px var(--primary-dark); }
 .pachisi-result.grace { box-shadow: 0 0 0 4px var(--gold), 0 4px 0 4px #c98a00; }
 .pachisi-result[hidden] { display: none; }
@@ -169,6 +186,7 @@
   .pachisi-turn.many .home-dots i { width: 6px; height: 6px; }
   .pachisi-status { min-height: 2.4em; font-size: 0.92rem; }
   .pachisi-tray { padding: 4px 6px; gap: 3px; }
+  .pachisi-tray.die { padding: 4px 10px; }
 }
 /* sideways: the shells in two rows of three, the result beside them */
 #pachisi-stage.side .pachisi-tray { grid-template-columns: repeat(3, 44px); border-radius: 24px; }
@@ -190,6 +208,7 @@
   .pshell { height: 46px; }
   .pshell-face { width: 30px; height: 40px; }
   .pachisi-tray { padding: 4px 8px; }
+  .pdie { width: 64px; height: 64px; border-radius: 17px; }
   .pachisi-result { width: 44px; height: 44px; font-size: 1.3rem; }
   .pachisi-status { font-size: 0.8rem; min-height: 3.6em; }
 }
@@ -207,7 +226,7 @@
 @keyframes pachisi-wiggle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12%); } 75% { transform: translateX(12%); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ppawn.hop svg, .ppawn.can svg, .ppawn.won svg, .pp-target, .pp-pop, .pachisi-tray.ready, .pachisi-tray.tumble .pshell-face, .pshell.wiggle .pshell-face, .pachisi-chip.thinking .ppawn-svg, .ov-art .pachisi-ov.won svg { animation: none !important; }
+  .ppawn.hop svg, .ppawn.can svg, .ppawn.won svg, .pp-target, .pp-pop, .pachisi-tray.ready, .pachisi-tray.tumble .pshell-face, .pachisi-tray.tumble .pdie, .pshell.wiggle .pshell-face, .pachisi-chip.thinking .ppawn-svg, .ov-art .pachisi-ov.won svg { animation: none !important; }
   .pp-target { transform: translate(-50%, -50%); }
   .pp-pop { opacity: 0.95; }
   .ppawn { transition: none; }

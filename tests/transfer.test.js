@@ -364,6 +364,21 @@ test('Pachisi: its wins per level and its setup (players as a list) travel; odd 
   assert.deepEqual(out.games.pachisi.setup, { players: ['kid', 'cpu', 'cpu'], level: 2, pawns: 4, count: true });
 });
 
+test('Ludo (still the id pachisi): its mode and its own win counters travel next to Pachisi\'s; odd modes stay text and are made safe on load', () => {
+  const clean = sanitizePayload({
+    version: 1,
+    games: { pachisi: { stars: { 'ludo-cpu-1': 3, 'cpu-1': 1, 'ludo-cpu-2': -4 }, setup: { mode: 'ludo', players: ['kid', 'kid'], level: 1, pawns: 2, count: false } } },
+  });
+  assert.deepEqual(clean.games.pachisi, { stars: { 'ludo-cpu-1': 3, 'cpu-1': 1 }, setup: { mode: 'ludo', players: ['kid', 'kid'], level: 1, pawns: 2, count: false } });
+  const mine = { version: 1, games: { pachisi: { stars: { 'cpu-1': 5, 'ludo-cpu-1': 1 } } }, settings: {}, purchase: { owned: false } };
+  const out = mergeTransfer(mine, clean);
+  assert.deepEqual(out.games.pachisi.stars, { 'cpu-1': 5, 'ludo-cpu-1': 3 }); // counters only go up, per mode
+  assert.equal(out.games.pachisi.setup.mode, 'ludo');
+  // an unknown mode gets through as a short text and cleanSetup turns it into Ludo
+  const odd = sanitizePayload({ version: 1, games: { pachisi: { setup: { mode: 'x'.repeat(65) } } } });
+  assert.equal(odd.games.pachisi.setup.mode, undefined);
+});
+
 test('Schaken: its wins per level and its setup travel; odd values are dropped', () => {
   const clean = sanitizePayload({
     v: 1,

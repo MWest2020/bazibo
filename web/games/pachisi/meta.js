@@ -1,11 +1,12 @@
-// What the shell needs to know about Pachisi, without loading the game.
-// Free: two players (a child against the easy computer, or two children on one screen), with 2 or
-// 4 pawns. The full version (the one app-wide purchase) adds a 3rd and 4th player and the medium
+// What the shell needs to know about Ludo (with Pachisi as its second mode), without loading the
+// game. The id stays `pachisi` (the game's first name) so saves, transfer codes and older app
+// versions keep working; on screen it is Ludo. Free, in both modes: two players (a child against
+// the easy computer, or two children on one screen), with 2 or 4 pawns. The full version (the one app-wide purchase) adds a 3rd and 4th player and the medium
 // computer, as in Ganzenbord (players) and Tijgers en geitjes (levels).
 export const meta = Object.freeze({
   id: 'pachisi',
   titleKey: 'games.pachisi',
-  subKey: 'pachisi.subtitle', // a small line under the name on the tile
+  subKey: 'pachisi.subtitle', // a small line under the name on the tile ("met één dobbelsteen")
   group: 'board', // the section on the home screen (GROUPS in js/games.js)
   freePlayers: 2,
   freeLevels: Object.freeze([1]),
