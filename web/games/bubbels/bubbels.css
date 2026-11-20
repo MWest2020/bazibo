@@ -11,6 +11,7 @@
 
 /* ---------- levels ---------- */
 .play-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 4px 0 22px; }
+.random-jump { min-height: 48px; padding: 0 20px; } /* a finger-sized pill (it was 24 px tall) */
 .random-jump svg { width: 22px; height: 22px; fill: currentColor; }
 .random-head { scroll-margin-top: 12px; }
 .levels-scroll {

@@ -475,7 +475,7 @@ test('privacy: nothing in the game folder stores, sends or moves a recording', (
     [/transfer(-ui)?\.js/, 'the transfer code'],
     [/\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|\bcaches\b|document\.cookie/, 'browser storage'],
     [/Preferences/, 'Capacitor Preferences'],
-    [/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|RTCPeerConnection/, 'the network'],
+    [/\bfetch\b|['"`]fetch['"`]|XMLHttpRequest|WebSocket|sendBeacon|EventSource|RTCPeerConnection/, 'the network'],
     [/createObjectURL|\bdownload\b|navigator\.share|MediaRecorder/, 'a file of the recording'],
     [/\bstore\./, 'the save'],
     [/\bimport\s*\(/, 'code loaded at run time'],
