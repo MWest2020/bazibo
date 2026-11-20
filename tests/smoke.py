@@ -15,7 +15,7 @@ klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes an
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -7775,6 +7775,454 @@ def kaart_layouts(browser, base, problems):
 
 
 PLAY_URL = "https://play.google.com/store/apps/details?id=work.westerweel.bazibo"
+# ---------- Papegaai (Parrot) ----------
+
+# Chromium's own stand-ins for a microphone: a fake device that plays a beep, and no permission prompt
+MIC_ARGS = ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
+# counts the microphone requests and the sources the parrot plays, and keeps the microphone tracks
+PG_COUNT = """
+(() => {
+  window.__gum = 0; window.__src = 0; window.__tracks = [];
+  for (const AC of [window.AudioContext, window.webkitAudioContext]) {
+    if (!AC || AC.prototype.__pgCounted) continue;
+    const make = AC.prototype.createBufferSource;
+    AC.prototype.createBufferSource = function () { window.__src++; return make.call(this); };
+    AC.prototype.__pgCounted = true;
+  }
+  const md = navigator.mediaDevices;
+  if (md && md.getUserMedia) {
+    const gum = md.getUserMedia.bind(md);
+    md.getUserMedia = async (c) => { window.__gum++; const s = await gum(c); window.__tracks.push(...s.getTracks()); return s; };
+  }
+})();
+"""
+PG_DENY = """
+(() => {
+  window.__gum = 0;
+  if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => { window.__gum++; return Promise.reject(new DOMException('Permission denied', 'NotAllowedError')); };
+  // a refused microphone, as the Permissions API reports it once a request was refused
+  if (navigator.permissions) navigator.permissions.query = async () => ({ state: localStorage.getItem('pg-refused') ? 'denied' : 'prompt' });
+  const gum = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  if (gum) navigator.mediaDevices.getUserMedia = (c) => { localStorage.setItem('pg-refused', '1'); return gum(c); };
+})();
+"""
+PG_NO_MIC = "window.__gum = 0; Object.defineProperty(Navigator.prototype, 'mediaDevices', { get: () => undefined, configurable: true });"
+PG_GATE_PASSED = seeded({"version": 1, "games": {}, "settings": {"muted": False, "lang": None, "micGate": True}, "purchase": {"owned": False}})
+
+
+def pg_state(page):
+    return page.evaluate("window.__bubbels.papegaai.state()")
+
+
+def pg_wait(page, cond, timeout=6000):
+    page.wait_for_function(f"(() => {{ const s = window.__bubbels.papegaai.state(); return {cond}; }})()", timeout=timeout)
+
+
+def pg_mic_on(page):
+    """How many microphone tracks are still live."""
+    return page.evaluate("window.__tracks.filter((t) => t.readyState === 'live').length")
+
+
+def pg_hold(page, cdp, ms):
+    """Hold the record button with a finger for `ms`, then lift it."""
+    box = page.locator("#papegaai-rec").bounding_box()
+    pt = {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
+    pi_touch(cdp, "touchStart", [pt])
+    page.wait_for_timeout(ms)
+    pi_touch(cdp, "touchEnd", [])
+
+
+def pg_mic_browser(browser):
+    return browser.browser_type.launch(executable_path=CHROME, args=MIC_ARGS)
+
+
+def papegaai_flow(browser, base, problems):
+    """Papegaai at 390x844 with real touch and Chromium's fake microphone: the tile in Creatief; a
+    voice before any recording asks for one; the first press shows why, then the parental gate
+    (cancelling either asks no microphone); after the gate the system is asked once and the
+    microphone closed again; a held recording is said back and every free voice plays (sources
+    counted, the choir three); a locked voice offers only OK on the web; a tap records until the
+    10 s cap; leaving, the background, the back arrow and the Android back button all drop the
+    recording and close the microphone."""
+    mb = pg_mic_browser(browser)
+    ctx = mb.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(PG_COUNT)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if page.inner_text("#tile-papegaai .tile-name").strip() != "Papegaai":
+        problems.append(f"papegaai: tile says {page.inner_text('#tile-papegaai .tile-name')!r}")
+    if page.evaluate("document.querySelector('#tile-papegaai').closest('.tile-group').querySelector('.group-name').textContent") != "Creatief":
+        problems.append("papegaai: the tile is not in the Creatief section")
+    page.locator("#tile-papegaai").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "papegaai-flow-home-390x844.png"))
+    page.click("#tile-papegaai")
+    page.wait_for_timeout(250)
+    st = pg_state(page)
+    if where(page) != ["papegaai", False] or st["phase"] != "idle" or st["hasTake"]:
+        problems.append(f"papegaai: the tile opened {where(page)} in {st}")
+    if st["locked"] != ["achteruit", "echo", "koor", "ballon"]:
+        problems.append(f"papegaai: locked voices on the web are {st['locked']}")
+    page.screenshot(path=str(SHOTS / "papegaai-flow-start-390x844.png"))
+
+    # a free voice before any recording: the parrot asks for one, nothing plays
+    page.locator(".pg-voice[data-voice='muis']").tap()
+    page.wait_for_timeout(100)
+    if pg_state(page)["say"] != "first" or page.evaluate("window.__src") or where(page)[1]:
+        problems.append(f"papegaai: a voice without a recording: {pg_state(page)['say']}, {page.evaluate('window.__src')} sources")
+
+    # the first press: why, then the gate; cancelling either asks no microphone
+    page.locator("#papegaai-rec").tap()
+    page.wait_for_timeout(200)
+    if card_buttons(page) != ["Voor ouders", "Annuleren"] or "toestel" not in page.inner_text("#ov-text"):
+        problems.append(f"papegaai: the first press showed {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
+    page.screenshot(path=str(SHOTS / "papegaai-flow-why-390x844.png"))
+    page.click("#ov-buttons button >> nth=1")
+    page.wait_for_timeout(150)
+    if where(page) != ["papegaai", False] or page.evaluate("window.__gum"):
+        problems.append(f"papegaai: cancelling the why card left {where(page)}, {page.evaluate('window.__gum')} microphone requests")
+    page.locator("#papegaai-rec").tap()
+    page.wait_for_timeout(150)
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_selector(".gate-input")
+    page.screenshot(path=str(SHOTS / "papegaai-flow-gate-390x844.png"))
+    page.click("#ov-buttons .btn.secondary")  # cancel the gate
+    page.wait_for_timeout(200)
+    if where(page) != ["papegaai", False] or page.evaluate("window.__gum") or pg_state(page)["gate"]:
+        problems.append(f"papegaai: a cancelled gate left {where(page)}, {page.evaluate('window.__gum')} microphone requests, gate {pg_state(page)['gate']}")
+    page.locator("#papegaai-rec").tap()
+    page.wait_for_timeout(150)
+    page.click("#ov-buttons button >> nth=0")
+    solve_gate(page, "nl")
+    # Chromium's fake prompt says yes without remembering it; a real browser would now answer
+    # 'granted' to the Permissions API, so the gate is not asked again after the background
+    ctx.grant_permissions(["microphone"])
+    try:
+        pg_wait(page, "s.gate && s.mics === 1 && s.phase === 'idle' && s.say === 'ready'")
+    except Exception:
+        problems.append(f"papegaai: after the gate {pg_state(page)}")
+    page.wait_for_timeout(150)
+    if page.evaluate("window.__gum") != 1 or pg_mic_on(page) or where(page)[1]:
+        problems.append(f"papegaai: after the gate {page.evaluate('window.__gum')} requests, {pg_mic_on(page)} microphones on, card {where(page)[1]}")
+
+    # hold and talk: the parrot listens (the beak moves), then says it back
+    box = page.locator("#papegaai-rec").bounding_box()
+    pt = {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
+    pi_touch(cdp, "touchStart", [pt])
+    try:
+        pg_wait(page, "s.phase === 'recording'", 4000)
+    except Exception:
+        problems.append(f"papegaai: holding the button does not record: {pg_state(page)}")
+    page.wait_for_timeout(1300)
+    st = pg_state(page)
+    page.screenshot(path=str(SHOTS / "papegaai-flow-listening-390x844.png"))
+    if st["say"] != "listening" or st["tapMode"] or pg_mic_on(page) != 1:
+        problems.append(f"papegaai: while holding {st}, {pg_mic_on(page)} microphones on")
+    pi_touch(cdp, "touchEnd", [])
+    try:
+        pg_wait(page, "s.phase === 'playing' && s.voice === 'gewoon'", 3000)
+    except Exception:
+        problems.append(f"papegaai: the parrot did not say it back: {pg_state(page)}")
+    page.wait_for_timeout(250)
+    st = pg_state(page)
+    page.screenshot(path=str(SHOTS / "papegaai-flow-playing-390x844.png"))
+    if not st["hasTake"] or not 0.5 < st["seconds"] <= 10 or st["sources"] != 1 or pg_mic_on(page):
+        problems.append(f"papegaai: after the recording {st}, {pg_mic_on(page)} microphones on")
+    if page.evaluate("window.__src") != 1:
+        problems.append(f"papegaai: saying it back made {page.evaluate('window.__src')} sources")
+    try:
+        pg_wait(page, "s.phase === 'ready'", 8000)
+    except Exception:
+        problems.append(f"papegaai: the parrot never finished: {pg_state(page)}")
+
+    # every free voice plays the recording
+    for voice, n in (("gewoon", 1), ("muis", 1), ("beer", 1)):
+        src = page.evaluate("window.__src")
+        page.locator(f".pg-voice[data-voice='{voice}']").tap()
+        page.wait_for_timeout(120)
+        st = pg_state(page)
+        if st["voice"] != voice or st["phase"] != "playing" or page.evaluate("window.__src") - src != n or st["sources"] != n:
+            problems.append(f"papegaai: {voice} played {st['voice']} in {st['phase']} with {page.evaluate('window.__src') - src} sources")
+        if voice == "beer":
+            page.screenshot(path=str(SHOTS / "papegaai-flow-bear-390x844.png"))
+    # a locked voice: only OK on the web, the recording kept
+    page.locator(".pg-voice[data-voice='koor']").tap()
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"] or "gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"papegaai: a locked voice offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
+    page.screenshot(path=str(SHOTS / "papegaai-flow-locked-390x844.png"))
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(150)
+    if where(page) != ["papegaai", False] or not pg_state(page)["hasTake"]:
+        problems.append(f"papegaai: after the offer {where(page)}, recording kept: {pg_state(page)['hasTake']}")
+
+    # leaving drops the recording (the back arrow)
+    page.click("#papegaai-back")
+    page.wait_for_timeout(200)
+    st = pg_state(page)
+    if where(page) != ["home", False] or st["hasTake"] or st["playing"] or st["recording"]:
+        problems.append(f"papegaai: the back arrow left {where(page)} with {st}")
+    page.click("#tile-papegaai")
+    page.wait_for_timeout(200)
+    st = pg_state(page)
+    if st["phase"] != "idle" or st["hasTake"] or page.locator(".pg-voice.waiting").count() != 3:
+        problems.append(f"papegaai: back in the game after leaving: {st}, {page.locator('.pg-voice.waiting').count()} voices waiting")
+
+    # a tap: the parrot listens until the next tap, or stops by itself at 10 s
+    page.locator("#papegaai-rec").tap()
+    try:
+        pg_wait(page, "s.phase === 'recording' && s.tapMode", 4000)
+    except Exception:
+        problems.append(f"papegaai: a tap does not keep listening: {pg_state(page)}")
+    started = time.time()
+    if pg_state(page)["say"] != "listeningTap" or page.inner_text("#papegaai-rec-label") != "Tik om te stoppen":
+        problems.append(f"papegaai: listening after a tap says {pg_state(page)['say']}, {page.inner_text('#papegaai-rec-label')!r}")
+    page.screenshot(path=str(SHOTS / "papegaai-flow-tap-390x844.png"))
+    # while it listens, a voice does nothing: no offer over a live microphone, nothing plays
+    src = page.evaluate("window.__src")
+    page.locator(".pg-voice[data-voice='echo']").tap()
+    page.locator(".pg-voice[data-voice='muis']").tap()
+    page.wait_for_timeout(150)
+    st = pg_state(page)
+    if where(page) != ["papegaai", False] or st["phase"] != "recording" or page.evaluate("window.__src") != src:
+        problems.append(f"papegaai: a voice tapped while recording opened {where(page)}, {st['phase']}, {page.evaluate('window.__src') - src} sources")
+    try:
+        pg_wait(page, "s.phase !== 'recording'", 14000)
+    except Exception:
+        problems.append("papegaai: a recording went on past 10 s")
+    took = time.time() - started
+    st = pg_state(page)
+    if not 9 <= took <= 12 or not st["hasTake"] or st["seconds"] > 10 or pg_mic_on(page):
+        problems.append(f"papegaai: the 10 s cap: stopped after {took:.1f}s with {st}, {pg_mic_on(page)} microphones on")
+
+    # the background drops the recording
+    page.evaluate("() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); }")
+    page.wait_for_timeout(150)
+    st = pg_state(page)
+    page.evaluate("() => { delete document.hidden; }")
+    if st["hasTake"] or st["playing"] or st["phase"] != "idle":
+        problems.append(f"papegaai: the background kept {st}")
+
+    # the Android back button in the middle of a recording (after a tap): home, the microphone off,
+    # nothing kept
+    page.locator("#papegaai-rec").tap()
+    try:
+        pg_wait(page, "s.phase === 'recording'", 4000)
+    except Exception:
+        problems.append(f"papegaai: no second recording: {pg_state(page)}")
+    page.wait_for_timeout(500)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(300)
+    st = pg_state(page)
+    if where(page) != ["home", False] or st["hasTake"] or st["recording"] or pg_mic_on(page):
+        problems.append(f"papegaai: the Android back button left {where(page)} with {st}, {pg_mic_on(page)} microphones on")
+    if errors:
+        problems.append(f"papegaai: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"papegaai: requests outside the app: {foreign[:3]}")
+    ctx.close()
+    mb.close()
+
+
+def papegaai_no_mic(browser, base, problems):
+    """A refused microphone (after the gate, and again after a reload without asking the gate
+    again) and a device without one (no gate at all) both give the calm card; nothing breaks."""
+    mb = pg_mic_browser(browser)
+    for kind, script in (("denied", PG_DENY), ("none", PG_NO_MIC)):
+        ctx = mb.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(script)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.click("#tile-papegaai")
+        page.wait_for_timeout(200)
+        page.locator("#papegaai-rec").tap()
+        page.wait_for_timeout(200)
+        if kind == "denied":
+            page.click("#ov-buttons button >> nth=0")
+            solve_gate(page, "nl")
+            page.wait_for_timeout(400)
+        title = page.inner_text("#ov-title") if where(page)[1] else None
+        if title != "De papegaai kan nu niet luisteren" or card_buttons(page) != ["Oké"]:
+            problems.append(f"papegaai {kind}: the card says {title!r} with {card_buttons(page)}")
+        text = page.inner_text("#ov-text")
+        if "grote" not in text or "instellingen" not in text:
+            problems.append(f"papegaai {kind}: the card does not say a grown-up can allow it: {text!r}")
+        page.screenshot(path=str(SHOTS / f"papegaai-nomic-{kind}-390x844.png"))
+        page.click("#ov-buttons button >> nth=0")
+        page.wait_for_timeout(150)
+        st = pg_state(page)
+        if where(page) != ["papegaai", False] or st["phase"] != "idle" or st["hasTake"]:
+            problems.append(f"papegaai {kind}: after OK {where(page)} {st}")
+        if kind == "denied":
+            if page.evaluate("window.__gum") != 1 or not st["gate"]:
+                problems.append(f"papegaai denied: {page.evaluate('window.__gum')} requests, gate {st['gate']}")
+            # the gate is passed once per device: after a reload a press asks the system again, not the gate
+            page.reload()
+            page.wait_for_selector("html[data-ready='1']")
+            page.click("#tile-papegaai")
+            page.wait_for_timeout(200)
+            page.locator("#papegaai-rec").tap()
+            page.wait_for_timeout(300)
+            if page.inner_text("#ov-title") != "De papegaai kan nu niet luisteren" or page.evaluate("window.__gum") != 1:
+                problems.append(f"papegaai denied: after a reload {page.inner_text('#ov-title')!r}, {page.evaluate('window.__gum')} requests")
+            page.click("#ov-buttons button >> nth=0")
+        elif page.evaluate("window.__gum"):
+            problems.append("papegaai none: a microphone was asked without one")
+        # the rest of the app goes on: home and another game
+        page.click("#papegaai-back")
+        page.wait_for_timeout(150)
+        page.click("#tile-drums")
+        page.wait_for_timeout(200)
+        if where(page) != ["drums", False]:
+            problems.append(f"papegaai {kind}: the drums did not open after: {where(page)}")
+        if errors:
+            problems.append(f"papegaai {kind}: page errors {errors[:3]}")
+        ctx.close()
+    mb.close()
+
+
+def papegaai_permission(browser, base, problems):
+    """The gate was passed before, but the system would ask again ('prompt': Android's "only this
+    time", a permission taken back): the press shows the why card and the gate first, no
+    microphone asked; with 'granted' the press records straight away."""
+    mb = pg_mic_browser(browser)
+    for state in ("prompt", "granted"):
+        ctx = mb.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx.add_init_script(PG_GATE_PASSED)
+        ctx.add_init_script(PG_COUNT)
+        ctx.add_init_script("navigator.permissions.query = async (d) => (d && d.name === 'microphone' ? { state: '%s' } : { state: 'denied' });" % state)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.click("#tile-papegaai")
+        page.wait_for_timeout(200)
+        page.locator("#papegaai-rec").tap()
+        page.wait_for_timeout(400)
+        st = pg_state(page)
+        if state == "prompt":
+            if card_buttons(page) != ["Voor ouders", "Annuleren"] or page.evaluate("window.__gum"):
+                problems.append(f"papegaai permission prompt: {card_buttons(page)}, {page.evaluate('window.__gum')} microphone requests")
+            page.click("#ov-buttons button >> nth=0")
+            solve_gate(page, "nl")
+            try:
+                pg_wait(page, "s.mics === 1 && s.phase === 'idle' && s.say === 'ready'")
+            except Exception:
+                problems.append(f"papegaai permission prompt: after the gate {pg_state(page)}")
+        elif where(page)[1] or st["phase"] != "recording" or page.evaluate("window.__gum") != 1:
+            problems.append(f"papegaai permission granted: {where(page)}, {st['phase']}, {page.evaluate('window.__gum')} requests")
+        if errors:
+            problems.append(f"papegaai permission {state}: page errors {errors[:2]}")
+        ctx.close()
+    mb.close()
+
+
+def papegaai_layouts(browser, base, problems):
+    """Papegaai on a small phone, an ordinary phone in English, sideways and on desktop, after a
+    recording: the parrot, what it says, the record button and every voice on screen, buttons
+    64 px or more, nothing overlapping, no sideways scrolling; in the full version no voice locked."""
+    mb = pg_mic_browser(browser)
+    for w, h, owned in ((320, 568, False), (390, 844, False), (568, 320, False), (844, 390, True), (1280, 800, False)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = mb.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(PG_GATE_PASSED)
+        ctx.add_init_script(PG_COUNT)
+        ctx.grant_permissions(["microphone"])  # allowed before on this device: no gate again
+        if owned:
+            ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if owned:
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        label = f"{w}x{h}{' full' if owned else ''}"
+        page.click("#tile-papegaai")
+        page.wait_for_timeout(250)
+        page.screenshot(path=str(SHOTS / f"papegaai-start-{w}x{h}.png"))
+        box = page.locator("#papegaai-rec").bounding_box()
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        page.mouse.down()
+        try:
+            pg_wait(page, "s.phase === 'recording'", 4000)
+        except Exception:
+            problems.append(f"papegaai {label}: no recording: {pg_state(page)}")
+        page.wait_for_timeout(1600)  # Chromium's fake microphone beeps once a second
+        page.mouse.up()
+        try:
+            pg_wait(page, "s.phase === 'playing'", 3000)
+        except Exception:
+            problems.append(f"papegaai {label}: not said back: {pg_state(page)}")
+        page.wait_for_timeout(200)
+        st = pg_state(page)
+        if st["locked"] != ([] if owned else ["achteruit", "echo", "koor", "ballon"]):
+            problems.append(f"papegaai {label}: locked {st['locked']}")
+        if owned:
+            # the full version: the choir is three parrots, the balloon climbs
+            for voice, n in (("achteruit", 1), ("echo", 1), ("koor", 3), ("ballon", 1)):
+                src = page.evaluate("window.__src")
+                page.click(f".pg-voice[data-voice='{voice}']")
+                page.wait_for_timeout(100)
+                st = pg_state(page)
+                if st["voice"] != voice or page.evaluate("window.__src") - src != n:
+                    problems.append(f"papegaai {label}: {voice} played {st['voice']} with {page.evaluate('window.__src') - src} sources")
+        rects = page.evaluate("""() => {
+            const r = (el) => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; };
+            return {
+                back: r(document.querySelector('#papegaai-back')),
+                say: r(document.querySelector('#papegaai-say')),
+                stage: r(document.querySelector('#papegaai-stage svg')),
+                rec: r(document.querySelector('#papegaai-rec')),
+                voices: [...document.querySelectorAll('.pg-voice')].map((e) => [e.dataset.voice, ...r(e)]),
+            };
+        }""")
+        def on_screen(name, x, y, bw, bh):
+            if x < -0.5 or y < -0.5 or x + bw > w + 0.5 or y + bh > h + 0.5:
+                problems.append(f"papegaai {label}: {name} off screen ({x:.0f},{y:.0f} {bw:.0f}x{bh:.0f})")
+        for name in ("back", "say", "stage", "rec"):
+            on_screen(name, *rects[name])
+        for v in rects["voices"]:
+            on_screen(v[0], *v[1:])
+        small = [v[0] for v in rects["voices"] if v[3] < 64 or v[4] < 64]
+        for name in ("back", "rec"):
+            if rects[name][2] < 64 or rects[name][3] < 64:
+                small.append(name)
+        if small:
+            problems.append(f"papegaai {label}: under 64 px: {small} {rects}")
+        if rects["stage"][3] < 90:
+            problems.append(f"papegaai {label}: the parrot is only {rects['stage'][3]:.0f} px high")
+        boxes = [("say", *rects["say"]), ("rec", *rects["rec"])] + [tuple(v) for v in rects["voices"]]
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                a, b = boxes[i], boxes[j]
+                if not (a[1] + a[3] <= b[1] + 0.5 or b[1] + b[3] <= a[1] + 0.5 or a[2] + a[4] <= b[2] + 0.5 or b[2] + b[4] <= a[2] + 0.5):
+                    problems.append(f"papegaai {label}: {a[0]} and {b[0]} overlap")
+        if page.evaluate("document.documentElement.scrollWidth") > w:
+            problems.append(f"papegaai {label}: the page scrolls sideways")
+        if english:
+            names = page.eval_on_selector_all(".pg-voice-name", "els => els.map((e) => e.textContent)")
+            if page.inner_text("#tile-papegaai .tile-name") != "Parrot" or page.inner_text("#screen-papegaai h2") != "Parrot" or names[:3] != ["Normal", "Mouse", "Bear"]:
+                problems.append(f"papegaai {label}: English {page.inner_text('#screen-papegaai h2')!r}, voices {names}")
+        print(f"[papegaai {label}] parrot {rects['stage'][3]:.0f} px high, voices {min(v[3] for v in rects['voices']):.0f}x{min(v[4] for v in rects['voices']):.0f} px or more")
+        page.screenshot(path=str(SHOTS / f"papegaai-{w}x{h}.png"))
+        if errors:
+            problems.append(f"papegaai {label}: page errors {errors[:2]}")
+        ctx.close()
+    mb.close()
+
+
 APP_ONLY = "window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} };"
 
 
@@ -7941,6 +8389,10 @@ def main():
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
             kaart_layouts(browser, base, problems)
+            papegaai_flow(browser, base, problems)
+            papegaai_no_mic(browser, base, problems)
+            papegaai_permission(browser, base, problems)
+            papegaai_layouts(browser, base, problems)
             store_links(browser, base, problems)
             browser.close()
     finally:
@@ -7964,6 +8416,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
          "verstop": (verstop_flow, verstop_layouts),
          "kaart": (kaart_flow, kaart_layouts),
+         "papegaai": (papegaai_flow, papegaai_no_mic, papegaai_permission, papegaai_layouts),
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links,)}

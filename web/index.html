@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
   <link rel="stylesheet" href="games/piano/piano.css">
   <link rel="stylesheet" href="games/drums/drums.css">
+  <link rel="stylesheet" href="games/papegaai/papegaai.css">
 </head>
 <body>
   <main id="app">
@@ -1015,6 +1016,26 @@
         <span class="bar-spacer"></span>
       </header>
       <div class="levels-scroll"><div id="drums-list" class="drums-list"></div></div>
+    </section>
+
+    <!-- Papegaai: the child records something and the parrot says it back, in other voices too -->
+    <section id="screen-papegaai" class="screen" data-i18n-aria="games.papegaai" aria-label="Papegaai" data-phase="idle">
+      <header class="bar">
+        <button id="papegaai-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="games.papegaai">Papegaai</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <p id="papegaai-muted" class="papegaai-muted" hidden><span data-i18n="papegaai.muted">Het geluid staat uit.</span> <button id="papegaai-sound-on" class="btn pg-pill" type="button" data-i18n="papegaai.soundOn">Geluid aan</button></p>
+      <div class="papegaai-main">
+        <div class="papegaai-left">
+          <p id="papegaai-say" class="papegaai-say" aria-live="polite"></p>
+          <div id="papegaai-stage" class="papegaai-stage" role="img" data-i18n-aria="papegaai.parrot" aria-label="Een papegaai die zegt wat jij zegt"></div>
+          <button id="papegaai-rec" class="papegaai-rec" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"></svg><span id="papegaai-rec-label"></span></button>
+        </div>
+        <div id="papegaai-voices" class="papegaai-voices" role="group" data-i18n-aria="papegaai.voices" aria-label="Stemmen"></div>
+      </div>
     </section>
 
     <!-- one overlay card, filled per situation -->

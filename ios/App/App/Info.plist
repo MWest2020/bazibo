@@ -68,6 +68,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Om een QR-code met voortgang van een ander toestel te scannen. To scan a progress QR code from another device. Nothing is stored or sent.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Papegaai: zodat de papegaai kan nazeggen wat uw kind zegt. Het geluid blijft op dit toestel en wordt niet bewaard of verstuurd. Papegaai (Parrot): so the parrot can repeat what your child says. The sound stays on this device and is never stored or sent.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

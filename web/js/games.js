@@ -25,6 +25,7 @@ import { meta as doolhof } from '../games/doolhof/meta.js';
 import { meta as kaart } from '../games/kaart/meta.js';
 import { meta as piano } from '../games/piano/meta.js';
 import { meta as drums } from '../games/drums/meta.js';
+import { meta as papegaai } from '../games/papegaai/meta.js';
 
 // The sections of the home screen, in order. A game picks one with `group` in its meta.js; within
 // a section the tiles follow the order of GAMES.
@@ -57,6 +58,7 @@ export const GAMES = [
   { ...tekenen, status: 'ready' },
   { ...piano, status: 'ready' },
   { ...drums, status: 'ready' },
+  { ...papegaai, status: 'ready' },
   { ...klok, status: 'ready' },
   { ...letters, status: 'ready' },
   { ...doolhof, status: 'ready' },

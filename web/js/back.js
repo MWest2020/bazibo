@@ -34,6 +34,7 @@
 //   the drum kit                       -> a rhythm goes to the rhythm list, free play to the home screen
 //   the drums' rhythm list             -> free play (the kit)
 //   the end card of a rhythm           -> the rhythm list
+//   Papegaai (the parrot)              -> the home screen (leaving drops the recording)
 //   Voortgang overzetten               -> the settings (a card there: cancel, or reload after "Klaar")
 //   a level or puzzle list, settings   -> the home screen
 //   the home screen                    -> leave the app
