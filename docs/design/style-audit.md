@@ -1,6 +1,6 @@
 ---
 status: current
-last_reviewed: 2026-11-20
+last_reviewed: 2026-11-21
 ---
 
 # Style audit, November 2026 (Bazibo 1.12)
@@ -15,6 +15,9 @@ teachers (NL and Flanders), then the open-source crowd; "no ads" alone no longer
 calm, non-addictive, trustworthy and recognisably Dutch is what works.
 
 ## Top five findings
+
+*Update 21 Nov: PR #83 fixed the tablet home screen, the squeezed back button, Bubbels'
+"Willekeurig" and the swatch size (quick fixes 1-3 below). The measurements here are from before.*
 
 1. **Tablets in portrait cut off home tiles.** From 560 to 900 px wide the home screen is wider
    than the screen (996 px of content at 800 px) and Verstoppertje, Ludo, Kwartet and
