@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-22 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+23 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-22 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+23 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,7 +29,7 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo: tweeëntwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
+Bazibo: drieëntwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
 
 PUZZELS
 • Dogudoku: verstop de hondjes, één per rij en kolom, en ze raken elkaar niet, ook niet schuin. Van 4 bij 4 tot kleurvakken vanaf 5 jaar; 60 puzzels.
@@ -40,17 +40,18 @@ PUZZELS
 BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
 • Vier op een rij, ook op een kleuterbord, waar drie op een rij wint. Moeilijk in de volledige versie.
 • Dammen: puppy tegen poes, of klassiek, op 8 bij 8. Volledige versie: een slimmere computer en 10 bij 10.
-• Tijgers en geitjes (Bagh-Chal), een oud spel uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Gevangen geitjes slapen in de wei. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
-• Schaken: met alle echte regels. Tik op een stuk en zie waar het heen mag. Makkelijk met een tip; een slimmere computer in de volledige versie.
+• Tijgers en geitjes (Bagh-Chal) uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
+• Schaken: met alle echte regels. Makkelijk met een tip; een slimmere computer in de volledige versie.
 • Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers en een winter- en zeebord.
-• Ludo: met een 6 kom je op het bord, loop rond naar je vier huisjes, en wie op een ander komt, stuurt die terug. Je kind telt zelf de stippen. Ook Pachisi, het Indiase origineel met zes schelpen. Volledige versie: vier spelers, een slimmere computer.
+• Ludo: met een 6 kom je op het bord, en wie op een ander komt, stuurt die terug. Je kind telt zelf. Ook Pachisi, het Indiase origineel. Volledige versie: vier spelers, een slimmere computer.
 • Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten en een 4e speler.
 
 CREATIEF
 • Kleurplaten: kies een kleur en tik op een vlak. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
 • Tekenen: met je vinger, alle kleuren en een gum. Volledige versie: spiegelen (elke streep een mandala), stempels en tot 100 tekeningen.
-• Piano: speelgoedpiano met gekleurde toetsen; speel mee, de volgende toets licht op. 4-6 jaar: Vader Jacob; 7-10: twee octaven en de Ode aan de vreugde. Meer liedjes, zoals Für Elise, in de volledige versie.
+• Piano: speelgoedpiano met gekleurde toetsen; speel mee, de volgende toets licht op. 4-6 jaar: Vader Jacob; 7-10: twee octaven en de Ode aan de vreugde. Meer liedjes in de volledige versie.
 • Drumstel: acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer in de volledige versie.
+• Papegaai: zeg iets en de papegaai zegt het na, ook als muis of beer; volledige versie: achteruit, echo, koor en ballon. Je stem blijft op het toestel.
 
 LEREN
 • Klok kijken: zet de klok op "half drie" of kies hoe laat het is, van dagritme tot losse minuten en de 24-uursklok.

@@ -47,4 +47,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <!-- Papegaai: the microphone, only while the child records (after the parental gate the first
+         time). The sound stays in memory on the device; nothing is stored or sent. Capacitor's
+         BridgeWebChromeClient turns the WebView's AUDIO_CAPTURE request into the standard runtime
+         request for RECORD_AUDIO and MODIFY_AUDIO_SETTINGS and grants the page only when both are
+         granted, so both are declared (MODIFY_AUDIO_SETTINGS is a normal permission, granted at
+         install). Not required, so devices without a microphone can still install. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 </manifest>

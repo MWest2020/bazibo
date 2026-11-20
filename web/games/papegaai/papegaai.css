@@ -1,0 +1,209 @@
+/* Papegaai: home tile, the parrot with what it says, the record button and the voice buttons.
+   Upright: the parrot above, the voices below; sideways and on desktop: the voices beside it.
+   Every button 64 px or more. Shared look lives in css/style.css. */
+
+/* ---------- home tile and the cards ---------- */
+#tile-papegaai .tile-art { display: flex; align-items: center; justify-content: center; }
+#tile-papegaai .papegaai-tile-svg { width: 92px; height: 100px; display: block; }
+.pg-why-art { display: flex; justify-content: center; }
+.pg-why-svg { width: 96px; height: 104px; display: block; }
+@media (max-height: 600px) { .pg-why-svg { width: 64px; height: 70px; } }
+
+/* ---------- the screen ---------- */
+#screen-papegaai .bar h2 { color: var(--primary); }
+#papegaai-back { width: 64px; height: 64px; } /* every target here 64 px or more */
+#screen-papegaai .bar-spacer { width: 64px; }
+.papegaai-muted {
+  flex: none;
+  margin: 0 12px;
+  padding: 6px 8px 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.papegaai-muted[hidden] { display: none; }
+.btn.pg-pill { height: 44px; padding: 0 14px; border-radius: 16px; background: #fff; color: var(--primary); font-size: 0.95rem; font-weight: 900; box-shadow: 0 4px 0 #c9c1ff; }
+
+.papegaai-main {
+  flex: 1;
+  min-height: 0;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 0 16px 14px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+.papegaai-left { min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+/* what the parrot says: a speech bubble */
+.papegaai-say {
+  flex: none;
+  position: relative;
+  max-width: 440px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 0 #d6cff7;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink);
+  min-height: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.papegaai-say::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  background: #fff;
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+}
+#screen-papegaai[data-phase='recording'] .papegaai-say { color: #c2302a; }
+
+/* the parrot fills what is left */
+.papegaai-stage { flex: 1; min-height: 90px; width: 100%; display: flex; align-items: center; justify-content: center; }
+.papegaai-stage .pg-parrot-svg { width: 100%; height: 100%; max-height: 520px; display: block; }
+.pg-wave { opacity: 0.12; transition: opacity 0.08s linear; }
+.pg-wave.lit { opacity: 1; }
+
+/* the record button: hold to talk, or tap to start and tap again to stop */
+.papegaai-rec {
+  flex: none;
+  font: inherit;
+  border: 0;
+  cursor: pointer;
+  min-width: 220px;
+  max-width: 100%;
+  height: 84px;
+  padding: 0 26px 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 999px;
+  background: #ff6b5e;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 900;
+  box-shadow: 0 6px 0 #c9483d, 0 10px 22px rgba(201, 72, 61, 0.3);
+  touch-action: none; /* a held finger stays a press: no scroll, no zoom */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+}
+.papegaai-rec svg { width: 40px; height: 40px; fill: currentColor; flex: none; }
+.papegaai-rec:focus-visible { outline: 4px solid var(--gold); outline-offset: 4px; }
+.papegaai-rec.on {
+  transform: translateY(4px);
+  background: #e8483f;
+  box-shadow: 0 2px 0 #b8322b, 0 0 0 0 rgba(232, 72, 63, 0.45);
+  animation: pg-listen 1.6s ease-in-out infinite;
+}
+@keyframes pg-listen {
+  0%, 100% { box-shadow: 0 2px 0 #b8322b, 0 0 0 0 rgba(232, 72, 63, 0.4); }
+  50% { box-shadow: 0 2px 0 #b8322b, 0 0 0 14px rgba(232, 72, 63, 0); }
+}
+.papegaai-rec.nudge { animation: pg-nudge 0.5s ease; }
+@keyframes pg-nudge {
+  0%, 100% { transform: none; }
+  30% { transform: scale(1.08); }
+  60% { transform: scale(0.97); }
+}
+
+/* the voices */
+.papegaai-voices {
+  align-self: end;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(64px, 1fr));
+  gap: 8px;
+}
+.pg-voice {
+  position: relative;
+  font: inherit;
+  border: 0;
+  cursor: pointer;
+  min-width: 64px;
+  min-height: 72px;
+  padding: 6px 2px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 4px 0 #c9c1ff, 0 6px 14px rgba(59, 47, 168, 0.12);
+  touch-action: manipulation;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.15s ease;
+}
+.pg-voice:active { transform: translateY(3px); box-shadow: 0 1px 0 #c9c1ff; }
+.pg-voice:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pg-voice .pg-sign { width: 38px; height: 38px; display: block; }
+.pg-voice-name { font-size: 0.8rem; font-weight: 900; line-height: 1.1; white-space: nowrap; }
+.pg-voice .pg-lock { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; fill: var(--ink-soft); display: none; }
+.pg-voice.locked .pg-lock { display: block; }
+.pg-voice.locked .pg-sign { opacity: 0.55; filter: saturate(0.4); }
+.pg-voice.waiting { opacity: 0.55; }
+.pg-voice.on { background: var(--primary-light); box-shadow: 0 0 0 3px var(--primary), 0 4px 0 #c9c1ff; }
+
+/* sideways phones and desktop: the voices beside the parrot */
+@media (min-aspect-ratio: 5/4) {
+  .papegaai-main { grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .papegaai-left { height: 100%; }
+  .papegaai-voices { align-self: center; width: auto; grid-template-columns: repeat(3, 76px); }
+}
+@media (min-aspect-ratio: 5/4) and (min-width: 1000px) {
+  .papegaai-voices { grid-template-columns: repeat(3, 104px); gap: 12px; }
+  .pg-voice { min-height: 104px; }
+  .pg-voice .pg-sign { width: 52px; height: 52px; }
+  .pg-voice-name { font-size: 0.95rem; }
+}
+
+/* short screens (sideways phones): a lower bar and record button, so the parrot keeps room */
+@media (max-height: 520px) {
+  #screen-papegaai .bar { padding-top: 8px; padding-bottom: 4px; }
+  .papegaai-main { padding-bottom: 8px; gap: 10px; }
+  .papegaai-left { gap: 6px; }
+  .papegaai-say { font-size: 0.92rem; padding: 6px 12px; min-height: 0; }
+  .papegaai-rec { height: 68px; min-width: 200px; font-size: 1.05rem; }
+  .papegaai-rec svg { width: 32px; height: 32px; }
+  .papegaai-voices { gap: 6px; }
+  .pg-voice { min-height: 68px; min-width: 68px; padding: 4px 2px; }
+  .pg-voice .pg-sign { width: 32px; height: 32px; }
+}
+
+/* narrow phones (320 px) */
+@media (max-width: 359px) {
+  .papegaai-main { padding: 0 12px 10px; }
+  .papegaai-say { font-size: 0.92rem; }
+  .papegaai-voices { gap: 6px; }
+  .pg-voice-name { font-size: 0.72rem; }
+  .papegaai-rec { min-width: 0; width: 100%; padding: 0 14px; gap: 8px; font-size: 1.05rem; white-space: nowrap; }
+  .papegaai-rec svg { width: 32px; height: 32px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .papegaai-rec.on, .papegaai-rec.nudge { animation: none; }
+}

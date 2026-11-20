@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-22 games for children aged 3 to 10. No ads, no account, no trackers.
+23 games for children aged 3 to 10. No ads, no account, no trackers.
 
 ## Promotional text, App Store only (170)
 
-22 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
+23 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -27,7 +27,7 @@ jigsaw,pairs,quartets,piano,sudoku,four in a row,checkers,colouring,telling time
 
 ## Description (4000)
 
-Bazibo: twenty-two games for children aged 3 to 10, with no ads, and more will follow. The name comes from "bāzi", Persian for play.
+Bazibo: twenty-three games for children aged 3 to 10, with no ads, and more will follow. The name comes from "bāzi", Persian for play.
 
 PUZZLES
 • Dogudoku: hide the puppies, one per row and column, and they may not touch, not even diagonally. From a 4 by 4 garden to coloured beds from age 5; 60 puzzles.
@@ -38,17 +38,18 @@ PUZZLES
 BOARD GAMES: TOGETHER OR AGAINST THE COMPUTER
 • Four in a Row, also on a little board where three in a row wins. Hard in the full version.
 • Checkers: puppy against kitten, or classic, on 8 by 8. Full version: a smarter computer and 10 by 10.
-• Tigers and Goats (Bagh-Chal), an old game from Nepal: the goats hem the tigers in, the tigers jump over goats. Captured goats nap in the meadow. Play the goats or the tigers; a smarter computer in the full version.
-• Chess: all the real rules. Tap a piece to see where it may go. Easy with a hint; a smarter computer in the full version.
+• Tigers and Goats (Bagh-Chal) from Nepal: the goats hem the tigers in, the tigers jump over goats. Play the goats or the tigers; a smarter computer in the full version.
+• Chess: all the real rules. Easy with a hint; a smarter computer in the full version.
 • Game of the Goose: our own board; your child counts by tapping every square. Against a computer goose; full version: up to four players and winter and sea boards.
-• Ludo: a 6 brings a pawn onto the board, walk round to your four home squares, and land on someone to send them back. Your child counts the dots. Also Pachisi, the original from India with six shells. Full version: four players, a smarter computer.
+• Ludo: a 6 brings a pawn out; land on someone to send them back. Your child counts. Also Pachisi, the original from India. Full version: four players, a smarter computer.
 • Quartets: ask for the cards you are missing. 4 sets; full version: 6 and 8 sets and a 4th player.
 
 CREATIVE
 • Colouring: pick a colour and tap a part. 13 pictures from age 3, mandalas from age 7.
 • Drawing: with a finger, every colour and an eraser. Full version: mirror mode (every stroke a mandala), stamps and up to 100 drawings.
-• Piano: a toy piano with coloured keys; play along, the next key lights up. Ages 4-6: Frère Jacques; 7-10: two octaves and the Ode to Joy. More songs, like Für Elise, in the full version.
+• Piano: a toy piano with coloured keys; play along, the next key lights up. Ages 4-6: Frère Jacques; 7-10: two octaves and the Ode to Joy. More songs in the full version.
 • Drums: eight drums and cymbals. Play along at your own pace (4-6) or on the beat (7-10). Rock is free; four more rhythms in the full version.
+• Parrot: say something and the parrot says it back, as a mouse or a bear too; full version: backwards, echo, choir and balloon. Your voice stays on the device.
 
 LEARNING
 • Telling Time: set the clock to "half past two" or pick what time it is, from a daily rhythm to single minutes and the 24-hour clock.

@@ -3,7 +3,7 @@
 **What this is:** Bazibo (repo and package still called bubbels), one app of play-and-learn
 games for children of 3 to 10, with one €1 purchase for everything. Static web app in `web/` (plain HTML/CSS/JS, canvas, ES modules): the
 shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save data), each game in
-`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the race game `pachisi` (shown as Ludo with the line "met één dobbelsteen" / "with one die" under it; Ludo is the default mode, Pachisi, the original from India, the second), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle)). Wrapped with Capacitor as Android and iOS
+`web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the race game `pachisi` (shown as Ludo with the line "met één dobbelsteen" / "with one die" under it; Ludo is the default mode, Pachisi, the original from India, the second), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle), recording your voice for a parrot to say back `papegaai` (shown as Papegaai / Parrot)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
 evidence, in the same PR).
@@ -45,11 +45,20 @@ phones, 2 at 320 px, the sections side by side on wider screens.
   text is untrusted. It is checked (size, checksum, the shape of every value; `sanitizePayload`)
   before it reaches the save, and the purchase never travels. A new game section with new kinds
   of values needs a rule in `sanitizePayload`, or that part is dropped on transfer.
+- Papegaai's recording never leaves the device and is never saved (Mark, 20 Nov 2026). It lives in
+  memory only (`web/games/papegaai/sound.js`) and is dropped when the child leaves the game or the
+  app goes to the background. Nothing in `web/games/papegaai/` may use `storage.js`, browser
+  storage, the network, the transfer code, files or analytics (`tests/papegaai.test.js` fails on
+  it). The microphone is asked for only when the child presses record, the first time on a device
+  behind a one-line card and `askParent`; only that yes is kept (`settings.micGate`, never
+  transferred). The microphone is on only while recording. A refused or missing microphone gives a
+  calm card and nothing else changes. No speech synthesis and no recorded voices of others: every
+  voice is the child's own recording, changed on the device.
 
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,
-native config) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
+native config, Papegaai's privacy rule) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Paartjes: the bigger boards and the other cards offer only OK on the web, a game alone on 2×3 with one miss (a third tap does nothing) won with 3 stars saved, a game together on 3×4 won by player 1 with back + keep playing during a miss and "More cards" at the end of the free part, a game against the computer whose turn is slow and visible, won and counted; the layout at 320x568, sideways and on desktop with 12 and 20 cards (`tests/smoke.py memory`);
 home → Legpuzzel: 9, 16 and 25 pieces free with their age and 30, 48 and 60 "full version" (no 4, 6, 12 or 20), a save from before with the last size on 12 opening on 9 and keeping its old ticks, 30, 48, 60 pieces and the other pictures offer only OK on the web, the 9-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 16-piece sea with the example picture off and back + keep puzzling halfway, the 16 and the 25 pieces finished by the test hook and a last real drag, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 9 to 60 pieces, every piece on screen and 44 px or more with its tabs, the magnifier only for small pieces; 48 and 60 pieces at 390x844 and 844x390 in Dutch and English: a real drag without and through the magnifier (the view moving along to a place out of view), a finger on an empty spot moving the view, the rest by the test hook and the last by a real drag, saved and ticked off (`tests/smoke.py legpuzzel`);
@@ -71,6 +80,7 @@ home → Letters: one round of each kind played by taps in Dutch and English (th
 home → Kangoeroe op de getallenlijn (`tests/smoke.py kangoeroe`): the tile in Leren, a locked tier offers only OK on the web; round t1-1 played to the end by real taps with one wrong answer first (back to the start, the way as dashed arcs, counted once), "how many hops?" by +1 taps to the flag (numbered arcs, +1 greyed there) then the number, "3 + 4" with the pips filling then Hier!, one sum by a tap on the line; 2 stars saved; the next round, the Android back button and "keep playing"; the end of the free part offers only OK and lands on the menu with the save kept; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for tiers 1-3, every button 48 px or more and on screen, 0-100 a window with a map on phones that follows the kangaroo, all of it on desktop;
 home → Kaartpuzzel (`tests/smoke.py kaart`): the tile in Leren, the menu on the device's own country (Nederland on nl-NL, the United States on en-US, the United Kingdom on en-GB, none on nl-BE and de-DE), "Ander land…" picking another (kept after a reload), a locked round offers only OK on the web; nl-t1-1 played to the end by real input (a wrong drop on another province's place bounces, counts once and makes the piece's place glow after two, mouse drags, a finger drag with the piece above the finger, tap-tap), 2 stars saved, the next round, back + keep playing, the end of the free part offers only OK; "Waar ligt…?" on the continents with two wrong taps (the right one glows) and the rest by real taps; the layout at 320x568, 390x844 in English, 568x320, 844x390 and desktop for a puzzle, "where is", the capitals and the whole puzzle without lines, pieces 64 px and buttons 44 px or more on screen, the magnifier only for the US and Europe on phones (on from the start for the smallest states at 320 px), a real tap on a state's centre at 320 px finds it;
 home → Egeltje (`tests/smoke.py doolhof`): the tile in Leren, a locked tier offers only OK on the web, the alphabet a-e played to the end by real input (a swipe, the arrow pad and the arrow keys) with a wrong letter bumped (it stays, one mistake, 2 stars saved) and a crow walked into (it flutters off, the hedgehog stays, nothing lost, the next step walks on), no frames while the garden waits, back + keep playing (nothing moves before a step), the Android back button, the end of the free part ("More rounds" offers only OK over the list); the layout at 390x844 in Dutch and English, 320x568, 844x390, 568x320 and desktop, the arrows 48 px or more;
+home → Papegaai (`tests/smoke.py papegaai`, Chromium's fake microphone: `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`): the tile in Creatief; a voice before any recording asks for one; the first press shows the why card, then the parental gate (cancelling either asks no microphone), after the gate the system is asked once and the microphone closed again; a held recording said back and Gewoon, Muis and Beer played (sources counted); a locked voice offers only OK on the web; a tap records until the 10 s cap; the back arrow, the background and the Android back button (also mid-recording) drop the recording and close the microphone; a refused microphone (also after a reload, without the gate again) and none at all give the calm card and the rest of the app works; the layout at 320x568, 390x844 in English, 568x320, 844x390 (full version: the other voices played, the choir three sources) and desktop, every button 64 px or more, on screen and not overlapping;
 home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
@@ -441,5 +451,25 @@ shift the windows. Pointers are handled on the whole kit with pointer capture; k
 the end of their level, public domain only, with a name `drums.rhythm.<id>` in both languages.
 Free: free play and the first rhythm of each level (`meta.freeRhythms`: both rock beats); the full
 version adds the others. Saved: stars per rhythm only.
+Papegaai (Parrot, id `papegaai`): the child holds the big button (or taps it, then taps again) and
+talks for up to `MAX_SECONDS` (10); the parrot says it back and then in other voices. The voices,
+the cap, trimming the quiet ends, the take's gain (`TARGET_PEAK`, never more than `MAX_BOOST`), the
+level, the beak and the waves are pure in `web/games/papegaai/voices.js` (tested: every voice's
+numbers, `playSeconds` (the balloon's glide uses the take up exactly), `worstGain` 1.5 or less so
+layers and echoes never pile up, the cap at every sample rate). `sound.js` keeps its own audio
+context and follows the sound setting; capture goes through `capture-worklet.js` (a ScriptProcessor
+where there is no AudioWorklet); every voice reaches the speakers only through the limiter
+(`LIMIT`) and the shell's soft clipper, an echo feeds back under 1 (tested with a fake
+AudioContext). Never call `shell.tap()` or `sfx.unlock()` while recording: it puts iOS back in its
+ambient session. A card that a press brings up waits until the finger lifts (`afterRelease`), and
+the system question after the gate waits a task, so the browser's own click or the gate's Enter
+never presses its button. Voices: Gewoon, Muis, Beer (free, `meta.freeVoices`), Achteruit, Echo,
+Koor (three parrots: low, middle, high), Ballon (rising pitch) in the full version; new voices are
+processing of the child's own recording only, with a name `papegaai.voice.<id>` and a sign in
+`art.js`. Calm: no timers, no scores, nothing to lose. Saved: nothing (only the shell's
+`settings.micGate`). Android: `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` (Capacitor's
+`BridgeWebChromeClient` asks for both when the page asks for the microphone, and denies it unless
+both are granted), the microphone feature not required; iOS: `NSMicrophoneUsageDescription` in
+Dutch and English; `tests/native.test.js` checks both.
 The flying bubble follows the path planned by `planShot` in `grid.js` (the same trace as the
 aiming guide), so it always lands in the ghost cell; keep it that way.
