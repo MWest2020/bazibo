@@ -29,6 +29,14 @@ export const ANIMAL_IDS = Object.freeze(['hedgehog', 'rabbit', 'puppy', 'squirre
 export const CREATURE_IDS = Object.freeze(['snail', 'ladybug', 'mouse', 'frog', 'bird', 'bee', 'butterfly', 'mole']);
 /** What tells look-alikes apart (tier 3): each its own thing, colour and place on the animal. */
 export const FEATURE_IDS = Object.freeze(['scarf', 'bow', 'flower']);
+/**
+ * Features an animal never wears: too close to its own colour to be seen at a glance (a red scarf on
+ * the rust squirrel or the coral crab, a pink flower on the piglet, a yellow bow on the golden
+ * puppy; tested: every feature an animal may wear is 90 or more apart from it in RGB).
+ */
+export const NOT_WORN = Object.freeze({ puppy: Object.freeze(['bow']), squirrel: Object.freeze(['scarf']), crab: Object.freeze(['scarf']), piglet: Object.freeze(['flower']) });
+/** The features an animal may wear (at least two, so a round has a target and two look-alikes). */
+export const featuresFor = (animal) => FEATURE_IDS.filter((f) => !(NOT_WORN[animal] || []).includes(f));
 
 /**
  * The hiding spots and how each opens: `lift` (lifted up and tilted), `aside` (pushed to the side)
@@ -128,10 +136,11 @@ export function makeRound({ scene, tier, seed, n = 0 }) {
   const who = find.map((f) => ({ kind: 'animal', id: f.id, feature: null }));
   if (tt.lookalikes) {
     // the animal wears one feature; the look-alikes another one, or nothing at all
-    const feature = FEATURE_IDS[Math.floor(rand() * FEATURE_IDS.length)];
+    const can = featuresFor(find[0].id);
+    const feature = can[Math.floor(rand() * can.length)];
     find[0].feature = feature;
     who[0].feature = feature;
-    const others = shuffle([null, ...FEATURE_IDS.filter((f) => f !== feature)], rand).slice(0, tt.lookalikes);
+    const others = shuffle([null, ...can.filter((f) => f !== feature)], rand).slice(0, tt.lookalikes);
     for (const f of others) who.push({ kind: 'animal', id: find[0].id, feature: f });
   }
   for (const c of shuffle(CREATURE_IDS, rand).slice(0, count - who.length)) who.push({ kind: 'creature', id: c, feature: null });
@@ -184,8 +193,10 @@ export function look(round, play, i) {
   const hello = who.kind === 'creature' ? 'friend' : 'lookalike';
   if (play.phase === 'memory') {
     if (i === play.ask) return { play: { ...play, phase: 'done' }, result: 'remembered', first: true };
-    const first = !play.memLooked.includes(i);
-    const next = first ? { ...play, memLooked: [...play.memLooked, i], extra: play.extra + 1 } : play;
+    // each spot counts once in a round: one already opened while seeking counts nothing here
+    const fresh = !play.memLooked.includes(i);
+    const first = fresh && !play.looked.includes(i);
+    const next = fresh ? { ...play, memLooked: [...play.memLooked, i], extra: play.extra + (first ? 1 : 0) } : play;
     return { play: next, result: hello, first };
   }
   if (isTarget(round, who)) {

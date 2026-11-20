@@ -163,7 +163,8 @@ own, drawn in code.
   the other spots is still 3 stars (`starsFor`).
 - Harder by what the child must do, never by speed: tier 1 (3-4) 4-5 big spots and one animal;
   tier 2 (4-6) 6-7 spots and two animals in one round; tier 3 (5-7) 7-8 spots, the animal with a
-  red scarf, a yellow bow or a pink flower among two look-alikes of the same animal (another
+  red scarf, a yellow bow or a pink flower (never one close to the animal's own colour, such as a
+  pink flower on the piglet: `NOT_WORN`) among two look-alikes of the same animal (another
   feature or none: "Ook een egel, maar zonder rode sjaal."), and every second round a memory
   question: once the animal is found every spot closes, "Waar was de kikker?", the first creature
   the child met.

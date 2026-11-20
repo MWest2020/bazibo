@@ -6,6 +6,8 @@ import {
   ANIMAL_IDS,
   CREATURE_IDS,
   FEATURE_IDS,
+  NOT_WORN,
+  featuresFor,
   SPOTS,
   SPOT_KINDS,
   TIERS,
@@ -86,8 +88,9 @@ for (const tier of TIER_IDS) {
         assert.equal(s.who.id, round.find[0].id, `${tag}: a look-alike of another animal`);
         assert.notEqual(s.who.feature || null, round.find[0].feature, `${tag}: a look-alike with the same feature`);
       }
-      if (tt.lookalikes) assert.ok(FEATURE_IDS.includes(round.find[0].feature), `${tag}: the animal has no feature`);
+      if (tt.lookalikes) assert.ok(featuresFor(round.find[0].id).includes(round.find[0].feature), `${tag}: the animal wears ${round.find[0].feature}`);
       else assert.ok(round.find.every((f) => f.feature === null), tag);
+      for (const s of round.spots) if (s.who.feature) assert.ok(!(NOT_WORN[s.who.id] || []).includes(s.who.feature), `${tag}: ${s.who.id} in a ${s.who.feature}`);
       assert.equal(round.memory, tt.memory && (round.n ? round.n % 2 === 0 : round.memory), tag);
       // solvable: straight to the animals is 3 stars; opening every spot in turn always ends
       const best = playOut(round, round.spots.map((s, i) => i).filter((i) => isTarget(round, round.spots[i].who)));
@@ -169,11 +172,17 @@ test('verstop t3: a look-alike waves too; the memory question asks for the first
   assert.equal(r.result, 'memory');
   assert.equal(r.play.ask, creatures[1]);
   assert.equal(r.play.extra, 3);
-  // a wrong spot in the memory question: a hello, one more look; the animal found does nothing
+  // a spot already opened while seeking: a hello again, but it counted once already
   let m = look(round, r.play, creatures[0]);
   assert.equal(m.result, 'friend');
+  assert.ok(!m.first);
+  assert.equal(m.play.extra, 3);
+  // a spot not opened before: one more look, once
+  const fresh = creatures.find((i) => !r.play.looked.includes(i));
+  m = look(round, m.play, fresh);
+  assert.ok(m.first);
   assert.equal(m.play.extra, 4);
-  assert.equal(look(round, m.play, creatures[0]).play.extra, 4);
+  assert.equal(look(round, m.play, fresh).play.extra, 4);
   assert.equal(look(round, m.play, target).result, 'none');
   m = look(round, m.play, creatures[1]);
   assert.equal(m.result, 'remembered');
@@ -245,6 +254,14 @@ test('verstop: every animal, creature and spot is drawn and differs by colour; f
   assert.equal(new Set(figures).size, figures.length, 'two figures share a colour');
   assert.equal(new Set(Object.values(COLORS.spot)).size, SPOT_KINDS.length, 'two spots share a colour');
   assert.equal(new Set(Object.values(FEATURE_COLORS)).size, FEATURE_IDS.length);
+  // a feature an animal wears stands out from its body (90 or more apart in RGB), and every animal
+  // keeps at least two (the target's and a look-alike's)
+  const rgb = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const apart = (a, b) => Math.hypot(...rgb(a).map((v, k) => v - rgb(b)[k]));
+  for (const id of ANIMAL_IDS) {
+    assert.ok(featuresFor(id).length >= 2, `${id} wears too few features`);
+    for (const f of featuresFor(id)) assert.ok(apart(COLORS.animal[id], FEATURE_COLORS[f]) >= 90, `${id} + ${f}: only ${apart(COLORS.animal[id], FEATURE_COLORS[f]).toFixed(0)} apart`);
+  }
   for (const id of ANIMAL_IDS) {
     for (const f of [null, ...FEATURE_IDS]) {
       const svg = figureSvg({ kind: 'animal', id, feature: f });

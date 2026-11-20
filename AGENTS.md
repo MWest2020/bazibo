@@ -330,13 +330,14 @@ shoulder up and to the right (CSS waves it round that corner); a door's or flap'
 into its doorway (`figureFit`) and grows back to full size once found. The rounds and what a tap
 means are pure in `rules.js` (tested in `tests/verstop.test.js`, 200 seeds per scene and tier: the
 animal behind exactly one spot, no occupant twice in a round, look-alikes the same animal with
-another feature or none, every round ends when every spot is opened in any order, straight to the
+another feature or none, never a feature close to the animal's own colour (`NOT_WORN`; every
+feature an animal may wear 90 or more apart in RGB, at least two per animal), every round ends when every spot is opened in any order, straight to the
 animal is 3 stars). Tiers are harder by what the child must do, never by speed: t1 4-5 spots and
 one animal, t2 6-7 spots and two animals, t3 7-8 spots with two look-alikes and on even rounds the
 memory question (`memoryAsk`: the first creature met; none met, no question). Never "wrong": a
 look is a hello ('friend' or 'lookalike'), the spot settles back ajar so the child sees where they
 looked, the memory question closes every spot. `starsFor` counts extra looks only, each spot once
-(a second look at a spot counts nothing), never time. No timers, no voice; sounds are the shell's
+in a round (a second look at a spot counts nothing, also in the memory question), never time. No timers, no voice; sounds are the shell's
 `plink` and `chime`. Spots are buttons placed by `spotLayout` (pure, tested over every box from 260 x
 290 up and the measured smoke-test boxes: `MIN_SPOT` 64 px or more, inside the box, never
 overlapping); only CSS transforms move the cover and the figure inside them. Free: tier 1 in the

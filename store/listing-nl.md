@@ -32,20 +32,20 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 Bazibo: drieëntwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
 
 PUZZELS
-• Dogudoku: verstop de hondjes, één per rij en kolom, en nooit naast elkaar. Van 4 bij 4 tot kleurvakken; 60 puzzels.
+• Dogudoku: verstop de hondjes, één per rij en kolom, en nooit naast elkaar, ook niet schuin. Van 4 bij 4 tot kleurvakken; 60 puzzels.
 • Picturedoku: sudoku met plaatjes, vanaf 3 jaar zonder cijfers of lezen, tot 9 bij 9, ook met cijfers. 60 puzzels.
 • Paartjes: zoek de paartjes, alleen, samen of tegen de computer. 6 en 12 kaarten met fruit; volledige versie: 16 en 20 kaarten, prentenboek- en vormenkaarten.
 • Legpuzzel: 9, 16 en 25 stukjes met drie plaatjes, en een vergrootglas op de telefoon; volledige versie: 30, 48 en 60 stukjes en vijf plaatjes meer.
-• Verstoppertje: til een steen op of kijk achter een struik: waar zit de egel? Anders zwaait er een ander diertje. Volledige versie: bos, strand en boerderij.
+• Verstoppertje: til een steen op, kijk achter een struik: waar is de egel? Anders zwaait een ander diertje. Volledige versie: bos, strand, boerderij.
 
 BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
 • Vier op een rij, ook op een kleuterbord, waar drie op een rij wint. Moeilijk in de volledige versie.
 • Dammen: puppy tegen poes, of klassiek, op 8 bij 8. Volledige versie: een slimmere computer en 10 bij 10.
 • Tijgers en geitjes (Bagh-Chal), een oud spel uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
 • Schaken: met alle echte regels. Tik op een stuk en zie waar het heen mag. Makkelijk met een tip; een slimmere computer in de volledige versie.
-• Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers en een winter- en zeebord.
+• Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers, een winter- en zeebord.
 • Ludo: met een 6 kom je op het bord; wie op een ander komt, stuurt die terug. Je kind telt zelf de stippen. Ook Pachisi, het Indiase origineel met zes schelpen. Volledige versie: vier spelers, een slimmere computer.
-• Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten en een 4e speler.
+• Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten, een 4e speler.
 
 CREATIEF
 • Kleurplaten: kies een kleur en tik op een vlak. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
@@ -58,7 +58,7 @@ LEREN
 • Letters: zoek dezelfde letter, vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
 • Egeltje: een egeltje raapt in een tuindoolhof het alfabet, een woordje of getallen op volgorde op.
 • Kangoeroe op de getallenlijn: plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 in de volledige versie.
-• Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: de werelddelen, en leggen met lijnen.
+• Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: werelddelen, en leggen met lijnen.
 
 ACTIE
 • Bubbels schieten: mik en laat los, dan knallen drie van dezelfde kleur kapot. 30 levels.
