@@ -17,7 +17,9 @@
 //                                    (a cleared page stays as {t, gone: true} so a merge carries the delete over)
 //                 tekenen: { drawings: {'d<id>': {s: 'strokes as text', t}} }   (a deleted one: {t, gone: true})
 //                 <later games add their own section> },
-//     settings: { muted: false, lang: 'nl' | 'en' | null },
+//     settings: { muted: false, lang: 'nl' | 'en' | null,
+//                 micGate: true },        // a grown-up passed the gate for Papegaai's microphone on this
+//                                         // device (never anything recorded; does not travel in a transfer)
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
 //     migrated: { from, at } }             // set once, when older save data was copied in
 //
@@ -260,6 +262,7 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
   }
   out.purchase = { ...out.purchase, owned: out.purchase?.owned === true || session.purchase?.owned === true };
   if (sessionSettingsChanged) out.settings = { ...out.settings, muted: !!session.settings.muted, lang: session.settings.lang || null };
+  if (session.settings?.micGate === true) out.settings = { ...out.settings, micGate: true }; // a gate passed in either stays passed
   return out;
 }
 
@@ -394,6 +397,22 @@ export function loadSettings() {
 
 export function saveSettings(settings) {
   save.settings = { ...save.settings, muted: !!settings.muted, lang: settings.lang || null };
+  settingsTouched = true;
+  persist();
+}
+
+/**
+ * Papegaai: has a grown-up passed the parental gate for the microphone on this device? Only this
+ * yes is kept; the game itself never saves anything (a recording stays in memory). It is not part
+ * of a transfer (transfer.js moves only `muted` and `lang`), so a new device asks again.
+ */
+export function micGatePassed() {
+  return save.settings.micGate === true;
+}
+
+export function saveMicGatePassed() {
+  if (save.settings.micGate === true) return;
+  save.settings = { ...save.settings, micGate: true };
   settingsTouched = true;
   persist();
 }

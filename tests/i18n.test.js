@@ -38,6 +38,8 @@ import '../web/games/piano/strings.js';
 import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
 import '../web/games/drums/strings.js';
 import { RHYTHM_IDS as DRUM_RHYTHMS, PAD_IDS as DRUM_PADS, LEVELS as DRUM_LEVELS } from '../web/games/drums/kit.js';
+import '../web/games/papegaai/strings.js';
+import { VOICE_IDS as PARROT_VOICES } from '../web/games/papegaai/effects.js';
 import '../web/js/random.js';
 import { GAMES, GROUPS, OTHER_GROUP } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';
@@ -147,6 +149,8 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of VZ_FEATURES) used.add(`verstop.feat.${id}`).add(`verstop.bare.${id}`);
   for (const id of VZ_SPOTS) used.add(`verstop.spot.${id}`);
   for (const n of [1, 2, 3]) used.add(`verstop.win${n}`);
+  for (const id of PARROT_VOICES) used.add(`papegaai.voice.${id}`); // built as t(`papegaai.voice.${id}`)
+  for (const k of ['start', 'opening', 'listening', 'listeningTap', 'playing', 'again', 'nothing', 'first', 'ready']) used.add(`papegaai.say.${k}`);
   for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);
   for (const k of ['count', 'add', 'land', 'missing', 'skipOn', 'skipBack']) used.add(`kangoeroe.lead.${k}`);
   for (const n of [1, 2, 3]) used.add(`kangoeroe.win${n}`);

@@ -47,6 +47,18 @@ to map onto them.
   checklist): "To scan a QR code with the child's game progress from another device, moving it
   without an account or internet. Optional; pasting the code works too."
 
+- About the microphone (permissions `android.permission.RECORD_AUDIO` and
+  `MODIFY_AUDIO_SETTINGS`, feature `android.hardware.microphone` not required): used only by the
+  game Papegaai (Parrot), only while the child records (at most 10 s), after the parental gate the
+  first time on a device. The sound stays in memory on the device, is never stored and never
+  leaves the device (no network code in the game; `tests/papegaai.test.js` checks it). Play's
+  Data safety form asks about data the app *collects or shares*, and data processed only on the
+  device is not "collected". Audio (voice or sound recordings, music files, other audio):
+  **not collected, not shared**. If Play asks why the app needs the microphone: "The game Parrot
+  repeats what the child says, in funny voices. The recording is made only while the child holds
+  the button, stays in memory on the device, is never stored or sent, and is gone when the game is
+  closed. A parent allows it once behind a parental gate."
+
 ### App access, ads, government apps, financial features, health
 
 - App access: **All functionality is available without special access.**
@@ -80,6 +92,9 @@ https://bazibo.nl/en/terms/ (Dutch: https://bazibo.nl/nl/voorwaarden/)
   user's own iCloud or computer backup, which the developer never sees.
 - The camera (`NSCameraUsageDescription` in `ios/App/App/Info.plist`) only reads a progress QR
   code on the device; nothing is kept or sent, so it adds nothing to the label.
+- The microphone (`NSMicrophoneUsageDescription` in `ios/App/App/Info.plist`) is used only by
+  Papegaai while the child records; the sound stays in memory on the device and is never stored
+  or sent, so it adds nothing to the label (Audio Data: not collected).
 - Privacy policy URL: https://bazibo.nl/en/privacy/
 - Terms of service: Apple's standard EULA applies unless a custom one is set; our terms page is
   https://bazibo.nl/en/terms/ (can go in the app description or as a custom EULA).
@@ -100,6 +115,7 @@ https://bazibo.nl/en/terms/ (Dutch: https://bazibo.nl/nl/voorwaarden/)
   - no third-party analytics or ads;
   - purchases and any link out of the app sit behind a parental gate (`web/js/parental-gate.js`);
   - no data is collected.
+- The microphone (Papegaai) is asked for only after the parental gate, the first time on a device.
 - The app has no links that leave it. The privacy page inside the app is a local page, and its
   email address is plain text, not a link.
 

@@ -42,3 +42,20 @@ test('the camera permission for scanning a progress code is declared, optional, 
   const plist = readFileSync(new URL('../ios/App/App/Info.plist', import.meta.url), 'utf8');
   assert.match(plist, /<key>NSCameraUsageDescription<\/key>\s*<string>[^<]*QR[^<]*<\/string>/);
 });
+
+// Papegaai: the microphone, declared honestly, not required, explained to parents on iOS
+test('the microphone for Papegaai is declared for the WebView, optional, and explained on iOS', () => {
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
+  assert.match(manifest, /<uses-permission android:name="android\.permission\.RECORD_AUDIO" \/>/);
+  // Capacitor's BridgeWebChromeClient asks RECORD_AUDIO and MODIFY_AUDIO_SETTINGS for a page's
+  // AUDIO_CAPTURE and denies the page unless both are granted: without the second, never a microphone
+  assert.match(manifest, /<uses-permission android:name="android\.permission\.MODIFY_AUDIO_SETTINGS" \/>/);
+  // RECORD_AUDIO alone would make Play require a microphone and hide the app from devices without one
+  assert.match(manifest, /android\.hardware\.microphone" android:required="false"/);
+  const plist = read('ios/App/App/Info.plist');
+  const text = plist.match(/<key>NSMicrophoneUsageDescription<\/key>\s*<string>([^<]*)<\/string>/);
+  assert.ok(text, 'NSMicrophoneUsageDescription is missing');
+  assert.match(text[1], /Papegaai/);
+  assert.match(text[1], /niet bewaard of verstuurd/); // Dutch, for the parent who sees the system question
+  assert.match(text[1], /never stored or sent/);
+});
