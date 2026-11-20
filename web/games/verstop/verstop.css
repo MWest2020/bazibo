@@ -1,0 +1,192 @@
+/* Verstoppertje (Hide and Seek): home tile, the menu (places and rounds), the round screen (the
+   animal to find at the top, the scene with its spots, a status line). The menu reuses Klok kijken's
+   round grid (klok.css); shared look lives in css/style.css. The spots are buttons placed by
+   spotLayout (rules.js); what moves inside them is plain CSS on the SVG groups that art.js draws. */
+
+/* ---------- home tile and menu ---------- */
+#tile-verstop .tile-art { display: flex; align-items: center; justify-content: center; }
+.vz-tile-svg { width: 100%; height: 100%; max-width: 104px; display: block; }
+.vz-ov { display: inline-flex; width: 180px; height: 110px; }
+.vz-ov svg { width: 100%; height: 100%; }
+
+.vz-scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
+.vz-scene-btn {
+  position: relative;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 8px;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--primary-dark);
+  font: 800 0.95rem/1.1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 0 #d6cff7;
+}
+.vz-scene-btn.on { outline: 4px solid var(--primary); outline-offset: -4px; background: #f3f0ff; }
+.vz-scene-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.vz-scene-pic { width: 100%; max-width: 120px; height: auto; display: block; border-radius: 12px; overflow: hidden; }
+.vz-lock { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; padding: 4px; border-radius: 50%; fill: #fff; background: rgba(43, 35, 112, 0.6); }
+@media (max-width: 420px) {
+  .vz-scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- the round ---------- */
+.vz-hud { gap: 10px; }
+#vz-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 10px;
+}
+
+/* the animal to find, big */
+.vz-ask {
+  width: min(100%, 620px);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 0 #d6cff7;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+#vz-stage.happy .vz-ask { background: #eaffdc; box-shadow: 0 4px 0 #9be15d; }
+.vz-ask-pics { display: flex; gap: 4px; flex: none; }
+.vz-ask-pic { position: relative; display: block; width: 84px; height: 84px; }
+.vz-ask-pics[data-n="2"] .vz-ask-pic { width: 70px; height: 70px; }
+.vz-ask-pic .vz-pic { width: 100%; height: 100%; display: block; }
+.vz-ask-pic.got .vz-pic { opacity: 0.45; }
+.vz-ask-pic.got::after {
+  content: '✓';
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3fb35f;
+  color: #fff;
+  font: 900 18px/28px var(--font);
+  text-align: center;
+  box-shadow: 0 2px 0 #1f7a36;
+}
+.vz-ask-text { margin: 0; font: 900 clamp(1.15rem, 5.4vw, 1.6rem)/1.15 var(--font); color: var(--primary-dark); text-wrap: balance; }
+
+/* the scene: a drawn place, the spots on top */
+.vz-scene { position: relative; width: min(100%, 900px); flex: 1 1 auto; min-height: 0; }
+.vz-bgbox { position: absolute; inset: 0; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 0 #d6cff7; }
+.vz-bg { width: 100%; height: 100%; display: block; }
+.vz-spots { position: absolute; inset: 0; }
+.vz-status { flex: none; min-height: 1.3em; }
+
+.vz-spot {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 24%;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.vz-spot:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.vz-spot.open { z-index: 3; }
+.vz-spot.found { z-index: 2; }
+.vz-spot.found::before {
+  content: '';
+  position: absolute;
+  inset: -4%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 214, 90, 0.7), rgba(255, 214, 90, 0) 70%);
+}
+.vz-svg { position: relative; width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* what moves: the figure (`vz-who`), the cover, a doorway's frame; in the SVG's own units */
+.vz-svg .vz-who, .vz-svg .vz-cover, .vz-svg .vz-frame {
+  transform-box: view-box;
+  transform-origin: 50px 96px;
+  transition: transform 0.4s cubic-bezier(0.3, 1.35, 0.5, 1), opacity 0.3s;
+}
+.vz-svg .vz-who { transform-origin: 0 0; opacity: 0; transform: translate(0, 16px); }
+.vz-spot.open .vz-who, .vz-spot.ajar .vz-who, .vz-spot.found .vz-who { opacity: 1; transform: translate(0, 0); }
+
+/* lifted: a stone, a pot, a bucket, the hay, a shell, a sandcastle */
+.vz-spot.open .vz-svg[data-open="lift"] .vz-cover { transform: translate(6px, -58px) rotate(-10deg); }
+.vz-spot.ajar .vz-svg[data-open="lift"] .vz-cover { transform: translate(18px, -12px) rotate(9deg); }
+.vz-spot.found .vz-svg[data-open="lift"] .vz-cover { transform: translate(-30px, -48px) rotate(-18deg) scale(0.8); opacity: 0.4; }
+/* pushed aside: a bush, a tree, a log */
+/* (down and small to the lower left, so the waving arm on the right is seen and nothing nearby is covered) */
+.vz-spot.open .vz-svg[data-open="aside"] .vz-cover { transform: translate(-34px, 2px) rotate(-8deg) scale(0.6); }
+.vz-spot.ajar .vz-svg[data-open="aside"] .vz-cover { transform: translate(24px, 0) rotate(4deg); }
+.vz-spot.found .vz-svg[data-open="aside"] .vz-cover { transform: translate(58px, 4px) scale(0.8); opacity: 0.4; }
+/* ajar: the figure peeks out of the crack */
+.vz-spot.ajar .vz-svg[data-open="lift"] .vz-who, .vz-spot.ajar .vz-svg[data-open="aside"] .vz-who { transform: translate(-22px, 2px); }
+/* a little door: it swings open on its hinge (the doorway's left edge) */
+.vz-svg[data-open="door"] .vz-cover { transform-origin: var(--hx, 20px) 60px; }
+.vz-spot.open .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.1); }
+.vz-spot.ajar .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.5); }
+.vz-spot.found .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.06); opacity: 0.4; }
+.vz-spot.found .vz-svg[data-open="door"] .vz-frame { opacity: 0.3; }
+.vz-spot.found .vz-svg[data-open="door"] .vz-who { transform: translate(var(--fx, 0), var(--fy, 0)) scale(var(--fs, 1)); }
+
+/* the wave, the found hop and its sparkles */
+.vz-svg .vz-arm { transform-box: fill-box; transform-origin: 0% 100%; }
+.vz-spot.wave .vz-arm { animation: vz-wave 0.3s ease-in-out 0.25s 5 alternate both; }
+@keyframes vz-wave { from { transform: rotate(-24deg); } to { transform: rotate(16deg); } }
+.vz-svg .vz-fig { transform-box: fill-box; transform-origin: 50% 100%; }
+.vz-spot.found .vz-fig { animation: vz-hop 0.42s ease-in-out 0.1s 3; }
+@keyframes vz-hop { 50% { transform: translateY(-9px) scale(1.04, 0.97); } }
+.vz-svg .vz-spark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.vz-spot.found .vz-spark { animation: vz-spark 1.3s ease-out both; }
+.vz-spot.found .vz-spark:nth-of-type(2n) { animation-delay: 0.15s; }
+@keyframes vz-spark { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 1; transform: scale(1.25); } 100% { opacity: 0; transform: scale(0.9); } }
+
+/* short phones: a smaller animal at the top, so the scene keeps room */
+@media (max-height: 640px) {
+  .vz-ask { padding: 4px 12px; }
+  .vz-ask-pic { width: 64px; height: 64px; }
+  .vz-ask-pics[data-n="2"] .vz-ask-pic { width: 56px; height: 56px; }
+  .vz-ask-text { font-size: 1.1rem; }
+  #vz-stage { gap: 6px; padding-bottom: 6px; }
+}
+
+/* sideways phones: the bar on the left (like Klok kijken), the animal beside the scene */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-verstop { flex-direction: row; }
+  .vz-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; max-width: 120px; }
+  .vz-hud .hud-mid { flex: 0; }
+  .vz-hud .hud-level { white-space: normal; font-size: 0.92rem; }
+  .vz-hud .btn.icon { width: 54px; height: 54px; }
+  #vz-stage {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "ask scene" "status scene";
+    align-items: start;
+    gap: 8px 12px;
+    padding: 8px 12px 8px 0;
+  }
+  .vz-ask { grid-area: ask; flex-direction: column; width: 100%; padding: 8px; text-align: center; }
+  .vz-ask-pics { flex-wrap: wrap; justify-content: center; }
+  .vz-ask-pic, .vz-ask-pics[data-n="2"] .vz-ask-pic { width: 64px; height: 64px; }
+  .vz-ask-text { font-size: 1.05rem; }
+  .vz-scene { grid-area: scene; width: 100%; height: 100%; }
+  .vz-status { grid-area: status; font-size: 0.9rem; min-height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vz-svg .vz-who, .vz-svg .vz-cover, .vz-svg .vz-frame { transition-duration: 0.01s; }
+  .vz-spot.found .vz-fig, .vz-spot.found .vz-spark { animation: none; }
+  .vz-spot.wave .vz-arm { animation-iteration-count: 2; }
+}
