@@ -99,6 +99,8 @@
   gap: 7px;
 }
 #kleur-stage.side .kleur-palette { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* upright phones too narrow for 8 colours of 44 px (Kleurplaten and Tekenen): 6 a row */
+@media (max-width: 424px) { .kleur-palette { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .swatch {
   aspect-ratio: 1;
   min-width: 0;
@@ -133,7 +135,7 @@
 /* very short sideways phones (about 320 px tall): the tools stand in a column next to the colours */
 @media (orientation: landscape) and (max-height: 360px) {
   #kleur-stage.side .kleur-side { width: auto; flex-direction: row; align-items: center; gap: 8px; }
-  #kleur-stage.side .kleur-palette { width: 172px; gap: 5px; }
+  #kleur-stage.side .kleur-palette { width: auto; grid-template-columns: repeat(4, 44px); gap: 5px; }
   .kleur-tools { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
   .kleur-tools .tool { width: 44px; height: 44px; }
 }

@@ -1713,7 +1713,7 @@ def tekenen_fits(browser, base, problems):
         page.screenshot(path=str(SHOTS / f"teken-stamps-{w}x{h}.png"))
         small = page.evaluate("""() => [...document.querySelectorAll('#teken-palette .swatch, #teken-stage .tool')]
           .map((b) => b.getBoundingClientRect()).filter((r) => r.width && (r.width < 43.5 || r.height < 43.5)).length""")
-        if small and w > h:  # sideways the panel has room for 44 px (upright, the colours share one width, as in Kleurplaten)
+        if small:  # upright too: 6 colours a row where 8 of 44 px do not fit
             problems.append(f"{label}: {small} colours or tools are smaller than 44 px")
         page.click("#teken-tray button[data-stamp='puppy']")
         page.click("#teken-mirror")
@@ -1804,6 +1804,10 @@ def kleuren_fits(browser, base, problems):
         coloured = page.evaluate("Object.keys(window.__bubbels.kleur.state().fills)")
         if len(coloured) < 6 or not all(re.sub(r"\d+$", "", k) == group for k in coloured):
             problems.append(f"{label}: mirroring coloured {coloured}")
+        small = page.evaluate("""() => [...document.querySelectorAll('#kleur-palette .swatch')].map((b) => b.getBoundingClientRect())
+          .filter((r) => r.width < 43.5 || r.height < 43.5).map((r) => Math.round(r.width))""")
+        if small:
+            problems.append(f"{label}: colours smaller than 44 px: {small}")
         for sel in ("#kleur-page", "#kleur-palette", "#kleur-done", "#kleur-back"):
             r = page.locator(sel).bounding_box()
             if r is None or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
@@ -7784,7 +7788,12 @@ def store_links(browser, base, problems):
     In a stand-in app none of them shows."""
     pages = [("index.html?test", "#store-play"), ("nl/plannen/index.html", ".store-btn"), ("en/roadmap/index.html", ".store-btn")]
     want = {"nl": ("Download in Google Play", "App Store: binnenkort"), "en": ("Get it on Google Play", "App Store: coming soon")}
-    for label, w, h, lang in (("phone", 390, 844, "nl"), ("320", 320, 568, "nl"), ("320-en", 320, 568, "en"), ("desktop", 1280, 800, "en")):
+    # tablets upright and sideways too: from 560 to 1100 px the widest section (7 tiles) once pushed
+    # the home screen past the right edge (issue #81)
+    sizes = (("phone", 390, 844, "nl"), ("320", 320, 568, "nl"), ("320-en", 320, 568, "en"), ("desktop", 1280, 800, "en"),
+             ("568x320", 568, 320, "nl"), ("600x960", 600, 960, "nl"), ("768x1024", 768, 1024, "en"), ("820x1180", 820, 1180, "nl"),
+             ("900x1200", 900, 1200, "nl"), ("960x600", 960, 600, "nl"), ("1024x768", 1024, 768, "en"), ("1180x820", 1180, 820, "nl"))
+    for label, w, h, lang in sizes:
         ctx = browser.new_context(locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, has_touch=w < 1000)
         page = ctx.new_page()
         errors = []
@@ -7814,6 +7823,14 @@ def store_links(browser, base, problems):
             wide = page.evaluate("document.scrollingElement.scrollWidth - innerWidth")
             if wide > 0:
                 problems.append(f"{name}: the page is {wide}px too wide")
+            if path.startswith("index"):
+                # the home screen scrolls in its own box: no sideways scroll there, every tile in sight
+                home = page.evaluate("""() => { const s = document.querySelector('#screen-home');
+                  const out = [...document.querySelectorAll('#tile-groups .tile')].filter((t) => { const r = t.getBoundingClientRect();
+                    return r.left < -0.5 || r.right > innerWidth + 0.5; }).map((t) => t.id);
+                  return { wide: s.scrollWidth - s.clientWidth, out }; }""")
+                if home["wide"] > 0 or home["out"]:
+                    problems.append(f"{name}: the home screen is {home['wide']}px too wide, tiles past the edge: {home['out']}")
             if path.startswith("index"):
                 # a stand-in for window.open, so the test never leaves for the real store
                 page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), {}); }")
@@ -7848,6 +7865,40 @@ def store_links(browser, base, problems):
         if page.locator("[data-store-links]").is_visible() or page.locator(sel).is_visible():
             problems.append(f"store app {path}: a store link shows inside the app")
     ctx.close()
+
+
+def home_targets(browser, base, problems):
+    """Every game's first screen and the settings at 320x568 (Dutch and English) and 390x844: the
+    back button keeps its 60 px next to a long title (Verstoppertje squeezed it to 33 px at 320),
+    the header never wider than the screen, and Bubbels' "Willekeurig" 48 px tall (it was 24)."""
+    for w, h, lang in ((320, 568, "nl"), (320, 568, "en"), (390, 844, "nl")):
+        ctx = browser.new_context(locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, has_touch=True, is_mobile=True)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        tiles = page.evaluate("[...document.querySelectorAll('#tile-groups .tile:not(.soon)')].map((t) => t.id)")
+        for tid in tiles + ["btn-settings"]:
+            page.goto(base + "/index.html?test")
+            page.wait_for_selector("html[data-ready='1']")
+            page.click("#" + tid)
+            page.wait_for_timeout(250)
+            label = f"home {w}x{h} {lang} {tid}"
+            got = page.evaluate("""() => { const sc = document.querySelector('.screen.active'); const bar = sc.querySelector('.bar');
+              const back = sc.querySelector('.bar > .btn.icon:first-child'); const r = back && back.getBoundingClientRect();
+              const rj = sc.querySelector('#btn-random-jump'); const j = rj && rj.offsetParent ? rj.getBoundingClientRect() : null;
+              return { screen: sc.id, back: r && [Math.round(r.width), Math.round(r.height)], over: bar ? bar.scrollWidth - bar.clientWidth : 0,
+                jump: j && [Math.round(j.width), Math.round(j.height)] }; }""")
+            if got["back"] and (got["back"][0] < 56 or got["back"][1] < 56):
+                problems.append(f"{label}: the back button on {got['screen']} is {got['back']}")
+            if got["over"] > 1:
+                problems.append(f"{label}: the header on {got['screen']} is {got['over']}px too wide")
+            if tid == "tile-bubbels" and (not got["jump"] or got["jump"][1] < 48):
+                problems.append(f"{label}: the random button is {got['jump']}")
+        if errors:
+            problems.append(f"home {w}x{h} {lang}: page errors {errors[:2]}")
+        ctx.close()
 
 
 def main():
@@ -7942,6 +7993,7 @@ def main():
             kaart_flow(browser, base, problems)
             kaart_layouts(browser, base, problems)
             store_links(browser, base, problems)
+            home_targets(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -7966,7 +8018,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "kaart": (kaart_flow, kaart_layouts),
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
-         "store": (store_links,)}
+         "store": (store_links, home_targets)}
 
 
 def report(problems):
