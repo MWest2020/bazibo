@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
+  <link rel="stylesheet" href="games/verstop/verstop.css">
   <link rel="stylesheet" href="games/kaart/kaart.css">
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
   <link rel="stylesheet" href="games/piano/piano.css">
@@ -774,6 +775,43 @@
         <div id="letters-options" class="letters-options" role="group" data-i18n-aria="letters.options" aria-label="Kies een letter"></div>
         <div id="letters-dots" class="klok-dots" role="img"></div>
         <p id="letters-status" class="klok-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Verstoppertje: choose a place and a round (one animal, two animals, look-alikes and memory) -->
+    <section id="screen-verstop-menu" class="screen" data-i18n-aria="games.verstop" aria-label="Verstoppertje">
+      <header class="bar">
+        <button id="verstop-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="verstop.menu">Verstoppertje</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="verstop-menu" class="klok-menu"></div></div>
+    </section>
+
+    <!-- Verstoppertje: find the animal behind one of the spots (no voice, no timer, never wrong) -->
+    <section id="screen-verstop" class="screen" data-i18n-aria="games.verstop" aria-label="Verstoppertje">
+      <header class="bar dogu-hud klok-hud vz-hud">
+        <button id="verstop-back" class="btn icon" type="button" data-i18n-aria="verstop.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="vz-sub" class="hud-level"></div>
+          <div id="vz-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="vz-stage">
+        <div id="vz-ask" class="vz-ask">
+          <div id="vz-ask-pics" class="vz-ask-pics"></div>
+          <p id="vz-ask-text" class="vz-ask-text"></p>
+        </div>
+        <div id="vz-scene" class="vz-scene" role="group" aria-label="Tik op een plekje om te kijken">
+          <div id="vz-bg" class="vz-bgbox"></div>
+          <div id="vz-spots" class="vz-spots"></div>
+        </div>
+        <p id="vz-status" class="klok-status vz-status" aria-live="polite"></p>
       </div>
     </section>
 

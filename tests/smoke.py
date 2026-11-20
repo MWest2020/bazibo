@@ -15,7 +15,7 @@ klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes an
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -7175,6 +7175,256 @@ def kangoeroe_layouts(browser, base, problems):
         ctx.close()
 
 
+def vz_state(page):
+    return page.evaluate("window.__bubbels.verstop.state()")
+
+
+def vz_tap(page, i):
+    """A real tap on spot i, in the middle of its button (which must be on screen)."""
+    page.locator(f"#vz-spots .vz-spot[data-i='{i}']").tap()
+
+
+def vz_spots_fit(page, w, h, label, problems):
+    """Every spot on screen, 64 px or more and none overlapping; the animal to find on screen."""
+    boxes = page.eval_on_selector_all("#vz-spots .vz-spot", "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })")
+    for k, (x, y, bw, bh) in enumerate(boxes):
+        if x < -0.5 or y < -0.5 or x + bw > w + 0.5 or y + bh > h + 0.5:
+            problems.append(f"{label}: spot {k} not on screen ({x:.0f},{y:.0f} {bw:.0f}x{bh:.0f})")
+        if bw < 63.5 or bh < 63.5:
+            problems.append(f"{label}: spot {k} only {bw:.0f}x{bh:.0f} px")
+    for a in range(len(boxes)):
+        for b in range(a + 1, len(boxes)):
+            A, B = boxes[a], boxes[b]
+            if A[0] < B[0] + B[2] - 0.5 and B[0] < A[0] + A[2] - 0.5 and A[1] < B[1] + B[3] - 0.5 and B[1] < A[1] + A[3] - 0.5:
+                problems.append(f"{label}: spots {a} and {b} overlap")
+    for sel in ("#vz-ask-pics", "#vz-ask-text", "#verstop-back"):
+        r = page.locator(sel).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+            problems.append(f"{label}: {sel} not on screen ({r})")
+    if page.evaluate("document.documentElement.scrollWidth") > w:
+        problems.append(f"{label}: the page scrolls sideways")
+    return min((b[2] for b in boxes), default=0)
+
+
+def verstop_flow(browser, base, problems):
+    """Verstoppertje at 390x844 with real taps: the tile in Puzzels opens the menu, a locked place
+    and a locked tier offer only OK on the web; round garden-t1-1 played to the end with two wrong
+    spots first (each creature peeks out and waves, then the spot settles back ajar, counted once),
+    then the hedgehog (found, it stays in sight); the stars saved by extra looks; the next round with
+    back (the Android back button) and "keep playing"; the end of the free part offers only OK and
+    lands on the menu with the save kept; no voice, nothing from outside."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    name = page.inner_text("#tile-verstop .tile-name").replace("\u00ad", "").replace("\n", " ").strip()
+    if name != "Verstoppertje":
+        problems.append(f"verstop: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-verstop').closest('.tile-group').querySelector('.group-name').textContent") != "Puzzels":
+        problems.append("verstop: the tile is not in the Puzzels section")
+    page.locator("#tile-verstop").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "verstop-home-390x844.png"))
+    page.locator("#tile-verstop").tap()
+    page.wait_for_timeout(200)
+    if where(page) != ["verstop-menu", False]:
+        problems.append(f"verstop: the tile opened {where(page)}")
+    locked = page.locator("#verstop-menu .level-btn.locked:not(.random-btn)").count()
+    if locked != 12:
+        problems.append(f"verstop: {locked} rounds locked on the web in the garden, expected 12 (tiers 2 and 3)")
+    if page.locator("#verstop-menu .vz-scene-btn .vz-lock").count() != 3:
+        problems.append("verstop: the forest, beach and farm are not locked on the web")
+    page.screenshot(path=str(SHOTS / "verstop-menu-390x844.png"), full_page=True)
+    for sel in ("#verstop-menu .vz-scene-btn[data-scene='beach']", "#verstop-menu .level-btn[data-round='garden-t2-1']", "#verstop-menu .random-btn"):
+        page.locator(sel).tap()
+        page.wait_for_timeout(150)
+        if card_buttons(page) != ["Oké"]:
+            problems.append(f"verstop: {sel} offers {card_buttons(page)}, not the web's OK")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+        if where(page) != ["verstop-menu", False] or vz_state(page):
+            problems.append(f"verstop: after OK on {sel}: {where(page)}")
+
+    # round garden-t1-1 by real taps: two wrong spots first
+    page.locator("#verstop-menu .level-btn[data-round='garden-t1-1']").tap()
+    page.wait_for_timeout(250)
+    if not page.is_visible("#overlay"):
+        problems.append("verstop: no how-to card on the first round")
+    else:
+        page.screenshot(path=str(SHOTS / "verstop-how-390x844.png"))
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    st = vz_state(page)
+    if page.inner_text("#vz-ask-text").strip() != "Zoek de egel!" or page.locator("#vz-ask-pics .vz-pic").count() != 1:
+        problems.append(f"verstop: garden-t1-1 asks {page.inner_text('#vz-ask-text')!r}")
+    n = len(st["spots"])
+    if not 4 <= n <= 5:
+        problems.append(f"verstop: garden-t1-1 has {n} spots")
+    page.screenshot(path=str(SHOTS / "verstop-round-390x844.png"))
+    target = next(i for i, s in enumerate(st["spots"]) if s["target"])
+    wrong = [i for i, s in enumerate(st["spots"]) if not s["target"]][:2]
+    names = {"snail": "de slak", "ladybug": "het lieveheers\u00adbeestje", "mouse": "de muis", "frog": "de kikker", "bird": "het vogeltje", "bee": "de bij", "butterfly": "de vlinder", "mole": "de mol"}
+    for k, i in enumerate(wrong):
+        vz_tap(page, i)
+        page.wait_for_timeout(650)
+        cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{i}']", "class")
+        who = st["spots"][i]["who"]["id"]
+        if "open" not in cls or "wave" not in cls:
+            problems.append(f"verstop: spot {i} did not open and wave ({cls})")
+        op = page.evaluate(f"getComputedStyle(document.querySelector(\"#vz-spots .vz-spot[data-i='{i}'] .vz-who\")).opacity")
+        if float(op) < 0.9:
+            problems.append(f"verstop: the {who} behind spot {i} is not seen (opacity {op})")
+        status = page.inner_text("#vz-status").replace("\u00ad", "")
+        if status != f"Hoi van {names[who]}!".replace("\u00ad", ""):
+            problems.append(f"verstop: spot {i} says {status!r}")
+        if k == 0:
+            page.screenshot(path=str(SHOTS / "verstop-wave-390x844.png"))
+        st2 = vz_state(page)
+        if st2["play"]["extra"] != k + 1 or st2["done"]:
+            problems.append(f"verstop: after {k + 1} wrong spots extra={st2['play']['extra']} done={st2['done']}")
+    page.wait_for_timeout(1500)
+    for i in wrong:
+        cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{i}']", "class")
+        if "ajar" not in cls or "open" in cls:
+            problems.append(f"verstop: spot {i} did not settle back ajar ({cls})")
+    page.screenshot(path=str(SHOTS / "verstop-ajar-390x844.png"))
+    vz_tap(page, wrong[0])  # a second look at the same spot: it waves again, nothing counted
+    page.wait_for_timeout(100)
+    if vz_state(page)["play"]["extra"] != 2:
+        problems.append("verstop: a second look at a spot was counted")
+    vz_tap(page, target)
+    page.wait_for_timeout(500)
+    cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{target}']", "class")
+    if "found" not in cls or page.inner_text("#vz-status") != "Gevonden!":
+        problems.append(f"verstop: the hedgehog was not found ({cls}, {page.inner_text('#vz-status')!r})")
+    page.screenshot(path=str(SHOTS / "verstop-found-390x844.png"))
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    want = 3 if 2 <= (n - 1) // 2 else 2
+    got = page.evaluate("window.__bubbels.verstop.stars()").get("garden-t1-1")
+    title = page.inner_text("#ov-title").strip()
+    if got != want or title != {3: "Super gezocht!", 2: "Goed gezocht!"}[want]:
+        problems.append(f"verstop: garden-t1-1 with two extra looks of {n} spots: {got} stars saved, {title!r} (want {want})")
+    op = page.evaluate(f"getComputedStyle(document.querySelector(\"#vz-spots .vz-spot[data-i='{target}'] .vz-who\")).opacity")
+    if float(op) < 0.9:
+        problems.append("verstop: the hedgehog did not stay in sight")
+    page.screenshot(path=str(SHOTS / "verstop-win-390x844.png"))
+    if card_buttons(page) != ["Volgende ronde", "Nog een keer", "Rondes"]:
+        problems.append(f"verstop: the end card offers {card_buttons(page)}")
+
+    # the next round; the Android back button halfway and "keep playing"
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(200)
+    st = vz_state(page)
+    if st["roundId"] != "garden-t1-2" or st["play"]["looked"] or st["done"]:
+        problems.append(f"verstop: Volgende ronde started {st['roundId']}")
+    other = next(i for i, s in enumerate(st["spots"]) if not s["target"])
+    vz_tap(page, other)
+    page.wait_for_timeout(100)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    if where(page) != ["verstop-menu", False] or not page.is_visible("#verstop-continue") or page.inner_text("#verstop-continue").strip() != "Verder spelen":
+        problems.append(f"verstop: back from a round went to {where(page)} without Verder spelen")
+    page.locator("#verstop-continue").tap()
+    page.wait_for_timeout(200)
+    st2 = vz_state(page)
+    cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{other}']", "class")
+    if where(page) != ["verstop", False] or st2["roundId"] != "garden-t1-2" or st2["play"]["looked"] != [other] or "ajar" not in cls:
+        problems.append(f"verstop: Verder spelen opened {where(page)} {st2['roundId']} looked {st2['play']['looked']} ({cls})")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    page.evaluate("window.__bubbels.back()")  # the menu goes home
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"verstop: back from the menu went to {where(page)}")
+
+    # the end of the free part: "Meer rondes" offers only OK on the web, and lands on the menu
+    page.locator("#tile-verstop").click()
+    page.evaluate("window.__bubbels.verstop.start('garden-t1-6')")
+    page.wait_for_timeout(150)
+    st = vz_state(page)
+    page.evaluate(f"window.__bubbels.verstop.tap({next(i for i, s in enumerate(st['spots']) if s['target'])})")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    if "laatste gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"verstop: the end of garden-t1-6 says {page.inner_text('#ov-text')!r}")
+    if web_offer_ok(page, "verstop garden-t1-6", "verstop-menu", problems):
+        if page.evaluate("window.__bubbels.verstop.stars()").get("garden-t1-6") != 3:
+            problems.append(f"verstop: garden-t1-6 not saved ({page.evaluate('window.__bubbels.verstop.stars()')})")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("verstop: something speaks")
+    if errors:
+        problems.append(f"verstop: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"verstop: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+def verstop_layouts(browser, base, problems):
+    """Verstoppertje on a small phone, an ordinary phone (in English), sideways and on desktop, with
+    every tier in the full version (two animals, look-alikes and the memory question): every spot
+    on screen, 64 px or more and none overlapping, the animal to find on screen, no sideways scroll;
+    a tier 3 memory round played by real taps to the question and answered."""
+    for w, h in ((320, 568), (390, 844), (568, 320), (844, 390), (1280, 800)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        smallest = 999
+        for rid in ("garden-t1-1", "forest-t2-1", "beach-t3-2", "farm-t3-1"):
+            label = f"verstop {w}x{h} {rid}"
+            page.evaluate(f"window.__bubbels.verstop.start('{rid}')")
+            page.wait_for_timeout(200)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(150)
+            st = vz_state(page)
+            smallest = min(smallest, vz_spots_fit(page, w, h, label, problems))
+            if english and rid == "garden-t1-1" and page.inner_text("#vz-ask-text").strip() != "Find the hedgehog!":
+                problems.append(f"{label}: English asks {page.inner_text('#vz-ask-text')!r}")
+            if rid == "forest-t2-1" and page.locator("#vz-ask-pics .vz-pic").count() != 2:
+                problems.append(f"{label}: two animals to find but {page.locator('#vz-ask-pics .vz-pic').count()} pictures")
+            page.screenshot(path=str(SHOTS / f"verstop-{rid}-{w}x{h}.png"))
+            if rid == "beach-t3-2":
+                # a look-alike and a creature first, then the animal: every spot closes and asks where the creature was
+                alike = next(i for i, s in enumerate(st["spots"]) if s["who"]["kind"] == "animal" and not s["target"])
+                crit = next(i for i, s in enumerate(st["spots"]) if s["who"]["kind"] == "creature")
+                target = next(i for i, s in enumerate(st["spots"]) if s["target"])
+                for i in (alike, crit):
+                    vz_tap(page, i) if mobile else page.locator(f"#vz-spots .vz-spot[data-i='{i}']").click()
+                    page.wait_for_timeout(250)
+                    if i == alike and ("but without a" if english else "maar zonder") not in page.inner_text("#vz-status"):
+                        problems.append(f"{label}: a look-alike says {page.inner_text('#vz-status')!r}")
+                page.locator(f"#vz-spots .vz-spot[data-i='{target}']").click()
+                page.wait_for_function("window.__bubbels.verstop.state().play.phase === 'memory' && !window.__bubbels.verstop.state().waiting", timeout=5000)
+                page.wait_for_timeout(500)
+                shut = page.locator("#vz-spots .vz-spot.shut").count()
+                if shut != len(st["spots"]) - 1:
+                    problems.append(f"{label}: {shut} spots closed for the memory question")
+                page.screenshot(path=str(SHOTS / f"verstop-memory-{w}x{h}.png"))
+                ask = vz_state(page)["play"]["ask"]
+                if ask != crit:
+                    problems.append(f"{label}: the memory question asks spot {ask}, not {crit}")
+                page.locator(f"#vz-spots .vz-spot[data-i='{ask}']").click()
+                page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+                page.click("#ov-buttons button >> nth=-1")
+                page.wait_for_timeout(150)
+            else:
+                page.evaluate("window.__bubbels.back()")
+                page.wait_for_timeout(100)
+        print(f"[verstop {w}x{h}] smallest spot {smallest:.0f} px")
+        if errors:
+            problems.append(f"verstop {w}x{h}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def km_state(page):
     return page.evaluate("window.__bubbels.kaart.state()")
 
@@ -7685,6 +7935,8 @@ def main():
             piano_big(browser, base, problems)
             drums_flow(browser, base, problems)
             drums_layouts(browser, base, problems)
+            verstop_flow(browser, base, problems)
+            verstop_layouts(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
@@ -7710,6 +7962,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "verstop": (verstop_flow, verstop_layouts),
          "kaart": (kaart_flow, kaart_layouts),
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),

@@ -4,7 +4,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Verstoppertje ("Hide and Seek", find the little animal behind a stone, a bush or a little door), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -138,6 +138,44 @@ age 3 (9 big pieces) up to 10 (60 pieces). A sliding puzzle is hard below about 
 - Saved under `games.legpuzzel`: every picture and size laid at least once (a tick in the menu),
   the last size, the example picture on or off and the magnifier on or off. A puzzle in progress is kept while the app
   stays open ("keep puzzling").
+
+### Verstoppertje (Hide and Seek)
+
+A looking game for the youngest, in `web/games/verstop/` (id `verstop`, ages 3-7; the rounds and
+what a tap means in `rules.js`, pure and tested; the drawings in `art.js`; the screens in
+`verstop.js`). Mark's idea (20 Nov 2026): "find a little animal and where it can be; lift a little
+stone or look behind a little tree; if it is not there, another little figure waves", a
+seek-and-find crossed with an advent calendar. The name is the generic Dutch word for hide and
+seek; nothing of any picture-book franchise (no striped figure, no franchise names), all art our
+own, drawn in code.
+
+- The animal to find is shown big at the top ("Zoek de egel!"). The scene (garden, forest, beach,
+  farm) has hiding spots drawn as part of it: stones, bushes, little trees, upside-down flowerpots
+  and buckets, a haystack, shells, a sandcastle, a log, a little red door in a tree stump and
+  numbered advent-calendar windows. A tap lifts the spot, pushes it aside or swings its door open.
+- Behind every other spot lives a friendly creature (a snail, ladybird, mouse, frog, bird, bee,
+  butterfly or mole) that peeks out and waves ("Hoi van de kikker!"). Then the spot settles back
+  ajar with the creature peeking out of the crack, so the child sees where they already looked:
+  clearer for a three-year-old than a spot that closes all the way and looks untouched. Never
+  "wrong": no buzzer, no losing, no timers, no voice; the sounds are the shell's plink and chime.
+- Found: a chime, sparkles and a little hop; the animal stays in sight, then the end card with
+  stars and the next round. Stars count only extra looks, each spot once, gently: up to half of
+  the other spots is still 3 stars (`starsFor`).
+- Harder by what the child must do, never by speed: tier 1 (3-4) 4-5 big spots and one animal;
+  tier 2 (4-6) 6-7 spots and two animals in one round; tier 3 (5-7) 7-8 spots, the animal with a
+  red scarf, a yellow bow or a pink flower among two look-alikes of the same animal (another
+  feature or none: "Ook een egel, maar zonder rode sjaal."), and every second round a memory
+  question: once the animal is found every spot closes, "Waar was de kikker?", the first creature
+  the child met.
+- Rounds are seeded per id (`garden-t1-3`), each tested over 200 seeds per scene and tier: the
+  animal behind exactly one spot, nobody twice, look-alikes differ by their feature, every round
+  ends. The spots stand in a scattered grid (`spotLayout`): 64 px or more and on screen from a
+  320 x 568 phone to a desktop, upright and sideways, never overlapping.
+- Free: tier 1 in the garden (6 rounds). The full version adds the forest, the beach and the
+  farm, tiers 2 and 3 and random rounds (a new place every time).
+- Saved under `games.verstop`: stars per round, random rounds per tier, the how-to cards seen,
+  the last place and the last tier. A round in progress is kept while the app stays open ("keep
+  playing").
 
 ### Vier op een rij
 
@@ -654,7 +692,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`,
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`,
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
@@ -679,6 +717,7 @@ an artifact when it fails).
 | `web/js/random.js`, `web/js/gen-worker.js` | random play: seeds, the "Random" cards, running a game's generator in a worker |
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
 | `web/games/doolhof/` | Egeltje (garden maze): `meta.js` (free part), `maze.js` and `rules.js` (pure), `art.js` (garden, hedgehog, crows), `doolhof.js` (the screens) |
+| `web/games/verstop/` | Verstoppertje (Hide and Seek): `meta.js` (free part), `rules.js` (pure: rounds, looks, stars, where the spots stand), `art.js` (animals, creatures, spots, scenes), `verstop.js` (the screens) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |
 | `web/games/kwartet/` | Kwartet: `meta.js` (free part), `rules.js` (pure), `ai.js` (the computer players), `art.js` (the sets and cards), `kwartet.js` (the screens) |
 | `web/games/legpuzzel/` | Legpuzzel (jigsaw): `meta.js` (free part), `rules.js` (pure geometry and layout), `pictures.js` (the scenes), `legpuzzel.js` (the screens) |
