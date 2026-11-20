@@ -1,6 +1,6 @@
 ---
 status: current
-last_reviewed: 2026-11-20
+last_reviewed: 2026-11-21
 ---
 
 # Bazibo 2.0: design proposal
@@ -41,6 +41,11 @@ Each has a recommendation; the default while unanswered is that nothing is built
    captions; groep and leerjaar only in the description.
 9. **Could you forward the market research summary?** The proposal is checked against it before
    phase 1 starts.
+10. **Wie doet de vormgeving: een externe ontwerper/tool met deze brief, of zal ik een gepolijste
+    richting maken?** Mark (20 Nov): the games keep their SVG style; the Bazibo brand (logo,
+    palette, store, site, home) gets a polished redo. [brand-brief.md](brand-brief.md) is the
+    self-contained brief for an outside designer or tool; the logo sketches below are input, not
+    the answer.
 
 ## Principles
 
