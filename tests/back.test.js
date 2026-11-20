@@ -87,6 +87,11 @@ test('back: a Klok kijken round goes to its menu (kept), a card on it too, the m
   assert.equal(backAction({ screen: 'letters', overlay: 'card' }), 'letters-menu');
   assert.equal(backAction({ screen: 'letters-menu' }), 'letters-menu-back');
   assert.equal(backAction({ screen: 'letters-menu', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'verstop' }), 'verstop-menu'); // the round is kept
+  assert.equal(backAction({ screen: 'verstop', overlay: 'card' }), 'verstop-menu'); // the how-to and the end card
+  assert.equal(backAction({ screen: 'verstop', overlay: 'busy' }), 'ignore');
+  assert.equal(backAction({ screen: 'verstop-menu' }), 'home');
+  assert.equal(backAction({ screen: 'verstop-menu', overlay: 'card' }), 'close'); // the offer for a locked round
   assert.equal(backAction({ screen: 'kangoeroe' }), 'kangoeroe-menu'); // the round is kept
   assert.equal(backAction({ screen: 'kangoeroe', overlay: 'card' }), 'kangoeroe-menu'); // the how-to and the end card
   assert.equal(backAction({ screen: 'kangoeroe', overlay: 'busy' }), 'ignore');

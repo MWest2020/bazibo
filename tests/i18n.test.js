@@ -27,6 +27,8 @@ import '../web/games/tekenen/strings.js';
 import { STAMPS } from '../web/games/tekenen/drawing.js';
 import '../web/games/klok/strings.js';
 import '../web/games/letters/strings.js';
+import '../web/games/verstop/strings.js';
+import { SCENE_IDS as VZ_SCENES, ANIMAL_IDS as VZ_ANIMALS, CREATURE_IDS as VZ_CREATURES, FEATURE_IDS as VZ_FEATURES, SPOT_KINDS as VZ_SPOTS, TIER_IDS as VZ_TIERS } from '../web/games/verstop/rules.js';
 import '../web/games/kangoeroe/strings.js';
 import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
 import '../web/games/kaart/strings.js';
@@ -140,6 +142,13 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of DRUM_PADS) used.add(`drums.pad.${id}`);
   for (const l of DRUM_LEVELS) used.add(`drums.level.${l.id}`).add(`drums.age.${l.id}`);
   for (const n of [0, 1, 2, 3]) used.add(`drums.win${n}`);
+  for (const id of VZ_SCENES) used.add(`verstop.scene.${id}`);
+  for (const id of VZ_TIERS) used.add(`verstop.tier.${id}`).add(`verstop.short.${id}`).add(`verstop.how.${id}`);
+  for (const id of VZ_ANIMALS) used.add(`verstop.the.${id}`).add(`verstop.an.${id}`);
+  for (const id of VZ_CREATURES) used.add(`verstop.the.${id}`);
+  for (const id of VZ_FEATURES) used.add(`verstop.feat.${id}`).add(`verstop.bare.${id}`);
+  for (const id of VZ_SPOTS) used.add(`verstop.spot.${id}`);
+  for (const n of [1, 2, 3]) used.add(`verstop.win${n}`);
   for (const id of PARROT_VOICES) used.add(`papegaai.voice.${id}`); // built as t(`papegaai.voice.${id}`)
   for (const k of ['start', 'opening', 'listening', 'listeningTap', 'playing', 'again', 'nothing', 'first', 'ready']) used.add(`papegaai.say.${k}`);
   for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);

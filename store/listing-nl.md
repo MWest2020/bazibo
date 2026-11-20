@@ -17,11 +17,11 @@ Geen reclame. Nooit.
 
 ## Korte beschrijving, alleen Play (80)
 
-23 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
+24 spellen voor kinderen van 3-10. Geen reclame, geen account, geen trackers.
 
 ## Promotietekst, alleen App Store (170)
 
-23 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+24 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -29,40 +29,41 @@ legpuzzel,paartjes,kwartet,piano,sudoku,vier op een rij,dammen,ganzenbord,kleurp
 
 ## Beschrijving (4000)
 
-Bazibo: drieëntwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
+Bazibo: vierentwintig spelletjes voor kinderen van 3 tot 10 jaar, zonder reclame. De naam komt van "bāzi", Perzisch voor spel.
 
 PUZZELS
-• Dogudoku: verstop de hondjes, één per rij en kolom, en ze raken elkaar niet, ook niet schuin. Van 4 bij 4 tot kleurvakken vanaf 5 jaar; 60 puzzels.
-• Picturedoku: sudoku met plaatjes. Vanaf 3 jaar 4 bij 4 met fruit, zonder cijfers of lezen; 6 bij 6 vanaf 6 en 9 bij 9 vanaf 8, ook met cijfers. 60 puzzels.
-• Paartjes: zoek de paartjes, alleen, samen of tegen de computer. 6 en 12 kaarten met fruit; volledige versie: 16 en 20 kaarten, prentenboek- en vormenkaarten.
+• Dogudoku: verstop de hondjes, één per rij en kolom, nooit naast elkaar, ook niet schuin. Van 4 bij 4 tot kleurvakken; 60 puzzels.
+• Picturedoku: sudoku met plaatjes, vanaf 3 jaar zonder cijfers of lezen, tot 9 bij 9, ook met cijfers. 60 puzzels.
+• Paartjes: alleen, samen of tegen de computer. 6 en 12 kaarten met fruit; volledige versie: 16 en 20 kaarten, prentenboek- en vormenkaarten.
 • Legpuzzel: 9, 16 en 25 stukjes met drie plaatjes, en een vergrootglas op de telefoon; volledige versie: 30, 48 en 60 stukjes en vijf plaatjes meer.
+• Verstoppertje: til een steen op, kijk achter een struik: waar is de egel? Anders zwaait een ander diertje. Volledige versie: bos, strand, boerderij.
 
 BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
-• Vier op een rij, ook op een kleuterbord, waar drie op een rij wint. Moeilijk in de volledige versie.
-• Dammen: puppy tegen poes, of klassiek, op 8 bij 8. Volledige versie: een slimmere computer en 10 bij 10.
-• Tijgers en geitjes (Bagh-Chal) uit Nepal: de geitjes sluiten de tijgers in, de tijgers springen over geitjes. Speel de geitjes of de tijgers; een slimmere computer in de volledige versie.
-• Schaken: met alle echte regels. Makkelijk met een tip; een slimmere computer in de volledige versie.
-• Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: tot vier spelers en een winter- en zeebord.
-• Ludo: met een 6 kom je op het bord, en wie op een ander komt, stuurt die terug. Je kind telt zelf. Ook Pachisi, het Indiase origineel. Volledige versie: vier spelers, een slimmere computer.
-• Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8 kwartetten en een 4e speler.
+• Vier op een rij, ook op een kleuterbord: drie op een rij wint. Moeilijk in de volledige versie.
+• Dammen: puppy tegen poes, of klassiek, op 8 bij 8. Volledige versie: slimmere computer en 10 bij 10.
+• Tijgers en geitjes (Bagh-Chal), oud spel uit Nepal: geitjes sluiten tijgers in, tijgers springen over geitjes. Speel geitjes of tijgers; volledige versie: slimmere computer.
+• Schaken: met alle echte regels. Tik een stuk en zie waar het mag. Makkelijk met een tip; volledige versie: slimmere computer.
+• Ganzenbord: ons eigen bord, je kind telt zelf de vakjes. Tegen een computergans; volledige versie: vier spelers, winter- en zeebord.
+• Ludo: met een 6 kom je op het bord; wie op een ander komt, stuurt die terug. Je kind telt zelf. Ook Pachisi, het Indiase origineel met zes schelpen. Volledige versie: vier spelers, slimmere computer.
+• Kwartet: vraag de kaarten die je mist. 4 kwartetten; volledige versie: 6 en 8, en een 4e speler.
 
 CREATIEF
-• Kleurplaten: kies een kleur en tik op een vlak. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
+• Kleurplaten: kies een kleur, tik op een vlak. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
 • Tekenen: met je vinger, alle kleuren en een gum. Volledige versie: spiegelen (elke streep een mandala), stempels en tot 100 tekeningen.
-• Piano: speelgoedpiano met gekleurde toetsen; speel mee, de volgende toets licht op. 4-6 jaar: Vader Jacob; 7-10: twee octaven en de Ode aan de vreugde. Meer liedjes in de volledige versie.
+• Piano: speel mee, de volgende gekleurde toets licht op. 4-6 jaar: Vader Jacob; 7-10: twee octaven en de Ode aan de vreugde. Meer liedjes in de volledige versie.
 • Drumstel: acht trommels en bekkens. Speel mee in eigen tempo (4-6) of op de maat (7-10). Rock gratis, vier ritmes meer in de volledige versie.
-• Papegaai: zeg iets en de papegaai zegt het na, ook als muis of beer; volledige versie: achteruit, echo, koor en ballon. Je stem blijft op het toestel.
+• Papegaai: zeg iets, de papegaai zegt het na, ook als muis of beer; volledige versie: achteruit, echo, koor en ballon. Je stem blijft op het toestel.
 
 LEREN
 • Klok kijken: zet de klok op "half drie" of kies hoe laat het is, van dagritme tot losse minuten en de 24-uursklok.
-• Letters: zoek dezelfde letter, vind de begin- of middenletter bij een plaatje en maak zelf een woordje.
-• Egeltje: een egeltje raapt in een tuindoolhof het alfabet, een woordje of getallen op volgorde op.
+• Letters: zoek dezelfde letter, vind de begin- of middenletter bij een plaatje en maak een woordje.
+• Egeltje: een egel raapt in een tuindoolhof het alfabet, een woordje of getallen op volgorde op.
 • Kangoeroe op de getallenlijn: plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 in de volledige versie.
-• Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: de werelddelen, en leggen met lijnen.
+• Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: werelddelen, en leggen met lijnen.
 
 ACTIE
-• Bubbels schieten: mik en laat los, dan knallen drie van dezelfde kleur kapot. 30 levels.
-• Slangetje: eet de getallen op volgorde, de letters van een woord of alleen fruit met de goede kleur. 30 levels; een fout is nooit game over.
+• Bubbels schieten: mik, laat los en drie van dezelfde kleur knallen kapot. 30 levels.
+• Slangetje: eet getallen op volgorde, de letters van een woord of fruit in de goede kleur. 30 levels; een fout is nooit game over.
 
 GEMAAKT VOOR KINDEREN
 • Elke kleur heeft een eigen symbool of patroon, ook voor kleurenblinde kinderen.
