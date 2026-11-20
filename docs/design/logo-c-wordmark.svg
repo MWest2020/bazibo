@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="Nunito, 'Varela Round', system-ui, sans-serif">
+  <!-- Direction C, "redo": wordmark first. A lowercase "bazibo" built from circles and round
+       strokes (no font needed, so it looks the same everywhere); the dot on the i is a small
+       terracotta roof, the gazebo's last trace. The icon is the b under that roof. -->
+  <title>Bazibo logo direction C: lowercase wordmark with a roof on the i</title>
+  <rect width="960" height="400" fill="#fbf7f0"/>
+  <defs>
+    <g id="word" fill="none" stroke="#28245c" stroke-width="12" stroke-linecap="round">
+      <path d="M16 20 V100"/><circle cx="41" cy="75" r="25"/>
+      <circle cx="106" cy="75" r="25"/><path d="M131 52 V100"/>
+      <path d="M152 52 H194 L152 100 H194" stroke-linejoin="round"/>
+      <path d="M216 56 V100"/>
+      <path d="M236 20 V100"/><circle cx="261" cy="75" r="25"/>
+      <circle cx="323" cy="75" r="25"/>
+      <path d="M216 18 L232 36 H200 Z" fill="#e2683f" stroke="#e2683f" stroke-width="6" stroke-linejoin="round"/>
+    </g>
+    <g id="icon">
+      <path d="M50 8 L80 34 H20 Z" fill="#e2683f" stroke="#e2683f" stroke-width="6" stroke-linejoin="round"/>
+      <g fill="none" stroke="#28245c" stroke-width="12" stroke-linecap="round">
+        <path d="M34 44 V92"/><circle cx="56" cy="72" r="21"/>
+      </g>
+    </g>
+  </defs>
+  <rect x="40" y="40" width="200" height="200" rx="44" fill="#fff" stroke="#e6e0d4" stroke-width="2"/>
+  <use href="#icon" transform="translate(65 62) scale(1.5)"/>
+  <rect x="270" y="40" width="200" height="200" rx="44" fill="#f2b632"/>
+  <use href="#icon" transform="translate(295 62) scale(1.5)"/>
+  <rect x="500" y="40" width="48" height="48" rx="11" fill="#fff" stroke="#e6e0d4"/>
+  <use href="#icon" transform="translate(504 42) scale(0.4)"/>
+  <use href="#icon" transform="translate(560 50) scale(0.26)"/>
+  <use href="#word" transform="translate(500 250) scale(1.15)"/>
+  <text x="40" y="300" font-size="20" font-weight="700" fill="#5a5585">C · opnieuw</text>
+  <text x="40" y="330" font-size="16" fill="#5a5585">woordmerk in kleine letters, getekend</text>
+  <text x="40" y="352" font-size="16" fill="#5a5585">(geen font); het dak als punt op de i</text>
+</svg>

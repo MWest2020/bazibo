@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="Nunito, 'Varela Round', system-ui, sans-serif">
+  <!-- Direction A, "refine": the same gazebo, flat and calmer. No bubble (it tied the brand to
+       one game), no railing posts, one line weight that survives 24 px, a warm lantern instead. -->
+  <title>Bazibo logo direction A: refined gazebo</title>
+  <rect width="960" height="400" fill="#fbf7f0"/>
+  <defs>
+    <g id="gz">
+      <rect x="10" y="80" width="80" height="10" rx="5" fill="#fff3d9" stroke="#28245c" stroke-width="4"/>
+      <rect x="18" y="44" width="10" height="38" rx="4" fill="#fff" stroke="#28245c" stroke-width="4"/>
+      <rect x="72" y="44" width="10" height="38" rx="4" fill="#fff" stroke="#28245c" stroke-width="4"/>
+      <path d="M50 12 L88 40 Q90 46 84 46 H16 Q10 46 12 40 Z" fill="#e2683f" stroke="#28245c" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M50 12 V6" stroke="#28245c" stroke-width="4" stroke-linecap="round"/>
+      <path d="M50 46 V54" stroke="#28245c" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="50" cy="62" r="8" fill="#f2b632" stroke="#28245c" stroke-width="4"/>
+    </g>
+  </defs>
+  <!-- app icon on the calm ink background, and on paper -->
+  <rect x="40" y="40" width="200" height="200" rx="44" fill="#2d2a6e"/>
+  <use href="#gz" transform="translate(65 60) scale(1.5)"/>
+  <rect x="270" y="40" width="200" height="200" rx="44" fill="#fff" stroke="#e6e0d4" stroke-width="2"/>
+  <use href="#gz" transform="translate(295 60) scale(1.5)"/>
+  <!-- small sizes: 48 and 24 px -->
+  <rect x="500" y="40" width="48" height="48" rx="11" fill="#2d2a6e"/>
+  <use href="#gz" transform="translate(504 43) scale(0.4)"/>
+  <rect x="560" y="52" width="24" height="24" rx="6" fill="#2d2a6e"/>
+  <use href="#gz" transform="translate(562 53) scale(0.2)"/>
+  <!-- wordmark -->
+  <use href="#gz" transform="translate(500 270) scale(0.9)"/>
+  <text x="600" y="345" font-size="84" font-weight="800" fill="#28245c">Bazibo</text>
+  <text x="40" y="300" font-size="20" font-weight="700" fill="#5a5585">A · verfijnen</text>
+  <text x="40" y="330" font-size="16" fill="#5a5585">zelfde prieel, vlak, één lijndikte,</text>
+  <text x="40" y="352" font-size="16" fill="#5a5585">lantaarn in plaats van bubbel</text>
+</svg>

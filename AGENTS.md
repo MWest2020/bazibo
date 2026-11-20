@@ -6,7 +6,8 @@ shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save
 `web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, hide and seek `verstop` (shown as Verstoppertje / Hide and Seek), four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the race game `pachisi` (shown as Ludo with the line "met één dobbelsteen" / "with one die" under it; Ludo is the default mode, Pachisi, the original from India, the second), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
-evidence, in the same PR).
+evidence, in the same PR). Design: `docs/design/` (the style audit and the 2.0 proposal, waiting on
+Mark; `tools/design_audit.py` re-measures contrast and touch targets with screenshots).
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new

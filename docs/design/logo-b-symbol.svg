@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="Nunito, 'Varela Round', system-ui, sans-serif">
+  <!-- Direction B, "symbol": the gazebo reduced to a sign. The roof is five slices in the five
+       game-group accents (puzzles, board games, creative, learning, action): one roof over every
+       game. Pillars and floor in ink. Works as a 24 px favicon and as the store icon. -->
+  <title>Bazibo logo direction B: a roof over every game</title>
+  <rect width="960" height="400" fill="#fbf7f0"/>
+  <defs>
+    <clipPath id="roof"><path d="M50 10 L92 46 H8 Z"/></clipPath>
+    <g id="mark">
+      <g clip-path="url(#roof)">
+        <rect x="0" y="0" width="22" height="50" fill="#2a8f88"/>
+        <rect x="22" y="0" width="17" height="50" fill="#d9663f"/>
+        <rect x="39" y="0" width="22" height="50" fill="#c8508a"/>
+        <rect x="61" y="0" width="17" height="50" fill="#b97f0a"/>
+        <rect x="78" y="0" width="22" height="50" fill="#3f86d0"/>
+      </g>
+      <path d="M50 10 L92 46 H8 Z" fill="none" stroke="#28245c" stroke-width="5" stroke-linejoin="round"/>
+      <rect x="18" y="46" width="11" height="36" rx="5.5" fill="#28245c"/>
+      <rect x="71" y="46" width="11" height="36" rx="5.5" fill="#28245c"/>
+      <rect x="8" y="82" width="84" height="10" rx="5" fill="#28245c"/>
+    </g>
+  </defs>
+  <rect x="40" y="40" width="200" height="200" rx="44" fill="#fff" stroke="#e6e0d4" stroke-width="2"/>
+  <use href="#mark" transform="translate(65 62) scale(1.5)"/>
+  <rect x="270" y="40" width="200" height="200" rx="44" fill="#28245c"/>
+  <g transform="translate(295 62) scale(1.5)">
+    <g clip-path="url(#roof)">
+      <rect x="0" y="0" width="22" height="50" fill="#2a8f88"/>
+      <rect x="22" y="0" width="17" height="50" fill="#d9663f"/>
+      <rect x="39" y="0" width="22" height="50" fill="#c8508a"/>
+      <rect x="61" y="0" width="17" height="50" fill="#b97f0a"/>
+      <rect x="78" y="0" width="22" height="50" fill="#3f86d0"/>
+    </g>
+    <rect x="18" y="46" width="11" height="36" rx="5.5" fill="#fbf7f0"/>
+    <rect x="71" y="46" width="11" height="36" rx="5.5" fill="#fbf7f0"/>
+    <rect x="8" y="82" width="84" height="10" rx="5" fill="#fbf7f0"/>
+  </g>
+  <rect x="500" y="40" width="48" height="48" rx="11" fill="#fff" stroke="#e6e0d4"/>
+  <use href="#mark" transform="translate(504 42) scale(0.4)"/>
+  <use href="#mark" transform="translate(562 52) scale(0.24)"/>
+  <use href="#mark" transform="translate(500 270) scale(0.9)"/>
+  <text x="600" y="345" font-size="84" font-weight="800" fill="#28245c">Bazibo</text>
+  <text x="40" y="300" font-size="20" font-weight="700" fill="#5a5585">B · teken</text>
+  <text x="40" y="330" font-size="16" fill="#5a5585">het prieel als teken: één dak,</text>
+  <text x="40" y="352" font-size="16" fill="#5a5585">vijf kleuren voor vijf soorten spel</text>
+</svg>

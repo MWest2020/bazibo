@@ -1,0 +1,88 @@
+/* Bazibo 2.0 design tokens: a SKETCH for docs/design/v2-proposal.md, not loaded by the app.
+   Once Mark approves, phase 1 moves these into the :root of web/css/style.css, keeping the old
+   names (--primary, --ink, --accent ...) as aliases so no game breaks on the day of the switch.
+   Every text pair below is AA or better (ratios measured, in the comments). */
+:root {
+  /* calm base: warm paper instead of the sky-lilac-pink gradient */
+  --bz-paper: #fbf7f0;        /* page background */
+  --bz-surface: #ffffff;      /* cards, tiles, sheets */
+  --bz-line: #e6e0d4;         /* hairlines and quiet borders */
+  --bz-ink: #28245c;          /* text: 13.1:1 on paper */
+  --bz-ink-soft: #5a5585;     /* secondary text: 6.4:1 on paper, 6.8:1 on white */
+  --bz-ink-quiet: #6f6a99;    /* locked / inactive text: 5.0:1 on white (was #a59fd0, 2.5:1) */
+  --bz-brand: #4f43c4;        /* the Bazibo violet, a little calmer: white on it 7.2:1 */
+  --bz-brand-dark: #342a96;   /* pressed edge of a brand button */
+  --bz-brand-tint: #ece9fb;   /* selected tint */
+  --bz-focus: #28245c;        /* focus ring: ink, 2 px paper gap (gold on paper was 1.5:1) */
+  --bz-star: #d99a12;         /* an earned star; an empty star is an outline, never only paler */
+
+  /* one accent per game group: -acc for shapes (3:1 or more on white and paper),
+     -tint for section and tile backgrounds, -ink for text on the tint (5.5:1 or more) */
+  --bz-puzzles-acc: #2a8f88;  --bz-puzzles-tint: #e3f4f2;  --bz-puzzles-ink: #1d6b66;
+  --bz-board-acc: #d9663f;    --bz-board-tint: #fbe9e1;    --bz-board-ink: #9c3f1f;
+  --bz-creative-acc: #c8508a; --bz-creative-tint: #fae6ef; --bz-creative-ink: #8f2f5e;
+  --bz-learning-acc: #b97f0a; --bz-learning-tint: #fbf1d6; --bz-learning-ink: #7a5600;
+  --bz-action-acc: #3f86d0;   --bz-action-tint: #e3eefa;   --bz-action-ink: #235a96;
+
+  /* type: one vendored rounded family (OFL), a 1.25 scale on 16 px; nothing a child must read
+     under 16 px, 13-14 px only for parent-facing small print */
+  --bz-font: "Bazibo Sans", ui-rounded, system-ui, sans-serif;
+  --bz-font-letters: "Bazibo Letters", var(--bz-font); /* letter tiles: reader-friendly a, g, l, I */
+  --bz-text-xs: 0.8125rem;    /* 13: small print for parents only */
+  --bz-text-s: 0.875rem;      /* 14: ages, "full version" */
+  --bz-text-m: 1rem;          /* 16: body, tile names */
+  --bz-text-l: 1.25rem;       /* 20: option titles, buttons */
+  --bz-text-xl: 1.5625rem;    /* 25: screen titles */
+  --bz-text-2xl: 1.9375rem;   /* 31: card titles */
+  --bz-text-3xl: 2.4375rem;   /* 39: win card, letters */
+  --bz-weight-text: 700;      /* 900 only for the brand name and the big letters */
+  --bz-weight-head: 800;
+
+  /* spacing on a 4 px grid */
+  --bz-space-1: 4px; --bz-space-2: 8px; --bz-space-3: 12px; --bz-space-4: 16px;
+  --bz-space-5: 24px; --bz-space-6: 32px; --bz-space-7: 48px;
+
+  /* five radii instead of twenty */
+  --bz-radius-s: 8px;         /* chips, small badges */
+  --bz-radius-m: 14px;        /* inputs, cells, swatches */
+  --bz-radius-l: 22px;        /* tiles, option cards, icon buttons */
+  --bz-radius-xl: 32px;       /* cards and sheets */
+  --bz-radius-pill: 999px;
+
+  /* touch: 48 px is the floor for anything a child taps; 56 for the main actions */
+  --bz-target: 48px;
+  --bz-target-main: 56px;
+  --bz-target-big: 64px;
+
+  /* depth: one soft shadow and one pressed edge, no glossy double shadows */
+  --bz-shadow: 0 2px 8px rgba(40, 36, 92, 0.10);
+  --bz-edge: 0 3px 0 rgba(40, 36, 92, 0.14);
+  --bz-motion: 160ms ease-out; /* and nothing moves under prefers-reduced-motion */
+}
+
+/* Components (the shapes the proposal describes; class names are a sketch) */
+.bz-btn {                      /* primary: brand fill, white text; secondary: surface + brand text */
+  min-height: var(--bz-target-main);
+  padding: 0 var(--bz-space-5);
+  border-radius: var(--bz-radius-pill);
+  font: var(--bz-weight-head) var(--bz-text-l) / 1.1 var(--bz-font);
+  box-shadow: var(--bz-edge);
+}
+.bz-icon-btn {                 /* back, hint, undo, pause: always 56 x 56 and never squeezed */
+  flex: none;
+  width: var(--bz-target-main);
+  height: var(--bz-target-main);
+  border-radius: var(--bz-radius-l);
+}
+.bz-tile {                     /* home tile: the group's tint behind the drawing, the name 16 px */
+  min-height: 128px;
+  border-radius: var(--bz-radius-l);
+  background: var(--bz-surface);
+  box-shadow: var(--bz-shadow);
+}
+.bz-bar {                      /* the one header: back left, title centred, one action right */
+  display: grid;
+  grid-template-columns: var(--bz-target-main) minmax(0, 1fr) var(--bz-target-main);
+  gap: var(--bz-space-3);
+  padding: var(--bz-space-3) var(--bz-space-4);
+}
