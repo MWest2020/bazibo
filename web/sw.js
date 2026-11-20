@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-41d3d003f3';
+const VERSION = 'bubbels-ece50c4000';
 const ASSETS = [
   './',
   'index.html',
@@ -208,12 +208,12 @@ const ASSETS = [
   'games/drums/strings.js',
   'games/papegaai/art.js',
   'games/papegaai/capture-worklet.js',
+  'games/papegaai/effects.js',
   'games/papegaai/meta.js',
   'games/papegaai/papegaai.css',
   'games/papegaai/papegaai.js',
   'games/papegaai/sound.js',
   'games/papegaai/strings.js',
-  'games/papegaai/voices.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import * as V from '../web/games/papegaai/voices.js';
+import * as V from '../web/games/papegaai/effects.js';
 import { meta } from '../web/games/papegaai/meta.js';
 import { parrotSvg, tileSvg, voiceSvg, SIGN_IDS, BEAK_HINGE } from '../web/games/papegaai/art.js';
 import * as sound from '../web/games/papegaai/sound.js';
@@ -446,7 +446,7 @@ test('privacy: nothing in the game folder stores, sends or moves a recording', (
     const src = readFileSync(new URL(f, GAME), 'utf8').replace(/^\s*\/\/.*$/gm, ''); // code, not comments
     for (const [re, what] of banned) assert.doesNotMatch(src, re, `${f} touches ${what}`);
     for (const m of src.matchAll(/from\s+'([^']+)'/g)) {
-      assert.ok(['./meta.js', './voices.js', './art.js', './sound.js', '../../js/audio.js', '../../js/i18n.js'].includes(m[1]), `${f} imports ${m[1]}`);
+      assert.ok(['./meta.js', './effects.js', './art.js', './sound.js', '../../js/audio.js', '../../js/i18n.js'].includes(m[1]), `${f} imports ${m[1]}`);
     }
   }
 });

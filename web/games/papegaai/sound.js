@@ -1,5 +1,5 @@
 // Papegaai's sound: the microphone while the child records, and the parrot saying it back in one
-// of the voices of voices.js, all with the Web Audio API. No files, no samples, no speech
+// of the voices of effects.js, all with the Web Audio API. No files, no samples, no speech
 // synthesis: every voice is made from the child's own recording.
 //
 // PRIVACY (AGENTS.md): the recording stays in memory, in this module only (`createTake` while
@@ -15,7 +15,7 @@
 // The game keeps its own audio context (like the drums), and follows the app's sound setting
 // through audio.js: nothing plays while `isMuted()`.
 import * as sfx from '../../js/audio.js';
-import { voiceById, layersOf, layerSeconds, playSeconds, createTake, prepareTake, reversed } from './voices.js';
+import { voiceById, layersOf, layerSeconds, playSeconds, createTake, prepareTake, reversed } from './effects.js';
 
 let ac = null;
 let master = null;

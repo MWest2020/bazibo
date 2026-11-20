@@ -1,6 +1,6 @@
 // Papegaai (Parrot): the child holds the big button (or taps it), says something for up to ten
 // seconds, and the parrot says it back. Then the same recording in other voices: a mouse, a bear,
-// backwards, an echo, a choir of three parrots, a helium balloon (voices.js; played by sound.js).
+// backwards, an echo, a choir of three parrots, a helium balloon (effects.js; played by sound.js).
 // The beak and three sound waves move with the sound, so a child sees the parrot hears them.
 // Calm: no timers on screen, no scores, nothing to lose.
 //
@@ -12,7 +12,7 @@
 // (`shell.askParent`; the shell remembers that it was passed, never anything heard). A refused
 // or missing microphone gives a calm card, and the rest of the app works as before.
 import { meta } from './meta.js';
-import { VOICES, isTap, levelOf, smooth, beakAngle, wavesLit } from './voices.js';
+import { VOICES, isTap, levelOf, smooth, beakAngle, wavesLit } from './effects.js';
 import { parrotSvg, voiceSvg, BEAK_HINGE, MIC, STOP, LOCK } from './art.js';
 import * as sound from './sound.js';
 

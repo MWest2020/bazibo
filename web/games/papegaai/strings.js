@@ -1,4 +1,4 @@
-// Papegaai's own strings (see web/js/i18n.js). Voice names are `papegaai.voice.<id>` (voices.js).
+// Papegaai's own strings (see web/js/i18n.js). Voice names are `papegaai.voice.<id>` (effects.js).
 import { addStrings } from '../../js/i18n.js';
 
 addStrings({

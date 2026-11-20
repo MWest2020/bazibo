@@ -454,7 +454,7 @@ version adds the others. Saved: stars per rhythm only.
 Papegaai (Parrot, id `papegaai`): the child holds the big button (or taps it, then taps again) and
 talks for up to `MAX_SECONDS` (10); the parrot says it back and then in other voices. The voices,
 the cap, trimming the quiet ends, the take's gain (`TARGET_PEAK`, never more than `MAX_BOOST`), the
-level, the beak and the waves are pure in `web/games/papegaai/voices.js` (tested: every voice's
+level, the beak and the waves are pure in `web/games/papegaai/effects.js` (tested: every voice's
 numbers, `playSeconds` (the balloon's glide uses the take up exactly), `worstGain` 1.5 or less so
 layers and echoes never pile up, the cap at every sample rate). `sound.js` keeps its own audio
 context and follows the sound setting; capture goes through `capture-worklet.js` (a ScriptProcessor

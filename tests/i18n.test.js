@@ -37,7 +37,7 @@ import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/pia
 import '../web/games/drums/strings.js';
 import { RHYTHM_IDS as DRUM_RHYTHMS, PAD_IDS as DRUM_PADS, LEVELS as DRUM_LEVELS } from '../web/games/drums/kit.js';
 import '../web/games/papegaai/strings.js';
-import { VOICE_IDS as PARROT_VOICES } from '../web/games/papegaai/voices.js';
+import { VOICE_IDS as PARROT_VOICES } from '../web/games/papegaai/effects.js';
 import '../web/js/random.js';
 import { GAMES, GROUPS, OTHER_GROUP } from '../web/js/games.js';
 import { BRAND } from '../web/js/brand.js';

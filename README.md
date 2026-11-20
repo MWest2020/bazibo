@@ -625,7 +625,7 @@ Gewoon (as recorded), Muis (high and quick), Beer (low and slow), and in the ful
 Achteruit (backwards), Echo, Koor (a choir of three parrots, low, middle and high) and Ballon (a
 helium balloon: the pitch climbs). Calm: no timers, no scores, nothing to lose.
 
-- `voices.js` (pure, tested): the voices' numbers, the 10 s cap (`createTake`), trimming the quiet
+- `effects.js` (pure, tested): the voices' numbers, the 10 s cap (`createTake`), trimming the quiet
   ends, the gain that brings a take to a comfortable level (never more than 4× louder), the beak.
 - `sound.js`: the microphone (through `capture-worklet.js`, or a ScriptProcessor where there is no
   AudioWorklet) and the voices, through a limiter and the shell's soft clipper; tested with a stand-in
@@ -703,7 +703,7 @@ an artifact when it fails).
 | `web/js/parental-gate.js` | the adult question before buying or restoring |
 | `web/js/random.js`, `web/js/gen-worker.js` | random play: seeds, the "Random" cards, running a game's generator in a worker |
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
-| `web/games/papegaai/` | Papegaai (Parrot): `meta.js` (free part), `voices.js` (pure), `sound.js` (microphone and voices), `capture-worklet.js`, `art.js` (the parrot), `papegaai.js` (the screen) |
+| `web/games/papegaai/` | Papegaai (Parrot): `meta.js` (free part), `effects.js` (pure), `sound.js` (microphone and voices), `capture-worklet.js`, `art.js` (the parrot), `papegaai.js` (the screen) |
 | `web/games/doolhof/` | Egeltje (garden maze): `meta.js` (free part), `maze.js` and `rules.js` (pure), `art.js` (garden, hedgehog, crows), `doolhof.js` (the screens) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |
 | `web/games/kwartet/` | Kwartet: `meta.js` (free part), `rules.js` (pure), `ai.js` (the computer players), `art.js` (the sets and cards), `kwartet.js` (the screens) |
