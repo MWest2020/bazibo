@@ -120,6 +120,15 @@ test('backwards is the take the other way round', () => {
   assert.equal(V.reversed(new Float32Array(0)).length, 0);
 });
 
+test('the gate again: the first time on a device, and whenever the system would ask again', () => {
+  assert.equal(V.askFirst(false, 'granted'), true);
+  assert.equal(V.askFirst(false, 'unknown'), true);
+  assert.equal(V.askFirst(true, 'prompt'), true, '"only this time" lapsed, or the permission was taken back');
+  assert.equal(V.askFirst(true, 'granted'), false);
+  assert.equal(V.askFirst(true, 'denied'), false, 'the calm card follows, no gate');
+  assert.equal(V.askFirst(true, 'unknown'), false, 'no Permissions API: the system asks itself');
+});
+
 test('hold or tap: a short press keeps listening, a longer one stops when the finger lifts', () => {
   assert.equal(V.isTap(0), true);
   assert.equal(V.isTap(V.HOLD_MS - 1), true);
@@ -412,6 +421,32 @@ test('sound: every voice plays the take through the limiter and the clipper, wit
   });
 });
 
+test('sound: when starting to listen fails, the microphone goes off again; leaving clears the beak\'s block', async () => {
+  await withFakeAudio(async ({ made, stream }) => {
+    sound.unlock();
+    for (const broken of ['createMediaStreamSource', 'createScriptProcessor', 'createAnalyser']) {
+      const ctx = made.ctx;
+      const real = ctx[broken];
+      ctx[broken] = () => {
+        throw new Error(`${broken} failed`);
+      };
+      const s = stream();
+      await assert.rejects(sound.startCapture(s), new RegExp(broken));
+      ctx[broken] = real;
+      assert.ok(s.tracks.every((t) => t.stopped), `${broken}: the microphone stays on`);
+      assert.equal(sound.recording(), false);
+      assert.equal(sound.hasTake(), false);
+    }
+    // the beak's last block is wiped with the rest
+    await sound.startCapture(stream());
+    const block = sound.levelSamples();
+    assert.ok(block.some((x) => x !== 0));
+    sound.drop();
+    assert.equal(sound.levelSamples(), null);
+    assert.ok(sound.levelBufferForTest().every((x) => x === 0));
+  });
+});
+
 test('sound: without Web Audio or getUserMedia the game says so instead of breaking', async () => {
   delete globalThis.AudioContext;
   assert.equal(sound.available(), false);
@@ -432,6 +467,8 @@ test('sound: without Web Audio or getUserMedia the game says so instead of break
 
 test('privacy: nothing in the game folder stores, sends or moves a recording', () => {
   const files = readdirSync(GAME).filter((f) => f.endsWith('.js'));
+  assert.match(readFileSync(new URL('../web/sw.js', import.meta.url), 'utf8'), /'games\/papegaai\/capture-worklet\.js'/);
+  assert.match(readFileSync(new URL('sound.js', GAME), 'utf8'), /addModule\(/, 'the worklet check below has nothing to check');
   assert.ok(files.includes('papegaai.js') && files.includes('sound.js') && files.includes('capture-worklet.js'));
   const banned = [
     [/storage\.js/, 'storage.js'],
@@ -441,10 +478,19 @@ test('privacy: nothing in the game folder stores, sends or moves a recording', (
     [/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|RTCPeerConnection/, 'the network'],
     [/createObjectURL|\bdownload\b|navigator\.share|MediaRecorder/, 'a file of the recording'],
     [/\bstore\./, 'the save'],
+    [/\bimport\s*\(/, 'code loaded at run time'],
+    [/\bBlob\b|FileReader/, 'a file of the recording'],
+    [/new\s+(Shared)?Worker\b/, 'a worker'],
+    [/new\s+Image\b|Image\(\)|\.src\s*=/, 'an image request'],
   ];
   for (const f of files) {
     const src = readFileSync(new URL(f, GAME), 'utf8').replace(/^\s*\/\/.*$/gm, ''); // code, not comments
     for (const [re, what] of banned) assert.doesNotMatch(src, re, `${f} touches ${what}`);
+    // the one module loaded at run time: the capture worklet, a static file of this folder named
+    // in full (a fixed relative URL, no variable), cached by the service worker like the rest
+    for (const m of src.matchAll(/addModule\(([^)]*\))?[^)]*\)/g)) {
+      assert.equal(m[0], "addModule(new URL('./capture-worklet.js', import.meta.url).href)", `${f}: ${m[0]}`);
+    }
     for (const m of src.matchAll(/from\s+'([^']+)'/g)) {
       assert.ok(['./meta.js', './effects.js', './art.js', './sound.js', '../../js/audio.js', '../../js/i18n.js'].includes(m[1]), `${f} imports ${m[1]}`);
     }

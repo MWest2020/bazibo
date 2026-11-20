@@ -96,6 +96,16 @@ export function worstGain(voice) {
   return dry + wet;
 }
 
+/**
+ * Must a grown-up pass the gate before the microphone is asked for? The first time on a device,
+ * and again whenever the system says it would ask (`state` 'prompt' from the Permissions API:
+ * "only this time" on Android, a permission taken back). 'granted', 'denied' (the calm card
+ * follows) and 'unknown' go straight to the system.
+ */
+export function askFirst(gatePassed, state) {
+  return !gatePassed || state === 'prompt';
+}
+
 /** Was this press a tap (keep listening) rather than a hold (stop when the finger lifts)? */
 export function isTap(heldMs) {
   return heldMs < HOLD_MS;

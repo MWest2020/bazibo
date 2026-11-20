@@ -12,7 +12,7 @@
 // (`shell.askParent`; the shell remembers that it was passed, never anything heard). A refused
 // or missing microphone gives a calm card, and the rest of the app works as before.
 import { meta } from './meta.js';
-import { VOICES, isTap, levelOf, smooth, beakAngle, wavesLit } from './effects.js';
+import { VOICES, isTap, levelOf, smooth, beakAngle, wavesLit, askFirst } from './effects.js';
 import { parrotSvg, voiceSvg, BEAK_HINGE, MIC, STOP, LOCK } from './art.js';
 import * as sound from './sound.js';
 
@@ -25,6 +25,7 @@ export function createPapegaai(shell) {
   const locked = (id) => meta.isLocked(id, shell.unlock.owned);
   const onScreen = () => $('#screen-papegaai').classList.contains('active');
   const overlayUp = () => !$('#overlay').hidden;
+  const micBusy = () => phase === 'recording' || phase === 'opening' || phase === 'asking';
 
   // idle (nothing recorded) | asking (the gate passed, the system asks for the microphone) |
   // opening (the microphone is starting) | recording | playing | ready (a recording to play)
@@ -39,6 +40,7 @@ export function createPapegaai(shell) {
   let raf = 0;
   let mics = 0; // microphone requests (the test hook reads it)
   let played = 0; // voices played (the test hook reads it)
+  let micOpenedHere = false; // the microphone opened since the app last came to the foreground
   let fingerDown = false; // a finger (or the mouse) is on the record button
   let onRelease = null; // a card waiting for that finger to lift (afterRelease)
 
@@ -61,7 +63,9 @@ export function createPapegaai(shell) {
       b.dataset.voice = v.id;
       b.innerHTML = `${voiceSvg(v.id)}<span class="pg-voice-name"></span><svg class="pg-lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
       b.addEventListener('click', () => {
-        if (overlayUp()) return;
+        // while the microphone is (being) opened, a voice does nothing at all: no click sound
+        // (tap() puts iOS back in its playback-only session) and no offer card over a live mic
+        if (overlayUp() || micBusy()) return;
         tap();
         chooseVoice(v.id);
       });
@@ -87,11 +91,11 @@ export function createPapegaai(shell) {
   }
 
   function chooseVoice(id) {
+    if (micBusy()) return; // never an offer (and its gate and the store) over a live microphone
     if (locked(id)) {
       shell.offerUnlock(t('papegaai.lockedLead'));
       return;
     }
-    if (phase === 'recording' || phase === 'opening' || phase === 'asking') return;
     if (!sound.hasTake()) {
       setSay('first');
       rec.classList.remove('nudge');
@@ -150,6 +154,37 @@ export function createPapegaai(shell) {
     setSay('opening');
     render();
     const mine = ++attempt;
+    // the gate was passed before; if the system would ask again ("only this time" on Android, a
+    // permission taken back), a grown-up answers the gate again first
+    micState().then((state) => {
+      if (mine !== attempt) return;
+      if (askFirst(true, state)) {
+        toRest();
+        afterRelease(askGrownUp);
+        return;
+      }
+      openAndRecord(mine);
+    });
+  }
+
+  /**
+   * What the system would do with a microphone request: 'granted', 'denied', 'prompt', or
+   * 'unknown' (no Permissions API, or it does not know the microphone). After a microphone that
+   * opened in this visit to the foreground it is not asked again (some WebViews answer 'prompt'
+   * for ever), until the app has been in the background.
+   */
+  function micState() {
+    if (micOpenedHere) return Promise.resolve('granted');
+    try {
+      const q = globalThis.navigator?.permissions?.query?.({ name: 'microphone' });
+      if (!q || typeof q.then !== 'function') return Promise.resolve('unknown');
+      return q.then((r) => r?.state || 'unknown', () => 'unknown');
+    } catch {
+      return Promise.resolve('unknown');
+    }
+  }
+
+  function openAndRecord(mine) {
     mics++;
     sound
       .openMic()
@@ -161,7 +196,8 @@ export function createPapegaai(shell) {
           if (mine === attempt) toRest();
           return;
         }
-        await sound.startCapture(stream, () => stopRecording());
+        await sound.startCapture(stream, () => stopRecording()); // closes the stream itself if it fails
+        micOpenedHere = true;
         if (gone()) {
           sound.drop(); // closes the microphone again; nothing was kept
           if (mine === attempt) toRest();
@@ -253,6 +289,7 @@ export function createPapegaai(shell) {
       .openMic()
       .then((stream) => {
         sound.closeStream(stream);
+        micOpenedHere = true;
         if (mine !== attempt) return;
         toRest();
         setSay('ready');
@@ -405,10 +442,12 @@ export function createPapegaai(shell) {
   // ---------- wiring ----------
 
   $('#papegaai-back').addEventListener('click', () => {
+    if (micBusy()) dropAll(); // the microphone off first, then the click sound
     tap();
     back();
   });
   $('#papegaai-sound-on').addEventListener('click', () => {
+    if (micBusy()) return; // no tap() or unlock while the microphone is on
     sound.unlock();
     shell.setMuted(false);
     tap();
@@ -430,6 +469,7 @@ export function createPapegaai(shell) {
   // the app goes to the background (home button, a call, the screen off): the recording is gone
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) return;
+    micOpenedHere = false; // a permission given "only this time" may lapse in the background
     if (sound.hasTake() || sound.recording() || sound.playing() || phase !== 'idle') dropAll();
     sound.suspend(); // the next touch wakes it
   });

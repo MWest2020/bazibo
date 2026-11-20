@@ -132,31 +132,50 @@ export async function startCapture(stream, onFull) {
   stopVoice();
   forgetTake();
   if (!ac) unlock();
-  if (!ac) throw new Error('no audio');
-  const useWorklet = await loadWorklet();
-  const src = ac.createMediaStreamSource(stream);
-  const analyser = ac.createAnalyser();
-  analyser.fftSize = 1024;
-  const sink = ac.createGain();
-  sink.gain.value = 0; // the capture node must reach the output to run; nothing of the microphone is heard
-  const me = { stream, src, proc: null, sink, analyser, take: createTake(ac.sampleRate), told: false };
-  const push = (block) => {
-    if (mic !== me) return;
-    if (me.take.push(block) === 'full' && !me.told) {
-      me.told = true;
-      onFull?.();
-    }
-  };
-  if (useWorklet) {
-    me.proc = new globalThis.AudioWorkletNode(ac, 'papegaai-capture', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
-    me.proc.port.onmessage = (e) => push(e.data);
-  } else {
-    me.proc = ac.createScriptProcessor(4096, 1, 1);
-    me.proc.onaudioprocess = (e) => push(e.inputBuffer.getChannelData(0));
+  if (!ac) {
+    closeStream(stream);
+    throw new Error('no audio');
   }
-  src.connect(analyser);
-  src.connect(me.proc);
-  me.proc.connect(sink).connect(ac.destination);
+  let me = null;
+  try {
+    const useWorklet = await loadWorklet();
+    const src = ac.createMediaStreamSource(stream);
+    const analyser = ac.createAnalyser();
+    analyser.fftSize = 1024;
+    const sink = ac.createGain();
+    sink.gain.value = 0; // the capture node must reach the output to run; nothing of the microphone is heard
+    me = { stream, src, proc: null, sink, analyser, take: createTake(ac.sampleRate), told: false };
+    const take = me.take;
+    const push = (block) => {
+      if (mic !== me) return;
+      if (take.push(block) === 'full' && !me.told) {
+        me.told = true;
+        onFull?.();
+      }
+    };
+    if (useWorklet) {
+      me.proc = new globalThis.AudioWorkletNode(ac, 'papegaai-capture', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+      me.proc.port.onmessage = (e) => push(e.data);
+    } else {
+      me.proc = ac.createScriptProcessor(4096, 1, 1);
+      me.proc.onaudioprocess = (e) => push(e.inputBuffer.getChannelData(0));
+    }
+    src.connect(analyser);
+    src.connect(me.proc);
+    me.proc.connect(sink).connect(ac.destination);
+  } catch (e) {
+    // whatever failed, the microphone goes off again (and its indicator with it)
+    for (const n of [me?.src, me?.proc, me?.sink, me?.analyser]) {
+      try {
+        n?.disconnect();
+      } catch {
+        // not connected
+      }
+    }
+    me?.take.clear();
+    closeStream(stream);
+    throw e;
+  }
   mic = me;
   return me.take;
 }
@@ -226,6 +245,12 @@ export function drop() {
   m?.take.clear();
   stopVoice();
   forgetTake();
+  levelBuf.fill(0); // the last block the beak looked at, too
+}
+
+/** For the tests: the block the beak reads from. */
+export function levelBufferForTest() {
+  return levelBuf;
 }
 
 /** The app goes to the background: everything is dropped and the context sleeps. */
