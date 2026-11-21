@@ -102,8 +102,7 @@
   box-shadow: 0 4px 0 rgba(43, 35, 112, 0.35);
 }
 .kg-hop.on { background: var(--bz-accent); color: var(--bz-on-accent); } /* ink on orange 5.7:1; white was 2.4:1 */
-.kg-hop.on.ten { color: #fff; } /* white on the darker orange: 4.4:1, large text */
-.kg-hop.on.ten { background: #e2581f; }
+.kg-hop.on.ten { background: #c2410c; color: #fff; } /* white on the darker orange: 5.2:1 (#e2581f was 3.7:1), also at 1.15rem */
 .kg-hop.back { background: #3b82f6; }
 .kg-hop.back.ten { background: #1d4ed8; }
 .kg-hop.undo { flex: 0 0 auto; width: 56px; background: #fff; color: var(--primary-dark); box-shadow: 0 4px 0 #d6cff7; }

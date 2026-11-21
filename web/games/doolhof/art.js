@@ -147,7 +147,7 @@ export function drawStone(ctx, x, y, cell, value, glow = null) {
   ctx.arc(x, y, r, 0, TAU);
   ctx.fill();
   ctx.stroke();
-  ctx.font = `900 ${Math.round(glyphPx(cell, value))}px ui-rounded, "Nunito", "Varela Round", system-ui, sans-serif`;
+  ctx.font = `900 ${Math.round(glyphPx(cell, value))}px "Bazibo Sans", ui-rounded, "Nunito", "Varela Round", system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = INK;

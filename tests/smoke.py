@@ -5749,6 +5749,11 @@ def legpuzzel_layouts(browser, base, problems):
         page.evaluate(f"window.__bubbels.puzzel.chooseSize('{size}')")
         page.wait_for_timeout(100)
         page.screenshot(path=str(SHOTS / f"legpuzzel-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
+        wrapped = page.evaluate("""[...document.querySelectorAll('.puzzel-sizes .vier-opt-title, .puzzel-sizes .vier-opt-sub')]
+            .filter((el) => el.offsetParent && !el.hidden).map((el) => { const r = document.createRange(); r.selectNodeContents(el);
+            return [el.textContent, new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size]; }).filter(([, n]) => n > 1)""")
+        if wrapped:
+            problems.append(f"legpuzzel {label}: size labels wrap over two lines: {wrapped}")
         page.click(f".puzzel-pic.pic-{pic}")
         page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
         page.wait_for_timeout(250)

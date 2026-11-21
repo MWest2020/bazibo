@@ -8,6 +8,12 @@
 /* ---------- menu ---------- */
 .puzzel-opt .psize { width: 58px; height: 58px; }
 .puzzel-sizes .vier-opt { flex: 1 1 150px; min-height: 76px; }
+.puzzel-sizes .vier-opt-title { white-space: nowrap; } /* "9 stukjes" stays one line */
+/* short and wide: two sizes a row, so "vanaf 3 jaar" stays on one line too (Nunito is narrower
+   than the system font was, and three a row squeezed the words apart) */
+@media (orientation: landscape) and (max-height: 500px) {
+  .puzzel-sizes .vier-opt { flex-basis: 200px; }
+}
 .puzzel-keep { display: flex; justify-content: center; margin: 4px 0 6px; }
 .puzzel-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding-bottom: 24px; }
 .puzzel-pic {

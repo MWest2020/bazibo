@@ -614,6 +614,14 @@ const homeAnim = {
 
 // ---------- boot ----------
 
+// The canvas games (Bubbels' hint, Slangetje, Egeltje) draw text with "Bazibo Sans"; a canvas does
+// not wait for a web font, so boot waits for it (never longer than a second; offline it is cached).
+function fontReady() {
+  if (!document.fonts?.load) return Promise.resolve();
+  const load = Promise.all([document.fonts.load('900 20px "Bazibo Sans"'), document.fonts.load('800 20px "Bazibo Sans"')]).catch(() => {});
+  return Promise.race([load, new Promise((done) => setTimeout(done, 1000))]);
+}
+
 async function boot() {
   listenForBack(); // first, so the button works even if loading fails below
   await store.init();
@@ -933,7 +941,7 @@ async function boot() {
   homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.verstop.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init(), games.papegaai.init()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.verstop.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init(), games.papegaai.init(), fontReady()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {

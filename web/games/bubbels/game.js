@@ -512,7 +512,7 @@ export class Game {
     ctx.save();
     ctx.globalAlpha = h.alpha;
     // the words, for the grown-up reading along
-    ctx.font = '800 22px ui-rounded, "Nunito", system-ui, sans-serif';
+    ctx.font = '800 22px "Bazibo Sans", ui-rounded, "Nunito", system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const text = this.hooks.hintText?.() || ''; // the words come from the string tables (strings.js)

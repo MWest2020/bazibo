@@ -2,11 +2,14 @@
 Reserved Font Name). Run once by hand when the font changes; the app has no build step.
 
   curl -L -o /tmp/Nunito.ttf "https://github.com/google/fonts/raw/main/ofl/nunito/Nunito%5Bwght%5D.ttf"
-  uv run --with fonttools --with brotli python tools/subset_font.py /tmp/Nunito.ttf
+  uv run --with fonttools==4.68.0 --with brotli==1.2.1 python tools/subset_font.py /tmp/Nunito.ttf
+
+Pinned versions: the same input with the same fontTools and brotli gives the same bytes. A newer
+fontTools may write a slightly different file; then commit that file and update these pins.
 
 Keeps the weight axis from 400 to 900 (what the stylesheets use) and Latin plus Latin Extended
 (Dutch, English and the accented names in the games), so the file stays small. Prints its size and
-the input's sha256 so CREDITS.md can record which upstream file it came from.
+the sha256 of both files, as recorded in CREDITS.md.
 """
 import hashlib
 import sys
@@ -37,9 +40,12 @@ def main(src):
     sub.populate(unicodes=subset.parse_unicodes(UNICODES))
     sub.subset(font)
     font = instancer.instantiateVariableFont(font, {"wght": (400, 900)})
+    font.recalcTimestamp = False  # keep upstream's date in the head table, so the bytes are reproducible
     OUT.parent.mkdir(parents=True, exist_ok=True)
     subset.save_font(font, str(OUT), opts)
-    print(f"{OUT.relative_to(ROOT)}: {OUT.stat().st_size} bytes; source sha256 {hashlib.sha256(data).hexdigest()}")
+    out = OUT.read_bytes()
+    print(f"{OUT.relative_to(ROOT)}: {len(out)} bytes, sha256 {hashlib.sha256(out).hexdigest()}; "
+          f"source sha256 {hashlib.sha256(data).hexdigest()}")
 
 
 if __name__ == "__main__":
