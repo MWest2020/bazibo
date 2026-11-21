@@ -11,7 +11,7 @@
 .bagh-intro-art { flex: none; width: 64px; height: 64px; }
 .bagh-intro-art svg { width: 100%; height: 100%; display: block; }
 .bagh-opt .vier-opt-art svg.piece { width: 54px; height: 54px; }
-.bagh-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.bagh-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 #screen-baghchal-menu .levels-scroll { padding-bottom: 0; }
 
 /* ---------- HUD ---------- */

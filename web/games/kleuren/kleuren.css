@@ -21,7 +21,7 @@
   font: inherit;
 }
 .kleur-card:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
-.kleur-card:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kleur-card:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .kleur-thumb { width: 100%; height: 100%; display: block; }
 .kleur-card.locked { background: rgba(255, 255, 255, 0.6); box-shadow: 0 4px 0 #ddd8f7; }
 .kleur-card.locked .kleur-thumb { opacity: 0.45; }
@@ -35,7 +35,7 @@
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(43, 35, 112, 0.25);
 }
-.kleur-badge.lock { background: #fff; fill: #a59fd0; }
+.kleur-badge.lock { background: #fff; fill: var(--bz-ink-quiet); }
 .kleur-badge.check { background: #2fae5b; color: #fff; }
 
 /* ---------- colouring ---------- */
@@ -113,7 +113,7 @@
 }
 .swatch.white { background: #fff linear-gradient(135deg, transparent 44%, #ff8fa8 44% 56%, transparent 56%); }
 .swatch[aria-pressed="true"] { transform: scale(1.12); box-shadow: 0 0 0 3px var(--primary), 0 4px 8px rgba(43, 35, 112, 0.3); }
-.swatch:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.swatch:focus-visible { outline: 3px solid var(--bz-focus); outline-offset: 2px; }
 .kleur-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .kleur-tools .tool[hidden] { display: none; }
 .kleur-tools .tool[aria-pressed="true"] { background: var(--primary); color: #fff; box-shadow: 0 5px 0 var(--primary-dark); }

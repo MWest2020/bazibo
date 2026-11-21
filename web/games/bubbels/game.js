@@ -286,7 +286,6 @@ export class Game {
       G.removeCells(this.grid, floating);
       const gained = popped * 10 + floating.length * 20 + floating.length ** 2 * 5;
       this.score += gained;
-      this.effects.push({ type: 'text', x: o.x, y: o.y + top, text: `+${gained}`, t: 0, dur: 1 });
       this.hooks.onScore?.(this.score);
     } else {
       sfx.stick();
@@ -815,19 +814,6 @@ export class Game {
       ctx.beginPath();
       ctx.arc(e.x - e.r * 0.3, e.y - e.r * 0.3, e.r * 0.35, 0, TAU);
       ctx.fill();
-      ctx.restore();
-    } else if (e.type === 'text') {
-      const p = e.t / e.dur;
-      ctx.save();
-      ctx.globalAlpha = 1 - p * p;
-      ctx.font = '800 26px ui-rounded, "Nunito", system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.fillStyle = '#5B4BDB';
-      const y = e.y - 40 * easeOut(p);
-      ctx.strokeText(e.text, e.x, y);
-      ctx.fillText(e.text, e.x, y);
       ctx.restore();
     }
   }

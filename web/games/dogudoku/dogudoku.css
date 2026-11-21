@@ -39,7 +39,7 @@
 }
 .dogu-grid .level-btn.locked {
   background: rgba(255, 255, 255, 0.55);
-  color: #a59fd0;
+  color: var(--bz-ink-quiet);
   box-shadow: 0 4px 0 #ddd8f7;
 }
 .dogu-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
@@ -58,8 +58,8 @@
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--bz-accent);
+  color: var(--bz-on-accent);
   font-size: 0.9rem;
   font-weight: 900;
   line-height: 24px;

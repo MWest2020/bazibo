@@ -25,7 +25,7 @@
   cursor: pointer;
   touch-action: manipulation;
 }
-.ganzen-slot:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.ganzen-slot:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .ganzen-slot.kind-kid, .ganzen-slot.kind-cpu { border-color: var(--primary); box-shadow: 0 5px 0 var(--primary-dark); }
 .ganzen-slot.kind-off { background: rgba(255, 255, 255, 0.6); }
 .ganzen-slot.kind-off .slot-goose { opacity: 0.45; }
@@ -38,7 +38,7 @@
 .ganzen-slot .slot-kind { display: flex; align-items: center; gap: 4px; font-weight: 800; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.15; }
 .ganzen-slot .slot-kind svg { width: 24px; height: 24px; flex: none; }
 .ganzen-slot .swap { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; color: var(--primary); }
-.ganzen-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.ganzen-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 .ganzen-count-art .big-num { font-size: 1.25rem; font-weight: 900; color: var(--primary); letter-spacing: 1px; white-space: nowrap; }
 .ganzen-count-art svg { width: 48px; height: 48px; }
 #screen-ganzen-menu .levels-scroll { padding-bottom: 0; }
@@ -132,7 +132,7 @@
 .gsq.k-goose .sq-icon { inset: 8% 4% 12% 8%; opacity: 0.6; }
 .gsq.k-start .sq-icon { inset: 12%; width: 76%; height: 76%; }
 .gsq:focus-visible { outline: none; z-index: 2; }
-.gsq:focus-visible .stone { outline: 4px solid var(--gold); outline-offset: 2px; }
+.gsq:focus-visible .stone { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
 
 /* count yourself: the stone to tap glows; a wrong tap makes it wiggle */
 .gsq.next { cursor: pointer; z-index: 1; }
@@ -202,7 +202,7 @@
 .ganzen-die:disabled { background: #b9b1f0; box-shadow: 0 5px 0 #9a90e6; cursor: default; }
 .ganzen-die.ready { animation: ganzen-ready 1.4s ease-in-out infinite; }
 .ganzen-die.tumble .face { animation: ganzen-tumble 0.18s linear infinite; }
-.ganzen-die:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.ganzen-die:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .ganzen-turn { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 #ganzen-stage.side .ganzen-turn { flex-direction: column; align-self: stretch; flex-wrap: nowrap; }
 .ganzen-chip .goose { width: 40px; height: 40px; flex: none; }

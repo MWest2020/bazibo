@@ -32,17 +32,17 @@
   touch-action: manipulation;
 }
 .kwartet-slot:disabled { cursor: default; opacity: 1; }
-.kwartet-slot:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kwartet-slot:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .kwartet-slot.kind-off { border-color: transparent; background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
 .kwartet-slot.locked { border-color: transparent; color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
 .kwartet-slot .slot-face { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
 .kwartet-slot .slot-face svg { width: 100%; height: 100%; display: block; }
-.kwartet-empty { width: 40px; height: 40px; border-radius: 50%; border: 3px dashed #c9c1ff; color: #a59fd0; font-size: 1.6rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.kwartet-empty { width: 40px; height: 40px; border-radius: 50%; border: 3px dashed #c9c1ff; color: var(--bz-ink-quiet); font-size: 1.6rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
 .kwartet-slot .slot-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .kwartet-slot .slot-name { font-weight: 900; color: var(--primary); font-size: 1.02rem; line-height: 1.15; }
 .kwartet-slot .slot-kind { font-weight: 800; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.15; }
 .kwartet-slot .swap { position: absolute; top: 8px; right: 10px; color: var(--primary); font-size: 1.1rem; }
-.kwartet-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.kwartet-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 #screen-kwartet-menu .levels-scroll { padding-bottom: 0; }
 .kwartet-rule { margin: -4px 4px 12px; font-weight: 800; font-size: 0.92rem; line-height: 1.3; color: var(--ink-soft); }
 
@@ -130,7 +130,7 @@
 .kpile.empty { opacity: 0.6; }
 .kpile.active { cursor: pointer; border-style: solid; border-color: var(--gold); background: #fff; box-shadow: 0 4px 0 #f0d98a; animation: kwartet-pile 1.4s ease-in-out infinite; }
 .kpile.active .kp-stack { animation: kwartet-lift 1.4s ease-in-out infinite; }
-.kpile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kpile:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .kfly { position: fixed; z-index: 50; pointer-events: none; display: flex; align-items: center; justify-content: center; }
 .kfly .kback { width: 32px; height: 43px; }
 
@@ -216,7 +216,7 @@ button.kcard.missing:not(:disabled) { cursor: pointer; touch-action: manipulatio
 button.kcard.missing:not(:disabled)::after { content: "?"; position: absolute; top: 13px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--c); color: #fff; font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; }
 button.kcard.missing:not(:disabled) .kc-pic, button.kcard.missing:not(:disabled) .kc-name { opacity: 0.75; }
 button.kcard.missing:disabled { cursor: default; }
-button.kcard:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+button.kcard:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
 .kcard.fresh { animation: kwartet-arrive 0.6s ease-out; }
 .kcard.leaving { opacity: 0.25; transform: scale(0.9); transition: opacity 0.6s, transform 0.6s; }
 

@@ -167,14 +167,15 @@ export function createBubbels(shell) {
   /** Play the current board again: the same fixed level, or the same random board. */
   const replay = () => (random ? playRandom(random.tier, { again: random }) : play(index));
 
-  function onWin({ stars, score }) {
+  // no points on the card or the board (v2-proposal, question 5): the stars say how it went
+  function onWin({ stars }) {
     if (random) {
       const done = random;
       const n = store.recordRandomSolved(meta.id, done.tier);
       shell.showOverlay({
         art: [0, 1, 2].map((k) => `<svg class="star ${k < stars ? 'on' : ''}" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`).join(''),
         title: t(`bubbels.win${stars}`),
-        text: `${t('bubbels.points', { score })} ${t('random.done', { n })}`,
+        text: t('random.done', { n }),
         buttons: [
           [t('random.new'), 'big primary', () => playRandom(done.tier)],
           [t('bubbels.levels'), 'big secondary', () => shell.show('levels')],
@@ -187,14 +188,14 @@ export function createBubbels(shell) {
     refresh();
     const next = levels[index + 1];
     const buttons = [];
-    let text = t('bubbels.points', { score });
+    let text = '';
     if (next && !locked(next.id)) {
       buttons.push([t('bubbels.next'), 'big primary', () => play(index + 1)]);
     } else if (next) {
       // the end of the free part: the next step is the offer (the buy button sits behind the gate),
       // shown over the level list, so whatever happens to it (OK, Later, the gate, the store) ends
       // there and never on the finished board, which has no way out (Mark's level 10 report, 15 Nov 2026)
-      text = allFreeDone(levels, progress.stars, meta.free) ? t('bubbels.allFree', { score }) : t('bubbels.lastFree', { score });
+      text = allFreeDone(levels, progress.stars, meta.free) ? t('bubbels.allFree') : t('bubbels.lastFree');
       buttons.push([t('bubbels.more'), 'big primary', () => (shell.show('levels'), offer())]);
     } else {
       buttons.push([t('bubbels.levels'), 'big primary', () => shell.show('levels')]);
@@ -289,7 +290,6 @@ export function createBubbels(shell) {
       game = new Game($('#game'), {
         onWin,
         onLose,
-        onScore: (s) => ($('#hud-score').textContent = String(s)),
         hintText: () => t('bubbels.hint'),
       });
       try {
@@ -310,7 +310,7 @@ export function createBubbels(shell) {
         random: () => (random ? { id: random.id, tier: random.tier, rows: random.rows.slice() } : null),
         randomSolved: () => store.loadRandomSolved(meta.id),
         locked: () => offer(),
-        win: (stars = 3) => onWin({ stars, score: 100 }),
+        win: (stars = 3) => onWin({ stars }),
         clear: (shots = 0) => game.testClear(shots), // ends the level for real (see Game.testClear)
         setIndex: (i) => (index = i),
       };

@@ -8,7 +8,7 @@
 /* ---------- menu ---------- */
 .schaak-level { position: relative; }
 .schaak-level.locked { color: var(--ink-soft); }
-.schaak-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.schaak-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 .schaak-how { margin: 0 4px; font-size: 0.98rem; font-weight: 700; line-height: 1.4; color: var(--ink-soft); max-width: 34em; }
 #screen-schaak-menu .levels-scroll { padding-bottom: 0; }
 
@@ -179,7 +179,7 @@
 }
 .schaak-promo-btn svg { width: 48px; height: 48px; display: block; }
 .schaak-promo-btn.first { background: #fff3c9; box-shadow: 0 0 0 3px #ffc531, 0 3px 0 #e8b62a; }
-.schaak-promo-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.schaak-promo-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
 .schaak-promo-cancel { min-height: 44px; padding: 0 18px; font-size: 0.95rem; }
 
 /* ---------- turn chips and the hint button ---------- */

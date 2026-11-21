@@ -109,7 +109,7 @@
 .kg-hop.undo svg { width: 28px; height: 28px; display: block; margin: auto; }
 .kg-hop:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(43, 35, 112, 0.35); }
 .kg-hop:disabled { opacity: 0.4; cursor: default; transform: none; }
-.kg-hop:focus-visible, .kg-option:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.kg-hop:focus-visible, .kg-option:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .kg-answer { width: 100%; display: flex; justify-content: center; gap: 10px; }
 .btn.big.kg-here { min-width: 0; width: 100%; max-width: 300px; min-height: 56px; }
 .kg-answer.count { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 420px; }

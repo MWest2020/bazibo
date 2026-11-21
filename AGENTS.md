@@ -6,8 +6,14 @@ shell in `web/js/` (home tiles in sections, settings, offer, parental gate, save
 `web/games/<id>/` (the bubble shooter `bubbels`, the puppy puzzle `dogudoku`, the picture sudoku `picturedoku`, finding pairs `memory` (shown as Paartjes / Pairs), the jigsaw `legpuzzel`, hide and seek `verstop` (shown as Verstoppertje / Hide and Seek), four in a row `vier`, checkers `dammen`, tigers and goats `baghchal` (shown as Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)), chess `schaak` (shown as Schaken / Chess), the game of the goose `ganzen`, the race game `pachisi` (shown as Ludo with the line "met één dobbelsteen" / "with one die" under it; Ludo is the default mode, Pachisi, the original from India, the second), the quartets card game `kwartet`, the learning snake `slang`, colouring pages and mandalas `kleuren`, free drawing with a mirror mode `tekenen`, the toy piano `piano`, the drum kit `drums` (shown as Drumstel / Drums), telling time `klok`, learning the letters by sight `letters`, the garden maze `doolhof` (shown as Egeltje / Little Hedgehog), adding and taking away on a number line `kangoeroe` (shown as Kangoeroe op de getallenlijn / Kangaroo Hops), topography with map packs `kaart` (shown as Kaartpuzzel / Map Puzzle), recording your voice for a parrot to say back `papegaai` (shown as Papegaai / Parrot)). Wrapped with Capacitor as Android and iOS
 apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 `docs/reference/roadmap.yml` (shown on westerweel.work/nu/; mark an item done only with
-evidence, in the same PR). Design: `docs/design/` (the style audit and the 2.0 proposal, waiting on
-Mark; `tools/design_audit.py` re-measures contrast and touch targets with screenshots).
+evidence, in the same PR). Design: `docs/design/` (the style audit and the 2.0 proposal, approved by
+Mark 21 Nov 2026 and built in phases; `tools/design_audit.py` re-measures contrast and touch targets
+with screenshots). The design tokens are the `--bz-*` custom properties at the top of
+`web/css/style.css`: colours (still today's brand; the 2.0 palette replaces only that block),
+type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names; the old ones
+(`--primary`, `--ink`, `--gold`...) are aliases. Text never sits white on the orange accent (ink
+instead), locked text is `--bz-ink-quiet`, an empty star is an outline (`--bz-star-empty`), and
+Bubbels shows no points.
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new
@@ -21,7 +27,10 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
   Only CC0, MIT, BSD, Apache-2.0, or CC BY 4.0 with attribution shown in the app and on bazibo.nl
-  (on the privacy pages; issue #22).
+  (on the privacy pages; issue #22). Fonts may also be SIL OFL 1.1 (Mark, 21 Nov 2026): vendored
+  in `web/fonts/` with `OFL.txt`, loaded by `@font-face` from that local file, listed in `CREDITS.md`.
+  The one font now is Nunito as "Bazibo Sans" (`web/fonts/bazibo-sans.woff2`, made by
+  `tools/subset_font.py`; budget 150 KB for all fonts).
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
   `web/games/<id>/strings.js`) in Dutch and English; `npm test` fails on a missing key. Short and
   friendly. Big touch targets. Brand name and tagline only in `web/js/brand.js`.

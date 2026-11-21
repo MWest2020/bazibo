@@ -1,17 +1,96 @@
+/* The font: Nunito (SIL OFL 1.1, web/fonts/OFL.txt), vendored and subset by tools/subset_font.py.
+   Named "Bazibo Sans" so a later typeface is a new file here and nothing else. */
+@font-face {
+  font-family: "Bazibo Sans";
+  src: url("../fonts/bazibo-sans.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- design tokens (docs/design/v2-proposal.md, section 1) ----------
+   Everything a screen is built from lives here. The colours are still today's brand: the new
+   palette (docs/design/brand-brief.md) replaces only the first block. The old names further down
+   are aliases, so the games keep working while they move to the --bz- names. */
 :root {
-  --sky: #d6eeff;
-  --lilac: #efe6ff;
-  --pink: #ffe6f3;
-  --ink: #2b2370;
-  --ink-soft: #5d5699;
-  --primary: #5b4bdb;
-  --primary-dark: #3b2fa8;
-  --primary-light: #ece8ff;
-  --accent: #ff8a3d;
-  --gold: #ffc531;
-  --card: #ffffff;
+  /* colour: the brand (swap this block for the 2.0 palette) */
+  --bz-sky: #d6eeff;          /* page background: sky, lilac, pink from top to bottom */
+  --bz-lilac: #efe6ff;
+  --bz-pink: #ffe6f3;
+  --bz-surface: #ffffff;      /* cards, tiles, sheets */
+  --bz-ink: #2b2370;          /* text: 13.3:1 on white, 11.1:1 on the sky */
+  --bz-ink-soft: #5d5699;     /* secondary text: 6.5:1 on white */
+  --bz-ink-quiet: #635e8e;    /* locked / inactive text and padlocks: 6.0:1 on white, 4.9:1 on lilac (was #a59fd0, 2.5:1) */
+  --bz-brand: #5b4bdb;        /* white on it 6.0:1 */
+  --bz-brand-dark: #3b2fa8;   /* pressed edge of a brand button, headings */
+  --bz-brand-tint: #ece8ff;   /* selected tint, quiet borders */
+  --bz-brand-edge: #c9c1ff;   /* pressed edge of a white button or tile */
+  --bz-accent: #ff8a3d;       /* orange: shapes and fills; text on it is ink (5.7:1), never white (2.35:1) */
+  --bz-accent-dark: #c95f17;  /* pressed edge of an orange button */
+  --bz-on-accent: var(--bz-ink);
+  --bz-star: #ffc531;         /* an earned star */
+  --bz-star-edge: #c98a00;    /* its thin outline, so a gold star still reads as a shape on white */
+  --bz-star-empty: var(--bz-ink-quiet); /* an empty star is an outline in this colour, never only a paler fill */
+  --bz-focus: var(--bz-ink);  /* focus ring: ink with a white gap (gold on the sky was 1.5:1) */
+  --bz-scrim: rgba(43, 35, 112, 0.45);
+
+  /* type: one vendored rounded family, a 1.25 scale on 16 px. Nothing a child must read under
+     16 px; 13-14 px only for parent small print */
+  --bz-font: "Bazibo Sans", ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bz-text-xs: 0.8125rem;    /* 13 */
+  --bz-text-s: 0.875rem;      /* 14 */
+  --bz-text-m: 1rem;          /* 16 */
+  --bz-text-l: 1.25rem;       /* 20 */
+  --bz-text-xl: 1.5625rem;    /* 25 */
+  --bz-text-2xl: 1.9375rem;   /* 31 */
+  --bz-text-3xl: 2.4375rem;   /* 39 */
+  --bz-weight-text: 700;
+  --bz-weight-head: 800;
+  --bz-weight-brand: 900;     /* the brand name, titles and the big letters */
+
+  /* spacing on a 4 px grid */
+  --bz-space-1: 4px;
+  --bz-space-2: 8px;
+  --bz-space-3: 12px;
+  --bz-space-4: 16px;
+  --bz-space-5: 24px;
+  --bz-space-6: 32px;
+  --bz-space-7: 48px;
+
+  /* five radii */
+  --bz-radius-s: 8px;         /* chips, small badges */
+  --bz-radius-m: 14px;        /* inputs, cells, swatches */
+  --bz-radius-l: 22px;        /* tiles, option cards, icon buttons */
+  --bz-radius-xl: 32px;       /* cards and sheets */
+  --bz-radius-pill: 999px;
+
+  /* touch: 48 px is the floor for anything a child taps */
+  --bz-target: 48px;
+  --bz-target-main: 56px;
+  --bz-target-icon: 60px;     /* back, settings, hint: the shell's icon buttons */
+  --bz-target-big: 76px;      /* the big buttons on the home screen and cards */
+
+  /* depth: a pressed edge and one soft shadow */
+  --bz-edge: 0 6px 0;         /* + a colour: the pressed edge of a button */
+  --bz-edge-s: 0 5px 0;       /* tiles and icon buttons */
+  --bz-shadow: 0 10px 22px rgba(59, 47, 168, 0.22);
+  --bz-shadow-s: 0 8px 16px rgba(59, 47, 168, 0.15);
+  --bz-motion: 0.08s ease;
+
+  /* the old names, kept as aliases (used across the 23 game stylesheets) */
+  --sky: var(--bz-sky);
+  --lilac: var(--bz-lilac);
+  --pink: var(--bz-pink);
+  --ink: var(--bz-ink);
+  --ink-soft: var(--bz-ink-soft);
+  --primary: var(--bz-brand);
+  --primary-dark: var(--bz-brand-dark);
+  --primary-light: var(--bz-brand-tint);
+  --accent: var(--bz-accent);
+  --gold: var(--bz-star);
+  --card: var(--bz-surface);
   --radius: 24px;
-  --font: ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", "Quicksand", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: var(--bz-font);
   color-scheme: light;
 }
 
@@ -22,9 +101,10 @@ html, body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: linear-gradient(180deg, var(--sky), var(--lilac) 60%, var(--pink));
-  color: var(--ink);
-  font-family: var(--font);
+  background: linear-gradient(180deg, var(--bz-sky), var(--bz-lilac) 60%, var(--bz-pink));
+  color: var(--bz-ink);
+  font-family: var(--bz-font);
+  line-height: 1.2; /* Nunito's own line gap is 1.36; this keeps the layouts measured with the system font */
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -42,7 +122,9 @@ html, body {
 }
 .screen.active { display: flex; }
 
-/* ---------- buttons ---------- */
+/* ---------- components: buttons ----------
+   .btn: pill, brand fill and white text; .secondary: white with brand text; .orange: the accent
+   with ink text (white on orange is 2.35:1); .icon: a square that never shrinks next to a title. */
 .btn {
   font: inherit;
   border: 0;
@@ -50,39 +132,40 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--bz-space-3);
   color: #fff;
-  background: var(--primary);
-  border-radius: 999px;
-  box-shadow: 0 6px 0 var(--primary-dark), 0 10px 22px rgba(59, 47, 168, 0.25);
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  background: var(--bz-brand);
+  border-radius: var(--bz-radius-pill);
+  box-shadow: var(--bz-edge) var(--bz-brand-dark), var(--bz-shadow);
+  transition: transform var(--bz-motion), box-shadow var(--bz-motion);
   touch-action: manipulation;
 }
-.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--primary-dark), 0 4px 10px rgba(59, 47, 168, 0.25); }
-.btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 4px; }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--bz-brand-dark), 0 4px 10px rgba(59, 47, 168, 0.25); }
+.btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 4px; }
 .btn svg { width: 30px; height: 30px; fill: currentColor; flex: none; }
 
 .btn.big {
   min-width: 240px;
-  min-height: 76px;
+  min-height: var(--bz-target-big);
   padding: 0 36px;
   font-size: 1.8rem;
-  font-weight: 800;
+  font-weight: var(--bz-weight-head);
   letter-spacing: 0.02em;
 }
-.btn.secondary { background: #fff; color: var(--primary); box-shadow: 0 6px 0 #c9c1ff, 0 10px 22px rgba(59, 47, 168, 0.18); }
-.btn.secondary:active { box-shadow: 0 2px 0 #c9c1ff; }
-.btn.orange { background: var(--accent); box-shadow: 0 6px 0 #c95f17, 0 10px 22px rgba(201, 95, 23, 0.25); }
+.btn.secondary { background: var(--bz-surface); color: var(--bz-brand); box-shadow: var(--bz-edge) var(--bz-brand-edge), var(--bz-shadow); }
+.btn.secondary:active { box-shadow: 0 2px 0 var(--bz-brand-edge); }
+.btn.orange { background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: var(--bz-edge) var(--bz-accent-dark), 0 10px 22px rgba(201, 95, 23, 0.25); }
 .btn.icon {
-  width: 60px;
-  height: 60px;
+  flex: none;
+  width: var(--bz-target-icon);
+  height: var(--bz-target-icon);
   padding: 0;
-  border-radius: 20px;
-  background: #fff;
-  color: var(--primary);
-  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.15);
+  border-radius: var(--bz-radius-l);
+  background: var(--bz-surface);
+  color: var(--bz-brand);
+  box-shadow: var(--bz-edge-s) var(--bz-brand-edge), var(--bz-shadow-s);
 }
-.btn.icon:active { box-shadow: 0 1px 0 #c9c1ff; }
+.btn.icon:active { box-shadow: 0 1px 0 var(--bz-brand-edge); }
 
 /* ---------- home ---------- */
 #screen-home { overflow-y: auto; -webkit-overflow-scrolling: touch; } /* short phones scroll to the last tiles */
@@ -105,7 +188,7 @@ html, body {
   line-height: 1;
   color: var(--primary);
   letter-spacing: 0.01em;
-  text-shadow: 0 5px 0 #c9c1ff, 0 12px 30px rgba(91, 75, 219, 0.3);
+  text-shadow: 0 5px 0 var(--bz-brand-edge), 0 12px 30px rgba(91, 75, 219, 0.3);
 }
 .brand { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; max-width: 100%; }
 .brand-mark { width: clamp(56px, 19vw, 96px); height: clamp(56px, 19vw, 96px); flex: none; filter: drop-shadow(0 6px 10px rgba(91, 75, 219, 0.25)); }
@@ -198,10 +281,10 @@ html, body {
   min-height: 116px;
   padding: 10px 5px;
   border: 0;
-  border-radius: 22px;
-  background: #fff;
-  color: var(--primary);
-  box-shadow: 0 5px 0 #c9c1ff, 0 8px 16px rgba(59, 47, 168, 0.16);
+  border-radius: var(--bz-radius-l);
+  background: var(--bz-surface);
+  color: var(--bz-brand);
+  box-shadow: var(--bz-edge-s) var(--bz-brand-edge), var(--bz-shadow-s);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -213,12 +296,12 @@ html, body {
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   container-type: inline-size; /* the name's size follows the tile's width (cqi) */
 }
-.tile:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9c1ff, 0 3px 8px rgba(59, 47, 168, 0.18); }
-.tile:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.tile:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--bz-brand-edge), 0 3px 8px rgba(59, 47, 168, 0.18); }
+.tile:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .tile-art { width: 92px; height: 92px; display: block; flex: none; zoom: var(--art); }
 .tile-art > span { flex: none; } /* the drawn mini boards keep their shape */
 /* the longest single words ("Kleurplaten", "Ganzenbord") must fit whole in a 3-column tile at 360 px */
-.tile-name { font-size: min(0.92rem, 13.4cqi); font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
+.tile-name { font-size: min(1rem, 14.6cqi); font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; }
 /* a small second line under a name (meta.subKey), e.g. Pachisi's "the original game from India" */
 .tile-sub { margin-top: -4px; font-size: min(0.7rem, 10.5cqi); font-weight: 800; line-height: 1.1; color: var(--ink-soft); }
 .tile.soon { background: rgba(255, 255, 255, 0.72); color: var(--ink-soft); }
@@ -229,11 +312,11 @@ html, body {
   right: -8px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 900;
-  box-shadow: 0 3px 0 #c95f17;
+  background: var(--bz-accent);
+  color: var(--bz-on-accent);
+  font-size: var(--bz-text-s);
+  font-weight: var(--bz-weight-brand);
+  box-shadow: 0 3px 0 var(--bz-accent-dark);
   transform: rotate(6deg);
 }
 
@@ -339,35 +422,36 @@ html, body {
 .seg { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .seg-btn {
   font: inherit;
-  min-height: 56px;
+  min-height: var(--bz-target-main);
   min-width: 130px;
   padding: 0 18px;
-  border: 3px solid var(--primary-light);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--primary);
+  border: 3px solid var(--bz-brand-tint);
+  border-radius: var(--bz-radius-pill);
+  background: var(--bz-surface);
+  color: var(--bz-brand);
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: var(--bz-weight-head);
   cursor: pointer;
   touch-action: manipulation;
 }
-.seg-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
-.seg-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.seg-btn[aria-pressed="true"] { background: var(--bz-brand); border-color: var(--bz-brand); color: #fff; }
+.seg-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .btn.wide { width: 100%; max-width: 360px; min-height: 60px; padding: 0 20px; font-size: 1.15rem; font-weight: 800; }
 .btn[hidden] { display: none; }
 
-/* ---------- bars ---------- */
+/* ---------- components: the bar ----------
+   One header for every screen: back left, the title in the middle, one action (or a spacer) right */
 .bar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px 8px;
+  gap: var(--bz-space-3);
+  padding: var(--bz-space-3) var(--bz-space-4) var(--bz-space-2);
   flex: none;
 }
 /* the back button keeps its 60 px next to a long title (Verstoppertje squeezed it to 33 px at 320) */
 .bar > .btn.icon:first-child { flex: none; }
-.bar h2 { flex: 1; margin: 0; text-align: center; font-size: 1.6rem; font-weight: 900; }
-.bar-spacer { width: 60px; }
+.bar h2 { flex: 1; margin: 0; text-align: center; font-size: 1.6rem; font-weight: var(--bz-weight-brand); line-height: 1.15; }
+.bar-spacer { width: var(--bz-target-icon); flex: none; }
 
 /* ---------- overlay ---------- */
 .overlay {
@@ -377,7 +461,7 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(43, 35, 112, 0.45);
+  background: var(--bz-scrim);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   z-index: 10;
@@ -385,40 +469,42 @@ html, body {
 .overlay[hidden] { display: none; }
 .card {
   width: min(380px, 100%);
-  background: var(--card);
-  border-radius: 32px;
+  background: var(--bz-surface);
+  border-radius: var(--bz-radius-xl);
   padding: 28px 22px 26px;
   text-align: center;
   box-shadow: 0 20px 50px rgba(30, 20, 90, 0.35);
   animation: pop-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
-.card h2 { margin: 6px 0 6px; font-size: 2.2rem; font-weight: 900; color: var(--primary); }
-.card p { margin: 0 0 20px; font-size: 1.15rem; font-weight: 700; color: var(--ink-soft); line-height: 1.4; }
+.card h2 { margin: 6px 0 6px; font-size: 2.2rem; font-weight: var(--bz-weight-brand); color: var(--bz-brand); }
+.card p { margin: 0 0 20px; font-size: 1.15rem; font-weight: var(--bz-weight-text); color: var(--bz-ink-soft); line-height: 1.4; }
 .card p:empty { display: none; }
 .ov-buttons { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .ov-buttons .btn.big { min-width: 0; width: 100%; max-width: 300px; font-size: 1.5rem; min-height: 68px; }
 .ov-art { display: flex; justify-content: center; gap: 6px; min-height: 8px; }
-.ov-art .star { width: 64px; height: 64px; fill: #e8e4fb; }
-.ov-art .star.on { fill: var(--gold); filter: drop-shadow(0 4px 0 #e0a100); animation: star-in 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+/* stars: an empty one is an outline, an earned one is filled with a darker edge, so the difference is
+   the shape and never colour alone (the style audit measured 1.09:1 between the two) */
+.ov-art .star { width: 64px; height: 64px; fill: none; stroke: var(--bz-star-empty); stroke-width: 1.6; stroke-linejoin: round; }
+.ov-art .star.on { fill: var(--bz-star); stroke: var(--bz-star-edge); stroke-width: 1; filter: drop-shadow(0 4px 0 #e0a100); animation: star-in 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 .ov-art .star:nth-child(2) { margin-top: -14px; }
 .ov-art .star:nth-child(2).on { animation-delay: 0.15s; }
 .ov-art .star:nth-child(3).on { animation-delay: 0.3s; }
-.ov-art .lock { width: 84px; height: 84px; fill: var(--primary); }
+.ov-art .lock { width: 84px; height: 84px; fill: var(--bz-brand); }
 .card { max-height: 100%; overflow-y: auto; }
 .gate-input {
   width: 100%;
   max-width: 300px;
   min-height: 64px;
-  border: 3px solid var(--primary-light);
-  border-radius: 20px;
-  font: 900 2rem var(--font);
-  color: var(--ink);
+  border: 3px solid var(--bz-brand-tint);
+  border-radius: var(--bz-radius-l);
+  font: var(--bz-weight-brand) 2rem var(--bz-font);
+  color: var(--bz-ink);
   text-align: center;
-  background: #fff;
+  background: var(--bz-surface);
 }
-.gate-input:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; border-color: var(--primary); }
+.gate-input:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-color: var(--bz-brand); }
 .small-links { margin: 28px 0 8px; text-align: center; font-size: 0.95rem; font-weight: 700; }
-.small-links a { color: var(--ink-soft); }
+.small-links a { color: var(--bz-ink-soft); }
 
 @keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes star-in { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
@@ -448,7 +534,7 @@ html, body {
   .promise { display: none; }
   .tile-groups { --tile-min: 92px; --tile-gap: 8px; --group-pad: 8px; --art: 0.62; }
   .tile { min-height: 108px; padding: 8px 4px; }
-  .tile-name { font-size: min(0.86rem, 13.4cqi); }
+  .tile-name { font-size: min(0.92rem, 14.6cqi); }
   .group-name { margin-bottom: 6px; font-size: 1rem; }
 }
 
@@ -469,11 +555,11 @@ html, body {
 @media (min-width: 720px) and (min-height: 521px) {
   .tile-groups { --tile-min: 124px; --tile-gap: 12px; --group-pad: 12px; --art: 0.86; }
   .tile { min-height: 150px; border-radius: 26px; gap: 8px; }
-  .tile-name { font-size: 1.05rem; }
+  .tile-name { font-size: 1.1rem; }
   .group-name { font-size: 1.15rem; }
 }
 @media (min-width: 1100px) and (min-height: 521px) {
   .tile-groups { --tile-min: 140px; --art: 0.95; }
   .tile { min-height: 166px; }
-  .tile-name { font-size: 1.12rem; }
+  .tile-name { font-size: 1.15rem; }
 }

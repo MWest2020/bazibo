@@ -102,6 +102,46 @@ def free_port():
         return s.getsockname()[1]
 
 
+STARS_CHECK = r"""
+() => {
+  const out = {};
+  const empty = document.querySelector('#levels-free .level-btn:not(.next) .stars span:not(.on)');
+  if (empty) {
+    const cs = getComputedStyle(empty);
+    out.levelEmpty = { color: cs.color, stroke: parseFloat(cs.webkitTextStrokeWidth) };
+  }
+  const art = document.createElement('div');
+  art.className = 'ov-art';
+  art.innerHTML = '<svg class="star"></svg><svg class="star on"></svg>';
+  document.body.appendChild(art);
+  const [e, on] = art.querySelectorAll('svg');
+  out.cardEmpty = { fill: getComputedStyle(e).fill, stroke: getComputedStyle(e).stroke };
+  out.cardOn = { fill: getComputedStyle(on).fill, stroke: getComputedStyle(on).stroke };
+  art.remove();
+  out.font = getComputedStyle(document.querySelector('#brand-name')).fontFamily.split(',')[0].replace(/"/g, '').trim();
+  out.fontLoaded = document.fonts.check('900 20px "Bazibo Sans"');
+  out.score = !!document.querySelector('#hud-score');
+  return out;
+}
+"""
+
+
+def design_checks(page, name, problems):
+    """Bazibo 2.0 phase 1: the vendored font, empty stars as outlines, no points on the board."""
+    got = page.evaluate(STARS_CHECK)
+    if got["font"] != "Bazibo Sans" or not got["fontLoaded"]:
+        problems.append(f"{name}: the vendored font is not used or not loaded: {got['font']!r}, loaded {got['fontLoaded']}")
+    le = got.get("levelEmpty")
+    if not le or le["color"] != "rgba(0, 0, 0, 0)" or le["stroke"] <= 0:
+        problems.append(f"{name}: an empty level star is not an outline: {le}")
+    if got["cardEmpty"]["fill"] != "none" or got["cardEmpty"]["stroke"] == "none":
+        problems.append(f"{name}: an empty star on the win card is not an outline: {got['cardEmpty']}")
+    if got["cardOn"]["fill"] in ("none", got["cardEmpty"]["fill"]):
+        problems.append(f"{name}: an earned star on the win card is not filled: {got['cardOn']}")
+    if got["score"]:
+        problems.append(f"{name}: Bubbels still shows points on the board")
+
+
 def run(browser, base, name, context_args, problems, lang="nl"):
     # bypass_csp: the page CSP forbids eval, which Playwright needs for wait_for_function
     ctx = browser.new_context(bypass_csp=True, locale={"nl": "nl-NL", "en": "en-GB"}[lang], **context_args)
@@ -133,6 +173,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     page.click("#tile-bubbels")
     page.wait_for_timeout(300)
     page.screenshot(path=str(SHOTS / f"{name}-2-levels.png"))
+    design_checks(page, name, problems)
 
     if page.evaluate("window.__bubbels.homeLoop()"):
         problems.append(f"{name}: home-screen animation still runs on the level screen")
@@ -201,6 +242,8 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     page.evaluate("window.__bubbels.setIndex(9); window.__bubbels.win(3)")
     page.wait_for_timeout(300)
     page.screenshot(path=str(SHOTS / f"{name}-7b-free-tier-end.png"))
+    if re.search(r"\d+ (punten|points)", page.inner_text("#ov-text")):
+        problems.append(f"{name}: the Bubbels win card still shows points: {page.inner_text('#ov-text')!r}")
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if not labels or labels[0] != say["more"]:
         problems.append(f"{name}: end of the free tier offers {labels}")

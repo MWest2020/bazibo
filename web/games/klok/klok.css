@@ -42,12 +42,12 @@
   box-shadow: 0 6px 0 #d6cff7, 0 8px 16px rgba(59, 47, 168, 0.12);
 }
 .klok-modecard:active { transform: translateY(4px); box-shadow: 0 2px 0 #d6cff7; }
-.klok-modecard:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.klok-modecard:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .klok-modecard .klok-mode-art { width: 84px; height: 62px; }
 .klok-mode-age { font-size: 0.85rem; font-weight: 800; color: var(--primary); }
 .klok-random { margin: 4px 0 6px; }
 .klok-age { margin: 14px 0 10px; font-size: 0.95rem; font-weight: 800; color: var(--ink-soft); }
-.klok-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: #a59fd0; box-shadow: 0 4px 0 #ddd8f7; }
+.klok-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: var(--bz-ink-quiet); box-shadow: 0 4px 0 #ddd8f7; }
 .klok-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
 
 /* ---------- the question screen ---------- */
@@ -139,10 +139,10 @@
   cursor: pointer;
   box-shadow: 0 4px 0 rgba(43, 35, 112, 0.35);
 }
-.klok-btn.round.hour { background: #ff7a3d; }
+.klok-btn.round.hour { background: #ff7a3d; color: var(--bz-on-accent); } /* ink on orange 5.1:1; white was 2.6:1 */
 .klok-btn.round.minute { background: #3b82f6; }
 .klok-btn.round:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(43, 35, 112, 0.35); }
-.klok-btn.round:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.klok-btn.round:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .btn.big.klok-check { min-width: 0; width: 100%; max-width: 240px; }
 
 .klok-options { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -166,7 +166,7 @@
 .klok-option.clock { padding: 6px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
 .klok-option.clock .klok-svg { width: 100%; height: 100%; display: block; }
 .klok-option:active { transform: translateY(3px); box-shadow: 0 2px 0 #d6cff7; }
-.klok-option:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.klok-option:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .klok-option.right { background: #dcf7d4; box-shadow: 0 5px 0 #7cc46f; }
 .klok-option.wrong { background: #ffe0dc; box-shadow: 0 5px 0 #ff9a8b; animation: klok-shake 0.35s; }
 @keyframes klok-shake {

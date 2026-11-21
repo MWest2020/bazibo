@@ -182,7 +182,7 @@ test('t() fills placeholders and the brand name, and switches language', () => {
   assert.match(t('offer.web'), new RegExp(`${BRAND.name}-app`));
   setLang('en');
   assert.equal(getLang(), 'en');
-  assert.equal(t('bubbels.points', { score: 120 }), '120 points');
+  assert.equal(t('bubbels.lastFree'), 'That was the last free level.');
   assert.equal(t('no.such.key'), 'no.such.key');
   setLang('nl');
 });
