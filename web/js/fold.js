@@ -35,7 +35,7 @@ function headingsOf(parent, box) {
 /** A title stays in the menu while any free button is left under it (up to the next title). */
 function emptyTitle(title) {
   for (let el = title.nextElementSibling; el && !el.matches(title.tagName); el = el.nextElementSibling) {
-    if (!el.hidden && el.querySelector('button, a, input')) return false;
+    if (!el.classList.contains('fold-emptied') && el.querySelector('button, a, input')) return false;
   }
   return true;
 }
@@ -43,7 +43,7 @@ function emptyTitle(title) {
 function cloneQuiet(el) {
   const c = el.cloneNode(true);
   c.removeAttribute('id');
-  c.hidden = false;
+  c.classList.remove('fold-emptied');
   for (const x of c.querySelectorAll('[id]')) x.removeAttribute('id');
   return c;
 }
@@ -55,6 +55,9 @@ function cloneQuiet(el) {
  */
 export function foldLocked(box, { selector = '.locked', into = box } = {}) {
   for (const old of into.querySelectorAll(':scope > .full-fold')) old.remove();
+  // what an earlier call emptied comes back first: a menu kept in the page (Bubbels' grids and its
+  // "Willekeurig" heading) is refilled by the game after a purchase or a restore
+  for (const el of box.querySelectorAll('.fold-emptied')) el.classList.remove('fold-emptied');
   const items = [...box.querySelectorAll(selector)].filter((el) => !el.closest('.full-fold'));
   if (!items.length) return null;
 
@@ -101,8 +104,8 @@ export function foldLocked(box, { selector = '.locked', into = box } = {}) {
     group.append(...els);
     body.appendChild(group);
     if (!parent.querySelector('button, a, input')) {
-      parent.hidden = true;
-      for (const h of heads) if (!h.matches(TITLE) || emptyTitle(h)) h.hidden = true;
+      parent.classList.add('fold-emptied');
+      for (const h of heads) if (!h.matches(TITLE) || emptyTitle(h)) h.classList.add('fold-emptied');
     }
   }
   into.appendChild(fold);

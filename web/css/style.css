@@ -592,6 +592,8 @@ html, body {
 .full-fold[open] .full-fold-chevron { transform: rotate(180deg); }
 .full-fold-body { padding-top: var(--bz-space-4); }
 .full-fold-body > [hidden] { display: none; }
+/* a section the fold emptied (its heading too); a class, so no display rule of a game can beat it */
+.fold-emptied { display: none !important; }
 /* inside the fold the one padlock on the fold says it all: no padlock on every button */
 .full-fold .level-btn.locked:not(.random-btn) > svg,
 .full-fold .locked > .lock,

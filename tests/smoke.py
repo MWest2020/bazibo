@@ -1543,7 +1543,7 @@ CARD_FIT_JS = """() => [...document.querySelectorAll('.screen.active .random-btn
     const q = c.getBoundingClientRect();
     return q.left < r.left - 0.5 || q.right > r.right + 0.5 || q.top < r.top - 0.5 || q.bottom > r.bottom + 0.5;
   }).map((c) => c.className.baseVal ?? c.className);
-  return { over: b.scrollWidth > b.clientWidth + 1, bad, right: r.right, vw: innerWidth };
+  return { drawn: b.getClientRects().length > 0 && r.width > 0, over: b.scrollWidth > b.clientWidth + 1, bad, right: r.right, vw: innerWidth };
 })"""
 
 
@@ -1923,7 +1923,7 @@ def random_cards_fit(browser, base, problems):
                 if not cards:
                     problems.append(f"random cards: none in {label}")
                 for i, c in enumerate(cards):
-                    if c["over"] or c["bad"] or c["right"] > c["vw"] + 0.5:
+                    if not c["drawn"] or c["over"] or c["bad"] or c["right"] > c["vw"] + 0.5:
                         problems.append(f"random cards: {label} card {i} overflows ({c})")
                 if w == 320 and tile in ("bubbels", "slang"):
                     page.locator(".screen.active .random-btn >> nth=0").scroll_into_view_if_needed()
@@ -4658,14 +4658,27 @@ def bubbels_list(page, label, problems, owned=False):
     ten = page.locator("#levels-free .level-btn >> nth=9").get_attribute("aria-label") or ""
     if "10" not in ten or "3 van 3" not in ten:
         problems.append(f"offers: bubbels {label}: level 10 on the list reads {ten!r}")
-    full = page.locator(".full-fold .level-btn").count()
+    full = page.locator("#screen-levels .full-fold .level-btn").count()
     nxt = page.locator("#levels-free .level-btn.next .num").all_inner_texts()
     if owned and (full or nxt != ["11"]):
         problems.append(f"offers: bubbels {label}: after the purchase {full} levels still locked, next {nxt}")
-    if not owned and ((page.locator(".full-fold .level-btn >> nth=0").text_content() or "").split()[:1] != ["11"] or nxt):
+    if not owned and ((page.locator("#screen-levels .full-fold .level-btn >> nth=0").text_content() or "").split()[:1] != ["11"] or nxt):
         problems.append(f"offers: bubbels {label}: level 11 is not the first locked one (next: {nxt})")
     if page.evaluate("window.__bubbels.state().loop"):
         problems.append(f"offers: bubbels {label}: the game loop still runs on the level list")
+    if owned:
+        # bought on this very screen: the fold is gone and what it emptied is back (the random
+        # boards and their heading), and "Willekeurig" scrolls to them
+        left = page.evaluate("[document.querySelectorAll('#screen-levels .full-fold').length, document.querySelectorAll('#screen-levels .fold-emptied').length]")
+        if left != [0, 0]:
+            problems.append(f"offers: bubbels {label}: after the purchase fold/emptied parts {left}")
+        if not page.is_visible("#levels-random-head") or page.locator("#levels-random .random-btn:not(.locked):visible").count() != 3:
+            problems.append(f"offers: bubbels {label}: after the purchase the random boards or their heading are not shown")
+        page.click("#btn-random-jump")
+        page.wait_for_timeout(700)
+        top = page.evaluate("document.querySelector('#levels-random-head').getBoundingClientRect().top")
+        if not (0 <= top < 844):
+            problems.append(f"offers: bubbels {label}: Willekeurig did not scroll to the random boards (heading at {top:.0f})")
 
 
 def offers_bubbels(browser, base, problems):
@@ -4695,6 +4708,13 @@ def offers_bubbels(browser, base, problems):
 
     # the app: every way out of the offer card (buttons: buy, restore, later)
     ctx, page, errors = offer_context(browser, base, app=True, save=BUBBELS_NINE)
+    # Dogudoku seen once before the purchase, with its fold (checked again once bought, below)
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(250)
+    if not page.locator("#dogu-levels .full-fold").count():
+        problems.append("offers: dogudoku app: no Volledige versie fold before the purchase")
+    page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(150)
     page.click("#tile-bubbels")
 
     def to_offer(label):
@@ -4752,6 +4772,16 @@ def offers_bubbels(browser, base, problems):
         if landed(page, "bubbels app bought", "levels", problems):
             page.screenshot(path=str(SHOTS / "offers-bubbels-3-bought.png"))
             bubbels_list(page, "app bought", problems, owned=True)
+        # Dogudoku after the purchase in the same session: no fold, every size back with its puzzles
+        page.evaluate("document.querySelector('#screen-levels [data-go=home]').click()")
+        page.wait_for_timeout(150)
+        page.click("#tile-dogudoku")
+        page.wait_for_timeout(250)
+        got = page.evaluate("""[document.querySelectorAll('#dogu-levels .full-fold, #dogu-levels .fold-emptied, #dogu-levels .locked').length,
+            [...document.querySelectorAll('#dogu-levels .dogu-size')].filter((h) => h.getClientRects().length).length,
+            [...document.querySelectorAll('#dogu-levels .level-btn:not(.random-btn)')].filter((b) => b.getClientRects().length).length]""")
+        if got[0] or got[1] != 5 or got[2] != 60:
+            problems.append(f"offers: dogudoku app bought: [fold/emptied/locked, sizes shown, puzzles shown] = {got}, want [0, 5, 60]")
     if errors:
         problems.append(f"offers: bubbels app: page errors {errors[:2]}")
     ctx.close()

@@ -21,7 +21,9 @@ buttons are moved, not copied, so their own click still offers the full version 
 `offerUnlock` in the app); with the full version nothing is locked and there is no fold. A new menu
 choice that is locked gets the class `locked` and nothing else. Exceptions: the play screens of
 Tekenen (mirror, stamps) and Papegaai (voices), which are tools, not menus. The smoke test opens
-the fold by a real tap (`choose`, `unfold` in `tests/smoke.py`).
+the fold by a real tap (`choose`, `unfold` in `tests/smoke.py`). What the fold empties gets the class
+`fold-emptied` (display none) and comes back on the next call, so a menu kept in the page shows
+again after a purchase or a restore; the smoke test buys in the session and checks Bubbels and Dogudoku.
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new
