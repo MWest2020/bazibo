@@ -8,9 +8,9 @@
 /* ---------- menu ---------- */
 .dam-opt { position: relative; }
 .dam-opt.locked { color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); }
-.dam-opt.locked .vier-opt-title { color: #8a82c8; }
+.dam-opt.locked .vier-opt-title { color: var(--bz-ink-quiet); }
 .dam-opt .lock,
-.dam-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.dam-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 .dam-opt .mini-dam { width: 58px; height: 58px; }
 .dam-pair { display: flex; align-items: center; }
 .dam-pair svg { width: 38px; height: 38px; }

@@ -83,7 +83,8 @@ MEASURE = r"""
     if (!hit || !(hit === el || el.contains(hit) || hit.contains(el))) continue;
     const cs = getComputedStyle(el);
     texts.push({ text: n.textContent.trim().replace(/\s+/g, ' ').slice(0, 40), x: r.left, y: r.top, w: r.width, h: r.height,
-      color: cs.color, size: parseFloat(cs.fontSize), weight: +cs.fontWeight, family: cs.fontFamily.split(',')[0] });
+      color: cs.color, size: parseFloat(cs.fontSize), weight: +cs.fontWeight, family: cs.fontFamily.split(',')[0],
+      stroke: parseFloat(cs.webkitTextStrokeWidth) > 0 ? cs.webkitTextStrokeColor : null });
   }
   let canvas = 0;
   for (const c of document.querySelectorAll('canvas')) {
@@ -145,8 +146,12 @@ def contrast(path, texts):
         if bg is None:
             continue
         r, g, b, a = parse_rgba(t["color"])
+        outline = a == 0 and t.get("stroke")  # an outline glyph (an empty star): what shows is its stroke
+        if outline:
+            r, g, b, a = parse_rgba(t["stroke"])
         fg = tuple(round(a * c + (1 - a) * k) for c, k in zip((r, g, b), bg))
-        large = t["size"] >= 24 or (t["size"] >= 18.66 and t["weight"] >= 700)
+        # an outline is a shape, not words: WCAG's 3:1 for graphics applies, like large text
+        large = bool(outline) or t["size"] >= 24 or (t["size"] >= 18.66 and t["weight"] >= 700)
         cr = ratio(fg, bg)
         out.append({**{k: t[k] for k in ("text", "size", "weight", "family")}, "fg": "#%02x%02x%02x" % fg,
                     "bg": "#%02x%02x%02x" % bg, "ratio": round(cr, 2), "large": large, "pass": cr >= (3 if large else 4.5)})

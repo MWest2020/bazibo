@@ -58,7 +58,7 @@
   box-shadow: 0 4px 0 #d6cff7;
 }
 .drums-bar[hidden] { display: none; }
-#drums-listen { height: 56px; border-radius: 18px; background: var(--accent); color: #fff; box-shadow: 0 5px 0 #c95f17, 0 8px 16px rgba(201, 95, 23, 0.25); }
+#drums-listen { height: 56px; border-radius: 18px; background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: 0 5px 0 #c95f17, 0 8px 16px rgba(201, 95, 23, 0.25); }
 #drums-listen:active { box-shadow: 0 1px 0 #c95f17; }
 #drums-listen[aria-pressed="true"] { background: var(--primary); box-shadow: 0 5px 0 var(--primary-dark); }
 .drums-notes { flex: 1; min-width: 0; }
@@ -115,7 +115,7 @@
 .dpad::before { content: ""; position: absolute; inset: 0; border-radius: 28px; pointer-events: none; }
 /* the plain grid for a box too small for the kit: each cell shows its touch area */
 .drums-kit[data-shape^="grid"] .dpad::before { background: rgba(255, 255, 255, 0.28); }
-.dpad:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; z-index: 3; }
+.dpad:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; z-index: 3; }
 .dpad-face {
   position: absolute;
   inset: 3px;
@@ -179,8 +179,8 @@
   padding: 0 30px 0 22px;
   gap: 10px;
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--bz-accent);
+  color: var(--bz-on-accent);
   font-size: 1.5rem;
   font-weight: 900;
   box-shadow: 0 6px 0 #c95f17, 0 0 0 6px #fff, 0 12px 28px rgba(59, 47, 168, 0.3);
@@ -249,19 +249,19 @@
   box-shadow: 0 6px 0 #d6cff7, 0 8px 16px rgba(59, 47, 168, 0.12);
 }
 .drums-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #d6cff7; }
-.drums-card:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.drums-card:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .drums-card-art { flex: none; width: 84px; height: 60px; }
 .drums-card-art svg { width: 100%; height: 100%; display: block; }
 .drums-card-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .drums-card-title { font-size: 1.25rem; font-weight: 900; color: var(--primary); line-height: 1.15; }
 .drums-card-sub { font-size: 0.9rem; font-weight: 700; color: var(--ink-soft); }
 .drums-card-end { flex: none; display: flex; gap: 1px; }
-.drums-card-end svg { width: 20px; height: 20px; fill: #d8d3f2; }
-.drums-card-end svg.on { fill: var(--gold); }
+.drums-card-end svg { width: 20px; height: 20px; fill: none; stroke: var(--bz-star-empty); stroke-width: 1.8; stroke-linejoin: round; }
+.drums-card-end svg.on { fill: var(--bz-star); stroke: var(--bz-star-edge); }
 .drums-card.locked { background: rgba(255, 255, 255, 0.7); }
-.drums-card.locked .drums-card-title { color: #8d86c4; }
+.drums-card.locked .drums-card-title { color: var(--bz-ink-quiet); }
 .drums-card.locked .drums-card-art { opacity: 0.6; }
-.drums-card.locked .drums-card-end svg { width: 26px; height: 26px; fill: #a59fd0; }
+.drums-card.locked .drums-card-end svg { width: 26px; height: 26px; fill: var(--bz-ink-quiet); stroke: none; }
 .drums-card[data-rhythm="free"] { box-shadow: 0 6px 0 var(--primary-dark), 0 8px 16px rgba(59, 47, 168, 0.2); background: var(--primary-light); }
 
 /* ---------- small and sideways screens ---------- */

@@ -29,8 +29,8 @@
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--bz-accent);
+  color: var(--bz-on-accent);
   font-size: 0.9rem;
   font-weight: 900;
   line-height: 24px;
@@ -156,7 +156,7 @@
 }
 .pick svg { width: 100%; height: 100%; display: block; pointer-events: none; }
 .pick:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
-.pick:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pick:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .pick { position: relative; }
 .pick.armed { background: #ffe08a; box-shadow: 0 5px 0 #e0a800, 0 0 0 4px var(--gold); transform: translateY(-4px); }
 /* a soft ring pulses around the armed picture (on a pseudo-element, so the button itself stays put) */

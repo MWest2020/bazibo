@@ -31,7 +31,7 @@
   font-weight: 800;
   color: var(--ink-soft);
 }
-.slang-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: #a59fd0; box-shadow: 0 4px 0 #ddd8f7; }
+.slang-grid .level-btn.locked { background: rgba(255, 255, 255, 0.55); color: var(--bz-ink-quiet); box-shadow: 0 4px 0 #ddd8f7; }
 .slang-grid .level-btn.locked svg { width: 22px; height: 22px; fill: currentColor; }
 
 /* ---------- the board screen ---------- */
@@ -130,7 +130,7 @@
   transition: transform 0.06s ease, box-shadow 0.06s ease;
 }
 .pad-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c9c1ff; }
-.pad-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pad-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .pad-btn svg { width: 34px; height: 34px; fill: currentColor; }
 .pad-btn[data-dir="up"] { grid-area: up; }
 .pad-btn[data-dir="left"] { grid-area: left; }

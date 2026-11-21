@@ -28,7 +28,7 @@
   box-shadow: 0 4px 0 #d6cff7;
 }
 .vz-scene-btn.on { outline: 4px solid var(--primary); outline-offset: -4px; background: #f3f0ff; }
-.vz-scene-btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.vz-scene-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
 .vz-scene-pic { width: 100%; max-width: 120px; height: auto; display: block; border-radius: 12px; overflow: hidden; }
 .vz-lock { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; padding: 4px; border-radius: 50%; fill: #fff; background: rgba(43, 35, 112, 0.6); }
 @media (max-width: 420px) {
@@ -100,7 +100,7 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.vz-spot:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
+.vz-spot:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
 .vz-spot.open { z-index: 3; }
 .vz-spot.found { z-index: 2; }
 .vz-spot.found::before {

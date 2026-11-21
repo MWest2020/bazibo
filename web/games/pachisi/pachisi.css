@@ -15,7 +15,7 @@
 .pachisi-slot .slot-goose svg { width: 100%; height: 100%; display: block; }
 .pachisi-levels { display: flex; gap: 10px; flex-wrap: wrap; }
 .pachisi-level { position: relative; flex: 1 1 140px; min-height: 56px; }
-.pachisi-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: #8a82c8; box-shadow: 0 2px 0 #ddd8f7; }
+.pachisi-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
 .pachisi-level .lv-wins { font-size: 0.8rem; color: var(--ink-soft); }
 .pachisi-pawnrow { display: flex; align-items: flex-end; justify-content: center; width: 58px; }
 .pachisi-pawnrow svg { width: 26px; height: 26px; margin: 0 -5px; flex: none; }
@@ -139,7 +139,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .pachisi-tray[aria-disabled="true"] { cursor: default; }
-.pachisi-tray:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.pachisi-tray:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .pachisi-tray.ready { animation: pachisi-ready 1.4s ease-in-out infinite; }
 .pshell { position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 52px; border-radius: 14px; }
 .pshell-face { display: block; width: 34px; height: 46px; }

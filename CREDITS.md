@@ -1,7 +1,8 @@
 # Credits
 
-The web game (`web/`) ships no third-party code, fonts, images or recorded sound; its only third-party
-data are the Kaartpuzzel maps, from Natural Earth (public domain). The Android and iOS
+The web game (`web/`) ships no third-party code, images or recorded sound; its only third-party
+data are the Kaartpuzzel maps, from Natural Earth (public domain), and its one font is Nunito
+(SIL Open Font License 1.1). The Android and iOS
 apps add the native wrapper and the store plugin listed under "Apps only".
 
 | Asset | Author | Licence | Source |
@@ -43,7 +44,7 @@ apps add the native wrapper and the store plugin listed under "Apps only".
 | Papegaai (Parrot) art: the parrot with its moving beak and sound waves, and the voice signs (SVG drawn in code in `web/games/papegaai/art.js`); the voices are the child's own recording changed on the device with the Web Audio API (`web/games/papegaai/sound.js`): no sound files, no samples, no speech synthesis | MWest2020 (with Claude Code) | MIT | this repository |
 | UI icons (inline SVG paths in `web/index.html` and `web/js/main.js`) | MWest2020 (with Claude Code) | MIT | this repository |
 | Bubble colours | based on the Okabe-Ito colour-blind-safe palette (Masataka Okabe and Kei Ito, "Color Universal Design", 2002), brightened | colour values, not copyrightable | https://jfly.uni-koeln.de/color/ |
-| Font | none bundled; the device's own system font is used | n/a | n/a |
+| Nunito, variable weight 400-900, Latin and Latin Extended only (`web/fonts/bazibo-sans.woff2`, served as "Bazibo Sans"; subset from the upstream `Nunito[wght].ttf`, sha256 `bb55a5ca5c2042335b3991af27c4d0705d0ef41cac6164ac737fd8f2a1e85207`, by `tools/subset_font.py` with fontTools 4.68.0, giving sha256 `6d39736f2c143c297f0b4f890ca0a67a42d4f2ba5bdfe265f5df12cb68837b93`; licence in `web/fonts/OFL.txt`) | The Nunito Project Authors (Vernon Adams, Jacques Le Bailly) | SIL OFL 1.1 | https://github.com/googlefonts/nunito |
 | qrcode-generator 1.4.4 (`web/vendor/qrcode-generator/`, draws the QR codes of "Voortgang overzetten"; bundled as an ES module, see `web/vendor/README.md`) | Kazuhiko Arase | MIT | https://github.com/kazuhikoarase/qrcode-generator |
 | jsQR 1.4.0 (`web/vendor/jsqr/`, reads a QR code from the camera when the browser has no `BarcodeDetector`) | Cosmo Wolfe | Apache-2.0 | https://github.com/cozmo/jsQR |
 | fflate 0.8.2, `unzlibSync` only (`web/vendor/fflate/`, unpacks a progress code when the browser has no `DecompressionStream`) | Arjun Barrett | MIT | https://github.com/101arrowz/fflate |

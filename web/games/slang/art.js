@@ -238,7 +238,7 @@ export function drawColorFruit(ctx, x, y, r, i) {
 }
 
 function label(ctx, x, y, text, size, fill, outline, weight = 0.16) {
-  ctx.font = `900 ${Math.round(size)}px ui-rounded, "Nunito", "Varela Round", system-ui, sans-serif`;
+  ctx.font = `900 ${Math.round(size)}px "Bazibo Sans", ui-rounded, "Nunito", "Varela Round", system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   if (outline) {

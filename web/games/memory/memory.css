@@ -11,8 +11,8 @@
 .memory-sample svg { width: 46px; height: 46px; display: block; }
 .memory-opt .vier-opt-art .token, .memory-opt .vier-opt-art .robot { width: 58px; height: 58px; }
 .memory-stars, .memory-wins { display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; font-weight: 900; color: var(--ink); }
-.memory-stars svg { width: 20px; height: 20px; fill: #e4defc; }
-.memory-stars svg.on { fill: var(--gold); }
+.memory-stars svg { width: 20px; height: 20px; fill: none; stroke: var(--bz-star-empty); stroke-width: 1.8; stroke-linejoin: round; }
+.memory-stars svg.on { fill: var(--bz-star); stroke: var(--bz-star-edge); }
 .memory-wins svg { width: 18px; height: 18px; }
 /* four boards, three themes, three ways to play: two a row on phones */
 .memory-sizes .vier-opt, .memory-themes .vier-opt, .memory-modes .vier-opt { flex: 1 1 220px; }
@@ -55,7 +55,7 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.mcard:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; border-radius: 14px; }
+.mcard:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; border-radius: 14px; }
 .mcard-in {
   position: absolute;
   inset: 0;
@@ -115,8 +115,8 @@
 
 /* the end card */
 .memory-ov-stars { display: inline-flex; gap: 6px; }
-.memory-ov-stars svg { width: 64px; height: 64px; fill: #e4defc; }
-.memory-ov-stars svg.on { fill: var(--gold); animation: memory-hop 0.6s ease 0.1s 2; }
+.memory-ov-stars svg { width: 64px; height: 64px; fill: none; stroke: var(--bz-star-empty); stroke-width: 1.6; stroke-linejoin: round; }
+.memory-ov-stars svg.on { fill: var(--bz-star); stroke: var(--bz-star-edge); animation: memory-hop 0.6s ease 0.1s 2; }
 
 /* short sideways phones: the HUD becomes a column on the left */
 @media (orientation: landscape) and (max-height: 520px) {
