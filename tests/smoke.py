@@ -1539,6 +1539,7 @@ def random_play(browser, base, problems):
 CARD_FIT_JS = """() => [...document.querySelectorAll('.screen.active .random-btn')].map((b) => {
   const r = b.getBoundingClientRect();
   const bad = [...b.children].filter((c) => {
+    if (!c.getClientRects().length) return false; // not drawn (the padlock inside the fold)
     const q = c.getBoundingClientRect();
     return q.left < r.left - 0.5 || q.right > r.right + 0.5 || q.top < r.top - 0.5 || q.bottom > r.bottom + 0.5;
   }).map((c) => c.className.baseVal ?? c.className);
@@ -1916,6 +1917,7 @@ def random_cards_fit(browser, base, problems):
             for tile, home in (("bubbels", "levels"), ("dogudoku", "dogudoku-levels"), ("picturedoku", "picturedoku-levels"), ("slang", "slang-menu")):
                 page.click(f"#tile-{tile}")
                 page.wait_for_timeout(250)
+                unfold(page)  # locked random cards wait in the Volledige versie fold
                 cards = page.evaluate(CARD_FIT_JS)
                 label = f"{w}px {'full' if owned else 'web'} {tile}"
                 if not cards:
