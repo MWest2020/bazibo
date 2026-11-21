@@ -19,6 +19,7 @@ import { pieceSvg, sleepyGoatSvg, grassSvg, boardSvg, miniBoardSvg } from './art
 import { robotSvg, duoSvg, TROPHY } from '../vier/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
+import { foldLocked } from '../../js/fold.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const UNDO = '<path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
@@ -164,6 +165,7 @@ export function createBaghchal(shell) {
     cpu.innerHTML = `<span class="vier-opt-art">${robotSvg()}</span><span class="vier-cpu-title"></span><span class="vier-levels" role="group"></span>`;
     cpu.querySelector('.vier-cpu-title').textContent = t('bagh.cpu');
     cpu.querySelector('.vier-levels').setAttribute('aria-label', t('bagh.cpu'));
+    cpu.querySelector('.vier-levels').dataset.foldHead = t('bagh.cpu'); // its locked levels wait in the fold under this name
     const counts = wins();
     for (const level of [1, 2, 3]) {
       const setup = { mode: 'cpu', level, side: choice.side };
@@ -246,6 +248,7 @@ export function createBaghchal(shell) {
     });
     actions.appendChild(playBtn);
     box.appendChild(actions);
+    foldLocked(box);
   }
 
   // ---------- a game ----------

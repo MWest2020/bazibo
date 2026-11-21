@@ -102,6 +102,32 @@ def free_port():
         return s.getsockname()[1]
 
 
+def unfold(page):
+    """Open the "Volledige versie" fold on the screen in view by a real tap on it (js/fold.js):
+    the locked choices wait there, closed, at the end of the menu."""
+    head = page.locator(".screen.active details.full-fold:not([open]) > summary")
+    if head.count():
+        head.first.scroll_into_view_if_needed()
+        head.first.click()
+        page.wait_for_timeout(120)
+        return True
+    return False
+
+
+def choose(page, sel, tap=False):
+    """Pick a choice in a menu like a child would: when it waits in the closed "Volledige versie"
+    fold, open the fold first (a real tap), then tap the choice."""
+    loc = page.locator(sel).first
+    if loc.evaluate("el => !!el.closest('details.full-fold:not([open])')"):
+        loc.evaluate("el => el.closest('details.full-fold').querySelector('summary').scrollIntoView({block: 'center'})")
+        page.locator(".screen.active details.full-fold:not([open]) > summary").first.click()
+        page.wait_for_timeout(120)
+    if tap:
+        loc.tap()
+    else:
+        loc.click()
+
+
 STARS_CHECK = r"""
 () => {
   const out = {};
@@ -178,7 +204,7 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     if page.evaluate("window.__bubbels.homeLoop()"):
         problems.append(f"{name}: home-screen animation still runs on the level screen")
 
-    page.click("#levels-free .level-btn >> nth=0")
+    choose(page, "#levels-free .level-btn >> nth=0")
     page.wait_for_timeout(1300)
     page.screenshot(path=str(SHOTS / f"{name}-3-hint.png"))  # level 1: the drag-and-let-go hand
     box = page.locator("#game").bounding_box()
@@ -227,7 +253,9 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     page.wait_for_timeout(100)
     if page.evaluate("window.__bubbels.state().loop"):
         problems.append(f"{name}: game loop still runs on the level screen")
-    page.click("#levels-full .level-btn >> nth=0")
+    if not unfold(page):
+        problems.append(f"{name}: no Volledige versie fold on the Bubbels level list")
+    choose(page, ".full-fold .level-btn >> nth=0")
     page.wait_for_timeout(350)
     page.screenshot(path=str(SHOTS / f"{name}-7-locked.png"))
     # the web build sells nothing: the locked card only has an OK button
@@ -346,13 +374,16 @@ def play_dogudoku(page, name, say, problems):
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-d1-puzzles.png"))
     # a locked puzzle: on the web only a friendly card with OK
-    page.click("#dogu-levels .level-btn.locked:not(.random-btn) >> nth=0")
+    if page.locator("#dogu-levels > .dogu-grid .level-btn.locked").count():
+        problems.append(f"{name}: Dogudoku shows locked puzzles between the free ones")
+    unfold(page)
+    choose(page, "#dogu-levels .level-btn.locked:not(.random-btn) >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
         problems.append(f"{name}: locked Dogudoku puzzle offers {labels}")
     page.click(f"#ov-buttons button >> text={say['ok']}")
-    page.click("#dogu-levels .level-btn[data-puzzle='1']")
+    choose(page, "#dogu-levels .level-btn[data-puzzle='1']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):  # the how-to card, first time per size
         page.click("#ov-buttons button")
@@ -392,7 +423,7 @@ def play_dogudoku(page, name, say, problems):
     if not saved or saved.get("stars", {}).get("1") != 3:
         problems.append(f"{name}: Dogudoku save section wrong: {saved}")
     # the first 5×5 (colours too), solved by tapping each square twice: cross, then puppy
-    page.click("#dogu-levels .level-btn[data-puzzle='13']")
+    choose(page, "#dogu-levels .level-btn[data-puzzle='13']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -417,13 +448,14 @@ def play_picturedoku(page, name, say, problems):
     page.click("#tile-picturedoku")
     page.wait_for_timeout(250)
     page.screenshot(path=str(SHOTS / f"{name}-p1-puzzles.png"))
-    page.click("#pdoku-levels .level-btn.locked:not(.random-btn) >> nth=0")
+    unfold(page)
+    choose(page, "#pdoku-levels .level-btn.locked:not(.random-btn) >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
         problems.append(f"{name}: locked Picturedoku puzzle offers {labels}")
     page.click(f"#ov-buttons button >> text={say['ok']}")
-    page.click("#pdoku-levels .level-btn[data-puzzle='1']")
+    choose(page, "#pdoku-levels .level-btn[data-puzzle='1']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):  # the how-to card, first time per size
         page.click("#ov-buttons button")
@@ -471,7 +503,7 @@ def play_picturedoku(page, name, say, problems):
     # Mark's sequence on a free 6×6 and 9×9: place a picture (square first, and picture first),
     # then tap a different picture: the placed square must stay as it is
     for pid in (21, 43):
-        page.click(f"#pdoku-levels .level-btn[data-puzzle='{pid}']")
+        choose(page, f"#pdoku-levels .level-btn[data-puzzle='{pid}']")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
             page.click("#ov-buttons button")
@@ -539,7 +571,7 @@ def play_vier(page, name, say, problems):
         problems.append(f"{name}: Vier op een rij tile says {page.inner_text('#tile-vier .tile-name')!r}")
     page.click("#tile-vier")
     page.wait_for_timeout(250)
-    page.click(".vier-level[data-level='3']")
+    choose(page, ".vier-level[data-level='3']")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
@@ -548,8 +580,8 @@ def play_vier(page, name, say, problems):
     page.screenshot(path=str(SHOTS / f"{name}-v1-menu.png"), full_page=True)
 
     # two players, kleuterbord: puppy (player 1) gets three in a row along the bottom
-    page.click(".vier-opt.board-small")
-    page.click(".vier-opt.mode-duo")
+    choose(page, ".vier-opt.board-small")
+    choose(page, ".vier-opt.mode-duo")
     page.click("#vier-play")
     page.wait_for_timeout(300)
     for col in (0, 0, 1, 1, 2):
@@ -576,8 +608,8 @@ def play_vier(page, name, say, problems):
         problems.append(f"{name}: no 'keep playing' for an unfinished game")
 
     # against the easy computer on the big board
-    page.click(".vier-opt.board-big")
-    page.click(".vier-level[data-level='1']")
+    choose(page, ".vier-opt.board-big")
+    choose(page, ".vier-level[data-level='1']")
     page.click("#vier-play")
     page.wait_for_timeout(300)
 
@@ -700,7 +732,7 @@ def play_slang(page, name, say, problems):
         problems.append(f"{name}: Slangetje tile says {page.inner_text('#tile-slang .tile-name')!r}")
     page.click("#tile-slang")
     page.wait_for_timeout(250)
-    page.click(".slang-grid .level-btn[data-level='5']")
+    choose(page, ".slang-grid .level-btn[data-level='5']")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
@@ -708,7 +740,7 @@ def play_slang(page, name, say, problems):
     page.click(f"#ov-buttons button >> text={say['ok']}")
     page.screenshot(path=str(SHOTS / f"{name}-s1-menu.png"), full_page=True)
 
-    page.click(".slang-grid .level-btn[data-level='1']")
+    choose(page, ".slang-grid .level-btn[data-level='1']")
     try:
         page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=3000)
         page.click("#ov-buttons button")
@@ -730,7 +762,7 @@ def play_slang(page, name, say, problems):
     page.wait_for_timeout(200)
 
     # letters: the word in this language
-    page.click(".slang-grid .level-btn[data-level='13']")
+    choose(page, ".slang-grid .level-btn[data-level='13']")
     page.wait_for_selector("#screen-slang.active")
     close_card_if_any(page)
     word = "".join(page.locator("#slang-target .slang-letter").all_inner_texts())
@@ -743,7 +775,7 @@ def play_slang(page, name, say, problems):
 
     # waiting for the first swipe: no animation frames (review of PR #12), and a short swipe goes
     # the way the finger went
-    page.click(".slang-grid .level-btn[data-level='4']")
+    choose(page, ".slang-grid .level-btn[data-level='4']")
     page.wait_for_selector("#screen-slang.active")
     close_card_if_any(page)
     page.wait_for_timeout(400)
@@ -768,7 +800,7 @@ def play_slang(page, name, say, problems):
     page.wait_for_timeout(200)
 
     # pause, the menu, "keep playing": the snake waits for a new swipe
-    page.click(".slang-grid .level-btn[data-level='2']")
+    choose(page, ".slang-grid .level-btn[data-level='2']")
     page.wait_for_timeout(300)
     page.click("#slang-pad [data-dir=up]")
     page.wait_for_timeout(700)
@@ -953,14 +985,14 @@ def play_klok(page, name, say, problems):
     if page.locator(".klok-random .random-btn").count() != 1:
         problems.append(f"{name}: Klok should show one random card per kind")
     # the website sells nothing: a quarter-hours round is locked and offers only OK
-    page.click(".klok-grid .level-btn[data-round='set-t3-1']")
+    choose(page, ".klok-grid .level-btn[data-round='set-t3-1']")
     page.wait_for_timeout(200)
     if page.locator("#ov-buttons button").all_inner_texts() != [say["ok"]] or page.evaluate("window.__bubbels.klok.state()"):
         problems.append(f"{name}: Klok locked round did not just offer OK")
     page.click("#ov-buttons button")
 
     # 1. set the clock, whole hours: drag the hour hand for all 10 questions
-    page.click(".klok-grid .level-btn[data-round='set-t1-1']")
+    choose(page, ".klok-grid .level-btn[data-round='set-t1-1']")
     page.wait_for_timeout(300)
     if not page.is_visible("#overlay"):
         problems.append(f"{name}: Klok how-to card missing")
@@ -986,7 +1018,7 @@ def play_klok(page, name, say, problems):
 
     # 2. what time is it, half hours: one mistake first (explanation card), then all right
     klok_mode(page, "read")
-    page.click(".klok-grid .level-btn[data-round='read-t2-1']")
+    choose(page, ".klok-grid .level-btn[data-round='read-t2-1']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1009,7 +1041,7 @@ def play_klok(page, name, say, problems):
 
     # 3. the daily rhythm
     klok_mode(page, "day")
-    page.click(".klok-grid .level-btn[data-round='day-t1-1']")
+    choose(page, ".klok-grid .level-btn[data-round='day-t1-1']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1025,7 +1057,7 @@ def play_klok(page, name, say, problems):
 
     # 4. half hours with + and -, the hint, then leave and "keep playing"
     klok_mode(page, "set")
-    page.click(".klok-grid .level-btn[data-round='set-t2-1']")
+    choose(page, ".klok-grid .level-btn[data-round='set-t2-1']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1134,12 +1166,12 @@ def klok_digital(browser, base, problems):
     page.wait_for_timeout(200)
     klok_mode(page, "dig")
     page.screenshot(path=str(SHOTS / "klok-dig-menu.png"))
-    page.click(".klok-grid .level-btn[data-round='dig-t2-1']")
+    choose(page, ".klok-grid .level-btn[data-round='dig-t2-1']")
     page.wait_for_timeout(200)
     if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"] or page.evaluate("window.__bubbels.klok.state()"):
         problems.append("klok dig: a locked digital round did not just offer OK")
     page.click("#ov-buttons button")
-    page.click(".klok-grid .level-btn[data-round='dig-t1-1']")
+    choose(page, ".klok-grid .level-btn[data-round='dig-t1-1']")
     page.wait_for_timeout(300)
     if not page.is_visible("#overlay") or "digitale klok" not in page.inner_text("#ov-text"):
         problems.append("klok dig: the how-to card is missing")
@@ -1190,7 +1222,7 @@ def klok_digital(browser, base, problems):
     page.wait_for_timeout(200)
     klok_mode(page, "dig")
     for rid in ("dig-t2-1", "dig-t3-1"):
-        page.click(f".klok-grid .level-btn[data-round='{rid}']")
+        choose(page, f".klok-grid .level-btn[data-round='{rid}']")
         page.wait_for_timeout(300)
         if page.is_visible("#overlay"):
             page.click("#ov-buttons button")
@@ -1375,7 +1407,7 @@ def random_play(browser, base, problems):
     locked = page.locator("#dogu-levels .random-btn.locked").count()
     if locked != 5:
         problems.append(f"random (web): {locked} locked random cards in Dogudoku, expected 5")
-    page.click("#dogu-levels .random-btn >> nth=0")
+    choose(page, "#dogu-levels .random-btn >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != ["Oké"] or page.evaluate("window.__bubbels.dogu.puzzle()") is not None:
@@ -1403,7 +1435,7 @@ def random_play(browser, base, problems):
     if page.locator("#dogu-levels .random-btn:not(.locked)").count() != 5:
         problems.append("random: Dogudoku does not show 5 open random cards")
     page.screenshot(path=str(SHOTS / "random-dogu-list.png"))
-    page.click("#dogu-levels .random-btn >> nth=0")
+    choose(page, "#dogu-levels .random-btn >> nth=0")
     page.wait_for_function("window.__bubbels.dogu.puzzle() && window.__bubbels.dogu.puzzle().random === 's4'", timeout=8000)
     dismiss()
     pz = page.evaluate("window.__bubbels.dogu.puzzle()")
@@ -1428,7 +1460,7 @@ def random_play(browser, base, problems):
     # the biggest board too (made in a worker)
     page.click("#dogu-back")
     page.wait_for_timeout(200)
-    page.click("#dogu-levels .random-btn >> nth=4")
+    choose(page, "#dogu-levels .random-btn >> nth=4")
     page.wait_for_function("window.__bubbels.dogu.puzzle() && window.__bubbels.dogu.puzzle().n === 8", timeout=15000)
     dismiss()
     page.screenshot(path=str(SHOTS / "random-dogu-8x8.png"))
@@ -1443,7 +1475,7 @@ def random_play(browser, base, problems):
     # Picturedoku: a random 4×4, solved square first, then the picture
     page.click("#tile-picturedoku")
     page.wait_for_timeout(200)
-    page.click("#pdoku-levels .random-btn >> nth=0")
+    choose(page, "#pdoku-levels .random-btn >> nth=0")
     page.wait_for_function("window.__bubbels.pdoku.puzzle() && window.__bubbels.pdoku.puzzle().random === 's4'", timeout=8000)
     dismiss()
     pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
@@ -1460,7 +1492,7 @@ def random_play(browser, base, problems):
         problems.append(f"random: Picturedoku count {page.evaluate('window.__bubbels.pdoku.randomSolved()')}")
     page.click("#ov-buttons button >> nth=-1")
     page.wait_for_timeout(200)
-    page.click("#pdoku-levels .random-btn >> nth=2")  # 9×9
+    choose(page, "#pdoku-levels .random-btn >> nth=2")  # 9×9
     page.wait_for_function("window.__bubbels.pdoku.puzzle() && window.__bubbels.pdoku.puzzle().n === 9", timeout=8000)
     dismiss()
     page.click("#pdoku-back")
@@ -1475,7 +1507,7 @@ def random_play(browser, base, problems):
         problems.append("random: Bubbels does not show 3 open random cards")
     page.locator("#levels-random").scroll_into_view_if_needed()
     page.screenshot(path=str(SHOTS / "random-bubbels-list.png"))
-    page.click("#levels-random .random-btn >> nth=2")
+    choose(page, "#levels-random .random-btn >> nth=2")
     page.wait_for_function("window.__bubbels.random() && window.__bubbels.random().tier === 'hard'", timeout=8000)
     page.wait_for_timeout(400)
     if page.inner_text("#hud-level").strip() != "Moeilijk":
@@ -1491,7 +1523,7 @@ def random_play(browser, base, problems):
     # Slangetje: a random counting round for the youngest, played to the end
     page.click("#tile-slang")
     page.wait_for_timeout(200)
-    page.click(".slang-grid .random-btn >> nth=0")
+    choose(page, ".slang-grid .random-btn >> nth=0")
     page.wait_for_function("window.__bubbels.slang.state() && String(window.__bubbels.slang.state().id).startsWith('r-count-tiny')", timeout=8000)
     dismiss()
     page.screenshot(path=str(SHOTS / "random-slang.png"))
@@ -1507,10 +1539,11 @@ def random_play(browser, base, problems):
 CARD_FIT_JS = """() => [...document.querySelectorAll('.screen.active .random-btn')].map((b) => {
   const r = b.getBoundingClientRect();
   const bad = [...b.children].filter((c) => {
+    if (!c.getClientRects().length) return false; // not drawn (the padlock inside the fold)
     const q = c.getBoundingClientRect();
     return q.left < r.left - 0.5 || q.right > r.right + 0.5 || q.top < r.top - 0.5 || q.bottom > r.bottom + 0.5;
   }).map((c) => c.className.baseVal ?? c.className);
-  return { over: b.scrollWidth > b.clientWidth + 1, bad, right: r.right, vw: innerWidth };
+  return { drawn: b.getClientRects().length > 0 && r.width > 0, over: b.scrollWidth > b.clientWidth + 1, bad, right: r.right, vw: innerWidth };
 })"""
 
 
@@ -1522,13 +1555,14 @@ def play_kleuren(page, name, say, problems):
     page.wait_for_timeout(250)
     if page.inner_text("#tile-kleuren .tile-name").strip() != say["kleurTile"]:
         problems.append(f"{name}: colouring tile says {page.inner_text('#tile-kleuren .tile-name')!r}")
-    page.click("#kleur-list .kleur-card.locked >> nth=0")
+    unfold(page)
+    choose(page, "#kleur-list .kleur-card.locked >> nth=0")
     page.wait_for_timeout(200)
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != [say["ok"]]:
         problems.append(f"{name}: locked colouring page offers {labels}")
     page.click(f"#ov-buttons button >> text={say['ok']}")
-    page.click("#kleur-list .kleur-card[data-page='p:zon']")
+    choose(page, "#kleur-list .kleur-card[data-page='p:zon']")
     page.wait_for_timeout(300)
     if not page.is_disabled("#kleur-done") or not page.is_disabled("#kleur-undo"):
         problems.append(f"{name}: on a blank page Done and Undo should be off")
@@ -1859,7 +1893,7 @@ def kleuren_fits(browser, base, problems):
             problems.append(f"{label}: the page scrolls sideways")
         page.screenshot(path=str(SHOTS / f"kleur-mandala-{w}x{h}.png"))
         page.click("#kleur-back")
-        page.click("#kleur-list .kleur-card[data-page='p:raket']")  # a full-version picture
+        choose(page, "#kleur-list .kleur-card[data-page='p:raket']")  # a full-version picture
         page.wait_for_timeout(300)
         if page.evaluate("window.__bubbels.kleur.state().key") != "p:raket":
             problems.append(f"{label}: the full version did not open a locked picture")
@@ -1883,12 +1917,13 @@ def random_cards_fit(browser, base, problems):
             for tile, home in (("bubbels", "levels"), ("dogudoku", "dogudoku-levels"), ("picturedoku", "picturedoku-levels"), ("slang", "slang-menu")):
                 page.click(f"#tile-{tile}")
                 page.wait_for_timeout(250)
+                unfold(page)  # locked random cards wait in the Volledige versie fold
                 cards = page.evaluate(CARD_FIT_JS)
                 label = f"{w}px {'full' if owned else 'web'} {tile}"
                 if not cards:
                     problems.append(f"random cards: none in {label}")
                 for i, c in enumerate(cards):
-                    if c["over"] or c["bad"] or c["right"] > c["vw"] + 0.5:
+                    if not c["drawn"] or c["over"] or c["bad"] or c["right"] > c["vw"] + 0.5:
                         problems.append(f"random cards: {label} card {i} overflows ({c})")
                 if w == 320 and tile in ("bubbels", "slang"):
                     page.locator(".screen.active .random-btn >> nth=0").scroll_into_view_if_needed()
@@ -1902,7 +1937,7 @@ def slang_fits(page, w, h, label, problems):
     """Open Slangetje level 1 and check that the board and the arrow pad are fully on screen."""
     page.click("#tile-slang")
     page.wait_for_timeout(200)
-    page.click(".slang-grid .level-btn[data-level='1']")
+    choose(page, ".slang-grid .level-btn[data-level='1']")
     page.wait_for_timeout(400)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1942,7 +1977,7 @@ def run_sideways(browser, base, problems):
     page.evaluate("document.querySelector('[data-go=home]').click()")
     page.click("#tile-dogudoku")
     page.wait_for_timeout(200)
-    page.click("#dogu-levels .level-btn[data-puzzle='13']")
+    choose(page, "#dogu-levels .level-btn[data-puzzle='13']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1955,7 +1990,7 @@ def run_sideways(browser, base, problems):
     page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
     page.click("#tile-picturedoku")
     page.wait_for_timeout(200)
-    page.click("#pdoku-levels .level-btn[data-puzzle='43']")  # a free 9×9
+    choose(page, "#pdoku-levels .level-btn[data-puzzle='43']")  # a free 9×9
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -1969,7 +2004,7 @@ def run_sideways(browser, base, problems):
     page.evaluate("document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
     page.click("#tile-vier")
     page.wait_for_timeout(200)
-    page.click(".vier-opt.board-big")
+    choose(page, ".vier-opt.board-big")
     page.click("#vier-play")
     page.wait_for_timeout(400)
     b = page.locator("#vier-board").bounding_box()
@@ -1997,7 +2032,7 @@ def run_sideways(browser, base, problems):
         page.wait_for_selector("html[data-ready='1']")
         page.click("#tile-vier")
         page.wait_for_timeout(200)
-        page.click(".vier-opt.board-big")
+        choose(page, ".vier-opt.board-big")
         page.click("#vier-play")
         page.wait_for_timeout(400)
         b = page.locator("#vier-board").bounding_box()
@@ -2626,14 +2661,14 @@ def doolhof_play(browser, base, problems):
         page.screenshot(path=str(SHOTS / f"doolhof-{w}x{h}-{lang}-menu.png"))
         page.click(".doolhof-modecard[data-mode=abc]")
         page.wait_for_timeout(200)
-        page.click(".level-btn[data-round='abc-t2-1']")
+        choose(page, ".level-btn[data-round='abc-t2-1']")
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != [TEXT[lang]["ok"]]:
             problems.append(f"{label}: a locked round offers {labels}")
         page.click("#ov-buttons button")
         page.wait_for_timeout(150)
-        page.click(".level-btn[data-round='abc-t1-1']")
+        choose(page, ".level-btn[data-round='abc-t1-1']")
         page.wait_for_selector("#screen-doolhof.active")
         if not close_card_if_any(page, 2000):
             problems.append(f"{label}: no how-to card the first time")
@@ -2714,7 +2749,7 @@ def doolhof_play(browser, base, problems):
         page.wait_for_timeout(200)
 
         # back + keep playing: the garden waits for the next step; the Android back button
-        page.click(".level-btn[data-round='abc-t1-2']")
+        choose(page, ".level-btn[data-round='abc-t1-2']")
         page.wait_for_selector("#screen-doolhof.active")
         dh_idle(page)
         d = page.evaluate("window.__bubbels.doolhof.autopilot()")
@@ -2743,7 +2778,7 @@ def doolhof_play(browser, base, problems):
         # the end of the free part: "More rounds" offers only OK over the list
         page.click(".doolhof-modecard[data-mode=count]")
         page.wait_for_timeout(150)
-        page.click(".level-btn[data-round='count-t1-3']")
+        choose(page, ".level-btn[data-round='count-t1-3']")
         page.wait_for_selector("#screen-doolhof.active")
         close_card_if_any(page)
         dh_play_to_end(page, f"{label} count-t1-3", problems)
@@ -2819,7 +2854,7 @@ def dammen_flow(browser, base, problems):
     page.click("#tile-dammen")
     page.wait_for_timeout(250)
     for sel in (".dam-level[data-level='2']", ".dam-level[data-level='3']", ".dam-opt.board-big"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -2829,8 +2864,8 @@ def dammen_flow(browser, base, problems):
     page.screenshot(path=str(SHOTS / "dammen-1-menu.png"), full_page=True)
 
     # two players on 8x8: both sides play their last legal move (a known 45-move game player 1 wins)
-    page.click(".dam-opt.board-small")
-    page.click(".dam-opt.mode-duo")
+    choose(page, ".dam-opt.board-small")
+    choose(page, ".dam-opt.mode-duo")
     page.click("#dammen-play")
     page.wait_for_timeout(400)
     page.screenshot(path=str(SHOTS / "dammen-2-start.png"))
@@ -2855,7 +2890,7 @@ def dammen_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # against easy: one move, the computer answers, a take-back, back + keep playing
-    page.click(".dam-level[data-level='1']")
+    choose(page, ".dam-level[data-level='1']")
     page.click("#dammen-play")
     page.wait_for_timeout(300)
     st = page.evaluate("window.__bubbels.dam.state()")
@@ -2937,7 +2972,7 @@ def dammen_layouts(browser, base, problems):
         page.click("#tile-dammen")
         page.wait_for_timeout(200)
         if (w, h) == (320, 568) and not owned:
-            page.click(".dam-opt.look-classic")  # the classic look
+            choose(page, ".dam-opt.look-classic")  # the classic look
             page.wait_for_timeout(100)
         page.screenshot(path=str(SHOTS / f"dammen-menu-{w}x{h}{'-full' if owned else ''}.png"), full_page=True)
         page.evaluate(f"window.__bubbels.dam.choose({{ variant: '{variant}', mode: 'cpu', level: {3 if owned else 1} }})")
@@ -3100,7 +3135,7 @@ def baghchal_flow(browser, base, problems):
     page.click("#tile-baghchal")
     page.wait_for_timeout(250)
     for sel in (".bagh-level[data-level='2']", ".bagh-level[data-level='3']"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -3160,7 +3195,7 @@ def baghchal_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # against easy as the goats: whole games by real input until the goats win (easy loses often)
-    page.click(".bagh-level[data-level='1']")
+    choose(page, ".bagh-level[data-level='1']")
     page.click(".bagh-opt.side-goats")
     won = False
     for attempt in range(4):
@@ -3437,7 +3472,7 @@ def schaak_flow(browser, base, problems):
     page.click("#tile-schaak")
     page.wait_for_timeout(250)
     for sel in (".schaak-level[data-level='2']", ".schaak-level[data-level='3']"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -3523,7 +3558,7 @@ def schaak_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # against easy: a move, the answer, the take-back, a drag, the hint, back + keep playing
-    page.click(".schaak-level[data-level='1']")
+    choose(page, ".schaak-level[data-level='1']")
     page.click("#schaak-play")
     page.wait_for_timeout(300)
     if not page.is_visible("#schaak-hint"):
@@ -3691,7 +3726,7 @@ def ganzen_flow(browser, base, problems):
     page.click("#tile-ganzen")
     page.wait_for_timeout(250)
     for sel in (".ganzen-boardopt.board-winter", ".ganzen-boardopt.board-sea", ".ganzen-slot.slot-2", ".ganzen-slot.slot-3"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -4030,7 +4065,7 @@ def pachisi_flow(browser, base, problems):
     if page.get_attribute(".pachisi-opt.mode-pachisi", "aria-pressed") != "true" or "India" not in page.inner_text(".pachisi-opt.mode-pachisi"):
         problems.append("pachisi: the Pachisi mode was not picked in the menu")
     for sel in (".pachisi-slot.slot-2", ".pachisi-slot.slot-3", ".pachisi-level[data-level='2']"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -4040,7 +4075,7 @@ def pachisi_flow(browser, base, problems):
     page.screenshot(path=str(SHOTS / "pachisi-1-menu.png"), full_page=True)
 
     # two children: a capture by taps, taken back, made again
-    page.click(".pachisi-slot.slot-1")  # the computer -> a child
+    choose(page, ".pachisi-slot.slot-1")  # the computer -> a child
     page.wait_for_timeout(100)
     if page.locator(".pachisi-level").count():
         problems.append("pachisi: the computer's levels show without a computer playing")
@@ -4125,7 +4160,7 @@ def pachisi_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # against easy with 2 pawns: whole games by real taps until the child wins
-    page.click(".pachisi-slot.slot-1")  # a child -> the computer
+    choose(page, ".pachisi-slot.slot-1")  # a child -> the computer
     page.click(".pachisi-opt.pawns-2")
     page.click(".pachisi-opt.count-on")
     won = False
@@ -4357,7 +4392,7 @@ def ludo_flow(browser, base, problems):
     if page.get_attribute(".pachisi-opt.mode-ludo", "aria-pressed") != "true":
         problems.append("ludo: Ludo is not the mode picked by default")
     for sel in (".pachisi-slot.slot-2", ".pachisi-slot.slot-3", ".pachisi-level[data-level='2']"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -4367,7 +4402,7 @@ def ludo_flow(browser, base, problems):
     page.screenshot(path=str(SHOTS / "ludo-1-menu.png"), full_page=True)
 
     # two children
-    page.click(".pachisi-slot.slot-1")  # the computer -> a child
+    choose(page, ".pachisi-slot.slot-1")  # the computer -> a child
     page.wait_for_timeout(100)
     page.evaluate("window.__bubbels.pachisi.fast(true)")
     page.click("#pachisi-play")
@@ -4458,7 +4493,7 @@ def ludo_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # against easy with 2 pawns: whole games by real taps until the child wins
-    page.click(".pachisi-slot.slot-1")  # a child -> the computer
+    choose(page, ".pachisi-slot.slot-1")  # a child -> the computer
     page.click(".pachisi-opt.pawns-2")
     page.click(".pachisi-opt.count-on")
     won = False
@@ -4623,14 +4658,27 @@ def bubbels_list(page, label, problems, owned=False):
     ten = page.locator("#levels-free .level-btn >> nth=9").get_attribute("aria-label") or ""
     if "10" not in ten or "3 van 3" not in ten:
         problems.append(f"offers: bubbels {label}: level 10 on the list reads {ten!r}")
-    full = page.locator("#levels-full .level-btn").count()
+    full = page.locator("#screen-levels .full-fold .level-btn").count()
     nxt = page.locator("#levels-free .level-btn.next .num").all_inner_texts()
     if owned and (full or nxt != ["11"]):
         problems.append(f"offers: bubbels {label}: after the purchase {full} levels still locked, next {nxt}")
-    if not owned and (page.locator("#levels-full .level-btn >> nth=0").inner_text().split()[0] != "11" or nxt):
+    if not owned and ((page.locator("#screen-levels .full-fold .level-btn >> nth=0").text_content() or "").split()[:1] != ["11"] or nxt):
         problems.append(f"offers: bubbels {label}: level 11 is not the first locked one (next: {nxt})")
     if page.evaluate("window.__bubbels.state().loop"):
         problems.append(f"offers: bubbels {label}: the game loop still runs on the level list")
+    if owned:
+        # bought on this very screen: the fold is gone and what it emptied is back (the random
+        # boards and their heading), and "Willekeurig" scrolls to them
+        left = page.evaluate("[document.querySelectorAll('#screen-levels .full-fold').length, document.querySelectorAll('#screen-levels .fold-emptied').length]")
+        if left != [0, 0]:
+            problems.append(f"offers: bubbels {label}: after the purchase fold/emptied parts {left}")
+        if not page.is_visible("#levels-random-head") or page.locator("#levels-random .random-btn:not(.locked):visible").count() != 3:
+            problems.append(f"offers: bubbels {label}: after the purchase the random boards or their heading are not shown")
+        page.click("#btn-random-jump")
+        page.wait_for_timeout(700)
+        top = page.evaluate("document.querySelector('#levels-random-head').getBoundingClientRect().top")
+        if not (0 <= top < 844):
+            problems.append(f"offers: bubbels {label}: Willekeurig did not scroll to the random boards (heading at {top:.0f})")
 
 
 def offers_bubbels(browser, base, problems):
@@ -4660,6 +4708,13 @@ def offers_bubbels(browser, base, problems):
 
     # the app: every way out of the offer card (buttons: buy, restore, later)
     ctx, page, errors = offer_context(browser, base, app=True, save=BUBBELS_NINE)
+    # Dogudoku seen once before the purchase, with its fold (checked again once bought, below)
+    page.click("#tile-dogudoku")
+    page.wait_for_timeout(250)
+    if not page.locator("#dogu-levels .full-fold").count():
+        problems.append("offers: dogudoku app: no Volledige versie fold before the purchase")
+    page.evaluate("document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
+    page.wait_for_timeout(150)
     page.click("#tile-bubbels")
 
     def to_offer(label):
@@ -4717,6 +4772,16 @@ def offers_bubbels(browser, base, problems):
         if landed(page, "bubbels app bought", "levels", problems):
             page.screenshot(path=str(SHOTS / "offers-bubbels-3-bought.png"))
             bubbels_list(page, "app bought", problems, owned=True)
+        # Dogudoku after the purchase in the same session: no fold, every size back with its puzzles
+        page.evaluate("document.querySelector('#screen-levels [data-go=home]').click()")
+        page.wait_for_timeout(150)
+        page.click("#tile-dogudoku")
+        page.wait_for_timeout(250)
+        got = page.evaluate("""[document.querySelectorAll('#dogu-levels .full-fold, #dogu-levels .fold-emptied, #dogu-levels .locked').length,
+            [...document.querySelectorAll('#dogu-levels .dogu-size')].filter((h) => h.getClientRects().length).length,
+            [...document.querySelectorAll('#dogu-levels .level-btn:not(.random-btn)')].filter((b) => b.getClientRects().length).length]""")
+        if got[0] or got[1] != 5 or got[2] != 60:
+            problems.append(f"offers: dogudoku app bought: [fold/emptied/locked, sizes shown, puzzles shown] = {got}, want [0, 5, 60]")
     if errors:
         problems.append(f"offers: bubbels app: page errors {errors[:2]}")
     ctx.close()
@@ -4735,7 +4800,7 @@ def offers_others(browser, base, problems):
         page.wait_for_selector("html[data-ready='1']")
     # Dogudoku and Picturedoku: puzzle 4 is the last free 4×4, solved by taps
     page.click("#tile-dogudoku")
-    page.click("#dogu-levels .level-btn[data-puzzle='4']")
+    choose(page, "#dogu-levels .level-btn[data-puzzle='4']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -4750,7 +4815,7 @@ def offers_others(browser, base, problems):
     reload_home()
 
     page.click("#tile-picturedoku")
-    page.click("#pdoku-levels .level-btn[data-puzzle='4']")
+    choose(page, "#pdoku-levels .level-btn[data-puzzle='4']")
     page.wait_for_timeout(300)
     if page.is_visible("#overlay"):
         page.click("#ov-buttons button")
@@ -4768,7 +4833,7 @@ def offers_others(browser, base, problems):
 
     # Slangetje: counting level 4 is the last free one of its kind
     page.click("#tile-slang")
-    page.click(".slang-grid .level-btn[data-level='4']")
+    choose(page, ".slang-grid .level-btn[data-level='4']")
     close_card_if_any(page)
     slang_round(page, "offers", problems)
     if web_offer_ok(page, "slang level 4", "slang-menu", problems):
@@ -4822,7 +4887,9 @@ def offers_others(browser, base, problems):
         if tile == "tekenen":
             page.evaluate("window.__bubbels.teken.open()")
             page.wait_for_timeout(200)
-        page.click(sel)
+        elif not page.locator(sel).first.evaluate("el => !!el.closest('.full-fold')"):
+            problems.append(f"offers: {tile}: the locked {sel} is not in the Volledige versie fold")
+        choose(page, sel)
         page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
         if card_buttons(page) != ["Oké"]:
             problems.append(f"offers: {tile}: the locked {sel} offers {card_buttons(page)}")
@@ -4879,7 +4946,7 @@ def memory_flow(browser, base, problems):
     page.click("#tile-memory")
     page.wait_for_timeout(250)
     for sel in (".memory-opt.size-4x4", ".memory-opt.size-4x5", ".memory-opt.theme-book", ".memory-opt.theme-shapes"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -4889,9 +4956,9 @@ def memory_flow(browser, base, problems):
     page.screenshot(path=str(SHOTS / "memory-1-menu.png"), full_page=True)
 
     # alone, 2×3, real timing: one miss first, then every pair
-    page.click(".memory-opt.size-2x3")
-    page.click(".memory-opt.theme-fruit")
-    page.click(".memory-opt.mode-solo")
+    choose(page, ".memory-opt.size-2x3")
+    choose(page, ".memory-opt.theme-fruit")
+    choose(page, ".memory-opt.mode-solo")
     page.click("#memory-play")
     page.wait_for_timeout(400)
     st = mem_state(page)
@@ -4933,8 +5000,8 @@ def memory_flow(browser, base, problems):
 
     # together, 3×4: player 1 finds two pairs, misses; back + keep playing during the miss passes the turn
     page.evaluate("window.__bubbels.memory.fast(true)")
-    page.click(".memory-opt.size-3x4")
-    page.click(".memory-opt.mode-duo")
+    choose(page, ".memory-opt.size-3x4")
+    choose(page, ".memory-opt.mode-duo")
     page.click("#memory-play")
     page.wait_for_timeout(300)
     st = mem_state(page)
@@ -4996,7 +5063,7 @@ def memory_flow(browser, base, problems):
         problems.append("memory: 'keep playing' offered for a game that is over")
 
     # against the computer, 3×4: four pairs, a miss, the computer's turn (visible, slow), then the rest
-    page.click(".memory-opt.mode-cpu")
+    choose(page, ".memory-opt.mode-cpu")
     page.click("#memory-play")
     page.wait_for_timeout(300)
     st = mem_state(page)
@@ -5160,7 +5227,7 @@ def kwartet_flow(browser, base, problems):
     page.click("#tile-kwartet")
     page.wait_for_timeout(250)
     for sel in (".kwartet-opt.sets-6", ".kwartet-opt.sets-8", ".kwartet-slot.slot-3"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         labels = page.locator("#ov-buttons button").all_inner_texts()
         if labels != ["Oké"]:
@@ -5583,7 +5650,7 @@ def legpuzzel_flow(browser, base, problems):
     if small < 44:
         problems.append(f"legpuzzel: a size button is only {small:.0f} px high")
     for sel in (".puzzel-opt.size-p30", ".puzzel-opt.size-p48", ".puzzel-opt.size-p60", ".puzzel-pic.pic-space", ".puzzel-pic.pic-puppies"):
-        page.click(sel)
+        choose(page, sel)
         page.wait_for_timeout(200)
         if sel == ".puzzel-opt.size-p30" and "9, 16 en 25 stukjes" not in page.inner_text("#ov-text"):
             problems.append(f"legpuzzel: the offer says {page.inner_text('#ov-text')!r}")
@@ -5595,8 +5662,8 @@ def legpuzzel_flow(browser, base, problems):
     page.screenshot(path=str(SHOTS / "legpuzzel-1-menu.png"), full_page=True)
 
     # 9 pieces, the garden: one wrong drop, then every piece by a real drag
-    page.click(".puzzel-opt.size-p9")
-    page.click(".puzzel-pic.pic-garden")
+    choose(page, ".puzzel-opt.size-p9")
+    choose(page, ".puzzel-pic.pic-garden")
     page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
     page.wait_for_timeout(200)
     page.screenshot(path=str(SHOTS / "legpuzzel-2-start.png"))
@@ -5636,8 +5703,8 @@ def legpuzzel_flow(browser, base, problems):
         problems.append("legpuzzel: the menu does not tick off the laid picture")
 
     # 16 pieces, the sea: the example picture off, back + keep puzzling halfway, the rest by the hook
-    page.click(".puzzel-opt.size-p16")
-    page.click(".puzzel-pic.pic-sea")
+    choose(page, ".puzzel-opt.size-p16")
+    choose(page, ".puzzel-pic.pic-sea")
     page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
     page.wait_for_timeout(200)
     st = pz_state(page)
@@ -5684,8 +5751,8 @@ def legpuzzel_flow(browser, base, problems):
     page.wait_for_timeout(200)
 
     # 25 pieces, the fruit bowl: the end of the free part
-    page.click(".puzzel-opt.size-p25")
-    page.click(".puzzel-pic.pic-fruit")
+    choose(page, ".puzzel-opt.size-p25")
+    choose(page, ".puzzel-pic.pic-fruit")
     page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
     page.wait_for_timeout(200)
     st = pz_state(page)
@@ -5710,7 +5777,7 @@ def legpuzzel_flow(browser, base, problems):
     if not page.is_visible("#screen-legpuzzel-menu"):
         problems.append("legpuzzel: OK on the offer did not land on the menu")
     # the Android back button from a puzzle: its menu
-    page.click(".puzzel-pic.pic-garden")
+    choose(page, ".puzzel-pic.pic-garden")
     page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
     page.evaluate("window.__bubbels.back()")
     page.wait_for_timeout(200)
@@ -5754,7 +5821,7 @@ def legpuzzel_layouts(browser, base, problems):
             return [el.textContent, new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size]; }).filter(([, n]) => n > 1)""")
         if wrapped:
             problems.append(f"legpuzzel {label}: size labels wrap over two lines: {wrapped}")
-        page.click(f".puzzel-pic.pic-{pic}")
+        choose(page, f".puzzel-pic.pic-{pic}")
         page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=5000)
         page.wait_for_timeout(250)
         for sel in ("#legpuzzel-board", "#legpuzzel-back", "#legpuzzel-ghost", "#legpuzzel-status"):
@@ -5875,12 +5942,12 @@ def legpuzzel_big(browser, base, problems):
         subs = page.evaluate("[...document.querySelectorAll('.puzzel-sizes .vier-opt-sub')].map((e) => e.textContent)")
         if subs != (ages_en if english else ages_nl):
             problems.append(f"legpuzzel {label}: the size buttons say {subs}")
-        page.click(f".puzzel-opt.size-{size}")
+        choose(page, f".puzzel-opt.size-{size}")
         page.wait_for_timeout(100)
         if page.get_attribute(f".puzzel-opt.size-{size}", "aria-pressed") != "true":
             problems.append(f"legpuzzel {label}: {size} not chosen")
         page.screenshot(path=str(SHOTS / f"legpuzzel-big-menu-{w}x{h}-{size}.png"), full_page=True)
-        page.click(f".puzzel-pic.pic-{pic}")
+        choose(page, f".puzzel-pic.pic-{pic}")
         page.wait_for_function("window.__bubbels.puzzel.ready()", timeout=8000)
         page.wait_for_timeout(250)
         st = pz_state(page)
@@ -6087,7 +6154,7 @@ def piano_flow(browser, base, problems):
     locked = page.eval_on_selector_all(".piano-card.locked", "els => els.map(e => e.dataset.song)")
     if locked != ["kortjakje", "maan", "vreugde"]:
         problems.append(f"piano: locked songs on the web are {locked}")
-    page.click(".piano-card[data-song='kortjakje']")
+    choose(page, ".piano-card[data-song='kortjakje']")
     page.wait_for_timeout(150)
     if card_buttons(page) != ["Oké"] or "Vader Jacob zijn gratis" not in page.inner_text("#ov-text"):
         problems.append(f"piano: a locked song offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
@@ -6095,7 +6162,7 @@ def piano_flow(browser, base, problems):
     landed(page, "piano locked song", "piano-songs", problems)
 
     # Vader Jacob: one wrong key first (the song waits), then every glowing key by a real tap
-    page.click(".piano-card[data-song='jacob']")
+    choose(page, ".piano-card[data-song='jacob']")
     page.wait_for_timeout(200)
     st = pi_state(page)
     if st["mode"] != "song" or st["glow"] != ["c"] or page.inner_text("#piano-title") != "Vader Jacob":
@@ -6133,7 +6200,7 @@ def piano_flow(browser, base, problems):
         problems.append("piano: the list does not show Vader Jacob's 3 stars")
 
     # listen: the keys light up one after another, a tap stops it
-    page.click(".piano-card[data-song='jacob']")
+    choose(page, ".piano-card[data-song='jacob']")
     page.wait_for_timeout(150)
     heard = pi_state(page)["heard"]
     page.click("#piano-listen")
@@ -6250,7 +6317,7 @@ def piano_layouts(browser, base, problems):
                 locked = page.locator(".piano-card.locked").count()
                 if locked != (0 if owned else 3):
                     problems.append(f"piano {label}: {locked} songs locked")
-                page.click(f".piano-card[data-song='{song}']")
+                choose(page, f".piano-card[data-song='{song}']")
                 page.wait_for_timeout(200)
                 for k in range(3):
                     page.evaluate(f"window.__bubbels.piano.press(window.__bubbels.piano.state().target)")
@@ -6351,14 +6418,14 @@ def piano_big(browser, base, problems):
     small = min(page.eval_on_selector_all(".piano-level", "els => els.map(e => e.getBoundingClientRect().height)"))
     if small < 56:
         problems.append(f"piano big: the age buttons are only {small:.0f} px high")
-    page.locator(".piano-level[data-level='big']").tap()
+    choose(page, ".piano-level[data-level='big']", tap=True)
     page.wait_for_timeout(150)
     page.screenshot(path=str(SHOTS / "piano-big-songs-390x844.png"))
     songs = page.eval_on_selector_all(".piano-card", "els => els.map(e => e.dataset.song)")
     locked = page.eval_on_selector_all(".piano-card.locked", "els => els.map(e => e.dataset.song)")
     if songs != ["free", "ode", "wilhelmus", "bergkoning", "turks", "elise"] or locked != ["wilhelmus", "bergkoning", "turks", "elise"]:
         problems.append(f"piano big: the 7-10 list is {songs}, locked {locked}")
-    page.click(".piano-card[data-song='elise']")
+    choose(page, ".piano-card[data-song='elise']")
     page.wait_for_timeout(150)
     if card_buttons(page) != ["Oké"] or "Ode aan de vreugde zijn gratis" not in page.inner_text("#ov-text"):
         problems.append(f"piano big: a locked 7-10 song offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
@@ -6366,7 +6433,7 @@ def piano_big(browser, base, problems):
     landed(page, "piano big locked song", "piano-songs", problems)
 
     # free play: a window of 8 coloured keys, the map, the line to turn the phone
-    page.click(".piano-card[data-song='free']")
+    choose(page, ".piano-card[data-song='free']")
     page.wait_for_timeout(250)
     st = pi_state(page)
     if st["mode"] != "free" or st["keys"] != 25 or st["visible"] != 8 or st["view"] != 0:
@@ -6417,7 +6484,7 @@ def piano_big(browser, base, problems):
     # the whole Ode to Joy by taps; the window follows down to the low A and back up
     page.click("#piano-songs-btn")
     page.wait_for_timeout(150)
-    page.click(".piano-card[data-song='ode']")
+    choose(page, ".piano-card[data-song='ode']")
     page.wait_for_timeout(250)
     if pi_state(page)["song"] != "ode" or page.inner_text("#piano-sub") != "Liedjes \u00b7 7\u201110\u00a0jaar":
         problems.append(f"piano big: the Ode opened as {pi_state(page)['song']} under {page.inner_text('#piano-sub')!r}")
@@ -6475,10 +6542,10 @@ def piano_big(browser, base, problems):
     # and back to 4-6: the toy piano as before, no map
     page.click("#piano-songs-btn")
     page.wait_for_timeout(150)
-    page.locator(".piano-level[data-level='small']").tap()
+    choose(page, ".piano-level[data-level='small']", tap=True)
     page.wait_for_timeout(150)
     songs = page.eval_on_selector_all(".piano-card", "els => els.map(e => e.dataset.song)")
-    page.click(".piano-card[data-song='free']")
+    choose(page, ".piano-card[data-song='free']")
     page.wait_for_timeout(250)
     st = pi_state(page)
     if songs != ["free", "jacob", "kortjakje", "maan", "vreugde"] or st["keys"] != 13 or page.is_visible("#piano-map") or page.is_visible("#piano-turn"):
@@ -6506,11 +6573,11 @@ def piano_big(browser, base, problems):
         page.wait_for_timeout(200)
         page.click("#piano-songs-btn")
         page.wait_for_timeout(150)
-        page.locator(".piano-level[data-level='big']").tap()
+        choose(page, ".piano-level[data-level='big']", tap=True)
         page.wait_for_timeout(150)
         if page.locator(".piano-card.locked").count():
             problems.append(f"piano {label}: songs locked in the full version")
-        page.click(".piano-card[data-song='elise']")
+        choose(page, ".piano-card[data-song='elise']")
         page.wait_for_timeout(250)
         st = pi_state(page)
         whites = page.eval_on_selector_all(".pkey.white", "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.left, r.right, r.width, r.height]; })")
@@ -6645,7 +6712,7 @@ def drums_flow(browser, base, problems):
     locked = page.eval_on_selector_all(".drums-card.locked", "els => els.map(e => e.dataset.rhythm)")
     if locked != ["mars1", "jacob1", "paard1", "mars2", "jacob2", "disco2"]:
         problems.append(f"drums: locked rhythms on the web are {locked}")
-    page.click(".drums-card[data-rhythm='jacob1']")
+    choose(page, ".drums-card[data-rhythm='jacob1']")
     page.wait_for_timeout(150)
     if card_buttons(page) != ["Oké"] or "gratis" not in page.inner_text("#ov-text"):
         problems.append(f"drums: a locked rhythm offered {card_buttons(page)}: {page.inner_text('#ov-text')!r}")
@@ -6653,7 +6720,7 @@ def drums_flow(browser, base, problems):
     landed(page, "drums locked rhythm", "drums-list", problems)
 
     # Rock (4-6): Begin, the count-in, one wrong pad (the rhythm waits), then every glowing pad by a tap
-    page.click(".drums-card[data-rhythm='rock1']")
+    choose(page, ".drums-card[data-rhythm='rock1']")
     page.wait_for_timeout(200)
     st = dr_state(page)
     if st["phase"] != "ready" or not page.is_visible("#drums-go") or page.inner_text("#drums-title") != "Rock":
@@ -6701,7 +6768,7 @@ def drums_flow(browser, base, problems):
         problems.append("drums: the list does not show Rock's 3 stars")
 
     # Rock (7-10) on the beat: a ring closes in, both pads of a pair tapped at once with two fingers
-    page.click(".drums-card[data-rhythm='rock2']")
+    choose(page, ".drums-card[data-rhythm='rock2']")
     page.wait_for_timeout(150)
     page.click("#drums-go")
     shot = False
@@ -6735,7 +6802,7 @@ def drums_flow(browser, base, problems):
     page.wait_for_timeout(150)
 
     # listen: the count-in, then the pads light up one after another; the background stops it
-    page.click(".drums-card[data-rhythm='rock1']")
+    choose(page, ".drums-card[data-rhythm='rock1']")
     page.wait_for_timeout(150)
     page.click("#drums-listen")
     try:
@@ -6849,7 +6916,7 @@ def drums_layouts(browser, base, problems):
                 locked = page.locator(".drums-card.locked").count()
                 if locked != (0 if owned else 6):
                     problems.append(f"drums {label}: {locked} rhythms locked")
-                page.click(f".drums-card[data-rhythm='{rhythm}']")
+                choose(page, f".drums-card[data-rhythm='{rhythm}']")
                 page.wait_for_timeout(200)
                 go = page.locator("#drums-go").bounding_box()
                 if not go or go["x"] < 0 or go["y"] < 0 or go["x"] + go["width"] > w or go["y"] + go["height"] > h:
@@ -6988,7 +7055,7 @@ def kangoeroe_flow(browser, base, problems):
     if locked != 6:
         problems.append(f"kangoeroe: {locked} rounds locked on the web, expected 6 (tiers 2 and 3)")
     page.screenshot(path=str(SHOTS / "kangoeroe-menu-390x844.png"), full_page=True)
-    page.locator("#kangoeroe-menu .level-btn[data-round='t2-1']").tap()
+    choose(page, "#kangoeroe-menu .level-btn[data-round='t2-1']", tap=True)
     page.wait_for_timeout(150)
     if card_buttons(page) != ["Oké"]:
         problems.append(f"kangoeroe: a locked round offers {card_buttons(page)}, not the web's OK")
@@ -6998,7 +7065,7 @@ def kangoeroe_flow(browser, base, problems):
         problems.append(f"kangoeroe: after OK on a locked round: {where(page)}")
 
     # round t1-1 by real taps
-    page.locator("#kangoeroe-menu .level-btn[data-round='t1-1']").tap()
+    choose(page, "#kangoeroe-menu .level-btn[data-round='t1-1']", tap=True)
     page.wait_for_timeout(200)
     if not page.is_visible("#overlay"):
         problems.append("kangoeroe: no how-to card on the first round")
@@ -7291,7 +7358,7 @@ def verstop_flow(browser, base, problems):
         problems.append("verstop: the forest, beach and farm are not locked on the web")
     page.screenshot(path=str(SHOTS / "verstop-menu-390x844.png"), full_page=True)
     for sel in ("#verstop-menu .vz-scene-btn[data-scene='beach']", "#verstop-menu .level-btn[data-round='garden-t2-1']", "#verstop-menu .random-btn"):
-        page.locator(sel).tap()
+        choose(page, sel, tap=True)
         page.wait_for_timeout(150)
         if card_buttons(page) != ["Oké"]:
             problems.append(f"verstop: {sel} offers {card_buttons(page)}, not the web's OK")
@@ -7301,7 +7368,7 @@ def verstop_flow(browser, base, problems):
             problems.append(f"verstop: after OK on {sel}: {where(page)}")
 
     # round garden-t1-1 by real taps: two wrong spots first
-    page.locator("#verstop-menu .level-btn[data-round='garden-t1-1']").tap()
+    choose(page, "#verstop-menu .level-btn[data-round='garden-t1-1']", tap=True)
     page.wait_for_timeout(250)
     if not page.is_visible("#overlay"):
         problems.append("verstop: no how-to card on the first round")
@@ -7557,11 +7624,11 @@ def kaart_flow(browser, base, problems):
     packs = page.eval_on_selector_all("#kaart-menu .km-pack", "els => els.map(e => [e.textContent, e.getAttribute('aria-pressed')])")
     if packs != [["Werelddelen", "false"], ["Europa", "false"], ["Nederland", "true"], ["Ander land…", None]]:
         problems.append(f"kaart: the maps on an nl-NL device are {packs}")
-    locked = page.locator("#kaart-tiers .level-btn.locked").count()
+    locked = page.locator("#kaart-menu .full-fold .level-btn.locked").count()
     if locked != 5:
         problems.append(f"kaart: {locked} rounds of Nederland locked on the web, expected 5 (tiers 2 and 3)")
     page.screenshot(path=str(SHOTS / "kaart-menu-390x844.png"), full_page=True)
-    page.locator("#kaart-tiers .level-btn[data-round='nl-t2-1']").tap()
+    choose(page, "#kaart-menu .level-btn[data-round='nl-t2-1']", tap=True)
     page.wait_for_timeout(150)
     if card_buttons(page) != ["Oké"]:
         problems.append(f"kaart: a locked round offers {card_buttons(page)}, not the web's OK")
@@ -7571,7 +7638,7 @@ def kaart_flow(browser, base, problems):
         problems.append(f"kaart: after OK on a locked round: {where(page)}")
 
     # round nl-t1-1 by real drags
-    page.locator("#kaart-tiers .level-btn[data-round='nl-t1-1']").tap()
+    choose(page, "#kaart-tiers .level-btn[data-round='nl-t1-1']", tap=True)
     page.wait_for_selector("#overlay:not([hidden])", timeout=4000)
     page.screenshot(path=str(SHOTS / "kaart-how-390x844.png"))
     page.click("#ov-buttons button")

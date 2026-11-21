@@ -11,6 +11,7 @@ import { PALETTE, WHITE, pageSvg, ICONS } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { newSeed, randomCard } from '../../js/random.js';
+import { foldLocked } from '../../js/fold.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
@@ -125,6 +126,7 @@ export function createKleuren(shell) {
       c.dataset.tier = tier;
       mand.appendChild(c);
     }
+    foldLocked(box);
   }
 
   function offer() {
