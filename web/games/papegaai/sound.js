@@ -3,7 +3,8 @@
 // synthesis: every voice is made from the child's own recording.
 //
 // PRIVACY (AGENTS.md): the recording stays in memory, in this module only (`createTake` while
-// listening, then one AudioBuffer and its reversed copy; capture-worklet.js keeps nothing). It is never stored and never sent:
+// listening, then one AudioBuffer, its reversed copy and the bear's lower copy, all in `take`;
+// capture-worklet.js keeps nothing). It is never stored and never sent:
 // no storage, no network, no transfer. `drop()` forgets it; papegaai.js calls it when the child
 // leaves the game and when the app goes to the background. The microphone is on only while the
 // child records: every recording opens it and `stopCapture()` stops its tracks again.
@@ -15,13 +16,13 @@
 // The game keeps its own audio context (like the drums), and follows the app's sound setting
 // through audio.js: nothing plays while `isMuted()`.
 import * as sfx from '../../js/audio.js';
-import { voiceById, layersOf, layerSeconds, playSeconds, createTake, prepareTake, reversed } from './effects.js';
+import { VOICES, voiceById, layersOf, layerSeconds, playSeconds, sourceSeconds, createTake, prepareTake, reversed, pitchShift } from './effects.js';
 
 let ac = null;
 let master = null;
 let meter = null; // an analyser on the way out: the beak moves with what the parrot says
 let mic = null; // { stream, src, proc, sink, analyser, take } while recording
-let take = null; // { buffer, reverse, gain, seconds }: the one recording, in memory only
+let take = null; // { buffer, reverse, shifted, gain, seconds }: the one recording, in memory only
 let voice = null; // { srcs, out, timer, until } while a voice plays
 const VOLUME = 0.85;
 const levelBuf = new Float32Array(1024);
@@ -219,7 +220,9 @@ export function stopCapture() {
     b.getChannelData(0).set(data);
     return b;
   };
-  take = { buffer: make(prep.data), reverse: make(reversed(prep.data)), gain: prep.gain, seconds: prep.seconds };
+  // the copies with pitch and pace changed (the bear) are made now, in a few ms, not while it plays
+  const shifted = new Map(VOICES.filter((v) => v.shift).map((v) => [v.id, make(pitchShift(prep.data, ac.sampleRate, v.shift.pitch, v.shift.tempo))]));
+  take = { buffer: make(prep.data), reverse: make(reversed(prep.data)), shifted, gain: prep.gain, seconds: prep.seconds };
   return { seconds: take.seconds, gain: take.gain };
 }
 
@@ -304,12 +307,13 @@ export function play(id, onEnd) {
     nodes.push(delay, fb, wet);
   }
   const srcs = [];
+  const seconds = sourceSeconds(v, take.seconds);
   for (const l of layersOf(v)) {
     const s = ac.createBufferSource();
-    s.buffer = v.reverse ? take.reverse : take.buffer;
+    s.buffer = v.reverse ? take.reverse : v.shift ? take.shifted.get(v.id) : take.buffer;
     const at = t + l.delay;
     s.playbackRate.setValueAtTime(l.rate, at);
-    if (l.rateEnd) s.playbackRate.linearRampToValueAtTime(l.rateEnd, at + layerSeconds(l, take.seconds));
+    if (l.rateEnd) s.playbackRate.linearRampToValueAtTime(l.rateEnd, at + layerSeconds(l, seconds));
     const g = ac.createGain();
     g.gain.value = l.gain;
     let node = s.connect(g);

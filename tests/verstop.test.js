@@ -27,6 +27,11 @@ import {
   stillToFind,
   starsFor,
   spotLayout,
+  hidingSpots,
+  samePlace,
+  clash,
+  roundSeed,
+  MAX_SAME_SPOT,
 } from '../web/games/verstop/rules.js';
 import { meta } from '../web/games/verstop/meta.js';
 import { ANIMALS, CREATURES, SPOT_ART, COLORS, FEATURE_COLORS, figureSvg, spotSvg, sceneSvg, tileSvg, howSvg, sceneCardSvg, figureFit } from '../web/games/verstop/art.js';
@@ -119,6 +124,105 @@ test('verstop: the same id is the same round; fixed rounds take every animal of 
   assert.equal(fixedRound('nope'), null);
   // memory rounds: every second round of tier 3
   for (let n = 1; n <= ROUNDS_PER_TIER; n++) assert.equal(fixedRound(roundId('farm', 't3', n)).memory, n % 2 === 0);
+});
+
+// the scene boxes measured at the smoke-test sizes (320x568, 390x844, 568x320, 844x390, desktop, 360x640), less the padding
+const BOXES = [[284, 365], [354, 607], [262, 292], [538, 362], [888, 563], [324, 437]];
+
+/**
+ * The animal moves on (Mark's playtest, 20 Nov 2026: the hedgehog 5 times in the same spot): in a
+ * run of rounds (`seeds[k]` the layout seed of round k) no animal hides behind the kind of spot or
+ * in the place of an animal of the round before (in every measured box its centre is outside that
+ * spot), and no kind of spot or cell hides an animal more than MAX_SAME_SPOT times.
+ */
+function movesOn(list, seeds, tag) {
+  const at = list.map(hidingSpots);
+  for (let r = 1; r < list.length; r++) {
+    assert.ok(!clash(list[r], list[r - 1]), `${tag}: round ${r + 1} hides where round ${r} did: ${JSON.stringify(at[r])} after ${JSON.stringify(at[r - 1])}`);
+    for (const p of at[r]) {
+      for (const q of at[r - 1]) {
+        assert.notEqual(p.kind, q.kind, `${tag}: round ${r + 1} behind the ${p.kind} again`);
+        for (const [w, h] of BOXES) {
+          const A = spotLayout(p.n, w, h, seeds[r])[p.i];
+          const B = spotLayout(q.n, w, h, seeds[r - 1])[q.i];
+          const apart = Math.max(Math.abs(A.x - B.x), Math.abs(A.y - B.y));
+          assert.ok(apart > (A.s + B.s) / 4, `${tag}: round ${r + 1} in the same place at ${w}x${h} (${apart.toFixed(0)} px)`);
+        }
+      }
+    }
+  }
+  for (let k = 0; k < at[0].length; k++) {
+    for (const p of at.map((a) => a[k])) {
+      assert.ok(at.filter((a) => a[k].kind === p.kind).length <= MAX_SAME_SPOT, `${tag}: the ${p.kind} hides animal ${k + 1} more than ${MAX_SAME_SPOT} times`);
+      assert.ok(at.filter((a) => a[k].n === p.n && a[k].i === p.i).length <= MAX_SAME_SPOT, `${tag}: spot ${p.i} of ${p.n} hides animal ${k + 1} more than ${MAX_SAME_SPOT} times`);
+    }
+  }
+}
+
+for (const tier of TIER_IDS) {
+  test(`verstop ${tier}: the animal moves on from round to round, in every scene (the menu's rounds and ${SEEDS} seeded runs)`, () => {
+    for (const scene of SCENE_IDS) {
+      const ids = Array.from({ length: ROUNDS_PER_TIER }, (_, k) => roundId(scene, tier, k + 1));
+      const menu = ids.map((id) => fixedRound(id));
+      movesOn(menu, ids.map(roundSeed), `${scene} ${tier}`);
+      for (let s = 1; s <= SEEDS; s++) {
+        const list = [];
+        const seeds = [];
+        for (let n = 1; n <= ROUNDS_PER_TIER; n++) {
+          seeds.push(s * 104729 + n * 7919 + scene.length);
+          list.push(makeRound({ scene, tier, seed: seeds[n - 1], n, before: list }));
+        }
+        movesOn(list, seeds, `${scene} ${tier} seed ${s}`);
+      }
+    }
+  });
+}
+
+test('verstop: a round played again, and a random round, hide the animal away from the round just played', () => {
+  for (const scene of SCENE_IDS) {
+    for (const tier of TIER_IDS) {
+      for (let n = 1; n <= ROUNDS_PER_TIER; n++) {
+        const id = roundId(scene, tier, n);
+        const round = fixedRound(id);
+        // again: the same round (number, animals, friends), the animals somewhere else
+        const again = fixedRound(id, round);
+        assert.ok(!clash(again, round), `${id} played again hides where it did`);
+        assert.equal(again.n, n);
+        assert.deepEqual(again.find, round.find, id);
+        assert.equal(again.memory, round.memory, id);
+        assert.deepEqual(again.spots.map((x) => keyOf(x.who)).sort(), round.spots.map((x) => keyOf(x.who)).sort(), `${id}: other friends when played again`);
+        assert.ok(!clash(fixedRound(id, again), again), `${id} a third time`);
+        // straight after the round before it: the round of the menu, unchanged
+        if (n > 1) assert.deepEqual(fixedRound(id, fixedRound(roundId(scene, tier, n - 1))), round, id);
+        // a random round after it, in every scene
+        for (const where of SCENE_IDS) {
+          for (let s = 1; s <= 20; s++) {
+            const r = makeRound({ scene: where, tier, seed: s * 31 + n, before: [round] });
+            assert.ok(!clash(r, round), `random ${where} ${tier} after ${id}`);
+            assert.ok(!clash(makeRound({ scene: where, tier, seed: s * 37 + n, before: [r] }), r), `random after random ${where} ${tier}`);
+          }
+        }
+      }
+    }
+  }
+  // the place on screen: the same cell is the same place, a far corner is not
+  assert.ok(samePlace({ i: 0, n: 4 }, { i: 0, n: 4 }));
+  assert.ok(!samePlace({ i: 0, n: 4 }, { i: 3, n: 4 }));
+  assert.ok(samePlace({ i: 2, n: 4 }, { i: 3, n: 5 }), 'bottom left in a round of 4 and of 5');
+});
+
+test('verstop: saved stars stay with their round (the same id, number and animal)', () => {
+  for (const scene of SCENE_IDS) {
+    for (const tier of TIER_IDS) {
+      for (let n = 1; n <= ROUNDS_PER_TIER; n++) {
+        const id = roundId(scene, tier, n);
+        const round = fixedRound(id);
+        assert.deepEqual(parseRoundId(id), { scene, tier, n });
+        assert.equal(round.n, n);
+        assert.equal(round.find[0].id, SCENES[scene].animals[(n - 1) % SCENES[scene].animals.length], id);
+      }
+    }
+  }
 });
 
 test('verstop: a look that does not find the animal is a hello, counted once per spot', () => {
@@ -234,8 +338,8 @@ test('verstop: the spots fit every box of the screens the app supports, 64 px or
       }
     }
   };
-  // the scene boxes measured at the smoke-test sizes (320x568, 390x844, 568x320, 844x390, desktop, 360x640), less the padding
-  for (const [w, h] of [[284, 365], [354, 607], [262, 292], [538, 362], [888, 563], [324, 437]]) {
+  // the scene boxes measured at the smoke-test sizes
+  for (const [w, h] of BOXES) {
     for (let n = 4; n <= 8; n++) for (let seed = 1; seed <= 20; seed++) check(n, w, h, seed, `${w}x${h} n${n} seed ${seed}`);
   }
   // and every box from 260 x 290 up

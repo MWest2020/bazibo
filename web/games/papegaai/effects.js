@@ -30,12 +30,15 @@ export const MAX_BOOST = 4;
  * The voices, in the order of the buttons. A voice is one or more layers of the take (`rate` is
  * the playback speed: 2 is an octave higher and twice as fast; `rateEnd` makes it glide), with
  * an optional low-pass filter, reverse playback or an echo (`delay` s, `feedback` and `wet`
- * gains, both under 1, so the echo always dies away).
+ * gains, both under 1, so the echo always dies away). `shift` plays a copy of the take with its
+ * pitch and its pace changed apart (`pitchShift`), so a voice can be lower without dragging.
  */
 export const VOICES = Object.freeze([
   { id: 'gewoon', rate: 1 },
   { id: 'muis', rate: 1.75 }, // high and quick, a little mouse
-  { id: 'beer', rate: 0.62, lowpass: 2400 }, // low and slow, a big soft bear
+  // a cuddly bear: a little lower (0.8x the pitch) at almost the child's own pace (0.9x), warm and
+  // soft; not slowed right down, which sounded like a monster (Mark's playtest, 20 Nov 2026)
+  { id: 'beer', rate: 1, shift: { pitch: 0.8, tempo: 0.9 }, lowpass: 2800 },
   { id: 'achteruit', rate: 1, reverse: true }, // the other way round
   { id: 'echo', rate: 1, dry: 0.75, echo: { delay: 0.3, feedback: 0.42, wet: 0.42 } }, // like calling in the mountains
   {
@@ -79,9 +82,15 @@ export function echoTail(echo) {
   return repeats * echo.delay;
 }
 
+/** How long the copy a voice plays lasts, for a take of `seconds` (longer when `shift` slows it). */
+export function sourceSeconds(voice, seconds) {
+  return voice.shift ? seconds / voice.shift.tempo : seconds;
+}
+
 /** How long a voice plays a take of `seconds`, its echo included. */
 export function playSeconds(voice, seconds) {
-  const end = Math.max(...layersOf(voice).map((l) => l.delay + layerSeconds(l, seconds)));
+  const s = sourceSeconds(voice, seconds);
+  const end = Math.max(...layersOf(voice).map((l) => l.delay + layerSeconds(l, s)));
   return end + echoTail(voice.echo);
 }
 
@@ -206,6 +215,84 @@ export function prepareTake(samples, sampleRate) {
   }
   const peak = peakOf(data);
   return { data, seconds, peak, gain: gainFor(peak) };
+}
+
+/** The grains `stretch` lays over each other (seconds): long enough for a low voice. */
+export const GRAIN_SECONDS = 0.05;
+/** How far `stretch` may move a grain to fit the one before it (seconds): a low voice's period. */
+export const SEEK_SECONDS = 0.012;
+
+/**
+ * A copy of `data` `factor` times as long at the same pitch (WSOLA): grains in Hann windows at
+ * half a grain apart, each taken from near where it belongs, moved up to SEEK_SECONDS to where it
+ * best continues the grain before it (so the waves line up and nothing warbles). The windows add
+ * up to 1, so it is never louder than the take. Pure: no Web Audio.
+ */
+export function stretch(data, sampleRate, factor) {
+  const n = Math.max(8, 2 * Math.round((GRAIN_SECONDS * sampleRate) / 2));
+  const half = n / 2;
+  const out = new Float32Array(Math.round(data.length * factor));
+  const win = new Float32Array(n);
+  for (let k = 0; k < n; k++) win[k] = 0.5 - 0.5 * Math.cos((2 * Math.PI * k) / n);
+  const seek = Math.round(SEEK_SECONDS * sampleRate);
+  const step = Math.max(1, Math.round(sampleRate / 5512)); // look roughly first, then closely
+  const at = (i) => (i >= 0 && i < data.length ? data[i] : 0);
+  // how well the half grain at b continues the one at a (correlation over b's own loudness)
+  const fit = (a, b, stride) => {
+    let xy = 0;
+    let yy = 0;
+    for (let k = 0; k < half; k += stride) {
+      const v = at(b + k);
+      xy += at(a + k) * v;
+      yy += v * v;
+    }
+    return yy > 0 ? xy / Math.sqrt(yy) : 0;
+  };
+  let prev = null;
+  for (let o = -half; o < out.length; o += half) {
+    let pos = Math.round(o / factor);
+    if (prev !== null) {
+      const want = prev + half; // where the grain before would go on
+      let best = fit(want, pos, step);
+      let bestPos = pos;
+      for (let d = -seek; d <= seek; d += step) {
+        const f = fit(want, pos + d, step);
+        if (f > best) [best, bestPos] = [f, pos + d];
+      }
+      const rough = bestPos;
+      best = fit(want, rough, 1);
+      for (let d = -step + 1; d < step; d++) {
+        const f = d ? fit(want, rough + d, 1) : best;
+        if (f > best) [best, bestPos] = [f, rough + d];
+      }
+      pos = bestPos;
+    }
+    for (let k = 0; k < n; k++) {
+      const i = o + k;
+      if (i >= 0 && i < out.length) out[i] += win[k] * at(pos + k);
+    }
+    prev = pos;
+  }
+  return out;
+}
+
+/**
+ * A copy of `data` at `pitch` times the pitch and `tempo` times the pace (the bear: 0.8 and 0.9, a
+ * little lower and a little slower), the two apart, unlike a faster or slower playback: stretched
+ * to `pitch / tempo` times as long at the same pitch, then read at `pitch` times the speed. Never
+ * louder than the take. Pure: no Web Audio.
+ */
+export function pitchShift(data, sampleRate, pitch, tempo = 1) {
+  const long = pitch === tempo ? data : stretch(data, sampleRate, pitch / tempo);
+  const out = new Float32Array(Math.round(data.length / tempo));
+  for (let o = 0; o < out.length; o++) {
+    const x = o * pitch;
+    const i = Math.floor(x);
+    const f = x - i;
+    const a = i < long.length ? long[i] : 0;
+    out[o] = f && i + 1 < long.length ? a * (1 - f) + long[i + 1] * f : a;
+  }
+  return out;
 }
 
 /** A copy played the other way round. */
