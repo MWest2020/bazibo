@@ -12,6 +12,12 @@
 //             second round a memory twist: once it is found, every spot closes and the child
 //             shows where a creature they met lived ("Waar was de kikker?").
 // Rounds are seeded (`hashSeed` of the round id), so round t1-3 in the garden is always the same.
+//
+// Where the animal hides moves on (Mark's playtest, 20 Nov 2026: "the hedgehog sits in the same spot
+// 5 times"): never behind the same kind of spot, nor in the same place on screen, as in the round
+// before, and no kind of spot (nor the same cell) more than twice in the 6 rounds of a tier
+// (`hidingSpots`, `clash`, `placeAnimals`).
+// A round played again, or a random round, avoids the round just played as well.
 
 export const SCENE_IDS = Object.freeze(['garden', 'forest', 'beach', 'farm']);
 
@@ -122,8 +128,12 @@ export function isTarget(round, who) {
  * A round: `{ scene, tier, n, spots: [{ kind, who }], find: [{ id, feature }], memory }`.
  * `n` is the round number in the menu (1..ROUNDS_PER_TIER), 0 for a random round. Fixed rounds
  * take the scene's animals in turn, so every animal of a scene hides in its first rounds.
+ * `before` are the rounds played before it (the last one just before): the animals hide neither
+ * behind the kind of spot nor in the place of an animal of the round before, and behind no kind
+ * (nor in the same cell) more than twice over `before` and this round (`placeAnimals`). `salt` hides them again
+ * in the same round (the same friends and spots) for a replay.
  */
-export function makeRound({ scene, tier, seed, n = 0 }) {
+export function makeRound({ scene, tier, seed, n = 0, before = [], salt = 0 }) {
   const sc = SCENES[scene];
   const tt = TIERS[tier];
   if (!sc || !tt) throw new Error(`no such scene or tier: ${scene} ${tier}`);
@@ -147,16 +157,128 @@ export function makeRound({ scene, tier, seed, n = 0 }) {
   // the kinds of spot: the scene's kinds shuffled, each once before any comes back
   const kinds = [];
   while (kinds.length < count) kinds.push(...shuffle(sc.spots, rand));
-  const placed = shuffle(who, rand);
-  const spots = placed.map((w, i) => ({ kind: kinds[i], who: w }));
+  kinds.length = count;
   const memory = tt.memory && (n > 0 ? n % 2 === 0 : rand() < 0.5);
+  // the animals to find get their places first (their own random stream, so `before` and `salt`
+  // move only them); everyone else fills the other spots
+  const at = placeAnimals({ sc, count, kinds, before, rand: rng((seed ^ 0x51ed270b ^ Math.imul(salt + 1, 0x2545f491)) >>> 0), slots: tt.find });
+  const rest = shuffle(who.slice(tt.find), rand);
+  const spots = kinds.map((kind) => ({ kind, who: null }));
+  at.forEach((i, k) => (spots[i].who = who[k]));
+  for (const s of spots) if (!s.who) s.who = rest.shift();
   return { scene, tier, n, spots, find, memory };
 }
 
-/** A round from its id in the menu (`garden-t1-3`), or null. */
-export function fixedRound(id) {
+/**
+ * Where a round's animals to find hide, in the order of `round.find`: `[{ i, kind, n }]` (the
+ * spot's index, its kind and the number of spots in the round).
+ */
+export function hidingSpots(round) {
+  return round.find.map((f) => {
+    const i = round.spots.findIndex((s) => s.who.kind === 'animal' && s.who.id === f.id && (s.who.feature || null) === (f.feature || null));
+    return { i, kind: round.spots[i]?.kind, n: round.spots.length };
+  });
+}
+
+/**
+ * The boxes "the same place on screen" is judged in: the scene's box on an upright phone, a phone
+ * on its side and a desktop (the smoke test's measured sizes). The spots' grid differs per box.
+ */
+export const PLACE_BOXES = Object.freeze([[354, 607], [538, 362], [888, 563]]);
+
+/**
+ * Do spot `a` of a round of `a.n` spots and spot `b` of a round of `b.n` spots stand in the same
+ * place on screen? Yes when, in any of PLACE_BOXES, the centre of one lies in the other's cell.
+ */
+export function samePlace(a, b) {
+  for (const [w, h] of PLACE_BOXES) {
+    const A = cellOf(a.i, a.n, w, h);
+    const B = cellOf(b.i, b.n, w, h);
+    const inside = (p, c) => p.cx >= c.x0 - 1e-6 && p.cx <= c.x0 + c.cw + 1e-6 && p.cy >= c.y0 - 1e-6 && p.cy <= c.y0 + c.ch + 1e-6;
+    if (inside(A, B) || inside(B, A)) return true;
+  }
+  return false;
+}
+
+/** Does an animal of round `a` hide behind the same kind of spot, or in the same place, as one of round `b`? */
+export function clash(a, b) {
+  const A = hidingSpots(a);
+  const B = hidingSpots(b);
+  return A.some((p) => B.some((q) => p.kind === q.kind || samePlace(p, q)));
+}
+
+/** How many times each kind and place may hide an animal to find in the rounds of a tier. */
+export const MAX_SAME_SPOT = 2;
+
+/**
+ * Pick the spots of the `slots` animals to find (indexes into `kinds`, which it may reorder: a kind
+ * swapped with another spot's, or one the round lacks brought in). Each animal avoids the kinds and
+ * places of every animal of the last round in `before`, and a kind or a cell (the same index in a
+ * round of as many spots) it already had MAX_SAME_SPOT times in `before`; the animals of one round never share a kind. When nothing fits
+ * (never for the rounds of the menu, tested) the counts give way first, then the place.
+ */
+function placeAnimals({ sc, count, kinds, before, rand, slots }) {
+  const prev = before.length ? hidingSpots(before[before.length - 1]) : [];
+  const history = before.map(hidingSpots);
+  const at = [];
+  const chosen = [];
+  for (let k = 0; k < slots; k++) {
+    const options = [];
+    for (let i = 0; i < count; i++) {
+      if (at.includes(i)) continue;
+      for (const kind of sc.spots) {
+        if (chosen.includes(kind)) continue;
+        const me = { i, n: count };
+        const okKind = !prev.some((p) => p.kind === kind);
+        const okPlace = !prev.some((p) => samePlace(p, me));
+        const kindUses = history.filter((h) => h[k] && h[k].kind === kind).length;
+        const cellUses = history.filter((h) => h[k] && h[k].n === count && h[k].i === i).length;
+        const okCount = kindUses < MAX_SAME_SPOT && cellUses < MAX_SAME_SPOT;
+        // the least used kinds and cells first, so the later rounds still have room
+        options.push({ i, kind, rank: okKind && okPlace && okCount ? 0 : okKind && okPlace ? 1 : okKind ? 2 : 3, uses: kindUses + cellUses });
+      }
+    }
+    const best = Math.min(...options.map((o) => o.rank));
+    const least = Math.min(...options.filter((o) => o.rank === best).map((o) => o.uses));
+    const fit = options.filter((o) => o.rank === best && o.uses === least);
+    const pick = fit[Math.floor(rand() * fit.length)];
+    // bring the kind to its spot: swapped with another spot (not an animal's), or in place of the one there
+    const j = kinds.findIndex((kd, x) => kd === pick.kind && !at.includes(x) && x !== pick.i);
+    if (j >= 0) [kinds[pick.i], kinds[j]] = [kinds[j], kinds[pick.i]];
+    else kinds[pick.i] = pick.kind;
+    at.push(pick.i);
+    chosen.push(pick.kind);
+  }
+  return at;
+}
+
+const tierCache = new Map();
+
+/** The 6 rounds of a scene's tier in the menu, each placed after the ones before it. */
+function tierRounds(scene, tier) {
+  const key = `${scene}-${tier}`;
+  if (!tierCache.has(key)) {
+    const list = [];
+    for (let n = 1; n <= ROUNDS_PER_TIER; n++) list.push(makeRound({ scene, tier, seed: roundSeed(roundId(scene, tier, n)), n, before: list }));
+    tierCache.set(key, list);
+  }
+  return tierCache.get(key);
+}
+
+const copy = (round) => JSON.parse(JSON.stringify(round));
+
+/**
+ * A round from its id in the menu (`garden-t1-3`), or null. With `after` (the round played just
+ * before, for instance this one, played again) and an animal that would hide where one hid in
+ * `after`, the animals hide again in the same round, away from `after`.
+ */
+export function fixedRound(id, after = null) {
   const p = parseRoundId(id);
-  return p ? makeRound({ ...p, seed: roundSeed(id) }) : null;
+  if (!p) return null;
+  const list = tierRounds(p.scene, p.tier);
+  const round = list[p.n - 1];
+  if (!after || !clash(round, after)) return copy(round);
+  return makeRound({ ...p, seed: roundSeed(id), before: [...list.slice(0, p.n - 1), after], salt: 1 });
 }
 
 // ---------- playing ----------
@@ -238,6 +360,20 @@ export function starsFor(extra, round) {
  */
 export function spotLayout(n, w, h, seed = 1) {
   if (!(n > 0) || !(w > 0) || !(h > 0)) return [];
+  const g = spotGrid(n, w, h);
+  const rand = rng(seed ^ 0x9e3779b9);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const c = cellIn(i, n, g, w);
+    const jx = (g.cw - g.s) / 2;
+    const jy = (g.ch - g.s) / 2;
+    out.push({ x: c.cx + (rand() * 2 - 1) * jx * 0.8, y: c.cy + (rand() * 2 - 1) * jy * 0.8, s: g.s });
+  }
+  return out;
+}
+
+/** The grid of cells for `n` spots in a box of w x h px: as many columns as give the biggest spots. */
+function spotGrid(n, w, h) {
   let best = null;
   for (let cols = 1; cols <= n; cols++) {
     const rows = Math.ceil(n / cols);
@@ -248,18 +384,21 @@ export function spotLayout(n, w, h, seed = 1) {
     const shape = Math.abs(Math.log(cw / ch));
     if (!best || s > best.s + 0.5 || (Math.abs(s - best.s) <= 0.5 && shape < best.shape)) best = { cols, rows, cw, ch, s, shape };
   }
-  const { cols, rows, cw, ch, s } = best;
-  const rand = rng(seed ^ 0x9e3779b9);
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const row = Math.floor(i / cols);
-    const inRow = row === rows - 1 ? n - row * cols : cols;
-    const col = i - row * cols;
-    const x0 = (w - inRow * cw) / 2 + col * cw;
-    const y0 = row * ch;
-    const jx = (cw - s) / 2;
-    const jy = (ch - s) / 2;
-    out.push({ x: x0 + cw / 2 + (rand() * 2 - 1) * jx * 0.8, y: y0 + ch / 2 + (rand() * 2 - 1) * jy * 0.8, s });
-  }
-  return out;
+  return best;
+}
+
+/** Cell i of grid g (a short last row is centred): its corner, size and centre. */
+function cellIn(i, n, g, w) {
+  const { cols, rows, cw, ch } = g;
+  const row = Math.floor(i / cols);
+  const inRow = row === rows - 1 ? n - row * cols : cols;
+  const col = i - row * cols;
+  const x0 = (w - inRow * cw) / 2 + col * cw;
+  const y0 = row * ch;
+  return { x0, y0, cw, ch, cx: x0 + cw / 2, cy: y0 + ch / 2 };
+}
+
+/** The cell spot i of n stands in, in a box of w x h px (without the seed's nudge). */
+export function cellOf(i, n, w, h) {
+  return cellIn(i, n, spotGrid(n, w, h), w);
 }

@@ -22,6 +22,7 @@ import {
   TIER_IDS,
   ROUNDS_PER_TIER,
   makeRound,
+  fixedRound,
   parseRoundId,
   roundId,
   roundSeed,
@@ -246,7 +247,9 @@ export function createVerstop(shell) {
     if (lastTier() !== tier) store.saveGameOption(meta.id, 'lastTier', tier);
     if (id && lastScene() !== scene) store.saveGameOption(meta.id, 'lastScene', scene);
     if (id) menuScene = scene;
-    const round = makeRound({ scene, tier, seed, n });
+    // the animal never hides where it hid in the round just played (a replay of the same round too)
+    const before = game?.round || null;
+    const round = id ? fixedRound(id, before) : makeRound({ scene, tier, seed, n, before: before ? [before] : [] });
     game = { scene, tier, roundId: id, seed, round, play: newPlay(), waiting: false, pending: null, done: false };
     shell.show('verstop');
     render();

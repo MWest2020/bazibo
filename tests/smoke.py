@@ -7269,6 +7269,7 @@ def verstop_flow(browser, base, problems):
         problems.append(f"verstop: garden-t1-1 has {n} spots")
     page.screenshot(path=str(SHOTS / "verstop-round-390x844.png"))
     target = next(i for i, s in enumerate(st["spots"]) if s["target"])
+    first_kind = st["spots"][target]["kind"]
     wrong = [i for i, s in enumerate(st["spots"]) if not s["target"]][:2]
     names = {"snail": "de slak", "ladybug": "het lieveheers\u00adbeestje", "mouse": "de muis", "frog": "de kikker", "bird": "het vogeltje", "bee": "de bij", "butterfly": "de vlinder", "mole": "de mol"}
     for k, i in enumerate(wrong):
@@ -7324,6 +7325,9 @@ def verstop_flow(browser, base, problems):
     st = vz_state(page)
     if st["roundId"] != "garden-t1-2" or st["play"]["looked"] or st["done"]:
         problems.append(f"verstop: Volgende ronde started {st['roundId']}")
+    # the animal moved on: not behind the same kind of spot as in the round before
+    if next(s["kind"] for s in st["spots"] if s["target"]) == first_kind:
+        problems.append(f"verstop: garden-t1-2 hides the animal behind the {first_kind} again")
     other = next(i for i, s in enumerate(st["spots"]) if not s["target"])
     vz_tap(page, other)
     page.wait_for_timeout(100)

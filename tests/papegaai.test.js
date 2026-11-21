@@ -19,7 +19,13 @@ test('the voices: the child’s own voice, a mouse, a bear, backwards, an echo, 
   const v = Object.fromEntries(V.VOICES.map((x) => [x.id, x]));
   assert.equal(v.gewoon.rate, 1);
   assert.ok(v.muis.rate >= 1.5 && v.muis.rate <= 2, 'the mouse is higher and quicker');
-  assert.ok(v.beer.rate >= 0.5 && v.beer.rate <= 0.75 && v.beer.lowpass > 0, 'the bear is lower, slower and softer');
+  // the bear is a cuddly one, not a monster (Mark's playtest, 20 Nov 2026): a little lower, hardly
+  // slower (pitch and pace apart, not a slowed-down take as before: 0.62 for both) and soft
+  assert.equal(v.beer.rate, 1, 'the bear is not a slowed-down take');
+  assert.ok(v.beer.shift.pitch >= 0.75 && v.beer.shift.pitch <= 0.85, `the bear's pitch ${v.beer.shift.pitch}`);
+  assert.ok(v.beer.shift.tempo >= 0.85 && v.beer.shift.tempo <= 1, `the bear's pace ${v.beer.shift.tempo}`);
+  assert.ok(v.beer.lowpass >= 2000, 'warm and soft, not muffled');
+  assert.ok(V.VOICES.filter((x) => x.shift).every((x) => x.shift.pitch > 0 && x.shift.tempo > 0));
   assert.equal(v.achteruit.reverse, true);
   assert.ok(v.echo.echo.delay >= 0.15 && v.echo.echo.delay <= 0.5);
   assert.ok(v.echo.echo.feedback > 0 && v.echo.echo.feedback < 0.6, 'every echo is softer than the one before');
@@ -41,6 +47,42 @@ test('the voices: the child’s own voice, a mouse, a bear, backwards, an echo, 
   assert.equal(V.voiceById('robot'), null);
 });
 
+/** The main pitch of a steady tone, from how often it crosses zero (Hz). */
+function pitchOf(data, rate) {
+  let n = 0;
+  for (let i = 1; i < data.length; i++) if (data[i - 1] < 0 && data[i] >= 0) n++;
+  return n / (data.length / rate);
+}
+
+test('pitchShift: the pitch and the pace apart, never louder than the take', () => {
+  for (const rate of [8000, 44100, 48000]) {
+    const tone = new Float32Array(rate * 2);
+    for (let i = 0; i < tone.length; i++) tone[i] = 0.5 * Math.sin((2 * Math.PI * 220 * i) / rate);
+    const bear = V.voiceById('beer').shift;
+    const out = V.pitchShift(tone, rate, bear.pitch, bear.tempo);
+    assert.equal(out.length, Math.round(tone.length / bear.tempo), `${rate}: the pace`);
+    const mid = out.subarray(Math.round(0.2 * rate), out.length - Math.round(0.2 * rate));
+    const f = pitchOf(mid, rate);
+    assert.ok(Math.abs(f - 220 * bear.pitch) < 220 * 0.03, `${rate}: ${f.toFixed(1)} Hz, want ${220 * bear.pitch}`);
+    let peak = 0;
+    for (const x of out) peak = Math.max(peak, Math.abs(x));
+    assert.ok(peak <= 0.5 + 1e-6, `${rate}: louder than the take (${peak})`);
+    assert.ok(peak > 0.3, `${rate}: much softer than the take (${peak})`);
+    // stretched alone: longer or shorter, the same pitch
+    for (const factor of [0.8, 0.9 / 0.8, 1.25]) {
+      const st = V.stretch(tone, rate, factor);
+      assert.equal(st.length, Math.round(tone.length * factor));
+      const g = pitchOf(st.subarray(Math.round(0.2 * rate), st.length - Math.round(0.2 * rate)), rate);
+      assert.ok(Math.abs(g - 220) < 220 * 0.03, `${rate} x${factor}: ${g.toFixed(1)} Hz`);
+    }
+    // pitch 1, pace 1: the take itself
+    const same = V.pitchShift(tone, rate, 1, 1);
+    assert.equal(same.length, tone.length);
+    for (let i = 0; i < tone.length; i += 97) assert.ok(Math.abs(same[i] - tone[i]) < 1e-5, `${rate}: sample ${i}`);
+  }
+  assert.equal(V.pitchShift(new Float32Array(0), 8000, 0.8, 0.9).length, 0);
+});
+
 test('the voices never pile up: layers and echoes stay within 1.5 times the take', () => {
   for (const voice of V.VOICES) assert.ok(V.worstGain(voice) <= 1.5, `${voice.id} adds up to ${V.worstGain(voice)}`);
   assert.equal(V.worstGain(V.voiceById('gewoon')), 1);
@@ -50,7 +92,11 @@ test('how long a voice plays: slower is longer, the balloon’s glide uses the t
   const s = 4;
   assert.equal(V.playSeconds(V.voiceById('gewoon'), s), 4);
   assert.ok(Math.abs(V.playSeconds(V.voiceById('muis'), s) - 4 / 1.75) < 1e-9);
-  assert.ok(V.playSeconds(V.voiceById('beer'), s) > 6);
+  // the bear: hardly longer than the take (before: 4 / 0.62, 6.5 s)
+  assert.ok(Math.abs(V.playSeconds(V.voiceById('beer'), s) - 4 / 0.9) < 1e-9);
+  assert.ok(V.playSeconds(V.voiceById('beer'), s) < 5);
+  assert.equal(V.sourceSeconds(V.voiceById('beer'), s), 4 / 0.9);
+  assert.equal(V.sourceSeconds(V.voiceById('muis'), s), 4);
   // the balloon: a linear glide from 1 to 2 over T uses (1 + 2) / 2 * T seconds of the take
   const b = V.voiceById('ballon');
   const T = V.playSeconds(b, s);
@@ -405,6 +451,11 @@ test('sound: every voice plays the take through the limiter and the clipper, wit
       }
       if (voice.reverse) assert.notEqual(srcs[0].buffer, made.sources[before - 1]?.buffer);
       if (voice.rateEnd) assert.equal(srcs[0].playbackRate.end, voice.rateEnd);
+      // the bear plays its lower copy of the take, as long as its pace makes it, at the normal speed
+      if (voice.shift) {
+        assert.equal(srcs[0].buffer.length, Math.round(made.sources[before - 1].buffer.length / voice.shift.tempo), `${voice.id}: the copy's length`);
+        assert.equal(srcs[0].playbackRate.value, 1);
+      }
       // an echo's loop is always softer than 1, so it dies away
       const delays = made.nodes.filter((n) => n.kind === 'delay' && !n.gone);
       for (const d of delays) {
