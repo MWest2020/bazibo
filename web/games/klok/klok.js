@@ -50,6 +50,7 @@ import { getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
+import { foldLocked } from '../../js/fold.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -201,6 +202,7 @@ export function createKlok(shell) {
       }
       box.appendChild(grid);
     }
+    foldLocked(box);
   }
 
   /** The menu's back: from one kind of round to the four kinds, from there to the home screen. */

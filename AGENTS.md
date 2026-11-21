@@ -13,7 +13,15 @@ with screenshots). The design tokens are the `--bz-*` custom properties at the t
 type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names; the old ones
 (`--primary`, `--ink`, `--gold`...) are aliases. Text never sits white on the orange accent (ink
 instead), locked text is `--bz-ink-quiet`, an empty star is an outline (`--bz-star-empty`), and
-Bubbels shows no points.
+Bubbels shows no points. Locked choices never sit between the free ones: every game menu ends its
+render with `foldLocked(box)` (`web/js/fold.js`), which moves each button with the class `locked`
+into one closed "Volledige versie" fold at the end of the menu, under a copy of its section's
+heading (or the `data-fold-head` name of a group inside a card, like the computer's levels). The
+buttons are moved, not copied, so their own click still offers the full version (OK on the web,
+`offerUnlock` in the app); with the full version nothing is locked and there is no fold. A new menu
+choice that is locked gets the class `locked` and nothing else. Exceptions: the play screens of
+Tekenen (mirror, stamps) and Papegaai (voices), which are tools, not menus. The smoke test opens
+the fold by a real tap (`choose`, `unfold` in `tests/smoke.py`).
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new

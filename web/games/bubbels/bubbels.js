@@ -8,6 +8,7 @@ import * as store from '../../js/storage.js';
 import { isLocked, allFreeDone } from '../../js/unlock.js';
 import { makeRandom, newSeed, randomCard } from '../../js/random.js';
 import { RANDOM_TIERS } from './generate.js';
+import { foldLocked } from '../../js/fold.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
@@ -56,7 +57,10 @@ export function createBubbels(shell) {
 
   $('#btn-random-jump').addEventListener('click', () => {
     tap();
-    $('#levels-random-head').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // without the full version the random boards wait in the fold at the end: open it there
+    const fold = $('#screen-levels .full-fold');
+    if (fold) fold.open = true;
+    (fold || $('#levels-random-head')).scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   function starsText(n) {
@@ -68,13 +72,13 @@ export function createBubbels(shell) {
     const full = $('#levels-full');
     free.textContent = '';
     full.textContent = '';
-    $('.full-divider').hidden = shell.unlock.owned;
     const nextOpen = levels[nextOpenIndex()];
     levels.forEach((l, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'level-btn';
       if (locked(l.id)) {
+        b.classList.add('locked');
         b.innerHTML = `<span class="num">${l.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
         b.setAttribute('aria-label', t('bubbels.levelLocked', { n: l.id }));
         b.addEventListener('click', () => {
@@ -111,6 +115,7 @@ export function createBubbels(shell) {
         }),
       );
     }
+    foldLocked($('#screen-levels .levels-scroll'));
   }
 
   /** The app-wide offer, with a line about which levels it opens here. */

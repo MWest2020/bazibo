@@ -85,20 +85,6 @@
 .level-grid .level-btn.random-btn.locked { background: rgba(255, 255, 255, 0.55); color: var(--bz-ink-quiet); box-shadow: 0 4px 0 #ddd8f7; }
 .level-grid .level-btn.random-btn.locked .dice { color: var(--bz-ink-quiet); }
 
-.full-divider {
-  max-width: 560px;
-  margin: 28px auto 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 900;
-  font-size: 1.2rem;
-  color: var(--ink-soft);
-}
-.full-divider::before, .full-divider::after { content: ""; flex: 1; height: 3px; border-radius: 3px; background: #d4ccff; }
-.full-divider svg { width: 24px; height: 24px; fill: currentColor; }
-.full-divider[hidden] { display: none; }
-
 .locked-grid .level-btn {
   background: rgba(255, 255, 255, 0.55);
   color: var(--bz-ink-quiet);

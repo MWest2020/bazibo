@@ -563,3 +563,41 @@ html, body {
   .tile { min-height: 166px; }
   .tile-name { font-size: 1.15rem; }
 }
+
+/* ---------- components: the "Volledige versie" fold (js/fold.js) ----------
+   The locked choices of a menu, gathered at its end and closed by default: the child sees the
+   free games first, a parent finds what the full version adds in one place. */
+.full-fold { width: 100%; max-width: 560px; margin: var(--bz-space-6) auto var(--bz-space-4); text-align: left; }
+.full-fold-head {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bz-space-2);
+  min-height: var(--bz-target-main);
+  padding: 0 var(--bz-space-5);
+  border-radius: var(--bz-radius-pill);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 0 2px var(--bz-brand-tint);
+  color: var(--bz-ink-soft);
+  font-size: var(--bz-text-m);
+  font-weight: var(--bz-weight-head);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.full-fold-head::-webkit-details-marker { display: none; }
+.full-fold-head:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
+.full-fold-lock { width: 20px; height: 20px; fill: currentColor; flex: none; }
+.full-fold-chevron { width: 22px; height: 22px; flex: none; transition: transform var(--bz-motion); }
+.full-fold[open] .full-fold-chevron { transform: rotate(180deg); }
+.full-fold-body { padding-top: var(--bz-space-4); }
+.full-fold-body > [hidden] { display: none; }
+/* inside the fold the one padlock on the fold says it all: no padlock on every button */
+.full-fold .level-btn.locked:not(.random-btn) > svg,
+.full-fold .locked > .lock,
+.full-fold .locked .vz-lock,
+.full-fold .locked .kleur-badge.lock,
+.full-fold .piano-card.locked .piano-card-end,
+.full-fold .drums-card.locked .drums-card-end { display: none; }
+@media (prefers-reduced-motion: reduce) { .full-fold-chevron { transition: none; } }
+.full-fold-sub { margin: var(--bz-space-3) var(--bz-space-1) var(--bz-space-2); font-size: var(--bz-text-l); font-weight: var(--bz-weight-brand); color: var(--bz-brand-dark); }

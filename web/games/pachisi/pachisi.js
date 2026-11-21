@@ -30,6 +30,7 @@ import { robotBadge, kidSvg } from '../ganzen/art.js';
 import { robotSvg } from '../vier/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
+import { foldLocked } from '../../js/fold.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const SWAP = '<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 0 0-13.5-2M5 16a8 8 0 0 0 13.5 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 2.5v4h4M19 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -368,6 +369,7 @@ export function createPachisi(shell) {
     });
     actions.appendChild(playBtn);
     box.appendChild(actions);
+    foldLocked(box);
   }
 
   // ---------- a game ----------
