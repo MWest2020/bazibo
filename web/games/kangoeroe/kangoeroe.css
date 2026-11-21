@@ -101,7 +101,8 @@
   touch-action: manipulation;
   box-shadow: 0 4px 0 rgba(43, 35, 112, 0.35);
 }
-.kg-hop.on { background: #ff8a3d; }
+.kg-hop.on { background: var(--bz-accent); color: var(--bz-on-accent); } /* ink on orange 5.7:1; white was 2.4:1 */
+.kg-hop.on.ten { color: #fff; } /* white on the darker orange: 4.4:1, large text */
 .kg-hop.on.ten { background: #e2581f; }
 .kg-hop.back { background: #3b82f6; }
 .kg-hop.back.ten { background: #1d4ed8; }
