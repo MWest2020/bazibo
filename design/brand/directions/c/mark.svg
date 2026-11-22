@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="c-title c-desc">
+  <title id="c-title">Bazibo, richting C: de plattegrond</title>
+  <desc id="c-desc">Het prieel van bovenaf: een zeshoekige ring met aan de voorkant een drempel in een warme kleur.</desc>
+  <g id="c-mark" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="26">
+    <path d="M100 206 L36 128 L100 50 H156 L220 128 L156 206" stroke="#2f6b5e"/>
+    <path d="M98 206 H158" stroke="#a8790e"/>
+  </g>
+</svg>

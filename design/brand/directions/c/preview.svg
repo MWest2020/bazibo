@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" width="960" height="500" role="img" aria-labelledby="cpv-title">
+  <title id="cpv-title">Richting C, Plattegrond: het beeldmerk op 192, 48 en 24 px, op licht en donker, met het palet Polder</title>
+  <defs>
+    <g id="cpv-mark" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="26">
+      <path d="M100 206 L36 128 L100 50 H156 L220 128 L156 206" stroke="#2f6b5e"/>
+      <path d="M98 206 H158" stroke="#a8790e"/>
+    </g>
+    <g id="cpv-mark-dark" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="26">
+      <path d="M100 206 L36 128 L100 50 H156 L220 128 L156 206" stroke="#f2f5f4"/>
+      <path d="M98 206 H158" stroke="#e0a830"/>
+    </g>
+  </defs>
+  <rect width="960" height="500" fill="#f2f5f4"/>
+  <use href="#cpv-mark" transform="translate(48 40) scale(0.75)"/>
+  <use href="#cpv-mark" transform="translate(288 136) scale(0.1875)"/>
+  <use href="#cpv-mark" transform="translate(360 160) scale(0.09375)"/>
+  <rect x="440" y="40" width="192" height="192" rx="42" fill="#ffffff" stroke="#dde3e1" stroke-width="2"/>
+  <use href="#cpv-mark" transform="translate(464 64) scale(0.5625)"/>
+  <rect x="664" y="40" width="192" height="192" rx="42" fill="#1f2e3d"/>
+  <use href="#cpv-mark-dark" transform="translate(688 64) scale(0.5625)"/>
+  <g>
+    <rect x="48" y="288" width="88" height="88" rx="18" fill="#f2f5f4" stroke="#dde3e1" stroke-width="2"/>
+    <rect x="148" y="288" width="88" height="88" rx="18" fill="#1f2e3d"/>
+    <rect x="248" y="288" width="88" height="88" rx="18" fill="#4c5d6b"/>
+    <rect x="348" y="288" width="88" height="88" rx="18" fill="#2f6b5e"/>
+  </g>
+  <g>
+    <rect x="32" y="396" width="78" height="56" rx="16" fill="#2f7d6d"/>
+    <rect x="122" y="396" width="78" height="56" rx="16" fill="#c4573a"/>
+    <rect x="212" y="396" width="78" height="56" rx="16" fill="#a8457e"/>
+    <rect x="302" y="396" width="78" height="56" rx="16" fill="#a8790e"/>
+    <rect x="392" y="396" width="78" height="56" rx="16" fill="#2f6fc0"/>
+    <rect x="482" y="396" width="78" height="56" rx="16" fill="#e2f0ec"/>
+    <rect x="572" y="396" width="78" height="56" rx="16" fill="#f8e7e1"/>
+    <rect x="662" y="396" width="78" height="56" rx="16" fill="#f7e6ef"/>
+    <rect x="752" y="396" width="78" height="56" rx="16" fill="#f7eed8"/>
+    <rect x="842" y="396" width="78" height="56" rx="16" fill="#e3ecf8"/>
+  </g>
+</svg>

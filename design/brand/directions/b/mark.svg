@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="b-title b-desc">
+  <title id="b-title">Bazibo, richting B: het zegel met de doorgang</title>
+  <desc id="b-desc">Een ronde terracotta zegel met daarin een uitgespaarde lage boog: de open kant van het prieel, de weg naar binnen.</desc>
+  <!-- een pad met fill-rule evenodd: de doorgang is een echt gat, dus het zegel werkt in een
+       kleur en op elke achtergrond -->
+  <path id="b-seal" fill="#b4532f" fill-rule="evenodd"
+        d="M128 12 A116 116 0 1 1 127.9 12 Z
+           M68 192 V140 A60 48 0 0 1 188 140 V192 Z"/>
+</svg>

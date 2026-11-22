@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" width="960" height="500" role="img" aria-labelledby="apv-title">
+  <title id="apv-title">Richting A, Prieel: het beeldmerk op 192, 48 en 24 px, op licht en donker, met het palet Papier</title>
+  <defs>
+    <g id="apv-mark">
+      <g fill="none" stroke="#28245c" stroke-linecap="round">
+        <path d="M58 110 V198" stroke-width="26"/>
+        <path d="M198 110 V198" stroke-width="26"/>
+        <path d="M34 202 H222" stroke-width="20"/>
+        <path d="M128 76 V134" stroke-width="10"/>
+      </g>
+      <circle cx="128" cy="158" r="24" fill="#b97f0a"/>
+      <path d="M36 114 L92 58 H164 L220 114" fill="none" stroke="#4f43c4" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="apv-mark-dark">
+      <g fill="none" stroke="#fbf7f0" stroke-linecap="round">
+        <path d="M58 110 V198" stroke-width="26"/>
+        <path d="M198 110 V198" stroke-width="26"/>
+        <path d="M34 202 H222" stroke-width="20"/>
+        <path d="M128 76 V134" stroke-width="10"/>
+      </g>
+      <circle cx="128" cy="158" r="24" fill="#e8b84b"/>
+      <path d="M36 114 L92 58 H164 L220 114" fill="none" stroke="#a79bf5" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </defs>
+  <rect width="960" height="500" fill="#fbf7f0"/>
+  <!-- het beeldmerk op ware grootte: 192, 48 en 24 px -->
+  <use href="#apv-mark" transform="translate(48 40) scale(0.75)"/>
+  <use href="#apv-mark" transform="translate(288 136) scale(0.1875)"/>
+  <use href="#apv-mark" transform="translate(360 160) scale(0.09375)"/>
+  <!-- op wit en op inkt -->
+  <rect x="440" y="40" width="192" height="192" rx="42" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <use href="#apv-mark" transform="translate(464 64) scale(0.5625)"/>
+  <rect x="664" y="40" width="192" height="192" rx="42" fill="#28245c"/>
+  <use href="#apv-mark-dark" transform="translate(688 64) scale(0.5625)"/>
+  <!-- palet: basis, inkt, zachte inkt, merk; daaronder de vijf groepsaccenten met hun tint -->
+  <g>
+    <rect x="48" y="288" width="88" height="88" rx="18" fill="#fbf7f0" stroke="#e6e0d4" stroke-width="2"/>
+    <rect x="148" y="288" width="88" height="88" rx="18" fill="#28245c"/>
+    <rect x="248" y="288" width="88" height="88" rx="18" fill="#5a5585"/>
+    <rect x="348" y="288" width="88" height="88" rx="18" fill="#4f43c4"/>
+  </g>
+  <g>
+    <rect x="32" y="396" width="78" height="56" rx="16" fill="#2a8f88"/>
+    <rect x="122" y="396" width="78" height="56" rx="16" fill="#d9663f"/>
+    <rect x="212" y="396" width="78" height="56" rx="16" fill="#c8508a"/>
+    <rect x="302" y="396" width="78" height="56" rx="16" fill="#b97f0a"/>
+    <rect x="392" y="396" width="78" height="56" rx="16" fill="#3f86d0"/>
+    <rect x="482" y="396" width="78" height="56" rx="16" fill="#e3f4f2"/>
+    <rect x="572" y="396" width="78" height="56" rx="16" fill="#fbe9e1"/>
+    <rect x="662" y="396" width="78" height="56" rx="16" fill="#fae6ef"/>
+    <rect x="752" y="396" width="78" height="56" rx="16" fill="#fbf1d6"/>
+    <rect x="842" y="396" width="78" height="56" rx="16" fill="#e3eefa"/>
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="pi-title">
+  <title id="pi-title">Bazibo, Play-pictogram</title>
+  <rect width="512" height="512" fill="#4f43c4"/>
+  <g id="pi-mark" transform="translate(64 58) scale(1.5)">
+    <g fill="none" stroke="#fbf7f0" stroke-linecap="round">
+      <path d="M58 110 V198" stroke-width="26"/>
+      <path d="M198 110 V198" stroke-width="26"/>
+      <path d="M34 202 H222" stroke-width="20"/>
+      <path d="M128 76 V134" stroke-width="12"/>
+    </g>
+    <circle cx="128" cy="158" r="25" fill="#e8b84b"/>
+    <path d="M36 114 L92 58 H164 L220 114" fill="none" stroke="#fbf7f0" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

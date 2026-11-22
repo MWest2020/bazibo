@@ -1,0 +1,70 @@
+/* Bazibo brand tokens, richting A "Prieel", palet Papier.
+   Dezelfde waarden als tokens.json. Elke tekstcombinatie is gemeten: ink op base 13,1:1,
+   ink-soft op base 6,4:1, wit op brand 7,2:1, elk groepsaccent 3:1 of meer op base en elke
+   groepstekst 4,5:1 of meer op de eigen tint. Kleur is nooit het enige teken: een groep heeft
+   altijd ook een eigen naam en pictogram. */
+:root {
+  /* basis */
+  --bz-base: #fbf7f0;
+  --bz-surface: #ffffff;
+  --bz-line: #e6e0d4;
+
+  /* inkt en merk */
+  --bz-ink: #28245c;
+  --bz-ink-soft: #5a5585;
+  --bz-ink-quiet: #6f6a99;
+  --bz-brand: #4f43c4;
+  --bz-on-brand: #ffffff;
+  --bz-brand-dark: #342a96;
+  --bz-brand-tint: #ece9fb;
+  --bz-focus: #28245c;
+  --bz-lantern: #b97f0a;
+
+  /* het logo op een donkere ondergrond */
+  --bz-dark-base: #28245c;
+  --bz-dark-ink: #fbf7f0;
+  --bz-dark-brand: #a79bf5;
+  --bz-dark-lantern: #e8b84b;
+
+  /* een accent per spelgroep: -acc voor vormen, -tint voor vlakken, -text voor tekst op de tint */
+  --bz-puzzles-acc: #2a8f88;  --bz-puzzles-tint: #e3f4f2;  --bz-puzzles-text: #1d6b66;
+  --bz-board-acc: #d9663f;    --bz-board-tint: #fbe9e1;    --bz-board-text: #9c3f1f;
+  --bz-creative-acc: #c8508a; --bz-creative-tint: #fae6ef; --bz-creative-text: #8f2f5e;
+  --bz-learning-acc: #b97f0a; --bz-learning-tint: #fbf1d6; --bz-learning-text: #7a5600;
+  --bz-action-acc: #3f86d0;   --bz-action-tint: #e3eefa;   --bz-action-text: #235a96;
+
+  /* letters: alleen OFL, meegeleverd in de app, geen CDN */
+  --bz-font-display: Fredoka, ui-rounded, system-ui, sans-serif;
+  --bz-font-text: Nunito, ui-rounded, system-ui, sans-serif;
+  --bz-font-letters: Andika, var(--bz-font-text);
+
+  /* schaal: niets dat een kind moet lezen onder 16 px */
+  --bz-text-m: 16px;
+  --bz-text-l: 20px;
+  --bz-text-xl: 25px;
+  --bz-text-2xl: 31px;
+  --bz-text-3xl: 39px;
+  --bz-text-4xl: 49px;
+  --bz-weight-text: 600;
+  --bz-weight-strong: 700;
+  --bz-weight-display: 500;
+  --bz-line-tight: 1.1;
+  --bz-line-normal: 1.45;
+
+  /* vorm en ruimte */
+  --bz-radius-s: 8px;
+  --bz-radius-m: 14px;
+  --bz-radius-l: 22px;
+  --bz-radius-xl: 32px;
+  --bz-radius-pill: 999px;
+  --bz-space-1: 4px;
+  --bz-space-2: 8px;
+  --bz-space-3: 12px;
+  --bz-space-4: 16px;
+  --bz-space-5: 24px;
+  --bz-space-6: 32px;
+  --bz-space-7: 48px;
+  --bz-target: 48px;
+  --bz-target-main: 56px;
+  --bz-target-big: 64px;
+}

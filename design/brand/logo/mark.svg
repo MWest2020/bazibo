@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="lm-title lm-desc">
+  <title id="lm-title">Bazibo</title>
+  <desc id="lm-desc">Het beeldmerk: een prieel met een dak op twee staanders, een vloerlijn en een lantaarn die aan het dak hangt.</desc>
+  <g id="lm-mark">
+    <g fill="none" stroke="#28245c" stroke-linecap="round">
+      <path d="M58 110 V198" stroke-width="26"/>
+      <path d="M198 110 V198" stroke-width="26"/>
+      <path d="M34 202 H222" stroke-width="20"/>
+      <path d="M128 76 V134" stroke-width="12"/>
+    </g>
+    <circle cx="128" cy="158" r="25" fill="#b97f0a"/>
+    <path d="M36 114 L92 58 H164 L220 114" fill="none" stroke="#4f43c4" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
