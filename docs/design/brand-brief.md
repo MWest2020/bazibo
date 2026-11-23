@@ -1,6 +1,6 @@
 ---
 status: current
-last_reviewed: 2026-11-21
+last_reviewed: 2026-11-23
 ---
 
 # Merkbrief Bazibo / Bazibo brand brief
@@ -10,6 +10,23 @@ winkel, site, startscherm); de spellen houden hun eigen SVG-stijl. Achtergrond:
 [style-audit.md](style-audit.md). *English version below.*
 
 ## Nederlands
+
+**Ronde 2 (Mark, 23 nov 2026). Dit gaat voor alles hieronder.** De eerste ronde (drie
+richtingen: Prieel, Zegel, Plattegrond; draft-PR #88) was netjes maar te braaf, en vooral het logo
+ziet er te *gegenereerd* uit: strakke geometrie die bij elk merk zou passen. Nu:
+- **Speelser en kleurrijker.** Meer karakter, meer kleur in het merk zelf (niet één merkkleur met
+  wat accenten). Het mag lachen. "Rustig" blijft gelden voor de app (geen drukte, niets dat aan je
+  trekt), niet voor de vorm van het logo.
+- **Een logo dat gemaakt voelt, niet gegenereerd.** Een eigen gebaar: een losse, levendige lijn,
+  een vorm met een knipoog, een woordmerk met eigen letters of een figuurtje als dat het draagt.
+  Geen generieke huisjes, schijven of zeshoeken. Laat zien welke schetsen je weggooide en waarom.
+- **Geen bubbels meer.** Het bubbel-motief (logo en achtergrond) komt van versie 1.0.0 en mag
+  helemaal weg; het merk hoeft niet meer naar bubbels te verwijzen.
+- **Blijft:** geen reclamegame-look (glimmende 3D, munten, regenboogverlopen), de AI-clichés
+  hieronder, AA-contrast voor tekst, kleur nooit het enige teken, OFL-letters, alles zelf getekend.
+- **Lever dit keer ook de winkelset** (feature graphic en screenshotkaders, NL en EN): die
+  ontbrak in ronde 1. Liever drie richtingen af dan de extra's gepoetst.
+- Drie **nieuwe** richtingen, geen variaties op ronde 1.
 
 **Wat Bazibo is.** Eén app met 23 speel-en-leerspelletjes voor kinderen van 3 tot 10 jaar
 (puzzels, bordspellen, creatief, leren, actie), in het Nederlands en Engels. Eén keer € 1 opent
@@ -80,6 +97,23 @@ geen `url(#)`-id's die botsen; tekst in het logo omgezet naar paden). Geen CDN, 
 alles moet als losse bestanden in `web/` passen. Strakke CSP: geen inline styles.
 
 ## English
+
+**Round 2 (Mark, 23 Nov 2026). This overrides everything below.** Round 1 (three directions:
+Gazebo, Seal, Floor plan; draft PR #88) was tidy but too tame, and above all the logo looks too
+*generated*: clean geometry that would fit any brand. Now:
+- **More playful and more colourful.** More character, more colour in the brand itself (not one
+  brand colour plus a few accents). It may smile. "Calm" still applies to the app (no clutter,
+  nothing that pulls at you), not to the shape of the logo.
+- **A logo that feels made, not generated.** A gesture of its own: a loose, lively line, a shape
+  with a wink, a wordmark with its own letters, or a little character if it carries it. No
+  generic houses, discs or hexagons. Show which sketches you threw away and why.
+- **No more bubbles.** The bubble motif (logo and background) dates from version 1.0.0 and can go
+  entirely; the brand no longer needs to refer to bubbles.
+- **Still:** no ad-game look (glossy 3D, coins, rainbow gradients), the AI clichés below, AA
+  contrast for text, colour never the only cue, OFL fonts, everything drawn by you.
+- **Deliver the store set this time** (feature graphic and screenshot frames, NL and EN): round 1
+  did not get to it. Three directions finished beats polished extras.
+- Three **new** directions, not variations on round 1.
 
 **What Bazibo is.** One app with 23 play-and-learn games for children of 3 to 10 (puzzles, board
 games, creative, learning, action), in Dutch and English. One €1 purchase opens everything. No
