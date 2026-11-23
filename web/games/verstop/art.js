@@ -415,10 +415,18 @@ export function figureSvg(who, cls = '') {
 }
 
 // ---------- the hiding spots ----------
-// Each: `color` (for the tests) and `draw(n)` -> { under, frame, cover }: `under` is drawn before the
-// figure (the shadow, and the dark inside of a doorway), `frame` after it and never moves (a door's
-// tree or panel, with the doorway cut out), `cover` last: the part that lifts, slides or swings.
+// Each: `color` (for the tests) and `draw(n)` -> { under, frame, front, cover }: `under` is drawn
+// before the figure (the shadow, and the dark inside of a doorway), `frame` after it and never moves
+// (a door's tree or panel, with the doorway cut out), `front` (optional, never moves) after the place
+// of a hint that comes out of the spot (the stump's front rim), `cover` last: the part that lifts,
+// slides or swings.
 // `hole` is a doorway's box: the figure is shrunk into it.
+
+/**
+ * The sandcastle's flag: sky blue, a colour no feature has (a red flag next to a red scarf peeking
+ * over the battlements would read as the scarf) and far from every animal's (tested).
+ */
+export const CASTLE_FLAG = '#2a9fd6';
 
 const shadow = (rx = 40) => `<ellipse cx="50" cy="95" rx="${rx}" ry="5" fill="#000" opacity=".13"/>`;
 
@@ -525,7 +533,7 @@ export const SPOT_ART = Object.freeze({
       frame: '',
       cover: `<path d="M10 95V56h10v-6h8v6h8V40h8v-6h12v6h8v16h8v-6h8v6h10v39z" ${ring('#e8cf96', '#a88848', 2.6)} stroke-linejoin="round"/>` +
         `<path d="M44 95V80a6 6 0 0 1 12 0v15z" fill="#b89a5a"/>` +
-        `<path d="M50 34V18" stroke="#7a5a2a" stroke-width="2.2"/><path d="M50 18l12 4-12 4z" fill="#ff5a5a"/>` +
+        `<path d="M50 34V18" stroke="#7a5a2a" stroke-width="2.2"/><path d="M50 18l12 4-12 4z" fill="${CASTLE_FLAG}"/>` +
         `<circle cx="22" cy="72" r="2" fill="#c9ad6e"/><circle cx="78" cy="68" r="2" fill="#c9ad6e"/><circle cx="66" cy="84" r="2" fill="#c9ad6e"/><circle cx="30" cy="86" r="2" fill="#c9ad6e"/>`,
     }),
   },
@@ -553,6 +561,14 @@ export const SPOT_ART = Object.freeze({
           `<path d="M14 24c10-8 24-10 36-10s26 2 36 10" fill="none" stroke="#4f3a2a" stroke-width="2.6"/><ellipse cx="50" cy="24" rx="34" ry="8" fill="#d9b88f" stroke="#4f3a2a" stroke-width="2.2"/>` +
           `<ellipse cx="50" cy="24" rx="20" ry="4.2" fill="#3b2a24" stroke="#b08a60" stroke-width="1.8"/>` +
           `<path d="M16 50v30M84 52v28" stroke="#6e5644" stroke-width="2.2" stroke-linecap="round"/>`,
+        // in front of the hollow, on every stump with or without a hint (so they all look alike):
+        // the front of the rim and the stump just below it, round the doorway's edge, which a peek
+        // out of the hollow goes down behind
+        front: `<path d="M22 28.54A34 8 0 0 0 78 28.54V50H66.97A22 22 0 0 0 33.03 50H22z" fill="#8f7460"/>` +
+          `<path d="M28 64a22 22 0 0 1 44 0" fill="none" stroke="#4f3a2a" stroke-width="2.6"/>` +
+          `<path d="M16 24a34 8 0 0 0 68 0H70a20 4.2 0 0 1-40 0z" fill="#d9b88f"/>` +
+          `<path d="M16 24a34 8 0 0 0 68 0" fill="none" stroke="#4f3a2a" stroke-width="2.2"/>` +
+          `<path d="M30 24a20 4.2 0 0 0 40 0" fill="none" stroke="#b08a60" stroke-width="1.8"/>`,
         cover: `<path d="${doorway}" ${ring('#d94a4a', '#8a2020', 2.4)}/>` +
           `<circle cx="50" cy="60" r="7" ${ring('#ffe9a8', '#8a2020', 2)}/><path d="M50 53v14M43 60h14" stroke="#8a2020" stroke-width="1.6"/>` +
           `<path d="M34 76h32M34 86h32" stroke="#b23434" stroke-width="2"/><circle cx="64" cy="80" r="2.6" fill="#ffd23f" stroke="#8a6400" stroke-width="1.2"/>`,
@@ -598,28 +614,17 @@ export const PEEK_AT = Object.freeze({
 });
 
 /**
- * What is drawn over a peek that comes out of a spot instead of from behind it (`over` in PEEK_AT):
- * the stump's front rim round its hollow and the stump below it, exactly as the frame draws them, so
- * the peek's lower part is hidden and the stump looks the same with the peek away.
- */
-const PEEK_FRONT = {
-  door: `<path d="M16 24a34 8 0 0 0 68 0V48H16z" fill="#8f7460"/>` +
-    `<path d="M16 24a34 8 0 0 0 68 0H70a20 4.2 0 0 1-40 0z" fill="#d9b88f"/>` +
-    `<path d="M16 24a34 8 0 0 0 68 0" fill="none" stroke="#4f3a2a" stroke-width="2.2"/>` +
-    `<path d="M30 24a20 4.2 0 0 0 40 0" fill="none" stroke="#b08a60" stroke-width="1.8"/>`,
-};
-
-/**
  * A hint as SVG (`vz-clue`): the animal's peek (with its feature's glimpse) at the spot's PEEK_AT,
- * drawn behind the cover (or, `over`, out of the stump's hollow with its front rim over it). CSS
- * slides `vz-peek` up and away (`data-show`, `data-beat`).
+ * drawn behind the cover (or, `over`, out of the stump's hollow, under the stump's `front`). CSS
+ * slides `vz-peek` up and away (`data-show`, `data-beat`). Nothing else is in it, so with the peek
+ * away a spot with a hint looks exactly like one without (tests/smoke.py checks it in pixels).
  */
 export function clueG(kind, clue) {
   if (!clue) return '';
   const at = PEEK_AT[kind];
   const feat = clue.feature ? PEEK_FEATURES[clue.feature]() : '';
   return `<g class="vz-clue" data-show="${clue.show}" data-beat="${clue.beat || 0}" data-animal="${clue.animal}" data-feature="${clue.feature || ''}">` +
-    `<g transform="translate(${at.x} ${at.y}) rotate(${at.a}) scale(.9)"><g class="vz-peek">${PEEKS[clue.animal]()}${feat}</g></g>${PEEK_FRONT[kind] || ''}</g>`;
+    `<g transform="translate(${at.x} ${at.y}) rotate(${at.a}) scale(.9)"><g class="vz-peek">${PEEKS[clue.animal]()}${feat}</g></g></g>`;
 }
 
 /** Where a figure sits in a spot: shrunk into the doorway of a door or flap, else the whole box. */
@@ -633,7 +638,7 @@ export function figureFit(kind) {
 
 /**
  * One spot as an SVG: the shadow and doorway, the hint (`clue`, from `cluesOf` in rules.js; none on a
- * friend's spot; after the frame when it comes out of the stump), the figure behind it (`vz-who`, shown only while the spot is open), the frame and
+ * friend's spot; between the frame and the stump's front when it comes out of the stump), the figure behind it (`vz-who`, shown only while the spot is open), the frame and
  * the cover (`vz-cover`). `n` is its number (on a flap).
  */
 export function spotSvg(kind, who, n = 1, clue = null) {
@@ -644,13 +649,14 @@ export function spotSvg(kind, who, n = 1, clue = null) {
   const hint = clueG(kind, clue);
   const over = PEEK_AT[kind].over;
   return `<svg class="vz-svg" viewBox="0 0 100 100" aria-hidden="true" data-open="${SPOTS[kind]}">${art.under}${over ? '' : hint}<g class="vz-who">${fig}</g>` +
-    `${art.frame ? `<g class="vz-frame">${art.frame}</g>` : ''}${over ? hint : ''}<g class="vz-cover">${art.cover}</g>${sparks}</svg>`;
+    `${art.frame ? `<g class="vz-frame">${art.frame}</g>` : ''}${over ? hint : ''}${art.front ? `<g class="vz-frame vz-front">${art.front}</g>` : ''}` +
+    `<g class="vz-cover">${art.cover}</g>${sparks}</svg>`;
 }
 
 /** A spot alone, closed (the menu and how-to pictures). */
 function spotOnly(kind, n = 1) {
   const art = SPOT_ART[kind].draw(n);
-  return `${art.under}${art.frame}${art.cover}`;
+  return `${art.under}${art.frame}${art.front || ''}${art.cover}`;
 }
 
 // ---------- the scenes ----------

@@ -37,7 +37,7 @@ import {
   CLUE_SHOWS,
 } from '../web/games/verstop/rules.js';
 import { meta } from '../web/games/verstop/meta.js';
-import { ANIMALS, CREATURES, SPOT_ART, COLORS, FEATURE_COLORS, figureSvg, spotSvg, sceneSvg, tileSvg, howSvg, sceneCardSvg, figureFit, clueG, PEEK_AT } from '../web/games/verstop/art.js';
+import { ANIMALS, CREATURES, SPOT_ART, COLORS, FEATURE_COLORS, figureSvg, spotSvg, sceneSvg, tileSvg, howSvg, sceneCardSvg, figureFit, clueG, PEEK_AT, CASTLE_FLAG } from '../web/games/verstop/art.js';
 
 const SEEDS = 200;
 
@@ -162,6 +162,14 @@ for (const tier of TIER_IDS) {
     }
   });
 }
+
+test('verstop: the sandcastle\'s flag is no feature\'s colour and far from every animal\'s', () => {
+  const rgb = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const apart = (a, b) => Math.hypot(...rgb(a).map((v, k) => v - rgb(b)[k]));
+  assert.ok(spotSvg('castle', { kind: 'creature', id: 'frog' }, 1).includes(`fill="${CASTLE_FLAG}"`));
+  for (const [f, c] of Object.entries(FEATURE_COLORS)) assert.ok(apart(CASTLE_FLAG, c) >= 120, `the flag looks like the ${f}: ${apart(CASTLE_FLAG, c).toFixed(0)}`);
+  for (const [a, c] of Object.entries(COLORS.animal)) assert.ok(apart(CASTLE_FLAG, c) >= 90, `the flag looks like the ${a}: ${apart(CASTLE_FLAG, c).toFixed(0)}`);
+});
 
 test('verstop: harder by tier, never by speed: t1 from the start, t2 now and then, t3 rarely', () => {
   assert.deepEqual(TIER_IDS.map((k) => TIERS[k].clue), ['always', 'sometimes', 'rarely']);

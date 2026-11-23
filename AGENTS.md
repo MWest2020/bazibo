@@ -378,8 +378,11 @@ just guessing"): a bit of the animal peeks out over the top of its own spot (`cl
 `rules.js`, tested over the same 200 seeds per scene and tier: every animal's spot gives its own
 clue, never a friend's spot; the peeks are `PEEKS` in `art.js`, the head-top that tells it apart
 (spines, long ears, floppy ears, tufts, eye stalks...), all about as high, drawn behind the cover at
-the spot's `PEEK_AT` (out of the hollow stump for a door, its front rim in `PEEK_FRONT` over it), in
-its own colours; a whole peek stays inside its spot's box). Harder by tier (`TIERS[t].clue`), never by speed: t1 `always` (a
+the spot's `PEEK_AT` (for a door out of the stump's hollow, under the stump's `front`, which every
+door draws with or without a hint), in its own colours; a whole peek stays inside its spot's box, and
+`vz-clue` holds nothing but the peek, so between two peeks a spot with a hint draws exactly the same
+pixels as one without). The sandcastle's flag is `CASTLE_FLAG` (sky blue): never a feature's colour
+(a red flag read as the red scarf) and far from every animal's (tested). Harder by tier (`TIERS[t].clue`), never by speed: t1 `always` (a
 little of it from the start, still), t2 `sometimes` (each animal's head comes up now and then and
 goes back, each clue spot on its own beat), t3 `rarely` (less often, only a little) and the
 look-alikes peek too, each with a glimpse of its own feature's colour (or none), so "a hedgehog is
@@ -390,8 +393,9 @@ glow; gone once the spot is opened, in the memory question and at the end; with
 measured in pixels, not CSS state (`verstop_hint_pixels`, `tests/smoke.py verstop-pixels`): every
 animal over every kind of spot with every feature, still, at the peak and with reduced motion, adds
 at least `VZ_HINT_MIN` pixels to a spot drawn 200 px wide (t1 400, t2 600, t3 200), a feature at
-least `VZ_FEATURE_MIN` (150) in its colour, and nothing outside the spot; a new animal, spot or
-feature must pass it. `starsFor` counts extra looks only, each spot once
+least `VZ_FEATURE_MIN` (150) in its colour, and nothing outside the spot; with the peek slid away,
+every kind of spot with a hint draws 0 pixels different from one without (a hint must never give
+the spot away by itself); a new animal, spot or feature must pass it. `starsFor` counts extra looks only, each spot once
 in a round (a second look at a spot counts nothing, also in the memory question), never time; a hint changes nothing there. No timers, no voice; sounds are the shell's
 `plink` and `chime`. Spots are buttons placed by `spotLayout` (pure, tested over every box from 260 x
 290 up and the measured smoke-test boxes: `MIN_SPOT` 64 px or more, inside the box, never

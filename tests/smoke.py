@@ -7628,10 +7628,10 @@ VZ_HINT_PIXELS_JS = """async ({ states }) => {
   const R = await import('./games/verstop/rules.js');
   const cv = document.createElement('canvas'); cv.width = 280; cv.height = 280;
   const cx = cv.getContext('2d', { willReadFrequently: true });
-  async function raw(svg, ty) {
+  async function raw(svg, ty, away = false) {
     svg = svg.replace('viewBox="0 0 100 100"', 'viewBox="-20 -20 140 140" width="280" height="280" xmlns="http://www.w3.org/2000/svg"')
       .replace('<g class="vz-who">', '<g class="vz-who" opacity="0">')
-      .replace('<g class="vz-peek">', `<g class="vz-peek" transform="translate(0 ${ty})">`);
+      .replace('<g class="vz-peek">', `<g class="vz-peek" transform="translate(0 ${ty})"${away ? ' opacity="0"' : ''}>`);
     const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     await img.decode();
     cx.clearRect(0, 0, 280, 280); cx.drawImage(img, 0, 0);
@@ -7662,7 +7662,20 @@ VZ_HINT_PIXELS_JS = """async ({ states }) => {
       }
     }
   }
-  return out;
+  // between two peeks (slid away, opacity 0) a spot with a hint must look exactly like one without
+  const leaks = [];
+  for (const kind of R.SPOT_KINDS) {
+    const who = { kind: 'creature', id: 'frog' };
+    for (const animal of R.ANIMAL_IDS) {
+      for (const feature of [null, ...R.featuresFor(animal)]) {
+        const a = await raw(A.spotSvg(kind, who, 1, { animal, feature, show: 'sometimes', beat: 0 }), 24, true);
+        let n = 0;
+        for (let i = 0; i < a.length; i++) if (a[i] !== bare[kind][i]) n++;
+        leaks.push({ kind, animal, feature, differ: n });
+      }
+    }
+  }
+  return { rows: out, leaks };
 }"""
 
 # The least a hint must add to a spot drawn 200 px wide (VZ_HINT_PIXELS_JS), per tier: t1 a clear bit
@@ -7672,7 +7685,7 @@ VZ_FEATURE_MIN = 150
 
 
 def vz_hint_pixels(browser, base, reduce):
-    """The pixel matrix of every hint as verstop.css shows it (see VZ_HINT_PIXELS_JS)."""
+    """The pixel matrix of every hint as verstop.css shows it, and the spots with a hint slid away (see VZ_HINT_PIXELS_JS)."""
     ctx = browser.new_context(bypass_csp=True, viewport={"width": 400, "height": 400}, reduced_motion="reduce" if reduce else "no-preference")
     page = ctx.new_page()
     page.goto(base + "/index.html?test")
@@ -7680,19 +7693,25 @@ def vz_hint_pixels(browser, base, reduce):
     css = page.evaluate(VZ_PEEK_STATES_JS)
     states = [{"name": f"{tier}{'-reduced' if reduce else ''}", "tier": tier, "show": show, "ty": css[show]["ty"], "features": tier == "t3", "css": css[show]}
               for tier, show in (("t1", "always"), ("t2", "sometimes"), ("t3", "rarely"))]
-    rows = page.evaluate(VZ_HINT_PIXELS_JS, {"states": states})
+    res = page.evaluate(VZ_HINT_PIXELS_JS, {"states": states})
     ctx.close()
-    return states, rows
+    return states, res["rows"], res["leaks"]
 
 
 def verstop_hint_pixels(browser, base, problems):
     """Every hint is on screen, by pixels: every animal over every kind of spot with every feature it
     may wear, still (t1), at the peak of its peek (t2, t3) and with reduced motion, adds at least
     VZ_HINT_MIN pixels to its spot and none outside it, and in t3 at least VZ_FEATURE_MIN pixels in
-    its feature's colour. The numbers go to shots/verstop-hint-pixels.json."""
+    its feature's colour; and between two peeks (slid away, opacity 0) a spot with a hint draws exactly
+    the same pixels as one without, for every kind of spot. The numbers go to
+    shots/verstop-hint-pixels.json."""
     report = []
     for reduce in (False, True):
-        states, rows = vz_hint_pixels(browser, base, reduce)
+        states, rows, leaks = vz_hint_pixels(browser, base, reduce)
+        if not reduce:
+            for r in leaks:
+                if r["differ"]:
+                    problems.append(f"verstop hint pixels: the {r['kind']} with a {r['animal']} {r['feature'] or ''} hint slid away differs from one without in {r['differ']} values (it gives the spot away)")
         for st in states:
             if st["css"]["opacity"] < 0.99:
                 problems.append(f"verstop hint pixels {st['name']}: the hint is not opaque at its peak ({st['css']})")
