@@ -3,7 +3,8 @@
 
 /* ---------- home tile ---------- */
 #tile-dammen .tile-art { display: flex; align-items: center; justify-content: center; }
-#tile-dammen .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
+/* `> svg`, not ` svg`: a filter on the pieces nested in the drawing hung Chrome's first paint of the home screen (PR #95, tests/tile-art-css.test.js) */
+#tile-dammen .tile-art > svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
 /* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
 .option-art .mini-dam { width: 56px; height: 56px; }

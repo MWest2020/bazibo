@@ -3,7 +3,8 @@
 
 /* ---------- home tile ---------- */
 #tile-schaak .tile-art { display: flex; align-items: center; justify-content: center; }
-#tile-schaak .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
+/* `> svg`, not ` svg`: a filter on the pieces nested in the drawing hung Chrome's first paint of the home screen (PR #95, tests/tile-art-css.test.js) */
+#tile-schaak .tile-art > svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
 /* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
 .schaak-how { margin: 0 4px; font-size: var(--bz-text-m); font-weight: var(--bz-weight-text); line-height: 1.4; color: var(--bz-ink-soft); max-width: 34em; }
