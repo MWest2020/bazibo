@@ -110,7 +110,7 @@ addStrings({
     'kwartet.the.flower': "de bloem",
     'kwartet.card.mushroom': "Padden\u00adstoel",
     'kwartet.the.mushroom': "de paddenstoel",
-    'kwartet.card.ladybug': "Lieveheers\u00adbeestje",
+    'kwartet.card.ladybug': "Lieve\u00adheers\u00adbeestje", // two soft hyphens: on a sideways phone "Lieveheers-" alone is wider than the card
     'kwartet.the.ladybug': "het lieveheersbeestje",
     'kwartet.card.carrot': "Wortel",
     'kwartet.the.carrot': "de wortel",

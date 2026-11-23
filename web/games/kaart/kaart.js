@@ -23,10 +23,10 @@ import { addStrings, getLang } from '../../js/i18n.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, menuLine, levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const LOUPE = '<circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5.5 5.5M10 7v6M7 10h6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
 const PIECE = '<path d="M5 9h3.2a2.3 2.3 0 1 1 4.6 0H16v3.2a2.3 2.3 0 1 1 0 4.6V20H5z" fill="currentColor"/>';
 const FINGER = 22; // px: how far from a small region's centre a tap still picks it
@@ -36,6 +36,12 @@ const MARK = 14; // px: a region drawn smaller than this gets a dashed ring, so 
 // the colours of placed and found regions: soft, different enough side by side, dark borders on all
 const COLOURS = ['#ffb4a2', '#a8dadc', '#ffd166', '#b5e48c', '#cdb4db', '#f4a261', '#90caf9', '#f7a1c4'];
 const sw = (n) => Math.round(n * 10) / 10;
+
+/** A pack's own map as the picture on its option card: every region in the colours of a placed piece. */
+function packSvg(pack) {
+  const paths = pack.regions.map((g, k) => `<path d="${g.d}" fill="${COLOURS[k % COLOURS.length]}"/>`).join('');
+  return `<svg class="km-pack-map" viewBox="0 0 ${pack.w} ${pack.h}" aria-hidden="true"><g stroke="#4a4470" stroke-width="${sw(Math.max(pack.w, pack.h) / 90)}" stroke-linejoin="round">${paths}</g></svg>`;
+}
 
 export function createKaart(shell) {
   const { t, tap } = shell;
@@ -115,10 +121,6 @@ export function createKaart(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderMenu() {
     const box = $('#kaart-menu');
     const token = ++menuToken;
@@ -128,7 +130,7 @@ export function createKaart(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'kaart-continue';
-      cont.className = 'btn big secondary klok-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('kaart.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -136,17 +138,17 @@ export function createKaart(shell) {
       });
       box.appendChild(cont);
     }
+    // the maps as option cards, each with its own map as the picture (drawn once its pack is loaded)
     const packs = document.createElement('div');
-    packs.className = 'km-packs';
+    packs.className = 'pic-grid km-packs';
     packs.setAttribute('role', 'group');
     packs.setAttribute('aria-label', t('kaart.packs'));
     for (const id of menuPacks(country())) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'km-pack';
+      const b = optionCard({ title: t(`kaart.pack.${id}`), pressed: id === menuPack, cls: 'pic km-pack' });
       b.dataset.pack = id;
-      b.setAttribute('aria-pressed', String(id === menuPack));
-      b.textContent = t(`kaart.pack.${id}`);
+      loadPack(id).then((pack) => {
+        if (token === menuToken) b.querySelector('.option-art').innerHTML = packSvg(pack);
+      }).catch(() => {});
       b.addEventListener('click', () => {
         tap();
         menuPack = id;
@@ -155,6 +157,7 @@ export function createKaart(shell) {
       });
       packs.appendChild(b);
     }
+    box.appendChild(packs);
     const other = document.createElement('button');
     other.type = 'button';
     other.id = 'kaart-country';
@@ -164,12 +167,7 @@ export function createKaart(shell) {
       tap();
       pickCountry();
     });
-    packs.appendChild(other);
-    box.appendChild(packs);
-    const head = document.createElement('div');
-    head.className = 'km-menu-art';
-    head.innerHTML = howSvg();
-    box.appendChild(head);
+    box.appendChild(other);
     const tiers = document.createElement('div');
     tiers.id = 'kaart-tiers';
     box.appendChild(tiers);
@@ -181,33 +179,26 @@ export function createKaart(shell) {
       for (const tier of TIER_IDS) {
         const rounds = roundsOf(pack, tier);
         if (!rounds.length) continue;
-        const line = document.createElement('p');
-        line.className = 'klok-age';
         const what = tier === 't3' ? `kaart.tier.t3.${pack.points?.kind === 'sea' ? 'seas' : 'cities'}` : `kaart.tier.${tier}`;
-        line.textContent = t('kaart.tierLine', { age: TIERS[tier].age, what: t(what) });
-        tiers.appendChild(line);
+        tiers.appendChild(menuLine(t('kaart.tierLine', { age: TIERS[tier].age, what: t(what) })));
         const grid = document.createElement('div');
         grid.className = 'level-grid klok-grid';
         grid.dataset.tier = tier;
         rounds.forEach((rd, k) => {
           const r = k + 1;
           const id = roundId(packId, tier, r);
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = `level-btn km-round ${rd.kind}`;
+          const isLocked = locked(packId, tier);
+          const n = isLocked ? 0 : got[id] || 0;
+          const b = levelCell({ num: r, stars: n, locked: isLocked, cls: `km-round ${rd.kind}` });
           b.dataset.round = id;
-          const icon = rd.kind === 'puzzle' ? `<svg class="km-kind" viewBox="0 0 24 24" aria-hidden="true">${PIECE}</svg>` : '';
-          if (locked(packId, tier)) {
-            b.classList.add('locked');
-            b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+          if (isLocked) {
             b.setAttribute('aria-label', t('kaart.roundLocked', { n: r }));
             b.addEventListener('click', () => {
               tap();
               offer();
             });
           } else {
-            const n = got[id] || 0;
-            b.innerHTML = `${icon}<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
+            if (rd.kind === 'puzzle') b.insertAdjacentHTML('afterbegin', `<svg class="km-kind" viewBox="0 0 24 24" aria-hidden="true">${PIECE}</svg>`);
             b.setAttribute('aria-label', n ? t('kaart.roundStars', { n: r, stars: n }) : t('kaart.roundOpen', { n: r }));
             b.addEventListener('click', () => {
               tap();

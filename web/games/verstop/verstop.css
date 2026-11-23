@@ -1,6 +1,6 @@
 /* Verstoppertje (Hide and Seek): home tile, the menu (places and rounds), the round screen (the
-   animal to find at the top, the scene with its spots, a status line). The menu reuses Klok kijken's
-   round grid (klok.css); shared look lives in css/style.css. The spots are buttons placed by
+   animal to find at the top, the scene with its spots, a status line). The menu is built from the shell's
+   menu components (css/style.css, js/menu.js). The spots are buttons placed by
    spotLayout (rules.js); what moves inside them is plain CSS on the SVG groups that art.js draws. */
 
 /* ---------- home tile and menu ---------- */
@@ -9,28 +9,9 @@
 .vz-ov { display: inline-flex; width: 180px; height: 110px; }
 .vz-ov svg { width: 100%; height: 100%; }
 
-.vz-scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
-.vz-scene-btn {
-  position: relative;
-  min-height: 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 6px 8px;
-  border: 0;
-  border-radius: 18px;
-  background: #fff;
-  color: var(--primary-dark);
-  font: 800 0.95rem/1.1 var(--font);
-  cursor: pointer;
-  touch-action: manipulation;
-  box-shadow: 0 4px 0 #d6cff7;
-}
-.vz-scene-btn.on { outline: 4px solid var(--primary); outline-offset: -4px; background: #f3f0ff; }
-.vz-scene-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
-.vz-scene-pic { width: 100%; max-width: 120px; height: auto; display: block; border-radius: 12px; overflow: hidden; }
-.vz-lock { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; padding: 4px; border-radius: 50%; fill: #fff; background: rgba(43, 35, 112, 0.6); }
+/* the places: picture cards (css/style.css), four a row where they fit */
+.vz-scenes { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 0 var(--bz-space-4); }
+.vz-scene-pic { width: 100%; height: auto; display: block; border-radius: var(--bz-radius-m); overflow: hidden; }
 @media (max-width: 420px) {
   .vz-scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

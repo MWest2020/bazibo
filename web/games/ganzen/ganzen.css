@@ -1,47 +1,14 @@
-/* Ganzenbord: home tile, menu extras, the board (stepping stones over a landscape), the geese and the die. The menu, HUD and
-   turn chips reuse Vier op een rij's and Dammen's classes. */
+/* Ganzenbord: home tile, menu extras, the board (stepping stones over a landscape), the geese and the die. The menu is built from
+   the shell's components (css/style.css); the HUD and turn chips reuse Vier op een rij's classes. */
 
 /* ---------- home tile ---------- */
 #tile-ganzen .tile-art { display: flex; align-items: center; justify-content: center; }
 #tile-ganzen .tile-art > svg { width: 84px; height: 84px; display: block; border-radius: 18px; box-shadow: 0 0 0 3px #5aa95e, 0 4px 0 3px rgba(43, 35, 112, 0.25); }
 
-/* ---------- menu ---------- */
-.ganzen-boardopt .mini-ganzen { width: 58px; height: 58px; border-radius: 12px; box-shadow: 0 0 0 2px rgba(43, 35, 112, 0.25); }
-.ganzen-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.ganzen-slot {
-  font: inherit;
-  position: relative;
-  min-height: 84px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 3px solid transparent;
-  border-radius: 22px;
-  background: #fff;
-  color: var(--ink);
-  box-shadow: 0 5px 0 #d6cff7;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.ganzen-slot:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
-.ganzen-slot.kind-kid, .ganzen-slot.kind-cpu { border-color: var(--primary); box-shadow: 0 5px 0 var(--primary-dark); }
-.ganzen-slot.kind-off { background: rgba(255, 255, 255, 0.6); }
-.ganzen-slot.kind-off .slot-goose { opacity: 0.45; }
-.ganzen-slot.locked { color: var(--ink-soft); }
-.ganzen-slot .slot-goose { flex: none; width: 54px; height: 54px; }
-.ganzen-slot .slot-goose svg { width: 100%; height: 100%; display: block; }
-.ganzen-slot { padding-right: 30px; }
-.ganzen-slot .slot-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ganzen-slot .slot-name { font-weight: 900; color: var(--primary); font-size: 1.02rem; line-height: 1.15; }
-.ganzen-slot .slot-kind { display: flex; align-items: center; gap: 4px; font-weight: 800; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.15; }
-.ganzen-slot .slot-kind svg { width: 24px; height: 24px; flex: none; }
-.ganzen-slot .swap { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; color: var(--primary); }
-.ganzen-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
-.ganzen-count-art .big-num { font-size: 1.25rem; font-weight: 900; color: var(--primary); letter-spacing: 1px; white-space: nowrap; }
+/* ---------- menu: the shell's option cards and player slots (css/style.css) ---------- */
+.ganzen-boardopt .mini-ganzen { width: 56px; height: 56px; border-radius: 12px; box-shadow: 0 0 0 2px rgba(43, 35, 112, 0.25); }
+.ganzen-count-art .big-num { font-size: var(--bz-text-l); font-weight: var(--bz-weight-brand); color: var(--bz-ink); letter-spacing: 1px; white-space: nowrap; }
 .ganzen-count-art svg { width: 48px; height: 48px; }
-#screen-ganzen-menu .levels-scroll { padding-bottom: 0; }
 
 /* ---------- the board ---------- */
 #ganzen-stage {
@@ -239,14 +206,6 @@
   .ganzen-chip.on .arrow { display: none; }
   .ganzen-die { min-height: 64px; }
   .ganzen-die .face { width: 46px; height: 46px; }
-  /* one goose per row: room for "Blauwe gans" and "de computer" side by side */
-  .ganzen-players { grid-template-columns: 1fr; gap: 8px; }
-  .ganzen-slot { min-height: 60px; padding: 4px 34px 4px 8px; gap: 8px; }
-  .ganzen-slot .slot-goose { width: 46px; height: 46px; }
-  .ganzen-slot .slot-text { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 10px; }
-  .ganzen-slot .swap { top: 50%; margin-top: -10px; right: 10px; }
-  .ganzen-slot .slot-name { font-size: 0.95rem; }
-  .ganzen-slot .slot-kind { font-size: 0.82rem; }
   .ganzen-turn.many { gap: 6px; flex-wrap: nowrap; }
   .ganzen-turn.many .name { display: none; }
   .ganzen-turn.many .ganzen-chip { padding: 3px 6px 3px 3px; gap: 3px; }

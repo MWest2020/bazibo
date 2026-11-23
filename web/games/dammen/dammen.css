@@ -1,21 +1,15 @@
-/* Dammen: home tile, menu extras, board and hints. The menu, HUD and turn chips reuse Vier op een
-   rij's classes (games/vier/vier.css); shared look lives in css/style.css. */
+/* Dammen: home tile, menu extras, board and hints. The menu is the shell's (css/style.css); the HUD and turn chips
+   reuse Vier op een rij's classes (games/vier/vier.css); shared look lives in css/style.css. */
 
 /* ---------- home tile ---------- */
 #tile-dammen .tile-art { display: flex; align-items: center; justify-content: center; }
 #tile-dammen .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
-/* ---------- menu ---------- */
-.dam-opt { position: relative; }
-.dam-opt.locked { color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); }
-.dam-opt.locked .vier-opt-title { color: var(--bz-ink-quiet); }
-.dam-opt .lock,
-.dam-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
-.dam-opt .mini-dam { width: 58px; height: 58px; }
+/* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
+.option-art .mini-dam { width: 56px; height: 56px; }
 .dam-pair { display: flex; align-items: center; }
 .dam-pair svg { width: 38px; height: 38px; }
 .dam-pair svg + svg { margin-left: -12px; }
-#screen-dammen-menu .levels-scroll { padding-bottom: 0; }
 
 /* ---------- HUD ---------- */
 #dammen-undo.off { visibility: hidden; }

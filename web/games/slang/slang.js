@@ -18,10 +18,10 @@ import * as store from '../../js/storage.js';
 import { makeRandom, newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { levelCell, menuHead, menuLine } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const ARROW = '<path d="M12 4 4.5 13H9v7h6v-7h4.5z"/>';
 const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
 const SWIPE = 22; // px of finger movement that turn the snake while the finger is still down
@@ -92,10 +92,6 @@ export function createSlang(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderMenu() {
     const box = $('#slang-menu');
     box.textContent = '';
@@ -103,7 +99,7 @@ export function createSlang(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'slang-continue';
-      cont.className = 'btn big secondary slang-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('slang.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -115,21 +111,14 @@ export function createSlang(shell) {
     for (const mode of MODES) {
       const ofMode = levels.filter((l) => l.mode === mode);
       if (!ofMode.length) continue;
-      const head = document.createElement('h3');
-      head.className = 'slang-mode';
+      const head = menuHead(t(`slang.mode.${mode}`), { art: modeSvg(mode), sub: t(`slang.mode.${mode}Sub`), cls: 'slang-mode' });
       head.dataset.mode = mode;
-      head.innerHTML = `<span class="slang-mode-art">${modeSvg(mode)}</span><span class="slang-mode-text"><span class="slang-mode-title"></span><span class="slang-mode-sub"></span></span>`;
-      head.querySelector('.slang-mode-title').textContent = t(`slang.mode.${mode}`);
-      head.querySelector('.slang-mode-sub').textContent = t(`slang.mode.${mode}Sub`);
       box.appendChild(head);
       const nextOpen = ofMode.find((l) => !got[l.id] && !locked(l));
       for (const tier of Object.keys(TIERS)) {
         const group = ofMode.filter((l) => l.tier === tier);
         if (!group.length) continue;
-        const age = document.createElement('p');
-        age.className = 'slang-age';
-        age.textContent = t('slang.age', { age: TIERS[tier].age });
-        box.appendChild(age);
+        box.appendChild(menuLine(t('slang.age', { age: TIERS[tier].age })));
         const grid = document.createElement('div');
         grid.className = 'level-grid slang-grid';
         grid.appendChild(
@@ -144,22 +133,17 @@ export function createSlang(shell) {
           }),
         );
         for (const level of group) {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'level-btn';
+          const isLocked = locked(level);
+          const n = isLocked ? 0 : got[level.id] || 0;
+          const b = levelCell({ num: level.id, stars: n, locked: isLocked, next: !!(nextOpen && nextOpen.id === level.id) });
           b.dataset.level = String(level.id);
-          if (locked(level)) {
-            b.classList.add('locked');
-            b.innerHTML = `<span class="num">${level.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+          if (isLocked) {
             b.setAttribute('aria-label', t('slang.levelLocked', { n: level.id }));
             b.addEventListener('click', () => {
               tap();
               offer();
             });
           } else {
-            const n = got[level.id] || 0;
-            if (nextOpen && nextOpen.id === level.id) b.classList.add('next');
-            b.innerHTML = `<span class="num">${level.id}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
             b.setAttribute('aria-label', n ? t('slang.levelStars', { n: level.id, stars: n }) : t('slang.levelOpen', { n: level.id }));
             b.addEventListener('click', () => {
               tap();

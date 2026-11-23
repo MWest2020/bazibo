@@ -185,18 +185,18 @@ export function createPachisi(shell) {
     const lockIcon = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
     const option = ({ art, title, sub, pressed, onPick, cls = '' }) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt pachisi-opt ${cls}`;
+      b.className = `option-card pachisi-opt ${cls}`;
       b.setAttribute('aria-pressed', String(!!pressed));
-      b.innerHTML = `<span class="vier-opt-art">${art}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>`;
-      b.querySelector('.vier-opt-title').textContent = title;
-      b.querySelector('.vier-opt-sub').textContent = sub;
+      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+      b.querySelector('.option-title').textContent = title;
+      b.querySelector('.option-sub').textContent = sub;
       b.addEventListener('click', () => {
         tap();
         onPick();
@@ -207,7 +207,7 @@ export function createPachisi(shell) {
     // which game: Ludo (the default) or Pachisi, the original from India
     head('pachisi.modeHead');
     const modes = document.createElement('div');
-    modes.className = 'vier-row pachisi-modes';
+    modes.className = 'option-row pachisi-modes';
     for (const id of MODE_IDS) {
       modes.appendChild(
         option({
@@ -234,16 +234,16 @@ export function createPachisi(shell) {
     // the players: a child, the computer or (3rd and 4th) nobody
     head('pachisi.playersHead');
     const list = document.createElement('div');
-    list.className = 'ganzen-players pachisi-players';
+    list.className = 'player-slots list pachisi-players';
     for (let k = 0; k < MAX_PLAYERS; k++) {
       const kind = choice.players[k] || 'off';
       const isLocked = k >= meta.freePlayers && locked({ players: new Array(k + 1).fill('kid'), level: 1 });
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `ganzen-slot pachisi-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
+      b.className = `player-slot pachisi-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(k);
       const who = kind === 'kid' ? kidSvg() : kind === 'cpu' ? robotBadge() : '';
-      b.innerHTML = `<span class="slot-goose">${pawnSvg(k)}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
+      b.innerHTML = `<span class="slot-face">${pawnSvg(k)}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
       b.querySelector('.slot-name').textContent = nameOf(k);
       b.querySelector('.slot-kind > span').textContent = t(`pachisi.kind.${kind}`);
       b.setAttribute('aria-label', isLocked ? t('pachisi.slotLocked', { name: nameOf(k) }) : t('pachisi.slotLabel', { name: nameOf(k), kind: t(`pachisi.kind.${kind}`) }));
@@ -273,7 +273,7 @@ export function createPachisi(shell) {
     if (choice.players.includes('cpu')) {
       head('pachisi.levelHead');
       const row = document.createElement('div');
-      row.className = 'vier-levels pachisi-levels';
+      row.className = 'seg-cards pachisi-levels';
       row.setAttribute('role', 'group');
       const counts = wins();
       for (const level of [1, 2]) {
@@ -281,7 +281,7 @@ export function createPachisi(shell) {
         const n = counts[winKey(level, choice.mode)] || 0;
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = `vier-level pachisi-level ${isLocked ? 'locked' : ''}`;
+        b.className = `seg-card pachisi-level ${isLocked ? 'locked' : ''}`;
         b.dataset.level = String(level);
         b.setAttribute('aria-pressed', String(choice.level === level));
         const dots = [1, 2].map((d) => `<i class="${d <= level ? 'on' : ''}"></i>`).join('');
@@ -305,7 +305,7 @@ export function createPachisi(shell) {
 
     head('pachisi.pawnsHead');
     const pawns = document.createElement('div');
-    pawns.className = 'vier-row';
+    pawns.className = 'option-row';
     for (const n of PAWN_COUNTS) {
       pawns.appendChild(
         option({
@@ -325,7 +325,7 @@ export function createPachisi(shell) {
 
     head('pachisi.countHead');
     const counting = document.createElement('div');
-    counting.className = 'vier-row';
+    counting.className = 'option-row';
     for (const on of [true, false]) {
       counting.appendChild(
         option({
@@ -344,7 +344,7 @@ export function createPachisi(shell) {
     box.appendChild(counting);
 
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.over && game.mode.id === choice.mode) {
       const cont = document.createElement('button');
       cont.type = 'button';

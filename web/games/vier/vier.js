@@ -106,18 +106,18 @@ export function createVier(shell) {
     box.textContent = '';
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
     const option = ({ art, title, sub, pressed, onPick, cls = '', label = '' }) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt ${cls}`;
+      b.className = `option-card ${cls}`;
       b.setAttribute('aria-pressed', String(!!pressed));
-      b.innerHTML = `<span class="vier-opt-art">${art}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>`;
-      b.querySelector('.vier-opt-title').textContent = title;
-      b.querySelector('.vier-opt-sub').textContent = sub;
+      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+      b.querySelector('.option-title').textContent = title;
+      b.querySelector('.option-sub').textContent = sub;
       if (label) b.setAttribute('aria-label', label);
       b.addEventListener('click', () => {
         tap();
@@ -129,7 +129,7 @@ export function createVier(shell) {
     // the board
     head('vier.boardHead');
     const boards = document.createElement('div');
-    boards.className = 'vier-row';
+    boards.className = 'option-row';
     for (const id of ['small', 'big']) {
       const cfg = BOARDS[id];
       boards.appendChild(
@@ -151,7 +151,7 @@ export function createVier(shell) {
     // the opponent: together, or the computer at a level
     head('vier.opponentHead');
     const opp = document.createElement('div');
-    opp.className = 'vier-row';
+    opp.className = 'option-row';
     opp.appendChild(
       option({
         art: duoSvg(),
@@ -166,11 +166,11 @@ export function createVier(shell) {
       }),
     );
     const cpu = document.createElement('div');
-    cpu.className = `vier-cpu ${choice.mode === 'cpu' ? 'on' : ''}`;
-    cpu.innerHTML = `<span class="vier-opt-art">${robotSvg()}</span><span class="vier-cpu-title"></span><span class="vier-levels" role="group"></span>`;
-    cpu.querySelector('.vier-cpu-title').textContent = t('vier.cpu');
-    cpu.querySelector('.vier-levels').setAttribute('aria-label', t('vier.cpu'));
-    cpu.querySelector('.vier-levels').dataset.foldHead = t('vier.cpu'); // its locked levels wait in the fold under this name
+    cpu.className = `option-box ${choice.mode === 'cpu' ? 'on' : ''}`;
+    cpu.innerHTML = `<span class="option-art">${robotSvg()}</span><span class="option-title"></span><span class="seg-cards" role="group"></span>`;
+    cpu.querySelector('.option-title').textContent = t('vier.cpu');
+    cpu.querySelector('.seg-cards').setAttribute('aria-label', t('vier.cpu'));
+    cpu.querySelector('.seg-cards').dataset.foldHead = t('vier.cpu'); // its locked levels wait in the fold under this name
     const counts = wins();
     for (const level of [1, 2, 3]) {
       const setup = { board: choice.board, mode: 'cpu', level };
@@ -178,7 +178,7 @@ export function createVier(shell) {
       const n = counts[winKey(setup)] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-level ${isLocked ? 'locked' : ''}`;
+      b.className = `seg-card ${isLocked ? 'locked' : ''}`;
       b.dataset.level = String(level);
       b.setAttribute('aria-pressed', String(choice.mode === 'cpu' && choice.level === level));
       const dots = [1, 2, 3].map((k) => `<i class="${k <= level ? 'on' : ''}"></i>`).join('');
@@ -198,7 +198,7 @@ export function createVier(shell) {
         choice.level = level;
         renderMenu();
       });
-      cpu.querySelector('.vier-levels').appendChild(b);
+      cpu.querySelector('.seg-cards').appendChild(b);
     }
     opp.appendChild(cpu);
     box.appendChild(opp);
@@ -229,7 +229,7 @@ export function createVier(shell) {
 
     // play, and keep playing an unfinished game
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.over) {
       const cont = document.createElement('button');
       cont.type = 'button';

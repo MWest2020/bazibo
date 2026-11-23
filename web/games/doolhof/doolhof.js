@@ -19,10 +19,10 @@ import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, menuLine, levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const ARROW = '<path d="M12 4 4.5 13H9v7h6v-7h4.5z"/>';
 const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
 const HOG_STEP = 0.2; // seconds per cell: a calm walk
@@ -84,10 +84,6 @@ export function createDoolhof(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderMenu() {
     const box = $('#doolhof-menu');
     box.textContent = '';
@@ -96,7 +92,7 @@ export function createDoolhof(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'doolhof-continue';
-      cont.className = 'btn big secondary letters-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('doolhof.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -106,14 +102,8 @@ export function createDoolhof(shell) {
     }
     if (!menuMode) {
       for (const mode of MODES) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'klok-modecard doolhof-modecard';
+        const b = optionCard({ art: modeSvg(mode), title: t(`doolhof.mode.${mode}`), sub: t(`doolhof.mode.${mode}Sub`), age: t('doolhof.ages', { age: '4-8' }), cls: 'wide' });
         b.dataset.mode = mode;
-        b.innerHTML = `<span class="klok-mode-art">${modeSvg(mode)}</span><span class="klok-mode-text"><span class="klok-mode-title"></span><span class="klok-mode-sub"></span><span class="klok-mode-age"></span></span>`;
-        b.querySelector('.klok-mode-title').textContent = t(`doolhof.mode.${mode}`);
-        b.querySelector('.klok-mode-sub').textContent = t(`doolhof.mode.${mode}Sub`);
-        b.querySelector('.klok-mode-age').textContent = t('doolhof.ages', { age: '4-8' });
         b.addEventListener('click', () => {
           tap();
           menuMode = mode;
@@ -128,7 +118,7 @@ export function createDoolhof(shell) {
     const got = stars();
     const rtier = TIER_IDS.includes(lastTier()[mode]) ? lastTier()[mode] : 't1';
     const rgrid = document.createElement('div');
-    rgrid.className = 'level-grid klok-grid klok-random';
+    rgrid.className = 'level-grid klok-grid';
     rgrid.appendChild(
       randomCard({
         t,
@@ -143,30 +133,23 @@ export function createDoolhof(shell) {
     );
     box.appendChild(rgrid);
     for (const tier of TIER_IDS) {
-      const line = document.createElement('p');
-      line.className = 'klok-age';
-      line.textContent = t('doolhof.tierLine', { age: AGES[tier], what: t(`doolhof.tier.${mode}.${tier}`) });
-      box.appendChild(line);
+      box.appendChild(menuLine(t('doolhof.tierLine', { age: AGES[tier], what: t(`doolhof.tier.${mode}.${tier}`) })));
       const grid = document.createElement('div');
       grid.className = 'level-grid klok-grid';
       grid.dataset.tier = `${mode}-${tier}`;
       for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
         const id = `${mode}-${tier}-${r}`;
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'level-btn';
+        const isLocked = locked(mode, tier);
+        const n = isLocked ? 0 : got[id] || 0;
+        const b = levelCell({ num: r, stars: n, locked: isLocked });
         b.dataset.round = id;
-        if (locked(mode, tier)) {
-          b.classList.add('locked');
-          b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+        if (isLocked) {
           b.setAttribute('aria-label', t('doolhof.roundLocked', { n: r }));
           b.addEventListener('click', () => {
             tap();
             offer();
           });
         } else {
-          const n = got[id] || 0;
-          b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
           b.setAttribute('aria-label', n ? t('doolhof.roundStars', { n: r, stars: n }) : t('doolhof.roundOpen', { n: r }));
           b.addEventListener('click', () => {
             tap();

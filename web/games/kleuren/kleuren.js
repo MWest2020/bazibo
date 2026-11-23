@@ -12,6 +12,7 @@ import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import { foldLocked } from '../../js/fold.js';
+import { menuHead } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
@@ -75,12 +76,7 @@ export function createKleuren(shell) {
   }
 
   function section(title, age, cls = '') {
-    const head = document.createElement('h3');
-    head.className = 'dogu-size';
-    head.innerHTML = '<span class="dogu-size-n"></span><span class="dogu-size-age"></span>';
-    head.querySelector('.dogu-size-n').textContent = title;
-    if (age) head.querySelector('.dogu-size-age').textContent = age;
-    else head.querySelector('.dogu-size-age').remove(); // "my pictures" has no age
+    const head = menuHead(title, { age }); // "my pictures" has no age
     const grid = document.createElement('div');
     grid.className = `level-grid kleur-grid ${cls}`;
     $('#kleur-list').append(head, grid);

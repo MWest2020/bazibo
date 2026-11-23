@@ -27,13 +27,15 @@ import { meta as piano } from '../games/piano/meta.js';
 import { meta as drums } from '../games/drums/meta.js';
 import { meta as papegaai } from '../games/papegaai/meta.js';
 
-// The sections of the home screen, in order. A game picks one with `group` in its meta.js; within
-// a section the tiles follow the order of GAMES.
+// The sections of the home screen, in order: by audience (Bazibo 2.0, v2-proposal.md, phase 2):
+// Leren first for the teachers, then Puzzels, Bordspellen, Creatief, Actie. A game picks one with
+// `group` in its meta.js; within a section the tiles follow the order of GAMES. Each group has its
+// colour in style.css (--bz-<id>-acc, -tint, -ink).
 export const GROUPS = [
+  { id: 'learning', titleKey: 'home.group.learning' },
   { id: 'puzzles', titleKey: 'home.group.puzzles' },
   { id: 'board', titleKey: 'home.group.board' },
   { id: 'creative', titleKey: 'home.group.creative' },
-  { id: 'learning', titleKey: 'home.group.learning' },
   { id: 'action', titleKey: 'home.group.action' },
 ];
 // Where a game with an unknown `group` lands (with an error in the console), so it never disappears.

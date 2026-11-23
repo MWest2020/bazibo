@@ -25,9 +25,9 @@ import { PICTURES, PICTURE_IDS, pictureSvg } from './pictures.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, levelCell, menuHead } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const CHECK = '<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>';
 const LOUPE = '<circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5.5 5.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="loupe-plus" d="M10 7v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
 const EYE = '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>';
@@ -98,13 +98,7 @@ export function createLegpuzzel(shell) {
     const owned = shell.unlock.owned;
     const box = $('#legpuzzel-menu');
     box.textContent = '';
-    const lockIcon = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
-    const head = (key) => {
-      const h = document.createElement('h3');
-      h.className = 'vier-head';
-      h.textContent = t(key);
-      box.appendChild(h);
-    };
+    const head = (key) => box.appendChild(menuHead(t(key)));
     if (game && !game.over) {
       const actions = document.createElement('div');
       actions.className = 'puzzel-keep';
@@ -121,19 +115,21 @@ export function createLegpuzzel(shell) {
       box.appendChild(actions);
     }
 
+    // the sizes as level cells: the grid of pieces, how many, from what age
     head('puzzel.sizeHead');
     const sizes = document.createElement('div');
-    sizes.className = 'vier-row puzzel-sizes';
+    sizes.className = 'level-grid size-grid puzzel-sizes';
     for (const id of SIZE_IDS) {
       const cfg = SIZES[id];
       const isLocked = !owned && !meta.freeSizes.includes(id);
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `vier-opt dam-opt puzzel-opt size-${id} ${isLocked ? 'locked' : ''}`;
+      const b = levelCell({ num: piecesOf(id), locked: isLocked, cls: `size-cell puzzel-opt size-${id}` });
       b.setAttribute('aria-pressed', String(size === id && !isLocked));
-      b.innerHTML = `<span class="vier-opt-art">${sizeSvg(cfg.cols, cfg.rows)}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>${isLocked ? lockIcon : ''}`;
-      b.querySelector('.vier-opt-title').textContent = t('puzzel.pieces', { n: piecesOf(id) });
-      b.querySelector('.vier-opt-sub').textContent = isLocked ? t('puzzel.fullVersion') : t('puzzel.age', { age: cfg.age });
+      b.insertAdjacentHTML('afterbegin', `<span class="cell-art" aria-hidden="true">${sizeSvg(cfg.cols, cfg.rows)}</span>`);
+      const sub = document.createElement('span');
+      sub.className = 'cell-sub';
+      sub.textContent = t('puzzel.age', { age: cfg.age });
+      b.appendChild(sub);
+      b.setAttribute('aria-label', `${t('puzzel.pieces', { n: piecesOf(id) })}, ${isLocked ? t('puzzel.fullVersion') : t('puzzel.age', { age: cfg.age })}`);
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {
@@ -148,20 +144,23 @@ export function createLegpuzzel(shell) {
     }
     box.appendChild(sizes);
 
+    // the pictures as picture cards; a laid one gets a tick
     head('puzzel.pictureHead');
     const grid = document.createElement('div');
-    grid.className = 'puzzel-pictures';
+    grid.className = 'pic-grid puzzel-pictures';
     const laid = done();
     for (const { id } of PICTURES) {
       const isLocked = locked({ picture: id, size });
       const wasDone = !!laid[puzzleKey({ picture: id, size })];
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `puzzel-pic pic-${id} ${isLocked ? 'locked' : ''} ${wasDone ? 'done' : ''}`;
+      const b = optionCard({
+        art: pictureSvg(id, 160, 120),
+        title: picName(id),
+        locked: isLocked,
+        cls: `pic puzzel-pic pic-${id}${wasDone && !isLocked ? ' done' : ''}`,
+        label: `${picName(id)}${isLocked ? `, ${t('puzzel.fullVersion')}` : wasDone ? `, ${t('puzzel.done')}` : ''}`,
+      });
       b.dataset.picture = id;
-      b.innerHTML = `<span class="puzzel-thumb">${pictureSvg(id, 160, 120)}</span><span class="puzzel-pic-name"></span>${isLocked ? lockIcon : wasDone ? `<svg class="check" viewBox="0 0 24 24" aria-hidden="true">${CHECK}</svg>` : ''}`;
-      b.querySelector('.puzzel-pic-name').textContent = picName(id);
-      b.setAttribute('aria-label', `${picName(id)}${isLocked ? `, ${t('puzzel.fullVersion')}` : wasDone ? `, ${t('puzzel.done')}` : ''}`);
+      if (wasDone && !isLocked) b.insertAdjacentHTML('beforeend', `<svg class="check" viewBox="0 0 24 24" aria-hidden="true">${CHECK}</svg>`);
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {

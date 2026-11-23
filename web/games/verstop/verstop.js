@@ -38,10 +38,10 @@ import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, menuLine, levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const WAVE_MS = 1400; // a creature peeks out and waves this long before its spot settles back ajar
 const FOUND_MS = 1600; // the celebration before the end card or the memory question
 
@@ -103,10 +103,6 @@ export function createVerstop(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderMenu() {
     const box = $('#verstop-menu');
     box.textContent = '';
@@ -115,7 +111,7 @@ export function createVerstop(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'verstop-continue';
-      cont.className = 'btn big secondary klok-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('verstop.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -124,23 +120,22 @@ export function createVerstop(shell) {
       box.appendChild(cont);
     }
     // the places: the garden is free, the others are in the full version
-    const head = document.createElement('p');
-    head.className = 'klok-age';
-    head.textContent = t('verstop.scenes');
-    box.appendChild(head);
+    box.appendChild(menuLine(t('verstop.scenes')));
     const row = document.createElement('div');
-    row.className = 'vz-scenes';
+    row.className = 'pic-grid vz-scenes';
     row.setAttribute('role', 'group');
     row.setAttribute('aria-label', t('verstop.scenes'));
     for (const id of SCENE_IDS) {
-      const b = document.createElement('button');
-      b.type = 'button';
       const free = !locked(id, 't1');
-      b.className = `vz-scene-btn${id === scene ? ' on' : ''}${free ? '' : ' locked'}`;
+      const b = optionCard({
+        art: sceneCardSvg(id, SCENES[id].spots[0], SCENES[id].animals[0]),
+        title: t(`verstop.scene.${id}`),
+        pressed: id === scene,
+        locked: !free,
+        cls: 'pic vz-scene-btn',
+        label: free ? t(`verstop.scene.${id}`) : t('verstop.sceneLocked', { scene: t(`verstop.scene.${id}`) }),
+      });
       b.dataset.scene = id;
-      b.innerHTML = `${sceneCardSvg(id, SCENES[id].spots[0], SCENES[id].animals[0])}<span class="vz-scene-name">${t(`verstop.scene.${id}`)}</span>${free ? '' : `<svg class="vz-lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`}`;
-      b.setAttribute('aria-label', free ? t(`verstop.scene.${id}`) : t('verstop.sceneLocked', { scene: t(`verstop.scene.${id}`) }));
-      b.setAttribute('aria-pressed', String(id === scene));
       b.addEventListener('click', () => {
         tap();
         if (!free) {
@@ -158,7 +153,7 @@ export function createVerstop(shell) {
     const done = randomDone();
     const rtier = lastTier();
     const rgrid = document.createElement('div');
-    rgrid.className = 'level-grid klok-grid klok-random';
+    rgrid.className = 'level-grid klok-grid';
     rgrid.appendChild(
       randomCard({
         t,
@@ -173,30 +168,23 @@ export function createVerstop(shell) {
     );
     box.appendChild(rgrid);
     for (const tier of TIER_IDS) {
-      const line = document.createElement('p');
-      line.className = 'klok-age';
-      line.textContent = t('verstop.tierLine', { age: TIERS[tier].age, what: t(`verstop.tier.${tier}`) });
-      box.appendChild(line);
+      box.appendChild(menuLine(t('verstop.tierLine', { age: TIERS[tier].age, what: t(`verstop.tier.${tier}`) })));
       const grid = document.createElement('div');
       grid.className = 'level-grid klok-grid';
       grid.dataset.tier = tier;
       for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
         const id = roundId(scene, tier, r);
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'level-btn';
+        const isLocked = locked(scene, tier);
+        const n = isLocked ? 0 : got[id] || 0;
+        const b = levelCell({ num: r, stars: n, locked: isLocked });
         b.dataset.round = id;
-        if (locked(scene, tier)) {
-          b.classList.add('locked');
-          b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+        if (isLocked) {
           b.setAttribute('aria-label', t('verstop.roundLocked', { n: r }));
           b.addEventListener('click', () => {
             tap();
             offer();
           });
         } else {
-          const n = got[id] || 0;
-          b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
           b.setAttribute('aria-label', n ? t('verstop.roundStars', { n: r, stars: n }) : t('verstop.roundOpen', { n: r }));
           b.addEventListener('click', () => {
             tap();

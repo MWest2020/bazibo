@@ -107,7 +107,7 @@ export function createGanzen(shell) {
     const lockIcon = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
@@ -115,17 +115,17 @@ export function createGanzen(shell) {
 
     head('ganzen.boardHead');
     const boards = document.createElement('div');
-    boards.className = 'vier-row ganzen-boards';
+    boards.className = 'option-row ganzen-boards';
     for (const id of BOARDS) {
       const isLocked = locked({ board: id, players: ['kid', 'kid'] });
       const n = counts[winKey(id)] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt dam-opt ganzen-boardopt board-${id} ${isLocked ? 'locked' : ''}`;
+      b.className = `option-card ganzen-boardopt board-${id} ${isLocked ? 'locked' : ''}`;
       b.setAttribute('aria-pressed', String(choice.board === id));
-      b.innerHTML = `<span class="vier-opt-art">${boardThumb(id)}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>${isLocked ? lockIcon : ''}`;
-      b.querySelector('.vier-opt-title').textContent = t(`ganzen.board.${id}`);
-      b.querySelector('.vier-opt-sub').textContent = isLocked ? t('ganzen.fullVersion') : n ? t('ganzen.wins', { n }) : t(`ganzen.board.${id}Sub`);
+      b.innerHTML = `<span class="option-art">${boardThumb(id)}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>${isLocked ? lockIcon : ''}`;
+      b.querySelector('.option-title').textContent = t(`ganzen.board.${id}`);
+      b.querySelector('.option-sub').textContent = isLocked ? t('ganzen.fullVersion') : n ? t('ganzen.wins', { n }) : t(`ganzen.board.${id}Sub`);
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {
@@ -141,16 +141,16 @@ export function createGanzen(shell) {
 
     head('ganzen.playersHead');
     const list = document.createElement('div');
-    list.className = 'ganzen-players';
+    list.className = 'player-slots list ganzen-players';
     for (let k = 0; k < MAX_PLAYERS; k++) {
       const kind = choice.players[k] || 'off';
       const isLocked = k >= meta.freePlayers && locked({ board: choice.board, players: new Array(k + 1).fill('kid') });
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `ganzen-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
+      b.className = `player-slot ganzen-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(k);
       const who = kind === 'kid' ? kidSvg() : kind === 'cpu' ? robotBadge() : '';
-      b.innerHTML = `<span class="slot-goose">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
+      b.innerHTML = `<span class="slot-face">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
       b.querySelector('.slot-name').textContent = nameOf(k);
       b.querySelector('.slot-kind > span').textContent = t(`ganzen.kind.${kind}`);
       b.setAttribute('aria-label', isLocked ? t('ganzen.slotLocked', { name: nameOf(k) }) : t('ganzen.slotLabel', { name: nameOf(k), kind: t(`ganzen.kind.${kind}`) }));
@@ -178,15 +178,15 @@ export function createGanzen(shell) {
 
     head('ganzen.countHead');
     const counting = document.createElement('div');
-    counting.className = 'vier-row';
+    counting.className = 'option-row';
     for (const on of [true, false]) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt dam-opt ganzen-count count-${on ? 'on' : 'off'}`;
+      b.className = `option-card ganzen-count count-${on ? 'on' : 'off'}`;
       b.setAttribute('aria-pressed', String(choice.count === on));
-      b.innerHTML = `<span class="vier-opt-art ganzen-count-art">${on ? '<span class="big-num">1 2 3</span>' : dieSvg(4)}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>`;
-      b.querySelector('.vier-opt-title').textContent = t(on ? 'ganzen.countSelf' : 'ganzen.countAuto');
-      b.querySelector('.vier-opt-sub').textContent = t(on ? 'ganzen.countSelfSub' : 'ganzen.countAutoSub');
+      b.innerHTML = `<span class="option-art ganzen-count-art">${on ? '<span class="big-num">1 2 3</span>' : dieSvg(4)}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+      b.querySelector('.option-title').textContent = t(on ? 'ganzen.countSelf' : 'ganzen.countAuto');
+      b.querySelector('.option-sub').textContent = t(on ? 'ganzen.countSelfSub' : 'ganzen.countAutoSub');
       b.addEventListener('click', () => {
         tap();
         choice.count = on;
@@ -197,7 +197,7 @@ export function createGanzen(shell) {
     box.appendChild(counting);
 
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.over) {
       const cont = document.createElement('button');
       cont.type = 'button';

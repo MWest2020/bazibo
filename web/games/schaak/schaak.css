@@ -5,12 +5,8 @@
 #tile-schaak .tile-art { display: flex; align-items: center; justify-content: center; }
 #tile-schaak .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
-/* ---------- menu ---------- */
-.schaak-level { position: relative; }
-.schaak-level.locked { color: var(--ink-soft); }
-.schaak-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
-.schaak-how { margin: 0 4px; font-size: 0.98rem; font-weight: 700; line-height: 1.4; color: var(--ink-soft); max-width: 34em; }
-#screen-schaak-menu .levels-scroll { padding-bottom: 0; }
+/* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
+.schaak-how { margin: 0 4px; font-size: var(--bz-text-m); font-weight: var(--bz-weight-text); line-height: 1.4; color: var(--bz-ink-soft); max-width: 34em; }
 
 /* ---------- HUD ---------- */
 #schaak-undo:disabled { opacity: 0.45; }
@@ -70,8 +66,8 @@
 .ssq .coord { position: absolute; z-index: 0; font-size: max(9px, calc(var(--cell) * 0.22)); font-weight: 900; line-height: 1; pointer-events: none; }
 .ssq .coord.file { right: 3px; bottom: 2px; }
 .ssq .coord.rank { left: 3px; top: 2px; }
-.ssq.light .coord { color: #9a8de0; }
-.ssq.dark .coord { color: #fdf3e1; }
+.ssq.light .coord { color: var(--bz-ink-soft); } /* 5.9:1 on the light square (was 2.6:1) */
+.ssq.dark .coord { color: var(--bz-ink); } /* 5.1:1 on the dark square (was 2.4:1) */
 .schaak-fly { position: absolute; pointer-events: none; z-index: 4; }
 .schaak-fly > svg.piece { position: absolute; inset: 4%; width: 92%; height: 92%; display: block; filter: drop-shadow(0 5px 3px rgba(43, 35, 112, 0.3)); }
 .schaak-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; }

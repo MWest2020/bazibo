@@ -1,22 +1,19 @@
-/* Paartjes (Memory): home tile, menu extras, the cards and the players. The menu reuses the Vier op
-   een rij and Dammen option styles (vier-opt, dam-opt); shared look lives in css/style.css. */
+/* Paartjes (Memory): home tile, menu extras, the cards and the players. The menu is built from the
+   shell's option cards; shared look lives in css/style.css. */
 
 /* ---------- home tile ---------- */
 #tile-memory .tile-art { display: flex; align-items: center; justify-content: center; }
 #tile-memory .tile-art svg { width: 100%; height: 100%; display: block; }
 
-/* ---------- menu ---------- */
-.memory-opt .vier-opt-art .msize { width: 58px; height: 58px; }
-.memory-sample { width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #fff; box-shadow: 0 0 0 3px #e4defc; }
-.memory-sample svg { width: 46px; height: 46px; display: block; }
-.memory-opt .vier-opt-art .token, .memory-opt .vier-opt-art .robot { width: 58px; height: 58px; }
-.memory-stars, .memory-wins { display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; font-weight: 900; color: var(--ink); }
-.memory-stars svg { width: 20px; height: 20px; fill: none; stroke: var(--bz-star-empty); stroke-width: 1.8; stroke-linejoin: round; }
-.memory-stars svg.on { fill: var(--bz-star); stroke: var(--bz-star-edge); }
+/* ---------- menu: the shell's option cards (css/style.css) ---------- */
+.memory-opt .option-art .msize { width: 56px; height: 56px; }
+.memory-sample { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #fff; box-shadow: 0 0 0 3px var(--bz-brand-tint); }
+.memory-sample svg { width: 44px; height: 44px; display: block; }
+.memory-opt .option-art .token, .memory-opt .option-art .robot { width: 56px; height: 56px; }
+.memory-stars, .memory-wins { display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; font-weight: 900; color: var(--bz-ink); }
+.memory-stars svg { width: 16px; height: 16px; fill: none; stroke: var(--bz-star-empty); stroke-width: 2; stroke-linejoin: round; }
+.memory-stars svg.on { fill: var(--bz-star); stroke: var(--bz-star-edge); stroke-width: 1.2; }
 .memory-wins svg { width: 18px; height: 18px; }
-/* four boards, three themes, three ways to play: two a row on phones */
-.memory-sizes .vier-opt, .memory-themes .vier-opt, .memory-modes .vier-opt { flex: 1 1 220px; }
-#screen-memory-menu .levels-scroll { padding-bottom: 0; }
 
 /* ---------- HUD ---------- */
 .memory-hud .bar-spacer { width: 60px; flex: none; }

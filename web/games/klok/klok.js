@@ -51,10 +51,10 @@ import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, menuLine, levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const BULB = '<path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zm-3 18h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/>';
 
 export function createKlok(shell) {
@@ -97,10 +97,6 @@ export function createKlok(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   // The menu has two levels: first the four kinds of round (the daily rhythm first, for the
   // youngest; the digital clock last, for the oldest), then the rounds of one kind by age.
   // `menuMode` is the kind being shown, or null.
@@ -119,7 +115,7 @@ export function createKlok(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'klok-continue';
-      cont.className = 'btn big secondary klok-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('klok.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -129,14 +125,14 @@ export function createKlok(shell) {
     }
     if (!menuMode) {
       for (const mode of MENU_ORDER) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'klok-modecard';
+        const b = optionCard({
+          art: modeSvg(mode),
+          title: t(`klok.mode.${mode}`),
+          sub: t(`klok.mode.${mode}Sub`),
+          age: t('klok.ages', { age: modeAge(mode) }),
+          cls: 'wide',
+        });
         b.dataset.mode = mode;
-        b.innerHTML = `<span class="klok-mode-art">${modeSvg(mode)}</span><span class="klok-mode-text"><span class="klok-mode-title"></span><span class="klok-mode-sub"></span><span class="klok-mode-age"></span></span>`;
-        b.querySelector('.klok-mode-title').textContent = t(`klok.mode.${mode}`);
-        b.querySelector('.klok-mode-sub').textContent = t(`klok.mode.${mode}Sub`);
-        b.querySelector('.klok-mode-age').textContent = t('klok.ages', { age: modeAge(mode) });
         b.addEventListener('click', () => {
           tap();
           menuMode = mode;
@@ -153,7 +149,7 @@ export function createKlok(shell) {
     const tiers = tiersOf(mode);
     const rtier = tiers.includes(lastTier()[mode]) ? lastTier()[mode] : tiers[0];
     const rgrid = document.createElement('div');
-    rgrid.className = 'level-grid klok-grid klok-random';
+    rgrid.className = 'level-grid klok-grid';
     rgrid.appendChild(
       randomCard({
         t,
@@ -168,30 +164,22 @@ export function createKlok(shell) {
     );
     box.appendChild(rgrid);
     for (const tier of tiers) {
-      const line = document.createElement('p');
-      line.className = 'klok-age';
-      line.textContent = t('klok.tierLine', { age: tierAge(mode, tier), what: tierWhat(mode, tier) });
-      box.appendChild(line);
+      box.appendChild(menuLine(t('klok.tierLine', { age: tierAge(mode, tier), what: tierWhat(mode, tier) })));
       const grid = document.createElement('div');
       grid.className = 'level-grid klok-grid';
       grid.dataset.tier = `${mode}-${tier}`;
       for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
         const id = `${mode}-${tier}-${r}`;
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'level-btn';
+        const n = got[id] || 0;
+        const b = levelCell({ num: r, stars: n, locked: locked(mode, tier) });
         b.dataset.round = id;
         if (locked(mode, tier)) {
-          b.classList.add('locked');
-          b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
           b.setAttribute('aria-label', t('klok.roundLocked', { n: r }));
           b.addEventListener('click', () => {
             tap();
             offer();
           });
         } else {
-          const n = got[id] || 0;
-          b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
           b.setAttribute('aria-label', n ? t('klok.roundStars', { n: r, stars: n }) : t('klok.roundOpen', { n: r }));
           b.addEventListener('click', () => {
             tap();

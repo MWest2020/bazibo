@@ -13,7 +13,19 @@ with screenshots). The design tokens are the `--bz-*` custom properties at the t
 type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names; the old ones
 (`--primary`, `--ink`, `--gold`...) are aliases. Text never sits white on the orange accent (ink
 instead), locked text is `--bz-ink-quiet`, an empty star is an outline (`--bz-star-empty`), and
-Bubbels shows no points. Locked choices never sit between the free ones: every game menu ends its
+Bubbels shows no points. Every game menu is built from the shell's menu components (phase 2):
+`web/js/menu.js` makes them (`menuHead`, `menuLine`, `optionCard`, `optionBox` with `segCard`,
+`levelCell`, `starsHtml`) and `web/css/style.css` styles them (`.menu`, `.option-card` with its
+`.wide`, `.pic` and `.lead` forms, `.option-box` and `.seg-card` for the computer's levels,
+`.player-slot` for who plays, `.level-cell` in a `.level-grid`, the random card, `.menu-actions` for
+the Play bar, `.bar-title` for a bar with a line under its title). A game adds its own hook classes
+(`puzzel-opt size-p9`) and art, never its own button look. Every option has a picture from the
+game's own art; a level cell shows its stars only once played (quiet stars). The selected option,
+segment, player and the next level are the group's tint with a 3 px border in the group's accent:
+each group has three colours in `style.css` (`--bz-learning-acc`, `-tint`, `-ink`, and the same for
+puzzles, board, creative, action; text sits on the tint or in the ink, never on the accent), and
+`main.js` gives every game screen its group (`data-group`, from `meta.group`), which sets
+`--bz-group-acc/-tint/-ink`. Touch targets in a menu are 48 px or more. Locked choices never sit between the free ones: every game menu ends its
 render with `foldLocked(box)` (`web/js/fold.js`), which moves each button with the class `locked`
 into one closed "Volledige versie" fold at the end of the menu, under a copy of its section's
 heading (or the `data-fold-head` name of a group inside a card, like the computer's levels). The
@@ -26,8 +38,10 @@ the fold by a real tap (`choose`, `unfold` in `tests/smoke.py`). What the fold e
 again after a purchase or a restore; the smoke test buys in the session and checks Bubbels and Dogudoku.
 
 The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the section its
-`meta.js` names with `group` (the sections and their order are `GROUPS` in the same file; a new
-game picks one); an optional `subKey` puts a small second line under the name (Ludo). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
+`meta.js` names with `group` (the sections and their order are `GROUPS` in the same file, ordered by
+audience: Leren first for teachers, then Puzzels, Bordspellen, Creatief, Actie; a new game picks
+one); each section sits on its group's tint with its name in the group's ink; an optional `subKey`
+puts a small second line under the name (Ludo). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
 phones, 2 at 320 px, the sections side by side on wider screens; a section wider than the screen wraps its tiles (`.home-inner` keeps `max-width: 100%`), so there is never sideways scroll from 320 to 1400 px.
 
 **Hard rules**
@@ -81,7 +95,7 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 native config, Papegaai's privacy rule) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Paartjes: the bigger boards and the other cards offer only OK on the web, a game alone on 2×3 with one miss (a third tap does nothing) won with 3 stars saved, a game together on 3×4 won by player 1 with back + keep playing during a miss and "More cards" at the end of the free part, a game against the computer whose turn is slow and visible, won and counted; the layout at 320x568, sideways and on desktop with 12 and 20 cards (`tests/smoke.py memory`);
-home → Legpuzzel: 9, 16 and 25 pieces free with their age and 30, 48 and 60 "full version" (no 4, 6, 12 or 20), a save from before with the last size on 12 opening on 9 and keeping its old ticks, 30, 48, 60 pieces and the other pictures offer only OK on the web, the 9-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 16-piece sea with the example picture off and back + keep puzzling halfway, the 16 and the 25 pieces finished by the test hook and a last real drag, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 9 to 60 pieces, every piece on screen and 44 px or more with its tabs, the magnifier only for small pieces; 48 and 60 pieces at 390x844 and 844x390 in Dutch and English: a real drag without and through the magnifier (the view moving along to a place out of view), a finger on an empty spot moving the view, the rest by the test hook and the last by a real drag, saved and ticked off (`tests/smoke.py legpuzzel`);
+home → Legpuzzel: the sizes as level cells, 9, 16 and 25 pieces free with their age and 30, 48 and 60 locked in the fold (no 4, 6, 12 or 20), a save from before with the last size on 12 opening on 9 and keeping its old ticks, 30, 48, 60 pieces and the other pictures offer only OK on the web, the 9-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 16-piece sea with the example picture off and back + keep puzzling halfway, the 16 and the 25 pieces finished by the test hook and a last real drag, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 9 to 60 pieces, every piece on screen and 44 px or more with its tabs, the magnifier only for small pieces; 48 and 60 pieces at 390x844 and 844x390 in Dutch and English: a real drag without and through the magnifier (the view moving along to a place out of view), a finger on an empty spot moving the view, the rest by the test hook and the last by a real drag, saved and ticked off (`tests/smoke.py legpuzzel`);
 home → Vier op een rij: hard is locked on the web, a two-player game on the kleuterbord played to a win, a game against easy with one take-back;
 home → Dammen: medium, hard and the 10×10 board offer only OK on the web, a two-player 8×8 game played to a win by taps, a move against easy with the take-back and "keep playing", the glow on the pieces that must capture and a double jump by taps; the layout at 320x568, sideways and on desktop, the 10×10 board with near taps, and the hard computer thinking in a worker while the page keeps drawing (run only these with `tests/smoke.py dammen`);
 home → Tijgers en geitjes (`tests/smoke.py baghchal`): the tile in Bordspellen, medium and hard offer only OK on the web; two players: a goat placed next to a tiger shows the tiger's dots and the goat it would jump, jumped by a real drag (the goat hops to the meadow), taken back, then the tigers capture five and win (not counted); against easy as the goats whole games by real taps and drags (placing, tap-tap, a drag dropped off the field keeps the piece picked up) until the goats win, with a take-back, back + keep playing and the win counted; the layout at 320x568, 844x390, 568x320, 390x844 in English and desktop, every point 44 px or more, and hard (as the goats, it starts) thinking in a worker while the page keeps drawing;
@@ -106,7 +120,7 @@ home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
 the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Tijgers en geitjes, Ganzenbord, Ludo, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
-the store links and the home layout (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall.
+the store links, the home layout and the menus (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall; the home sections in the order Leren, Puzzels, Bordspellen, Creatief, Actie, every game screen in its tile's group, the chosen option and the next level bordered in the group's accent, and every menu button (the fold opened too) 48 px or more.
 CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
 offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
 right. The test hook `window.__bubbels` only exists with `?test` in the address.
@@ -445,11 +459,12 @@ scale, and a tap 8 px inside any border picks the region it is in). A pack stays
 `t()` by `addStrings` when a pack loads (`kaart.r.<pack>.<id>`, `kaart.p.<pack>.<id>`); check the
 Dutch names by hand for a new pack. The own-country pack follows `navigator.language`
 (`defaultCountry`, exact tags: nl-NL or plain nl, en-US, en-GB; anything else none, nl-BE too, so
-nobody is pushed another country's provinces); "Ander land…" saves `country`. A wrong drop or tap counts once per piece or question,
+nobody is pushed another country's provinces); "Ander land…" saves `country`. In the menu each map is
+a picture card with that pack's own regions as its picture (`packSvg`, drawn once the pack is loaded). A wrong drop or tap counts once per piece or question,
 after `MAX_TRIES` the place glows; `starsFor` counts mistakes only. No voice. Free: the whole
 Continents pack and tier 1 of every pack (`meta.freePacks`, `meta.freeTiers`). Adding a country: a
 block in the tool, an entry in `packs.js`, `kaart.pack.<id>` in `strings.js`.
-Piano: two levels by age, picked with two buttons at the top of the song list and saved as
+Piano: two levels by age, picked with two segments at the top of the song list and saved as
 `games.piano.level` (`small` or `big`; a new player gets `small`, the tile always opens free play).
 The keyboards, the songs and playing along are pure in `web/games/piano/songs.js` (tested). 4-6
 (`SMALL`, unchanged since PR #42): 8 coloured keys C to the high C and 5 black ones, sounding

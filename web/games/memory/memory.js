@@ -113,18 +113,18 @@ export function createMemory(shell) {
     const counts = progress();
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
     const option = ({ art, title, sub, pressed, isLocked, cls, onPick, extra = '' }) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt dam-opt memory-opt ${cls} ${isLocked ? 'locked' : ''}`;
+      b.className = `option-card memory-opt ${cls} ${isLocked ? 'locked' : ''}`;
       b.setAttribute('aria-pressed', String(!!pressed && !isLocked));
-      b.innerHTML = `<span class="vier-opt-art">${art}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span>${extra}</span>${isLocked ? lockIcon : ''}`;
-      b.querySelector('.vier-opt-title').textContent = title;
-      b.querySelector('.vier-opt-sub').textContent = isLocked ? t('memory.fullVersion') : sub;
+      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span>${extra}</span>${isLocked ? lockIcon : ''}`;
+      b.querySelector('.option-title').textContent = title;
+      b.querySelector('.option-sub').textContent = isLocked ? t('memory.fullVersion') : sub;
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {
@@ -140,7 +140,7 @@ export function createMemory(shell) {
     // how many cards
     head('memory.sizeHead');
     const sizes = document.createElement('div');
-    sizes.className = 'vier-row memory-sizes';
+    sizes.className = 'option-row memory-sizes';
     for (const id of SIZE_IDS) {
       const cfg = SIZES[id];
       const isLocked = !owned && !meta.freeSizes.includes(id);
@@ -170,7 +170,7 @@ export function createMemory(shell) {
     // which pictures
     head('memory.themeHead');
     const themes = document.createElement('div');
-    themes.className = 'vier-row memory-themes';
+    themes.className = 'option-row memory-themes';
     for (const id of THEME_IDS) {
       themes.appendChild(
         option({
@@ -189,7 +189,7 @@ export function createMemory(shell) {
     // who plays
     head('memory.modeHead');
     const modes = document.createElement('div');
-    modes.className = 'vier-row memory-modes';
+    modes.className = 'option-row memory-modes';
     const modeArt = { solo: tokenSvg(TOKENS[0]), duo: duoSvg(), cpu: robotSvg() };
     for (const id of MODES) {
       modes.appendChild(
@@ -208,7 +208,7 @@ export function createMemory(shell) {
 
     // play, and keep playing an unfinished game
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.over) {
       const cont = document.createElement('button');
       cont.type = 'button';

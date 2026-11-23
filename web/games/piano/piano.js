@@ -19,10 +19,10 @@ import { cardSvg } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, segCard, starsHtml } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const NOTE = '<path d="M9 17.5V5.2l11-2.4v12.1a3.2 2.6 0 1 1-2-2.4V7.1l-7 1.5v9.3a3.2 2.6 0 1 1-2-2.4z"/>';
 const PLAY = '<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>';
 const STOP = '<rect x="5.5" y="5.5" width="13" height="13" rx="2.5"/>';
@@ -355,16 +355,12 @@ export function createPiano(shell) {
     const got = stars();
     // the age: two big buttons at the top, the one picked filled in
     const ages = document.createElement('div');
-    ages.className = 'piano-levels';
+    ages.className = 'seg-cards piano-levels';
     ages.setAttribute('role', 'group');
     ages.setAttribute('aria-label', t('piano.levels'));
     for (const l of LEVELS) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'piano-level';
+      const b = segCard({ name: t('piano.ages', { age: l.ages }), pressed: l.id === level, cls: 'piano-level' });
       b.dataset.level = l.id;
-      b.setAttribute('aria-pressed', String(l.id === level));
-      b.textContent = t('piano.ages', { age: l.ages });
       b.addEventListener('click', () => {
         if (l.id === level) return;
         tap();
@@ -375,17 +371,9 @@ export function createPiano(shell) {
     }
     box.appendChild(ages);
     const card = (id, title, sub, isLocked, n) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `piano-card${isLocked ? ' locked' : ''}`;
+      const b = optionCard({ art: cardSvg(id), title, sub, locked: isLocked, cls: `wide piano-card${n === null ? ' lead' : ''}` });
       b.dataset.song = id;
-      b.innerHTML = `<span class="piano-card-art">${cardSvg(id)}</span><span class="piano-card-text"><span class="piano-card-title"></span><span class="piano-card-sub"></span></span><span class="piano-card-end" aria-hidden="true"></span>`;
-      b.querySelector('.piano-card-title').textContent = title;
-      b.querySelector('.piano-card-sub').textContent = sub;
-      b.querySelector('.piano-card-sub').hidden = !sub;
-      const end = b.querySelector('.piano-card-end');
-      if (isLocked) end.innerHTML = `<svg viewBox="0 0 24 24">${LOCK}</svg>`;
-      else if (n !== null) end.innerHTML = [0, 1, 2].map((k) => `<svg class="${k < n ? 'on' : ''}" viewBox="0 0 24 24">${STAR}</svg>`).join('');
+      if (!isLocked && n) b.insertAdjacentHTML('beforeend', starsHtml(n, { cls: 'piano-card-end' }));
       return b;
     };
     const free = card(level === 'small' ? 'free' : 'free-big', t('piano.free'), t(level === 'small' ? 'piano.freeSub' : 'piano.freeSubBig'), false, null);
@@ -558,7 +546,8 @@ export function createPiano(shell) {
     tap();
     back();
   });
-  $('#piano-songs-btn').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${NOTE}</svg><span data-i18n="piano.songs"></span>`;
+  // the bar's one action, right: the song list (an icon button like every bar's; its name for screen readers)
+  $('#piano-songs-btn').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${NOTE}</svg>`;
   $('#piano-songs-btn').addEventListener('click', () => {
     tap();
     showSongs();
@@ -585,7 +574,7 @@ export function createPiano(shell) {
   });
   shell.onLangChange(() => {
     labelKeys();
-    $('#piano-songs-btn span').textContent = t('piano.songs');
+    $('#piano-songs-btn').setAttribute('aria-label', t('piano.songs'));
     if (onScreen('piano-songs')) renderSongs();
     if (onScreen('piano')) render();
   });
@@ -616,7 +605,7 @@ export function createPiano(shell) {
   document.addEventListener('keyup', (e) => release(`kb-${e.key.toLowerCase()}`));
 
   buildKeys();
-  $('#piano-songs-btn span').textContent = t('piano.songs');
+  $('#piano-songs-btn').setAttribute('aria-label', t('piano.songs'));
 
   return {
     async init() {
