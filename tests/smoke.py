@@ -7315,6 +7315,44 @@ def vz_tap(page, i):
     page.locator(f"#vz-spots .vz-spot[data-i='{i}']").tap()
 
 
+VZ_CLUES_JS = """() => [...document.querySelectorAll('#vz-spots .vz-spot')].map(b => {
+  const c = b.querySelector('.vz-clue'), k = c && c.querySelector('.vz-peek');
+  const cs = k && getComputedStyle(k), cc = c && getComputedStyle(c);
+  const r = b.getBoundingClientRect(), q = k && k.getBoundingClientRect();
+  return { i: Number(b.dataset.i), clue: !!c, n: b.querySelectorAll('.vz-clue').length,
+    animal: c ? c.dataset.animal : null, feature: c ? (c.dataset.feature || null) : null, show: c ? c.dataset.show : null,
+    seen: !!c && cc.visibility === 'visible' && Number(cs.opacity) > 0.9, vis: cc ? cc.visibility : null,
+    anim: cs ? cs.animationName : null, opacity: cs ? Number(cs.opacity) : null, transform: cs ? cs.transform : null,
+    inside: !!q && q.left >= r.left - 1 && q.right <= r.right + 1 && q.top >= r.top - 1 && q.bottom <= r.bottom + 1,
+    box: q ? [q.left - r.left, q.top - r.top, q.right - r.right, q.bottom - r.bottom].map(v => Math.round(v)) : null };
+})"""
+
+
+def vz_clues(page):
+    """Each spot's hint as drawn: is there one, whose, how it shows, is it seen now, does it move."""
+    return page.evaluate(VZ_CLUES_JS)
+
+
+def vz_check_clues(page, st, label, problems):
+    """The hint on the hidden animals' spots only (in tier 3 the look-alikes too, each with its own
+    feature), each drawn inside its own spot's button, none on a friend's spot."""
+    tier = st["tier"]
+    for c, s in zip(vz_clues(page), st["spots"]):
+        who = s["who"]
+        want = who["kind"] == "animal"
+        if c["clue"] != want or c["n"] > 1:
+            problems.append(f"{label}: spot {c['i']} ({who['id']}) has {c['n']} hints")
+            continue
+        if not want:
+            continue
+        if c["animal"] != who["id"] or c["feature"] != (who.get("feature") or None):
+            problems.append(f"{label}: spot {c['i']} hides the {who['id']} {who.get('feature')} but hints {c['animal']} {c['feature']}")
+        if c["show"] != {"t1": "always", "t2": "sometimes", "t3": "rarely"}[tier]:
+            problems.append(f"{label}: spot {c['i']} hints {c['show']} in {tier}")
+        if not c["inside"]:
+            problems.append(f"{label}: the hint of spot {c['i']} leaves its button (left, top, right, bottom past it: {c['box']})")
+
+
 def vz_spots_fit(page, w, h, label, problems):
     """Every spot on screen, 64 px or more and none overlapping; the animal to find on screen."""
     boxes = page.eval_on_selector_all("#vz-spots .vz-spot", "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })")
@@ -7396,6 +7434,12 @@ def verstop_flow(browser, base, problems):
         problems.append(f"verstop: garden-t1-1 has {n} spots")
     page.screenshot(path=str(SHOTS / "verstop-round-390x844.png"))
     target = next(i for i, s in enumerate(st["spots"]) if s["target"])
+    # the hint: a bit of the hedgehog peeks out over its spot from the start, still; no other spot hints
+    vz_check_clues(page, st, "verstop garden-t1-1", problems)
+    cl = vz_clues(page)
+    if [c["i"] for c in cl if c["seen"]] != [target] or cl[target]["anim"] != "none":
+        problems.append(f"verstop: garden-t1-1 hints {[(c['i'], c['seen'], c['anim']) for c in cl]}, want only spot {target}, still")
+    page.locator(f"#vz-spots .vz-spot[data-i='{target}']").screenshot(path=str(SHOTS / "verstop-hint-t1.png"))
     first_kind = st["spots"][target]["kind"]
     wrong = [i for i, s in enumerate(st["spots"]) if not s["target"]][:2]
     names = {"snail": "de slak", "ladybug": "het lieveheers\u00adbeestje", "mouse": "de muis", "frog": "de kikker", "bird": "het vogeltje", "bee": "de bij", "butterfly": "de vlinder", "mole": "de mol"}
@@ -7432,6 +7476,8 @@ def verstop_flow(browser, base, problems):
     cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{target}']", "class")
     if "found" not in cls or page.inner_text("#vz-status") != "Gevonden!":
         problems.append(f"verstop: the hedgehog was not found ({cls}, {page.inner_text('#vz-status')!r})")
+    if any(c["seen"] for c in vz_clues(page)):
+        problems.append("verstop: the hint still shows once the hedgehog is found")
     page.screenshot(path=str(SHOTS / "verstop-found-390x844.png"))
     page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
     want = 3 if 2 <= (n - 1) // 2 else 2
@@ -7522,6 +7568,7 @@ def verstop_layouts(browser, base, problems):
                 page.wait_for_timeout(150)
             st = vz_state(page)
             smallest = min(smallest, vz_spots_fit(page, w, h, label, problems))
+            vz_check_clues(page, st, label, problems)
             if english and rid == "garden-t1-1" and page.inner_text("#vz-ask-text").strip() != "Find the hedgehog!":
                 problems.append(f"{label}: English asks {page.inner_text('#vz-ask-text')!r}")
             if rid == "forest-t2-1" and page.locator("#vz-ask-pics .vz-pic").count() != 2:
@@ -7543,6 +7590,9 @@ def verstop_layouts(browser, base, problems):
                 shut = page.locator("#vz-spots .vz-spot.shut").count()
                 if shut != len(st["spots"]) - 1:
                     problems.append(f"{label}: {shut} spots closed for the memory question")
+                hid = [(c["i"], c["vis"]) for c in vz_clues(page) if c["clue"] and c["vis"] != "hidden"]
+                if hid:
+                    problems.append(f"{label}: hints not hidden in the memory question: {hid}")
                 page.screenshot(path=str(SHOTS / f"verstop-memory-{w}x{h}.png"))
                 ask = vz_state(page)["play"]["ask"]
                 if ask != crit:
@@ -7558,6 +7608,224 @@ def verstop_layouts(browser, base, problems):
         if errors:
             problems.append(f"verstop {w}x{h}: page errors {errors[:2]}")
         ctx.close()
+
+
+# How a hint shows, read from verstop.css itself: the still transform (t1, and every hint with reduced
+# motion) or the animation sought to its peak (t2, t3), on a stand-alone clue outside any spot.
+VZ_PEEK_STATES_JS = """() => {
+  const box = document.createElement('div');
+  box.innerHTML = ['always', 'sometimes', 'rarely'].map(s => `<svg class="vz-svg" viewBox="0 0 100 100" width="10" height="10"><g class="vz-clue" data-show="${s}" data-beat="0"><g class="vz-peek"><rect width="1" height="1"/></g></g></svg>`).join('');
+  document.body.appendChild(box);
+  const out = {};
+  for (const k of box.querySelectorAll('.vz-peek')) {
+    const a = k.getAnimations()[0];
+    if (a) {
+      a.pause();
+      a.effect.updateTiming({ delay: 0 });
+      const peak = a.effect.getKeyframes().find(f => String(f.opacity) === '1');
+      a.currentTime = peak.computedOffset * a.effect.getTiming().duration + 50;
+    }
+    const cs = getComputedStyle(k);
+    out[k.parentNode.dataset.show] = { ty: new DOMMatrix(cs.transform).f, opacity: Number(cs.opacity), animated: !!a };
+  }
+  box.remove();
+  return out;
+}"""
+
+# Every animal over every kind of spot, with every feature it may wear, drawn as the hint shows at
+# `ty`: the pixels the hint adds to the spot (inside the spot's 100 x 100 box, and outside it, which
+# must be none), and the pixels in its feature's colour. A spot is drawn 200 px wide.
+VZ_HINT_PIXELS_JS = """async ({ states }) => {
+  const A = await import('./games/verstop/art.js');
+  const R = await import('./games/verstop/rules.js');
+  const cv = document.createElement('canvas'); cv.width = 280; cv.height = 280;
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  async function raw(svg, ty, away = false) {
+    svg = svg.replace('viewBox="0 0 100 100"', 'viewBox="-20 -20 140 140" width="280" height="280" xmlns="http://www.w3.org/2000/svg"')
+      .replace('<g class="vz-who">', '<g class="vz-who" opacity="0">')
+      .replace('<g class="vz-peek">', `<g class="vz-peek" transform="translate(0 ${ty})"${away ? ' opacity="0"' : ''}>`);
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    await img.decode();
+    cx.clearRect(0, 0, 280, 280); cx.drawImage(img, 0, 0);
+    return cx.getImageData(0, 0, 280, 280).data;
+  }
+  const rgb = (h) => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+  const bare = {};
+  const out = [];
+  for (const st of states) {
+    for (const kind of R.SPOT_KINDS) {
+      const who = { kind: 'creature', id: 'frog' };
+      bare[kind] = bare[kind] || await raw(A.spotSvg(kind, who, 1, null), 0);
+      const b = bare[kind];
+      for (const animal of R.ANIMAL_IDS) {
+        for (const feature of st.features ? [null, ...R.featuresFor(animal)] : [null]) {
+          const a = await raw(A.spotSvg(kind, who, 1, { animal, feature, show: st.show, beat: 0 }), st.ty);
+          const col = feature && rgb(A.FEATURE_COLORS[feature]);
+          let inside = 0, outside = 0, feat = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            const d = Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) + Math.abs(a[i + 3] - b[i + 3]);
+            if (d <= 60) continue;
+            const x = (i / 4) % 280, y = Math.floor(i / 4 / 280);
+            if (x >= 40 && x < 240 && y >= 40 && y < 240) inside++; else outside++;
+            if (col && a[i + 3] > 200 && Math.abs(a[i] - col[0]) + Math.abs(a[i + 1] - col[1]) + Math.abs(a[i + 2] - col[2]) < 40) feat++;
+          }
+          out.push({ state: st.name, kind, animal, feature, inside, outside, feat });
+        }
+      }
+    }
+  }
+  // between two peeks (slid away, opacity 0) a spot with a hint must look exactly like one without
+  const leaks = [];
+  for (const kind of R.SPOT_KINDS) {
+    const who = { kind: 'creature', id: 'frog' };
+    for (const animal of R.ANIMAL_IDS) {
+      for (const feature of [null, ...R.featuresFor(animal)]) {
+        const a = await raw(A.spotSvg(kind, who, 1, { animal, feature, show: 'sometimes', beat: 0 }), 24, true);
+        let n = 0;
+        for (let i = 0; i < a.length; i++) if (a[i] !== bare[kind][i]) n++;
+        leaks.push({ kind, animal, feature, differ: n });
+      }
+    }
+  }
+  return { rows: out, leaks };
+}"""
+
+# The least a hint must add to a spot drawn 200 px wide (VZ_HINT_PIXELS_JS), per tier: t1 a clear bit
+# of the animal, t2 its head at the peek, t3 less but never nothing; a feature's glimpse in t3.
+VZ_HINT_MIN = {"t1": 400, "t2": 600, "t3": 200}
+VZ_FEATURE_MIN = 150
+
+
+def vz_hint_pixels(browser, base, reduce):
+    """The pixel matrix of every hint as verstop.css shows it, and the spots with a hint slid away (see VZ_HINT_PIXELS_JS)."""
+    ctx = browser.new_context(bypass_csp=True, viewport={"width": 400, "height": 400}, reduced_motion="reduce" if reduce else "no-preference")
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    css = page.evaluate(VZ_PEEK_STATES_JS)
+    states = [{"name": f"{tier}{'-reduced' if reduce else ''}", "tier": tier, "show": show, "ty": css[show]["ty"], "features": tier == "t3", "css": css[show]}
+              for tier, show in (("t1", "always"), ("t2", "sometimes"), ("t3", "rarely"))]
+    res = page.evaluate(VZ_HINT_PIXELS_JS, {"states": states})
+    ctx.close()
+    return states, res["rows"], res["leaks"]
+
+
+def verstop_hint_pixels(browser, base, problems):
+    """Every hint is on screen, by pixels: every animal over every kind of spot with every feature it
+    may wear, still (t1), at the peak of its peek (t2, t3) and with reduced motion, adds at least
+    VZ_HINT_MIN pixels to its spot and none outside it, and in t3 at least VZ_FEATURE_MIN pixels in
+    its feature's colour; and between two peeks (slid away, opacity 0) a spot with a hint draws exactly
+    the same pixels as one without, for every kind of spot. The numbers go to
+    shots/verstop-hint-pixels.json."""
+    report = []
+    for reduce in (False, True):
+        states, rows, leaks = vz_hint_pixels(browser, base, reduce)
+        if not reduce:
+            for r in leaks:
+                if r["differ"]:
+                    problems.append(f"verstop hint pixels: the {r['kind']} with a {r['animal']} {r['feature'] or ''} hint slid away differs from one without in {r['differ']} values (it gives the spot away)")
+        for st in states:
+            if st["css"]["opacity"] < 0.99:
+                problems.append(f"verstop hint pixels {st['name']}: the hint is not opaque at its peak ({st['css']})")
+            if reduce and st["css"]["animated"]:
+                problems.append(f"verstop hint pixels {st['name']}: the hint still moves with reduced motion")
+        tier_of = {st["name"]: st["tier"] for st in states}
+        for r in rows:
+            tag = f"verstop hint pixels {r['state']} {r['animal']} {r['feature'] or ''} behind the {r['kind']}"
+            if r["inside"] < VZ_HINT_MIN[tier_of[r["state"]]]:
+                problems.append(f"{tag}: only {r['inside']} px of the hint in sight (want {VZ_HINT_MIN[tier_of[r['state']]]})")
+            if r["outside"]:
+                problems.append(f"{tag}: {r['outside']} px drawn outside the spot")
+            if r["feature"] and r["feat"] < VZ_FEATURE_MIN:
+                problems.append(f"{tag}: only {r['feat']} px of the {r['feature']} in sight (want {VZ_FEATURE_MIN})")
+        report.append({"states": states, "rows": rows})
+        worst = min(rows, key=lambda r: r["inside"] / VZ_HINT_MIN[tier_of[r["state"]]])
+        feats = [r for r in rows if r["feature"]]
+        wf = min(feats, key=lambda r: r["feat"]) if feats else None
+        print(f"[verstop hint pixels{' reduced' if reduce else ''}] {len(rows)} hints, faintest {worst['inside']} px ({worst['state']} {worst['animal']} {worst['kind']})"
+              + (f", faintest feature {wf['feat']} px ({wf['state']} {wf['animal']} {wf['feature']} {wf['kind']})" if wf else ""))
+    (SHOTS / "verstop-hint-pixels.json").write_text(json.dumps(report))
+
+
+def verstop_hints(browser, base, problems):
+    """Verstoppertje's hints, by tier, at 390x844 and 844x390: t1 a bit of the animal from the start,
+    still; t2 each animal now and then (it moves, and is gone in between: watched over 10 s, each
+    clue spot is seen and unseen, a friend's spot never), t3 rarely, the look-alikes too, each with
+    its own feature; with prefers-reduced-motion every hint is still and in sight. Gone (computed
+    visibility hidden, not just between peeks) on a found spot while the other animal's goes on, and
+    on an opened look-alike. Screenshots of every tier in shots/verstop-hint-*."""
+    for w, h in ((390, 844), (844, 390)):
+        for reduce in (False, True):
+            tag = f"verstop hints {w}x{h}{' reduced motion' if reduce else ''}"
+            ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True, reduced_motion="reduce" if reduce else "no-preference")
+            ctx.add_init_script(OWNED_APP)
+            page = ctx.new_page()
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(base + "/index.html?test")
+            page.wait_for_selector("html[data-ready='1']")
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+            for rid in ("garden-t1-1", "forest-t2-1", "beach-t3-1"):
+                label = f"{tag} {rid}"
+                page.evaluate(f"window.__bubbels.verstop.start('{rid}')")
+                page.wait_for_timeout(150)
+                if page.is_visible("#overlay"):
+                    page.click("#ov-buttons button")
+                st = vz_state(page)
+                vz_check_clues(page, st, label, problems)
+                hinted = [i for i, s in enumerate(st["spots"]) if s["who"]["kind"] == "animal"]
+                seen, unseen, shot = set(), set(), False
+                for k in range(1 if rid == "garden-t1-1" or reduce else 28):
+                    if k:
+                        page.wait_for_timeout(500)
+                    cl = vz_clues(page)
+                    for c in cl:
+                        if c["seen"] and c["i"] not in hinted:
+                            problems.append(f"{label}: a hint seen on spot {c['i']}, a friend's")
+                    now = {c["i"] for c in cl if c["seen"]}
+                    seen |= now
+                    unseen |= {i for i in hinted if i not in now}
+                    if reduce or rid == "garden-t1-1":
+                        for c in cl:
+                            if c["clue"] and (c["anim"] != "none" or not c["seen"]):
+                                problems.append(f"{label}: the hint of spot {c['i']} is not still and in sight ({c['anim']}, seen {c['seen']})")
+                    if now and not shot:
+                        page.screenshot(path=str(SHOTS / f"verstop-hint-{rid}-{w}x{h}{'-reduced' if reduce else ''}.png"))
+                        shot = True
+                    if not reduce and rid != "garden-t1-1":
+                        for c in cl:
+                            if c["clue"] and c["anim"] not in ("vz-peek-some", "vz-peek-rare"):
+                                problems.append(f"{label}: the hint of spot {c['i']} does not come and go ({c['anim']})")
+                if seen != set(hinted):
+                    problems.append(f"{label}: hints seen on {sorted(seen)}, want {hinted}")
+                if not reduce and rid != "garden-t1-1" and unseen != set(hinted):
+                    problems.append(f"{label}: hints never gone on {sorted(set(hinted) - unseen)}")
+                if not shot:
+                    page.screenshot(path=str(SHOTS / f"verstop-hint-{rid}-{w}x{h}{'-reduced' if reduce else ''}.png"))
+                if rid == "forest-t2-1":
+                    # one animal found: its hint is gone (hidden, not just between two peeks), the other's goes on
+                    first, other = hinted
+                    vz_tap(page, first)
+                    page.wait_for_timeout(300)
+                    cl = vz_clues(page)
+                    if cl[first]["vis"] != "hidden":
+                        problems.append(f"{label}: the hint of the found spot {first} is {cl[first]['vis']}, not hidden")
+                    if cl[other]["vis"] != "visible" or cl[other]["anim"] != ("none" if reduce else "vz-peek-some"):
+                        problems.append(f"{label}: the other animal's hint after the first find: {cl[other]['vis']} {cl[other]['anim']}")
+                if rid == "beach-t3-1":
+                    # a look-alike opened: its hint is hidden while it waves and once it is ajar
+                    alike = next(i for i, s in enumerate(st["spots"]) if s["who"]["kind"] == "animal" and not s["target"])
+                    vz_tap(page, alike)
+                    for when, ms in (("waving", 300), ("ajar", 1700)):
+                        page.wait_for_timeout(ms)
+                        v = vz_clues(page)[alike]["vis"]
+                        if v != "hidden":
+                            problems.append(f"{label}: the hint of the opened look-alike (spot {alike}, {when}) is {v}")
+                page.evaluate("window.__bubbels.back()")
+                page.wait_for_timeout(100)
+            if errors:
+                problems.append(f"{tag}: page errors {errors[:2]}")
+            ctx.close()
 
 
 def km_state(page):
@@ -8611,6 +8879,8 @@ def main():
             drums_layouts(browser, base, problems)
             verstop_flow(browser, base, problems)
             verstop_layouts(browser, base, problems)
+            verstop_hints(browser, base, problems)
+            verstop_hint_pixels(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
@@ -8641,7 +8911,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
-         "verstop": (verstop_flow, verstop_layouts),
+         "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
+         "verstop-pixels": (verstop_hint_pixels,),
          "kaart": (kaart_flow, kaart_layouts),
          "papegaai": (papegaai_flow, papegaai_no_mic, papegaai_permission, papegaai_layouts),
          "doolhof": (doolhof_play,),

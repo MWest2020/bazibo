@@ -63,11 +63,17 @@ export const SPOTS = Object.freeze({
 });
 export const SPOT_KINDS = Object.freeze(Object.keys(SPOTS));
 
+/**
+ * `clue`: how the hint where an animal hides shows (`clueFor`): 'always' (a bit of it peeks out
+ * from the start), 'sometimes' (it peeks out now and then) or 'rarely' (less often, only a little,
+ * with a glimpse of its feature's colour).
+ */
 export const TIERS = Object.freeze({
-  t1: Object.freeze({ age: '3-4', spots: Object.freeze([4, 5]), find: 1, lookalikes: 0, memory: false }),
-  t2: Object.freeze({ age: '4-6', spots: Object.freeze([6, 7]), find: 2, lookalikes: 0, memory: false }),
-  t3: Object.freeze({ age: '5-7', spots: Object.freeze([7, 8]), find: 1, lookalikes: 2, memory: true }),
+  t1: Object.freeze({ age: '3-4', spots: Object.freeze([4, 5]), find: 1, lookalikes: 0, memory: false, clue: 'always' }),
+  t2: Object.freeze({ age: '4-6', spots: Object.freeze([6, 7]), find: 2, lookalikes: 0, memory: false, clue: 'sometimes' }),
+  t3: Object.freeze({ age: '5-7', spots: Object.freeze([7, 8]), find: 1, lookalikes: 2, memory: true, clue: 'rarely' }),
 });
+export const CLUE_SHOWS = Object.freeze(['always', 'sometimes', 'rarely']);
 export const TIER_IDS = Object.freeze(Object.keys(TIERS));
 export const ROUNDS_PER_TIER = 6;
 export const MAX_SPOTS = Math.max(...TIER_IDS.map((k) => TIERS[k].spots[1]));
@@ -279,6 +285,33 @@ export function fixedRound(id, after = null) {
   const round = list[p.n - 1];
   if (!after || !clash(round, after)) return copy(round);
   return makeRound({ ...p, seed: roundSeed(id), before: [...list.slice(0, p.n - 1), after], salt: 1 });
+}
+
+// ---------- the hints ----------
+// Mark's playtest (23 Nov 2026): "hide and seek may have subtle hints where the hedgehog hides,
+// otherwise it is just guessing". Every spot an animal hides behind gives a small, calm clue (a bit
+// of that animal peeking out over the top), the spots of the friends never do. Harder by tier, never
+// by speed: t1 from the start, t2 now and then (each of the two animals its own), t3 rarely and only
+// a little. In t3 the look-alikes peek too, each with a glimpse of its own feature's colour (or
+// none), so the clue says which one it is and the child still tells them apart.
+
+/**
+ * The clue spot i gives: `{ animal, feature, show }` (the animal that peeks out, the feature whose
+ * colour shows with it, how it shows: TIERS[tier].clue), or null (a friend's spot gives none).
+ */
+export function clueFor(round, i) {
+  const who = round.spots[i]?.who;
+  if (!who || who.kind !== 'animal') return null;
+  return { animal: who.id, feature: who.feature || null, show: TIERS[round.tier].clue };
+}
+
+/** Every spot's clue (null for none), and its beat: the clue spots peek in turn, not all at once. */
+export function cluesOf(round) {
+  let beat = 0;
+  return round.spots.map((s, i) => {
+    const c = clueFor(round, i);
+    return c && { ...c, beat: beat++ };
+  });
 }
 
 // ---------- playing ----------
