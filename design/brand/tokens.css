@@ -1,0 +1,62 @@
+/* Bazibo brand tokens, round 2, direction B "Kralen".
+   The same values as tokens.json. Drop this block in place of the colour block at the top of
+   web/css/style.css; the --bz-* names the app already uses are kept. */
+
+:root {
+  /* base and ink */
+  --bz-base: #fbf7f0;
+  --bz-ink: #28245c;          /* 13.09:1 on the base */
+  --bz-ink-soft: #5a5585;     /*  6.39:1 on the base */
+  --bz-brand: #4f43c4;        /* white on it: 7.16:1 */
+  --bz-on-brand: #ffffff;
+
+  /* one bead per kind of play; colour is never the only cue, every group keeps
+     its own icon and its name */
+  --bz-learning-acc: #b97f0a;
+  --bz-learning-tint: #f7edd4;
+  --bz-learning-ink: #7d5606;
+
+  --bz-puzzles-acc: #2a8f88;
+  --bz-puzzles-tint: #e2f1ef;
+  --bz-puzzles-ink: #1d6b66;
+
+  --bz-board-acc: #d9663f;
+  --bz-board-tint: #fbe8de;
+  --bz-board-ink: #9d4524;
+
+  --bz-creative-acc: #c8508a;
+  --bz-creative-tint: #fae4ef;
+  --bz-creative-ink: #993963;
+
+  --bz-action-acc: #3f86d0;
+  --bz-action-tint: #e4eefa;
+  --bz-action-ink: #2a5f94;
+
+  /* the night shades: the same beads on an ink field (icon, dark lockup) */
+  --bz-learning-night: #e9b43f;
+  --bz-puzzles-night: #4cc0b4;
+  --bz-board-night: #f08a5e;
+  --bz-creative-night: #ef84b6;
+  --bz-action-night: #74b4ea;
+  --bz-brand-night: #a79bf2;
+
+  /* type: OFL only, shipped in web/fonts/, never from a CDN */
+  --bz-font-display: "Fredoka", system-ui, sans-serif;
+  --bz-font-text: "Nunito", system-ui, sans-serif;
+  --bz-font-reading: "Andika", system-ui, sans-serif;
+
+  /* scale: nothing a child reads goes below 16 px */
+  --bz-size-100: 16px;
+  --bz-size-200: 18px;
+  --bz-size-300: 20px;
+  --bz-size-400: 24px;
+  --bz-size-500: 30px;
+  --bz-size-600: 38px;
+  --bz-size-700: 48px;
+  --bz-size-800: 64px;
+
+  --bz-weight-text: 400;
+  --bz-weight-medium: 500;
+  --bz-weight-strong: 700;
+  --bz-weight-display: 600;
+}
