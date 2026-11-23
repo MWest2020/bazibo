@@ -3,7 +3,8 @@
 
 /* ---------- home tile ---------- */
 #tile-baghchal .tile-art { display: flex; align-items: center; justify-content: center; }
-#tile-baghchal .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
+/* `> svg`, not ` svg`: a filter on the pieces nested in the drawing hung Chrome's first paint of the home screen (PR #95, tests/tile-art-css.test.js) */
+#tile-baghchal .tile-art > svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
 /* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
 .bagh-intro { display: flex; align-items: center; gap: 12px; margin: 4px 4px 4px; color: var(--bz-ink-soft); font-weight: var(--bz-weight-text); }

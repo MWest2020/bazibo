@@ -4,7 +4,7 @@ import { BRAND } from './brand.js';
 import { gazeboSvg } from './logo.js';
 import { GAMES, GROUPS, OTHER_GROUP } from './games.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
-import { COLORS, getSprite, drawBubble } from './bubble-art.js';
+import { COLORS, drawBubble } from './bubble-art.js';
 import * as store from './storage.js';
 import * as sfx from './audio.js';
 import { createUnlock, noBilling } from './unlock.js';
@@ -100,8 +100,6 @@ const showHooks = [];
 function show(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === `screen-${name}`));
   hideOverlay();
-  homeAnim.running = name === 'home';
-  if (homeAnim.running) homeAnim.start();
   if (name === 'settings') renderSettings();
   for (const fn of showHooks) fn(name);
 }
@@ -541,89 +539,6 @@ function hideOverlay() {
   $('#overlay').hidden = true;
 }
 
-// ---------- floating bubbles on the home screen ----------
-
-const homeAnim = {
-  running: true,
-  started: false,
-  looping: false,
-  bubbles: [],
-  start() {
-    if (this.started) {
-      this._loop?.();
-      return;
-    }
-    this.started = true;
-    const canvas = $('#home-bg');
-    const ctx = canvas.getContext('2d');
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let w = 0;
-    let h = 0;
-    let dpr = 1;
-    let keepOut = []; // the logo, tagline and tiles: bubbles fade while they pass behind them
-    const size = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.clientWidth;
-      h = canvas.clientHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      const base = canvas.getBoundingClientRect();
-      keepOut = ['.logo', '.tagline', '.tile-groups'].map((sel) => {
-        const r = $(sel).getBoundingClientRect();
-        return { x0: r.left - base.left, x1: r.right - base.left, y0: r.top - base.top, y1: r.bottom - base.top };
-      });
-    };
-    const behindText = (x, y, r) => keepOut.some((k) => x + r > k.x0 && x - r < k.x1 && y + r > k.y0 && y - r < k.y1);
-    size();
-    window.addEventListener('resize', () => this.running && size());
-    const make = (initial) => ({
-      x: Math.random() * w,
-      y: initial ? Math.random() * h : h + 60,
-      r: 14 + Math.random() * 30,
-      c: Math.floor(Math.random() * COLORS.length),
-      v: 18 + Math.random() * 30,
-      ph: Math.random() * 6.28,
-      a: 0.7,
-    });
-    this.bubbles = Array.from({ length: 16 }, () => make(true));
-    let last = performance.now();
-    const frame = (now) => {
-      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
-      last = now;
-      if (!this.running) {
-        this.looping = false; // stops until the home screen is shown again
-        return;
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      for (const b of this.bubbles) {
-        if (!reduced) {
-          b.y -= b.v * dt;
-          b.ph += dt;
-        }
-        if (b.y < -60) Object.assign(b, make(false));
-        const x = b.x + Math.sin(b.ph) * 12;
-        const target = behindText(x, b.y, b.r) ? 0.12 : 0.7;
-        b.a += (target - b.a) * Math.min(1, dt * 6);
-        const spr = getSprite(b.c, b.r * dpr);
-        const s = spr.width / dpr;
-        ctx.globalAlpha = b.a;
-        ctx.drawImage(spr, x - s / 2, b.y - s / 2, s, s);
-      }
-      ctx.globalAlpha = 1;
-      requestAnimationFrame(frame);
-    };
-    this._loop = () => {
-      if (this.looping) return;
-      this.looping = true;
-      size(); // the screen may have been resized while it was hidden
-      last = performance.now();
-      requestAnimationFrame(frame);
-    };
-    this._loop();
-  },
-};
-
 // ---------- boot ----------
 
 // The canvas games (Bubbels' hint, Slangetje, Egeltje) draw text with "Bazibo Sans"; a canvas does
@@ -950,7 +865,6 @@ async function boot() {
   drawPianoTile();
   drawDrumsTile();
   drawPapegaaiTile();
-  homeAnim.start();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
   const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.verstop.init(), games.kangoeroe.init(), games.kaart.init(), games.piano.init(), games.drums.init(), games.papegaai.init(), fontReady()]);
@@ -983,7 +897,6 @@ async function boot() {
       drums: games.drums.testHook(),
       papegaai: games.papegaai.testHook(),
       transfer: games.transfer.testHook(),
-      homeLoop: () => homeAnim.looping,
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
       full: () => unlock.owned,
