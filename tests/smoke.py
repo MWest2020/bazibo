@@ -209,9 +209,6 @@ def run(browser, base, name, context_args, problems, lang="nl"):
     page.screenshot(path=str(SHOTS / f"{name}-2-levels.png"))
     design_checks(page, name, problems)
 
-    if page.evaluate("window.__bubbels.homeLoop()"):
-        problems.append(f"{name}: home-screen animation still runs on the level screen")
-
     choose(page, "#levels-free .level-cell >> nth=0")
     page.wait_for_timeout(1300)
     page.screenshot(path=str(SHOTS / f"{name}-3-hint.png"))  # level 1: the drag-and-let-go hand
@@ -8797,6 +8794,41 @@ MENU_CHECK = r"""
 HOME_ORDER = ["learning", "puzzles", "board", "creative", "action"]
 
 
+def home_calm(browser, base, problems):
+    """Bazibo 2.0 phase 1: the paper background. The floating bubbles of 1.0 are gone (Mark, 23 Nov
+    2026): no #home-bg canvas, and nothing asks for animation frames while the home screen is shown,
+    neither after loading nor after a game and back. Screenshots `shots/home-calm-*.png`."""
+    count = "window.__frames = 0; const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (f) => { window.__frames++; return raf(f); };"
+    for w, h in ((390, 844), (844, 390)):
+        label = f"home calm {w}x{h}"
+        ctx = browser.new_context(locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, has_touch=True, is_mobile=True)
+        ctx.add_init_script(count)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_timeout(300)
+        if page.locator("#home-bg").count():
+            problems.append(f"{label}: the #home-bg canvas is still there")
+        for when in ("after loading", "after a game and back"):
+            if when != "after loading":
+                page.click("#tile-bubbels")
+                page.wait_for_timeout(300)
+                page.click("#screen-levels [data-go=home]")
+                page.wait_for_selector("#screen-home.active")
+                page.wait_for_timeout(300)
+            before = page.evaluate("window.__frames")
+            page.wait_for_timeout(1000)
+            frames = page.evaluate("window.__frames") - before
+            if frames:
+                problems.append(f"{label}: {frames} animation frames asked for in a second on the home screen {when}")
+        page.screenshot(path=str(SHOTS / f"home-calm-{w}x{h}.png"))
+        if errors:
+            problems.append(f"{label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def home_targets(browser, base, problems):
     """Every game's first screen and the settings at 320x568 (Dutch and English) and 390x844: the
     back button keeps its 60 px next to a long title (Verstoppertje squeezed it to 33 px at 320),
@@ -8950,6 +8982,7 @@ def main():
             papegaai_layouts(browser, base, problems)
             store_links(browser, base, problems)
             home_targets(browser, base, problems)
+            home_calm(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -8976,7 +9009,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "papegaai": (papegaai_flow, papegaai_no_mic, papegaai_permission, papegaai_layouts),
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
-         "store": (store_links, home_targets)}
+         "store": (store_links, home_targets, home_calm)}
 
 
 def report(problems):

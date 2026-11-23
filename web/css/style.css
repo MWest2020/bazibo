@@ -183,7 +183,6 @@ html, body {
 
 /* ---------- home ---------- */
 #screen-home { overflow-y: auto; -webkit-overflow-scrolling: touch; } /* short phones scroll to the last tiles */
-#home-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .home-inner {
   position: relative;
   max-width: 100%; /* margin: auto sizes it to its content; without this the widest section (7 fixed-width tiles) pushed it past the screen on tablets */
