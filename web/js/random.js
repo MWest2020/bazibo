@@ -150,7 +150,7 @@ export function randomCard({ t, title = null, solved = 0, locked = false, done =
   // `done`: "12 gehaald" (boards and rounds) instead of "12 opgelost" (puzzles)
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'level-btn random-btn';
+  b.className = 'level-cell random-btn';
   b.dataset.random = '1';
   const label = document.createElement('span');
   label.className = 'random-label';

@@ -5,14 +5,12 @@
 #tile-baghchal .tile-art { display: flex; align-items: center; justify-content: center; }
 #tile-baghchal .tile-art svg { width: 84px; height: 84px; display: block; filter: drop-shadow(0 3px 0 rgba(43, 35, 112, 0.25)); }
 
-/* ---------- menu ---------- */
-.bagh-intro { display: flex; align-items: center; gap: 12px; margin: 4px 4px 4px; color: var(--ink-soft); font-weight: 700; }
-.bagh-intro p { margin: 0; font-size: 0.95rem; line-height: 1.35; }
+/* ---------- menu: the shell's option cards and segments (css/style.css) ---------- */
+.bagh-intro { display: flex; align-items: center; gap: 12px; margin: 4px 4px 4px; color: var(--bz-ink-soft); font-weight: var(--bz-weight-text); }
+.bagh-intro p { margin: 0; font-size: var(--bz-text-m); line-height: 1.35; }
 .bagh-intro-art { flex: none; width: 64px; height: 64px; }
 .bagh-intro-art svg { width: 100%; height: 100%; display: block; }
-.bagh-opt .vier-opt-art svg.piece { width: 54px; height: 54px; }
-.bagh-level .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
-#screen-baghchal-menu .levels-scroll { padding-bottom: 0; }
+.bagh-opt .option-art svg.piece { width: 54px; height: 54px; }
 
 /* ---------- HUD ---------- */
 #baghchal-undo:disabled { opacity: 0.45; }

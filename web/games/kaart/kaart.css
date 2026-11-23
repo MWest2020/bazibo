@@ -1,30 +1,32 @@
-/* Kaartpuzzel: home tile, the menu (the maps as buttons, the rounds per tier: Klok kijken's grid
-   from klok.css), the map screen (the question, the map, the row of pieces, the dots). Shared look
+/* Kaartpuzzel: home tile, the menu (the maps as option cards, the rounds per tier in level cells), the map screen (the question, the map, the row of pieces, the dots). Shared look
    lives in css/style.css. */
 
 /* ---------- home tile and menu ---------- */
 #tile-kaart .tile-art { display: flex; align-items: center; justify-content: center; }
 .km-tile-svg { width: 100%; height: 100%; max-width: 104px; display: block; overflow: visible; }
-.km-menu-art { display: flex; justify-content: center; margin: 4px 0 4px; }
-.km-menu-art svg { width: 160px; height: auto; display: block; }
 .km-ov { display: inline-flex; width: 170px; height: 110px; }
 .km-ov svg { width: 100%; height: 100%; }
-.km-packs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 4px 0 6px; }
-.km-pack {
-  min-height: 48px;
-  padding: 0 16px;
+/* the maps: option cards (css/style.css) with the pack's own map as the picture */
+.km-packs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: var(--bz-space-1) 0; }
+.km-packs .option-card.pic .option-art { height: 64px; }
+.km-packs .option-card.pic .option-art > svg { height: 100%; }
+@media (max-width: 359px) { .km-packs { grid-template-columns: repeat(2, minmax(0, 1fr)); } } /* "Werelddelen" stays whole */
+.km-pack.other {
+  display: block;
+  min-height: var(--bz-target);
+  margin: var(--bz-space-1) auto var(--bz-space-2);
+  padding: 0 var(--bz-space-4);
   border: 0;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 4px 0 #d6cff7;
-  font: 800 1rem var(--font);
-  color: var(--ink);
+  background: transparent;
+  font: var(--bz-weight-head) var(--bz-text-m) var(--bz-font);
+  color: var(--bz-ink-soft);
+  text-decoration: underline;
   cursor: pointer;
+  touch-action: manipulation;
 }
-.km-pack[aria-pressed='true'] { background: var(--primary); color: #fff; box-shadow: 0 4px 0 var(--primary-dark); }
-.km-pack.other { background: transparent; box-shadow: none; color: var(--ink-soft); text-decoration: underline; }
+.km-pack.other:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-radius: var(--bz-radius-s); }
 .km-round { position: relative; }
-.km-round .km-kind { position: absolute; top: 4px; left: 5px; width: 16px; height: 16px; color: #b7aeea; }
+.km-round .km-kind { position: absolute; top: 5px; left: 6px; width: 16px; height: 16px; color: var(--bz-ink-quiet); }
 
 /* ---------- the map screen ---------- */
 .km-hud { gap: 10px; }

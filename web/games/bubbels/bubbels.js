@@ -9,10 +9,10 @@ import { isLocked, allFreeDone } from '../../js/unlock.js';
 import { makeRandom, newSeed, randomCard } from '../../js/random.js';
 import { RANDOM_TIERS } from './generate.js';
 import { foldLocked } from '../../js/fold.js';
+import { levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 
 export function createBubbels(shell) {
   const { t, tap } = shell;
@@ -63,10 +63,6 @@ export function createBubbels(shell) {
     (fold || $('#levels-random-head')).scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderLevels() {
     const free = $('#levels-free');
     const full = $('#levels-full');
@@ -74,12 +70,11 @@ export function createBubbels(shell) {
     full.textContent = '';
     const nextOpen = levels[nextOpenIndex()];
     levels.forEach((l, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'level-btn';
-      if (locked(l.id)) {
-        b.classList.add('locked');
-        b.innerHTML = `<span class="num">${l.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+      const isLocked = locked(l.id);
+      const stars = isLocked ? 0 : progress.stars[l.id] || 0;
+      // quiet stars: a level shows them only once it was played; never points
+      const b = levelCell({ num: l.id, stars, locked: isLocked, next: !!nextOpen && nextOpen.id === l.id });
+      if (isLocked) {
         b.setAttribute('aria-label', t('bubbels.levelLocked', { n: l.id }));
         b.addEventListener('click', () => {
           tap();
@@ -87,10 +82,7 @@ export function createBubbels(shell) {
         });
         full.appendChild(b);
       } else {
-        const stars = progress.stars[l.id] || 0;
-        if (nextOpen && nextOpen.id === l.id) b.classList.add('next');
-        b.innerHTML = `<span class="num">${l.id}</span><span class="stars" aria-hidden="true">${starsText(stars)}</span>`;
-        b.setAttribute('aria-label', t('bubbels.levelStars', { n: l.id, stars }));
+        b.setAttribute('aria-label', stars ? t('bubbels.levelStars', { n: l.id, stars }) : t('bubbels.levelOpen', { n: l.id }));
         b.addEventListener('click', () => {
           tap();
           play(i);

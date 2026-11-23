@@ -43,7 +43,8 @@ export function menuPacks(country) {
 }
 
 const loaded = new Map();
-/** The pack's data (loaded once, on demand: the maps are the biggest part of the game). */
+/** The pack's data, loaded once when first asked for (the menu asks for every pack it shows, for the
+ *  map on its card; a round for its own). The maps are the biggest part of the game. */
 export function loadPack(id) {
   if (!PACK_IDS.includes(id)) return Promise.reject(new Error(`no pack ${id}`));
   if (!loaded.has(id)) loaded.set(id, import(`./packs/${id}.js`).then((m) => m.default));

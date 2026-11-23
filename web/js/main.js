@@ -224,6 +224,7 @@ function buildTiles() {
     if (!list.length) continue;
     const section = document.createElement('section');
     section.className = 'tile-group';
+    section.dataset.group = group.id;
     section.style.setProperty('--n', list.length);
     const head = document.createElement('h2');
     head.className = 'group-name';
@@ -265,6 +266,17 @@ function buildTiles() {
   }
 }
 buildTiles();
+
+/** Each game's screens take the colour of its group (data-group; the tokens in style.css): the
+ *  selected option and the next level in a menu. A game's screens are `screen-<id>...`; Bubbels,
+ *  the first game, kept the plain names. */
+function markGroups() {
+  const plain = { bubbels: ['#screen-levels', '#screen-game'] };
+  for (const game of GAMES) {
+    for (const s of document.querySelectorAll([`.screen[id^="screen-${game.id}"]`, ...(plain[game.id] || [])].join(','))) s.dataset.group = game.group;
+  }
+}
+markGroups();
 
 function drawTileArt() {
   const c = $('#tile-bubbels .tile-art');

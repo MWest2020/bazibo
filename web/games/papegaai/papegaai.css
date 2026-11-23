@@ -28,7 +28,7 @@
   color: var(--ink-soft);
 }
 .papegaai-muted[hidden] { display: none; }
-.btn.pg-pill { height: 44px; padding: 0 14px; border-radius: 16px; background: #fff; color: var(--primary); font-size: 0.95rem; font-weight: 900; box-shadow: 0 4px 0 #c9c1ff; }
+.btn.pg-pill { height: var(--bz-target); padding: 0 16px; border-radius: 16px; background: #fff; color: var(--primary); font-size: 0.95rem; font-weight: 900; box-shadow: 0 4px 0 #c9c1ff; }
 
 .papegaai-main {
   flex: 1;

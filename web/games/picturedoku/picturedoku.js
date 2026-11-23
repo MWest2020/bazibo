@@ -13,10 +13,10 @@ import * as sfx from '../../js/audio.js';
 import { makeRandom, newSeed, randomCard } from '../../js/random.js';
 import { RANDOM_TIERS } from './generate.js';
 import { foldLocked } from '../../js/fold.js';
+import { levelCell, menuHead } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 
 export const AGE = Object.freeze({ 4: 3, 6: 6, 9: 8 }); // board size -> from what age
 export const HINTS = Object.freeze({ tiny: Infinity, small: 3, full: 3 }); // hints per puzzle
@@ -88,10 +88,6 @@ export function createPicturedoku(shell) {
 
   // ---------- puzzle list ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderLevels() {
     const box = $('#pdoku-levels');
     box.textContent = '';
@@ -99,12 +95,7 @@ export function createPicturedoku(shell) {
     const sizes = [...new Set(puzzles.map((p) => p.n))];
     const nextOpen = puzzles.find((p) => !progress.stars[p.id] && !locked(p));
     for (const n of sizes) {
-      const head = document.createElement('h3');
-      head.className = 'dogu-size';
-      head.innerHTML = '<span class="dogu-size-n"></span><span class="dogu-size-age"></span>';
-      head.querySelector('.dogu-size-n').textContent = t('pdoku.size', { n });
-      head.querySelector('.dogu-size-age').textContent = t('pdoku.age', { age: AGE[n] });
-      box.appendChild(head);
+      box.appendChild(menuHead(t('pdoku.size', { n }), { age: t('pdoku.age', { age: AGE[n] }) }));
       const grid = document.createElement('div');
       grid.className = 'level-grid dogu-grid';
       const tier = RANDOM_TIERS.find((x) => x.n === n);
@@ -121,22 +112,17 @@ export function createPicturedoku(shell) {
         );
       }
       for (const p of puzzles.filter((q) => q.n === n)) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'level-btn';
+        const isLocked = locked(p);
+        const stars = isLocked ? 0 : progress.stars[p.id] || 0;
+        const b = levelCell({ num: p.id, stars, locked: isLocked, next: !!(nextOpen && nextOpen.id === p.id) });
         b.dataset.puzzle = String(p.id);
-        if (locked(p)) {
-          b.classList.add('locked');
-          b.innerHTML = `<span class="num">${p.id}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+        if (isLocked) {
           b.setAttribute('aria-label', t('pdoku.puzzleLocked', { n: p.id }));
           b.addEventListener('click', () => {
             tap();
             offer();
           });
         } else {
-          const stars = progress.stars[p.id] || 0;
-          if (nextOpen && nextOpen.id === p.id) b.classList.add('next');
-          b.innerHTML = `<span class="num">${p.id}</span><span class="stars" aria-hidden="true">${starsText(stars)}</span>`;
           b.setAttribute('aria-label', stars ? t('pdoku.puzzleStars', { n: p.id, stars }) : t('pdoku.puzzleOpen', { n: p.id }));
           b.addEventListener('click', () => {
             tap();

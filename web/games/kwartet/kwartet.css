@@ -1,5 +1,5 @@
 /* Kwartet: home tile, menu extras, the table (the other players, speech bubbles, your hand by set,
-   your kwartetten). The menu reuses Vier op een rij's and Dammen's option classes. */
+   your kwartetten). The menu is built from the shell's components (css/style.css). */
 
 /* ---------- home tile ---------- */
 #tile-kwartet .tile-art { display: flex; align-items: center; justify-content: center; }
@@ -12,39 +12,9 @@
 .kwartet-stack i:nth-child(2) { transform: rotate(-6deg) translateX(-2px); }
 .kwartet-stack i:nth-child(3) { transform: rotate(6deg) translateX(4px); }
 .kwartet-stack i:nth-child(4) { transform: rotate(18deg) translateX(10px); }
-.kwartet-setcounts .vier-opt { flex: 1 1 150px; }
-.kwartet-seatpick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.kwartet-slot {
-  font: inherit;
-  position: relative;
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 30px 8px 10px;
-  border: 3px solid var(--primary);
-  border-radius: 22px;
-  background: #fff;
-  color: var(--ink);
-  box-shadow: 0 5px 0 var(--primary-dark);
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.kwartet-slot:disabled { cursor: default; opacity: 1; }
-.kwartet-slot:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
-.kwartet-slot.kind-off { border-color: transparent; background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
-.kwartet-slot.locked { border-color: transparent; color: var(--ink-soft); background: rgba(255, 255, 255, 0.6); box-shadow: 0 5px 0 #d6cff7; }
-.kwartet-slot .slot-face { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
-.kwartet-slot .slot-face svg { width: 100%; height: 100%; display: block; }
-.kwartet-empty { width: 40px; height: 40px; border-radius: 50%; border: 3px dashed #c9c1ff; color: var(--bz-ink-quiet); font-size: 1.6rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-.kwartet-slot .slot-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.kwartet-slot .slot-name { font-weight: 900; color: var(--primary); font-size: 1.02rem; line-height: 1.15; }
-.kwartet-slot .slot-kind { font-weight: 800; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.15; }
-.kwartet-slot .swap { position: absolute; top: 8px; right: 10px; color: var(--primary); font-size: 1.1rem; }
-.kwartet-slot .lock { position: absolute; top: -8px; right: -6px; width: 26px; height: 26px; padding: 3px; border-radius: 50%; background: #fff; fill: var(--bz-ink-quiet); box-shadow: 0 2px 0 #ddd8f7; }
-#screen-kwartet-menu .levels-scroll { padding-bottom: 0; }
-.kwartet-rule { margin: -4px 4px 12px; font-weight: 800; font-size: 0.92rem; line-height: 1.3; color: var(--ink-soft); }
+.kwartet-setcounts .option-card { flex: 1 1 220px; }
+.kwartet-empty { width: 40px; height: 40px; border-radius: 50%; border: 3px dashed var(--bz-brand-edge); color: var(--bz-ink-quiet); font-size: 1.6rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.kwartet-rule { margin: -4px 4px 12px; font-weight: var(--bz-weight-head); font-size: var(--bz-text-s); line-height: 1.3; color: var(--bz-ink-soft); }
 
 /* ---------- HUD ---------- */
 .kwartet-hud .bar-spacer { width: 60px; flex: none; }
@@ -205,10 +175,13 @@
 }
 .kc-band { flex: none; align-self: stretch; height: 9px; background: var(--c); }
 .kset { display: flex; flex-direction: column; gap: 2px; }
-.kset-name { align-self: center; width: min(100%, 392px); padding-left: 2px; font-size: 0.85rem; font-weight: 900; color: var(--c); line-height: 1.2; }
+/* the set's name in ink with a dot in the set's colour: orange, yellow and green text on the table was 2-3:1 */
+.kset-name { align-self: center; display: flex; align-items: center; gap: 6px; width: min(100%, 392px); padding-left: 2px; font-size: 0.85rem; font-weight: 900; color: var(--bz-ink); line-height: 1.2; }
+.kset-name::before { content: ''; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px rgba(43, 35, 112, 0.35); }
 .kc-pic { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box; }
 .kc-pic svg { width: 100%; height: 100%; max-width: 64px; display: block; }
-.kc-name { align-self: stretch; padding: 0 2px 3px; font-size: 0.72rem; font-weight: 900; text-align: center; line-height: 1.1; overflow-wrap: anywhere; hyphens: manual; }
+/* a name breaks only at its soft hyphen (lieveheers-beestje), never inside a word */
+.kc-name { align-self: stretch; padding: 0 2px 3px; font-size: 0.72rem; font-weight: 900; text-align: center; line-height: 1.1; overflow-wrap: normal; hyphens: manual; }
 .kcard.missing { border-style: dashed; background: rgba(255, 255, 255, 0.55); box-shadow: none; }
 .kcard.missing .kc-pic, .kcard.missing .kc-name { opacity: 0.5; }
 .kcard.missing .kc-band { opacity: 0.6; }

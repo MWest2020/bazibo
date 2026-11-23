@@ -17,10 +17,10 @@ import * as sound from './sound.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, menuHead, starsHtml } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const DRUM = '<path d="M12 4c5 0 9 1.6 9 3.6v8.8C21 18.4 17 20 12 20s-9-1.6-9-3.6V7.6C3 5.6 7 4 12 4zm0 2C8 6 5 7 5 7.6S8 9.2 12 9.2s7-1 7-1.6S16 6 12 6z"/>';
 const PLAY = '<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>';
 const STOP = '<rect x="5.5" y="5.5" width="13" height="13" rx="2.5"/>';
@@ -331,17 +331,9 @@ export function createDrums(shell) {
     box.textContent = '';
     const got = stars();
     const card = (id, title, sub, isLocked, n) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `drums-card${isLocked ? ' locked' : ''}`;
+      const b = optionCard({ art: cardSvg(id), title, sub, locked: isLocked, cls: `wide drums-card${n === null ? ' lead' : ''}` });
       b.dataset.rhythm = id;
-      b.innerHTML = `<span class="drums-card-art">${cardSvg(id)}</span><span class="drums-card-text"><span class="drums-card-title"></span><span class="drums-card-sub"></span></span><span class="drums-card-end" aria-hidden="true"></span>`;
-      b.querySelector('.drums-card-title').textContent = title;
-      b.querySelector('.drums-card-sub').textContent = sub;
-      b.querySelector('.drums-card-sub').hidden = !sub;
-      const end = b.querySelector('.drums-card-end');
-      if (isLocked) end.innerHTML = `<svg viewBox="0 0 24 24">${LOCK}</svg>`;
-      else if (n !== null) end.innerHTML = [0, 1, 2].map((k) => `<svg class="${k < n ? 'on' : ''}" viewBox="0 0 24 24">${STAR}</svg>`).join('');
+      if (!isLocked && n) b.insertAdjacentHTML('beforeend', starsHtml(n, { cls: 'drums-card-end' }));
       return b;
     };
     const free = card('free', t('drums.free'), t('drums.freeSub'), false, null);
@@ -352,10 +344,7 @@ export function createDrums(shell) {
     });
     box.appendChild(free);
     for (const level of LEVELS) {
-      const h = document.createElement('h3');
-      h.className = 'drums-level';
-      h.textContent = t(`drums.level.${level.id}`);
-      box.appendChild(h);
+      box.appendChild(menuHead(t(`drums.level.${level.id}`)));
       for (const r of level.rhythms) {
         const name = t(`drums.rhythm.${r.id}`);
         const isLocked = locked(r.id);
@@ -527,7 +516,8 @@ export function createDrums(shell) {
     tap();
     back();
   });
-  $('#drums-list-btn').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${DRUM}</svg><span></span>`;
+  // the bar's one action, right: the rhythm list (an icon button like every bar's; its name for screen readers)
+  $('#drums-list-btn').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${DRUM}</svg>`;
   $('#drums-list-btn').addEventListener('click', () => {
     tap();
     showList();
@@ -558,7 +548,7 @@ export function createDrums(shell) {
   });
   shell.onLangChange(() => {
     labelPads();
-    $('#drums-list-btn span').textContent = t('drums.rhythms');
+    $('#drums-list-btn').setAttribute('aria-label', t('drums.rhythms'));
     if (onScreen('drums-list')) renderList();
     if (onScreen('drums')) render();
   });
@@ -592,7 +582,7 @@ export function createDrums(shell) {
   document.addEventListener('keyup', (e) => release(`kb-${e.key.toLowerCase()}`));
 
   buildKit();
-  $('#drums-list-btn span').textContent = t('drums.rhythms');
+  $('#drums-list-btn').setAttribute('aria-label', t('drums.rhythms'));
 
   return {
     async init() {

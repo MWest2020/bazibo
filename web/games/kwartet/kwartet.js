@@ -142,7 +142,7 @@ export function createKwartet(shell) {
     const lockIcon = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
@@ -150,17 +150,19 @@ export function createKwartet(shell) {
 
     head('kwartet.setsHead');
     const row = document.createElement('div');
-    row.className = 'vier-row kwartet-setcounts';
+    row.className = 'option-row kwartet-setcounts';
     for (const n of SET_COUNTS) {
       const isLocked = !owned && n > meta.freeSets;
       const won = counts[winKey(n)] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-opt dam-opt kwartet-opt sets-${n} ${isLocked ? 'locked' : ''}`;
+      b.className = `option-card kwartet-opt sets-${n} ${isLocked ? 'locked' : ''}`;
       b.setAttribute('aria-pressed', String(choice.sets === n && !isLocked));
-      b.innerHTML = `<span class="vier-opt-art"><span class="kwartet-stack" style="--n:${Math.min(n, 6)}">${SETS.slice(0, Math.min(n, 4)).map((s) => `<i style="--c:${s.color}"></i>`).join('')}</span></span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>${isLocked ? lockIcon : ''}`;
-      b.querySelector('.vier-opt-title').textContent = t('kwartet.sets', { n });
-      b.querySelector('.vier-opt-sub').textContent = isLocked ? t('kwartet.fullVersion') : won ? t('kwartet.wins', { n: won }) : t('kwartet.setsSub', { n: n * PER_SET, age: AGES[n] });
+      b.innerHTML = `<span class="option-art" aria-hidden="true"><span class="kwartet-stack">${'<i></i>'.repeat(Math.min(n, 4))}</span></span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>${isLocked ? lockIcon : ''}`;
+      // the set colours through el.style: the CSP blocks style attributes in HTML
+      b.querySelectorAll('.kwartet-stack i').forEach((i, k) => i.style.setProperty('--c', SETS[k].color));
+      b.querySelector('.option-title').textContent = t('kwartet.sets', { n });
+      b.querySelector('.option-sub').textContent = isLocked ? t('kwartet.fullVersion') : won ? t('kwartet.wins', { n: won }) : t('kwartet.setsSub', { n: n * PER_SET, age: AGES[n] });
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {
@@ -177,7 +179,7 @@ export function createKwartet(shell) {
     // the players: seat 1 is always a child; seats 2-4 a child, the computer or empty
     head('kwartet.playersHead');
     const seats = document.createElement('div');
-    seats.className = 'kwartet-seatpick';
+    seats.className = 'player-slots kwartet-seatpick';
     const kinds = choice.players;
     const names = namesFor(kinds);
     const faces = facesFor(kinds);
@@ -190,11 +192,11 @@ export function createKwartet(shell) {
       const isLocked = !owned && p >= meta.freePlayers;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `kwartet-slot slot-${p} kind-${kind} ${isLocked ? 'locked' : ''}`;
+      b.className = `player-slot kwartet-slot slot-${p} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(p);
       b.disabled = p === 0;
       const face = kind === 'off' ? '<span class="kwartet-empty" aria-hidden="true">+</span>' : faces[p];
-      b.innerHTML = `<span class="slot-face">${face}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind"></span></span>${isLocked ? lockIcon : p ? '<span class="swap" aria-hidden="true">⟳</span>' : ''}`;
+      b.innerHTML = `<span class="slot-face" aria-hidden="true">${face}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind"></span></span>${isLocked ? lockIcon : p ? '<span class="swap" aria-hidden="true">⟳</span>' : ''}`;
       b.querySelector('.slot-name').textContent = kind === 'off' ? t('kwartet.player', { n: p + 1 }) : names[p];
       b.querySelector('.slot-kind').textContent = isLocked ? t('kwartet.fullVersion') : t(`kwartet.kind.${kind}`);
       b.setAttribute('aria-label', t('kwartet.swap', { who: t('kwartet.player', { n: p + 1 }), kind: t(`kwartet.kind.${kind}`) }));
@@ -214,7 +216,7 @@ export function createKwartet(shell) {
     box.appendChild(seats);
 
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.over) {
       const cont = document.createElement('button');
       cont.type = 'button';

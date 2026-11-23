@@ -29,6 +29,7 @@ import { robotSvg, duoSvg, TROPHY } from '../vier/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionBox } from '../../js/menu.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const UNDO = '<path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
@@ -158,7 +159,7 @@ export function createSchaak(shell) {
     box.textContent = '';
     const head = (key) => {
       const h = document.createElement('h3');
-      h.className = 'vier-head';
+      h.className = 'menu-head';
       h.textContent = t(key);
       box.appendChild(h);
     };
@@ -166,14 +167,14 @@ export function createSchaak(shell) {
 
     head('schaak.opponentHead');
     const opp = document.createElement('div');
-    opp.className = 'vier-row';
+    opp.className = 'option-row';
     const duo = document.createElement('button');
     duo.type = 'button';
-    duo.className = 'vier-opt schaak-opt mode-duo';
+    duo.className = 'option-card schaak-opt mode-duo';
     duo.setAttribute('aria-pressed', String(choice.mode === 'duo'));
-    duo.innerHTML = `<span class="vier-opt-art">${duoSvg()}</span><span class="vier-opt-text"><span class="vier-opt-title"></span><span class="vier-opt-sub"></span></span>`;
-    duo.querySelector('.vier-opt-title').textContent = t('schaak.duo');
-    duo.querySelector('.vier-opt-sub').textContent = t('schaak.duoSub');
+    duo.innerHTML = `<span class="option-art" aria-hidden="true">${duoSvg()}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+    duo.querySelector('.option-title').textContent = t('schaak.duo');
+    duo.querySelector('.option-sub').textContent = t('schaak.duoSub');
     duo.addEventListener('click', () => {
       tap();
       choice.mode = 'duo';
@@ -181,12 +182,8 @@ export function createSchaak(shell) {
     });
     opp.appendChild(duo);
 
-    const cpu = document.createElement('div');
-    cpu.className = `vier-cpu ${choice.mode === 'cpu' ? 'on' : ''}`;
-    cpu.innerHTML = `<span class="vier-opt-art">${robotSvg()}</span><span class="vier-cpu-title"></span><span class="vier-levels" role="group"></span>`;
-    cpu.querySelector('.vier-cpu-title').textContent = t('schaak.cpu');
-    cpu.querySelector('.vier-levels').setAttribute('aria-label', t('schaak.cpu'));
-    cpu.querySelector('.vier-levels').dataset.foldHead = t('schaak.cpu'); // its locked levels wait in the fold under this name
+    // its locked levels wait in the fold under its name
+    const cpu = optionBox({ art: robotSvg(), title: t('schaak.cpu'), on: choice.mode === 'cpu', foldHead: t('schaak.cpu') });
     const counts = wins();
     for (const level of [1, 2, 3]) {
       const setup = { mode: 'cpu', level };
@@ -194,7 +191,7 @@ export function createSchaak(shell) {
       const n = counts[winKey(setup)] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `vier-level schaak-level ${isLocked ? 'locked' : ''}`;
+      b.className = `seg-card schaak-level ${isLocked ? 'locked' : ''}`;
       b.dataset.level = String(level);
       b.setAttribute('aria-pressed', String(choice.mode === 'cpu' && choice.level === level));
       const dots = [1, 2, 3].map((k) => `<i class="${k <= level ? 'on' : ''}"></i>`).join('');
@@ -214,7 +211,7 @@ export function createSchaak(shell) {
         choice.level = level;
         renderMenu();
       });
-      cpu.querySelector('.vier-levels').appendChild(b);
+      cpu.querySelector('.seg-cards').appendChild(b);
     }
     opp.appendChild(cpu);
     box.appendChild(opp);
@@ -226,7 +223,7 @@ export function createSchaak(shell) {
     box.appendChild(how);
 
     const actions = document.createElement('div');
-    actions.className = 'vier-actions';
+    actions.className = 'menu-actions';
     if (game && !game.g.over) {
       const cont = document.createElement('button');
       cont.type = 'button';

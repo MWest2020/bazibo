@@ -40,10 +40,10 @@ import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { menuLine, levelCell } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STAR = '<path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.9 3.2 1.3-6.5L2.5 9.3l6.6-.8z"/>';
-const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const UNDO = '<path d="M9 7 4 12l5 5M4.5 12H15a5 5 0 0 1 0 10h-3" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>';
 const MINUS = '−';
 const PAD = 18; // px left and right of the line, so the end numbers and the kangaroo fit
@@ -108,10 +108,6 @@ export function createKangoeroe(shell) {
 
   // ---------- menu ----------
 
-  function starsText(n) {
-    return [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
-  }
-
   function renderMenu() {
     const box = $('#kangoeroe-menu');
     box.textContent = '';
@@ -119,7 +115,7 @@ export function createKangoeroe(shell) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'kangoeroe-continue';
-      cont.className = 'btn big secondary klok-continue';
+      cont.className = 'btn big secondary menu-continue';
       cont.textContent = t('kangoeroe.continue');
       cont.addEventListener('click', () => {
         tap();
@@ -135,7 +131,7 @@ export function createKangoeroe(shell) {
     const done = randomDone();
     const rtier = lastTier();
     const rgrid = document.createElement('div');
-    rgrid.className = 'level-grid klok-grid klok-random';
+    rgrid.className = 'level-grid klok-grid';
     rgrid.appendChild(
       randomCard({
         t,
@@ -150,30 +146,23 @@ export function createKangoeroe(shell) {
     );
     box.appendChild(rgrid);
     for (const tier of TIER_IDS) {
-      const line = document.createElement('p');
-      line.className = 'klok-age';
-      line.textContent = t('kangoeroe.tierLine', { age: TIERS[tier].age, what: t(`kangoeroe.tier.${tier}`) });
-      box.appendChild(line);
+      box.appendChild(menuLine(t('kangoeroe.tierLine', { age: TIERS[tier].age, what: t(`kangoeroe.tier.${tier}`) })));
       const grid = document.createElement('div');
       grid.className = 'level-grid klok-grid';
       grid.dataset.tier = tier;
       for (let r = 1; r <= ROUNDS_PER_TIER; r++) {
         const id = `${tier}-${r}`;
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'level-btn';
+        const isLocked = locked(tier);
+        const n = isLocked ? 0 : got[id] || 0;
+        const b = levelCell({ num: r, stars: n, locked: isLocked });
         b.dataset.round = id;
-        if (locked(tier)) {
-          b.classList.add('locked');
-          b.innerHTML = `<span class="num">${r}</span><svg viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+        if (isLocked) {
           b.setAttribute('aria-label', t('kangoeroe.roundLocked', { n: r }));
           b.addEventListener('click', () => {
             tap();
             offer();
           });
         } else {
-          const n = got[id] || 0;
-          b.innerHTML = `<span class="num">${r}</span><span class="stars" aria-hidden="true">${starsText(n)}</span>`;
           b.setAttribute('aria-label', n ? t('kangoeroe.roundStars', { n: r, stars: n }) : t('kangoeroe.roundOpen', { n: r }));
           b.addEventListener('click', () => {
             tap();
