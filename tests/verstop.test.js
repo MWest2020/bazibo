@@ -32,9 +32,12 @@ import {
   clash,
   roundSeed,
   MAX_SAME_SPOT,
+  clueFor,
+  cluesOf,
+  CLUE_SHOWS,
 } from '../web/games/verstop/rules.js';
 import { meta } from '../web/games/verstop/meta.js';
-import { ANIMALS, CREATURES, SPOT_ART, COLORS, FEATURE_COLORS, figureSvg, spotSvg, sceneSvg, tileSvg, howSvg, sceneCardSvg, figureFit } from '../web/games/verstop/art.js';
+import { ANIMALS, CREATURES, SPOT_ART, COLORS, FEATURE_COLORS, figureSvg, spotSvg, sceneSvg, tileSvg, howSvg, sceneCardSvg, figureFit, clueG, PEEK_AT } from '../web/games/verstop/art.js';
 
 const SEEDS = 200;
 
@@ -110,6 +113,91 @@ for (const tier of TIER_IDS) {
     }
   });
 }
+
+// The hints (Mark's playtest, 23 Nov 2026: "otherwise it is just guessing"): a bit of the animal
+// peeks out over its own spot, never over a friend's; harder by tier, never by speed.
+for (const tier of TIER_IDS) {
+  test(`verstop ${tier}: the hint sits on the animal's spot only, never on a friend's (${SEEDS} seeds per scene and the fixed ones)`, () => {
+    for (const round of rounds(tier)) {
+      const tag = `${round.scene} ${tier} n${round.n}`;
+      const clues = cluesOf(round);
+      assert.equal(clues.length, round.spots.length, tag);
+      round.spots.forEach((s, i) => {
+        const c = clues[i];
+        if (c) assert.deepEqual({ animal: c.animal, feature: c.feature, show: c.show }, clueFor(round, i), tag);
+        else assert.equal(clueFor(round, i), null, tag);
+        if (s.who.kind === 'creature') assert.equal(c, null, `${tag}: a hint on the ${s.who.id}'s spot`);
+        else {
+          assert.ok(c, `${tag}: no hint where the ${s.who.id} hides`);
+          // the clue says who it is: that animal, with that feature (or none)
+          assert.equal(c.animal, s.who.id, tag);
+          assert.equal(c.feature, s.who.feature || null, tag);
+          assert.equal(c.show, TIERS[tier].clue, tag);
+        }
+      });
+      // each animal to find: exactly one spot gives its clue, and that is where it hides
+      for (const f of round.find) {
+        const at = clues.map((c, i) => (c && c.animal === f.id && c.feature === (f.feature || null) ? i : -1)).filter((i) => i >= 0);
+        assert.equal(at.length, 1, `${tag}: the ${f.id}'s clue on ${at.length} spots`);
+        assert.ok(isTarget(round, round.spots[at[0]].who), `${tag}: the ${f.id}'s clue is not where it hides`);
+      }
+      const on = clues.filter(Boolean);
+      // the clue spots peek in turn: one beat each
+      assert.deepEqual(on.map((c) => c.beat), on.map((c, k) => k), tag);
+      if (!TIERS[tier].lookalikes) {
+        // t1 and t2: only the animals to find give a clue, each its own
+        assert.equal(on.length, round.find.length, tag);
+        assert.equal(new Set(on.map((c) => c.animal)).size, round.find.length, `${tag}: two animals, one clue`);
+      } else {
+        // t3: the look-alikes peek too, so "a hedgehog is here" is not enough; the colour of the
+        // feature that peeks with it tells the real one apart
+        assert.equal(on.length, 1 + TIERS[tier].lookalikes, tag);
+        const target = round.find[0];
+        assert.ok(target.feature, tag);
+        const mine = on.filter((c) => c.feature === target.feature);
+        assert.equal(mine.length, 1, `${tag}: the ${target.feature} peeks out on ${mine.length} spots`);
+        for (const c of on) assert.equal(c.animal, target.id, tag);
+        assert.equal(new Set(on.map((c) => c.feature)).size, on.length, `${tag}: two look-alikes give the same clue`);
+      }
+    }
+  });
+}
+
+test('verstop: harder by tier, never by speed: t1 from the start, t2 now and then, t3 rarely', () => {
+  assert.deepEqual(TIER_IDS.map((k) => TIERS[k].clue), ['always', 'sometimes', 'rarely']);
+  assert.deepEqual([...CLUE_SHOWS], ['always', 'sometimes', 'rarely']);
+  // the rest of the game is as it was: stars by extra looks only, the hint changes nothing there
+  const round = fixedRound('garden-t1-1');
+  const target = round.spots.findIndex((s) => isTarget(round, s.who));
+  assert.equal(look(round, newPlay(), target).result, 'done');
+  assert.equal(clueFor(round, 99), null);
+});
+
+test('verstop: every animal can peek over every kind of spot, in its own colours, with its feature\'s colour', () => {
+  assert.deepEqual(Object.keys(PEEK_AT).sort(), [...SPOT_KINDS].sort());
+  const others = (f) => FEATURE_IDS.filter((g) => g !== f).map((g) => FEATURE_COLORS[g]);
+  for (const kind of SPOT_KINDS) {
+    assert.equal(clueG(kind, null), '');
+    for (const animal of ANIMAL_IDS) {
+      for (const feature of [null, ...featuresFor(animal)]) {
+        for (const show of CLUE_SHOWS) {
+          const g = clueG(kind, { animal, feature, show, beat: 1 });
+          const tag = `${kind} ${animal} ${feature} ${show}`;
+          assert.ok(g.includes(`class="vz-clue" data-show="${show}" data-beat="1" data-animal="${animal}"`), tag);
+          assert.ok(g.includes('class="vz-peek"'), tag);
+          assert.ok(g.includes(ANIMALS[animal].color), `${tag}: not in the ${animal}'s own colour`);
+          if (feature) assert.ok(g.includes(FEATURE_COLORS[feature]), `${tag}: no glimpse of the ${feature}`);
+          for (const c of others(feature)) assert.ok(!g.includes(c), `${tag}: the colour of another feature`);
+          assert.ok(!/\sid=|url\(#|style=/.test(g), `${tag}: ids or styles in the drawing`);
+        }
+      }
+    }
+    // in the spot: drawn behind the figure, the frame and the cover; none on a friend's spot
+    const svg = spotSvg(kind, { kind: 'animal', id: 'hedgehog', feature: null }, 2, { animal: 'hedgehog', feature: null, show: 'always', beat: 0 });
+    assert.ok(svg.indexOf('vz-clue') < svg.indexOf('vz-who') && svg.indexOf('vz-who') < svg.indexOf('vz-cover'), kind);
+    assert.ok(!spotSvg(kind, { kind: 'creature', id: 'frog' }, 2, null).includes('vz-clue'), kind);
+  }
+});
 
 test('verstop: the same id is the same round; fixed rounds take every animal of the scene in turn', () => {
   assert.deepEqual(fixedRound('garden-t1-3'), fixedRound('garden-t1-3'));

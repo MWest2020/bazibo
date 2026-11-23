@@ -7303,6 +7303,43 @@ def vz_tap(page, i):
     page.locator(f"#vz-spots .vz-spot[data-i='{i}']").tap()
 
 
+VZ_CLUES_JS = """() => [...document.querySelectorAll('#vz-spots .vz-spot')].map(b => {
+  const c = b.querySelector('.vz-clue'), k = c && c.querySelector('.vz-peek');
+  const cs = k && getComputedStyle(k), cc = c && getComputedStyle(c);
+  const r = b.getBoundingClientRect(), q = k && k.getBoundingClientRect();
+  return { i: Number(b.dataset.i), clue: !!c, n: b.querySelectorAll('.vz-clue').length,
+    animal: c ? c.dataset.animal : null, feature: c ? (c.dataset.feature || null) : null, show: c ? c.dataset.show : null,
+    seen: !!c && cc.visibility === 'visible' && Number(cs.opacity) > 0.9,
+    anim: cs ? cs.animationName : null, opacity: cs ? Number(cs.opacity) : null, transform: cs ? cs.transform : null,
+    near: !!q && q.left + q.width / 2 > r.left - r.width * 0.1 && q.left + q.width / 2 < r.right + r.width * 0.1 && q.top + q.height / 2 > r.top - r.height * 0.1 && q.top + q.height / 2 < r.bottom };
+})"""
+
+
+def vz_clues(page):
+    """Each spot's hint as drawn: is there one, whose, how it shows, is it seen now, does it move."""
+    return page.evaluate(VZ_CLUES_JS)
+
+
+def vz_check_clues(page, st, label, problems):
+    """The hint on the hidden animals' spots only (in tier 3 the look-alikes too, each with its own
+    feature), each over its own spot, none on a friend's spot."""
+    tier = st["tier"]
+    for c, s in zip(vz_clues(page), st["spots"]):
+        who = s["who"]
+        want = who["kind"] == "animal"
+        if c["clue"] != want or c["n"] > 1:
+            problems.append(f"{label}: spot {c['i']} ({who['id']}) has {c['n']} hints")
+            continue
+        if not want:
+            continue
+        if c["animal"] != who["id"] or c["feature"] != (who.get("feature") or None):
+            problems.append(f"{label}: spot {c['i']} hides the {who['id']} {who.get('feature')} but hints {c['animal']} {c['feature']}")
+        if c["show"] != {"t1": "always", "t2": "sometimes", "t3": "rarely"}[tier]:
+            problems.append(f"{label}: spot {c['i']} hints {c['show']} in {tier}")
+        if not c["near"]:
+            problems.append(f"{label}: the hint of spot {c['i']} is not drawn over its spot")
+
+
 def vz_spots_fit(page, w, h, label, problems):
     """Every spot on screen, 64 px or more and none overlapping; the animal to find on screen."""
     boxes = page.eval_on_selector_all("#vz-spots .vz-spot", "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })")
@@ -7384,6 +7421,12 @@ def verstop_flow(browser, base, problems):
         problems.append(f"verstop: garden-t1-1 has {n} spots")
     page.screenshot(path=str(SHOTS / "verstop-round-390x844.png"))
     target = next(i for i, s in enumerate(st["spots"]) if s["target"])
+    # the hint: a bit of the hedgehog peeks out over its spot from the start, still; no other spot hints
+    vz_check_clues(page, st, "verstop garden-t1-1", problems)
+    cl = vz_clues(page)
+    if [c["i"] for c in cl if c["seen"]] != [target] or cl[target]["anim"] != "none":
+        problems.append(f"verstop: garden-t1-1 hints {[(c['i'], c['seen'], c['anim']) for c in cl]}, want only spot {target}, still")
+    page.locator(f"#vz-spots .vz-spot[data-i='{target}']").screenshot(path=str(SHOTS / "verstop-hint-t1.png"))
     first_kind = st["spots"][target]["kind"]
     wrong = [i for i, s in enumerate(st["spots"]) if not s["target"]][:2]
     names = {"snail": "de slak", "ladybug": "het lieveheers\u00adbeestje", "mouse": "de muis", "frog": "de kikker", "bird": "het vogeltje", "bee": "de bij", "butterfly": "de vlinder", "mole": "de mol"}
@@ -7420,6 +7463,8 @@ def verstop_flow(browser, base, problems):
     cls = page.get_attribute(f"#vz-spots .vz-spot[data-i='{target}']", "class")
     if "found" not in cls or page.inner_text("#vz-status") != "Gevonden!":
         problems.append(f"verstop: the hedgehog was not found ({cls}, {page.inner_text('#vz-status')!r})")
+    if any(c["seen"] for c in vz_clues(page)):
+        problems.append("verstop: the hint still shows once the hedgehog is found")
     page.screenshot(path=str(SHOTS / "verstop-found-390x844.png"))
     page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
     want = 3 if 2 <= (n - 1) // 2 else 2
@@ -7510,6 +7555,7 @@ def verstop_layouts(browser, base, problems):
                 page.wait_for_timeout(150)
             st = vz_state(page)
             smallest = min(smallest, vz_spots_fit(page, w, h, label, problems))
+            vz_check_clues(page, st, label, problems)
             if english and rid == "garden-t1-1" and page.inner_text("#vz-ask-text").strip() != "Find the hedgehog!":
                 problems.append(f"{label}: English asks {page.inner_text('#vz-ask-text')!r}")
             if rid == "forest-t2-1" and page.locator("#vz-ask-pics .vz-pic").count() != 2:
@@ -7531,6 +7577,8 @@ def verstop_layouts(browser, base, problems):
                 shut = page.locator("#vz-spots .vz-spot.shut").count()
                 if shut != len(st["spots"]) - 1:
                     problems.append(f"{label}: {shut} spots closed for the memory question")
+                if any(c["seen"] for c in vz_clues(page)):
+                    problems.append(f"{label}: a hint shows in the memory question")
                 page.screenshot(path=str(SHOTS / f"verstop-memory-{w}x{h}.png"))
                 ask = vz_state(page)["play"]["ask"]
                 if ask != crit:
@@ -7546,6 +7594,67 @@ def verstop_layouts(browser, base, problems):
         if errors:
             problems.append(f"verstop {w}x{h}: page errors {errors[:2]}")
         ctx.close()
+
+
+def verstop_hints(browser, base, problems):
+    """Verstoppertje's hints, by tier, at 390x844 and 844x390: t1 a bit of the animal from the start,
+    still; t2 each animal now and then (it moves, and is gone in between: watched over 10 s, each
+    clue spot is seen and unseen, a friend's spot never), t3 rarely, the look-alikes too, each with
+    its own feature; with prefers-reduced-motion every hint is still and in sight. Screenshots of
+    every tier in shots/verstop-hint-*."""
+    for w, h in ((390, 844), (844, 390)):
+        for reduce in (False, True):
+            tag = f"verstop hints {w}x{h}{' reduced motion' if reduce else ''}"
+            ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True, reduced_motion="reduce" if reduce else "no-preference")
+            ctx.add_init_script(OWNED_APP)
+            page = ctx.new_page()
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(base + "/index.html?test")
+            page.wait_for_selector("html[data-ready='1']")
+            page.wait_for_function("window.__bubbels.full()", timeout=8000)
+            for rid in ("garden-t1-1", "forest-t2-1", "beach-t3-1"):
+                label = f"{tag} {rid}"
+                page.evaluate(f"window.__bubbels.verstop.start('{rid}')")
+                page.wait_for_timeout(150)
+                if page.is_visible("#overlay"):
+                    page.click("#ov-buttons button")
+                st = vz_state(page)
+                vz_check_clues(page, st, label, problems)
+                hinted = [i for i, s in enumerate(st["spots"]) if s["who"]["kind"] == "animal"]
+                seen, unseen, shot = set(), set(), False
+                for k in range(1 if rid == "garden-t1-1" or reduce else 28):
+                    if k:
+                        page.wait_for_timeout(500)
+                    cl = vz_clues(page)
+                    for c in cl:
+                        if c["seen"] and c["i"] not in hinted:
+                            problems.append(f"{label}: a hint seen on spot {c['i']}, a friend's")
+                    now = {c["i"] for c in cl if c["seen"]}
+                    seen |= now
+                    unseen |= {i for i in hinted if i not in now}
+                    if reduce or rid == "garden-t1-1":
+                        for c in cl:
+                            if c["clue"] and (c["anim"] != "none" or not c["seen"]):
+                                problems.append(f"{label}: the hint of spot {c['i']} is not still and in sight ({c['anim']}, seen {c['seen']})")
+                    if now and not shot:
+                        page.screenshot(path=str(SHOTS / f"verstop-hint-{rid}-{w}x{h}{'-reduced' if reduce else ''}.png"))
+                        shot = True
+                    if not reduce and rid != "garden-t1-1":
+                        for c in cl:
+                            if c["clue"] and c["anim"] not in ("vz-peek-some", "vz-peek-rare"):
+                                problems.append(f"{label}: the hint of spot {c['i']} does not come and go ({c['anim']})")
+                if seen != set(hinted):
+                    problems.append(f"{label}: hints seen on {sorted(seen)}, want {hinted}")
+                if not reduce and rid != "garden-t1-1" and unseen != set(hinted):
+                    problems.append(f"{label}: hints never gone on {sorted(set(hinted) - unseen)}")
+                if not shot:
+                    page.screenshot(path=str(SHOTS / f"verstop-hint-{rid}-{w}x{h}{'-reduced' if reduce else ''}.png"))
+                page.evaluate("window.__bubbels.back()")
+                page.wait_for_timeout(100)
+            if errors:
+                problems.append(f"{tag}: page errors {errors[:2]}")
+            ctx.close()
 
 
 def km_state(page):
@@ -8555,6 +8664,7 @@ def main():
             drums_layouts(browser, base, problems)
             verstop_flow(browser, base, problems)
             verstop_layouts(browser, base, problems)
+            verstop_hints(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
@@ -8585,7 +8695,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
-         "verstop": (verstop_flow, verstop_layouts),
+         "verstop": (verstop_flow, verstop_layouts, verstop_hints),
          "kaart": (kaart_flow, kaart_layouts),
          "papegaai": (papegaai_flow, papegaai_no_mic, papegaai_permission, papegaai_layouts),
          "doolhof": (doolhof_play,),
