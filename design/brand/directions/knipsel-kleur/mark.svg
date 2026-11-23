@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="kk-t">
+  <title id="kk-t">Bazibo</title>
+  <desc>A lowercase b cut from cream paper, lying on a stack of cut scraps in the five game-group colours; the counter of the b is cut as a little roof.</desc>
+  <!-- four scraps peeking out from under the big one: one per other game group.
+       Every scrap is cut with five strokes of the scissors, no two edges parallel. -->
+  <path d="M3 11.5L33 2.5L45 15L41 25L8.5 27.5Z" fill="#3f86d0"/>
+  <path d="M57 2L92 9L96 29.5L89.5 44L62.5 39Z" fill="#2a8f88"/>
+  <path d="M1.5 33.5L13 30.5L17 83L8.5 93L3 77Z" fill="#b97f0a"/>
+  <path d="M38 82L80 76.5L90.5 86L83.5 95.5L44 96Z" fill="#c8508a"/>
+  <g transform="translate(4.8 4.8) scale(0.9)">
+    <!-- the big cut scrap: eight scissor cuts, no two edges parallel -->
+    <path d="M9 13L52 8.5L89 12L92.5 60L86 89L40 92L11 87.5L6.5 50Z" fill="#d9663f"/>
+    <!-- the b, cut from cream paper -->
+    <path d="M27 20L41.5 18.5L43 76L28.5 77.5Z" fill="#fbf7f0"/>
+    <path transform="translate(55.5 58.5) scale(2.05)" d="M11.4 0C11.4 4.97 6.3 9 0 9C-5.52 9-10 4.97-10 0C-10-5.97-5.52-10.8 0-10.8C6.3-10.8 11.4-5.97 11.4 0Z" fill="#fbf7f0"/>
+    <!-- the counter, cut out as a roof -->
+    <path d="M57 50.5L69 65L46.5 65.5Z" fill="#d9663f" stroke="#d9663f" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+</svg>

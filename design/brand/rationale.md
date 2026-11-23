@@ -1,136 +1,124 @@
-# Bazibo, merk ronde 2
+# Bazibo, merk ronde 3: de keuze afgemaakt
 
-Drie nieuwe richtingen, geen variaties op ronde 1. Geen bubbels, geen prieel-als-geometrie,
-geen huisjes, schijven of zeshoeken. Alles hieronder is door mij getekend als SVG-padgegevens;
-tekst in de winkelset is omgezet naar paden met OFL-letters (zie `LICENSES.md`).
+Mark koos uit ronde 2: **"Knipsel met verschillende kleuren, lettertype van Kralen."** Deze
+levering is precies die combinatie, afgemaakt: het geknipte beeldmerk van Knipsel, nu in de vijf
+kleuren van de spelgroepen, met de getekende letters en het palet van Kralen. Eén richting, geen
+nieuwe ideeën. Alles hieronder is door mij getekend als SVG-padgegevens; tekst in de winkelset is
+omgezet naar paden met OFL-letters (zie `LICENSES.md`).
 
-## De schetsen die ik weggooide
+De drie richtingen van ronde 2 (`directions/knipsel/`, `directions/kralen/`, `directions/mees/`)
+blijven staan als geschiedenis, met hun oorspronkelijke paletten; de ronde-2-sets in `logo/`,
+`icon/`, `adaptive/` en `store/` zijn vervangen.
 
-1. *Hinkelbaan in stoepkrijt* — Nederlands straatspel, maar een stapel gekleurde blokjes leest
-   als een grafiek; precies de "generatieve" look die ronde 1 al had.
-2. *Duikelaartje* (het speeltje dat altijd terugkomt) — mooi verhaal (nooit verliezen), maar
-   zonder gezicht een vormeloze blob en mét gezicht meteen een personage.
-3. *Slinger met vlaggetjes* — de vlaggetjes worden dunner dan een haar op 24 px.
-4. *Tuinpoortje* — een poort is een huisje met een gat; de brief sluit dat uit.
-5. *Parasol / zonnedak met vijf partjes* — een schijf, en te dicht bij ronde 1's "Zegel".
-6. *Vijf pionnen in een kring* — "community"-cliché, en de kring is weer een schijf.
-7. *Dobbelsteen met vijf kleuren pips* — de pips vallen weg op klein formaat en een dobbelsteen
-   leunt naar het bordspel alleen.
-8. *Speelkleed / lappendeken* — een raster; zegt niets dat een raster niet al zegt.
-9. *Egeltje als merk* — dat is één spel, en de audit verwijt het huidige logo precies dat het
-   aan één spel (de bubbel) vastzit.
-10. *Lampion* — warm en Nederlands (Sint-Maarten), maar een lampje leest als "idee/tip".
-11. *Springtouw als één doorlopende lijn* — één gebaar, maar één kleur; de brief vraagt kleur
-    in het merk zelf.
-12. *Kralen aan een koord* — bleef over. Zie B.
+## Wat het merk moet zeggen
 
-Van de twaalf heb ik er drie gebouwd, elk van een ander soort merk: een lettermerk (A),
-een beeldmerk met systeem (B) en een figuurtje (C).
+Eén app, vijf soorten spel, gemaakt in plaats van gegenereerd; rustig in gebruik, vrolijk in
+vorm; geen reclamegame-look, geen AI-clichés, geen bubbels, geen prieel-als-geometrie. Op 24 en
+48 px moet het staan, want daar leeft het: favicon, tabblad, lijstje met apps.
 
-## Direction knipsel — A, "Knipsel"
+## Hoe de twee gekozen stukken samen één merk worden
 
-**Idee.** Het merk is met een schaar uit papier geknipt, zoals een kind het zou maken: een
-kleine **b** in crème op een terracotta snipper, met een teal en een okeren snipper die eronderuit
-piepen. Geen enkele rand is recht of evenwijdig — dat is het gebaar. De contramal van de b is
-geen rondje maar een zacht **dakje**: het prieel, verstopt in de letter, als knipoog.
+**Het beeldmerk.** Een kleine **b**, met een schaar uit crème papier geknipt, op een snipper. De
+contramal van de b is geen rondje maar een **dakje**: het prieel, verstopt in de letter. Geen
+enkele rand is recht of evenwijdig; de b-bak is nergens een echte cirkel. Nieuw in ronde 3: de b
+ligt niet meer op één terracotta snipper, maar op een **stapeltje van vijf snippers** — één per
+spelgroep. De grote snipper is de bordspelkleur (`#d9663f`); okergeel (leren), teal (puzzels),
+roze (creatief) en blauw (actie) piepen er aan vier kanten onderuit, elk met vijf schaarknippen
+gesneden. Zo zit het hele systeem in het merk: één b, vijf soorten spel.
 
-**Palet.** Kraft: basis `#f7f1e6`, inkt `#2c3a2e` (10,8:1), zacht `#55604f` (5,6:1), merk
-terracotta `#b4532f` (crème erop 4,7:1). Accenten okер/teal/terracotta/roze/blauw, alle 3:1+ op
-de basis.
+**De variant per spelgroep** (`logo/mark-learning.svg` enzovoort) draait die stapel: de b ligt op
+de snipper van die groep, de andere vier schuiven eronder door, in de vaste ring bordspellen →
+actie → puzzels → leren → creatief. Voor koppen, tegels en gedeelde schermen in de app.
 
-**Letter.** Baloo 2 voor koppen, Lexend voor tekst, Andika voor lettertegels.
+**Het woordmerk.** De getekende letters van Kralen, ongewijzigd: ronde bakken met ongelijke dikte
+— zwaarder aan de voet dan aan de schouder — op een dansende lijn, elke letter een paar graden
+gedraaid. Geen font: de naam is getekend. Het puntje op de i is de kraal uit Kralen, en die kraal
+heeft nu de kleur van de grote snipper (`#d9663f`), zodat woordmerk en beeldmerk elkaar vasthouden.
+De letters zelf blijven inkt (`#28245c`), crème op het donkere veld.
 
-**Hoe het de brief haalt.** Speels en met karakter (de schaar), kleur in het merk zelf (vier
-kleuren in het beeldmerk), gemaakt in plaats van gegenereerd, en keihard leesbaar op 24 px:
-een crème letter op een vol kleurvlak is het sterkste icoon van de drie.
+**Het palet.** Dat van Kralen, ongewijzigd: basis `#fbf7f0`, inkt `#28245c` (13,1:1), zacht
+`#5a5585` (6,4:1), merkviolet `#4f43c4` voor knoppen en links (wit erop 7,2:1), en de vijf
+groepsaccenten `#b97f0a` `#2a8f88` `#d9663f` `#c8508a` `#3f86d0` met hun tint en tekstkleur.
+Gemeten: elk accent haalt 3,2:1 of meer op de basis en 3,3:1 of meer op de inkt, elke tekstkleur
+4,5:1 of meer op de basis en op zijn eigen tint. De crème letter op een snipper meet 3,2:1 (oker)
+tot 4,0:1 (roze): vormcontrast, boven de 3:1 die de brief vraagt. Kleur is nooit het enige teken —
+elke groep houdt zijn eigen icoon en zijn naam.
 
-**Risico's.** Een gekleurd vierkant met een letter erin is óók de vorm van elk app-icoon; de
-knipooglaag (dakje, snippers) moet het verschil maken en die is klein op 24 px. En een
-lettermerk zegt niets over spelen.
+**De letter.** Fredoka voor koppen, Nunito voor tekst, Andika voor de lettertegels in de
+leerspellen; vanaf 16 px.
 
-## Direction kralen — B, "Kralen" (aanbevolen)
+## De twee opstellingen die ik tegen elkaar heb gezet
 
-**Idee.** Vijf kralen aan één koord, hangend in een **glimlach**. Kralen rijgen is het eerste
-wat een kleuter in Nederland doet en het koord met vijf is de rekenrek-logica van groep 3;
-Nederlands door toon, niet door symbolen. Eén koord = één app; vijf kralen = de vijf soorten
-spel (leren, puzzels, bordspellen, creatief, actie), in de volgorde van het beginscherm. Het
-koord zakt door onder het gewicht, en de twee uiteinden krullen omhoog: het merk lacht.
+Geen nieuwe ideeën, wel één eerlijke keuze binnen het gekozen idee: hoe liggen die vijf snippers?
+Beide zijn gebouwd, gerenderd en op 192, 48 en 24 px bekeken, op papier en op inkt.
 
-**Gemaakt, niet gegenereerd.** Geen enkele kraal is een cirkel: elke kraal is een vierpuntscurve
-met vier verschillende stralen, en de drie vormen zijn geschaald en gedraaid, dus geen twee
-kralen zijn gelijk. Ze zijn ook ongelijk van grootte (0,74 tot 1,0) en hangen op een ongelijke
-boog — met de hand geregen, niet uitgelijnd.
+## Direction knipsel-kleur — "Knipsel in kleur" (aanbevolen, dit is de levering)
 
-**Woordmerk.** `bazibo` in kleine letters die ik zelf getekend heb (geen font): ronde bakken met
-ongelijke dikte — zwaarder aan de voet dan aan de schouder, zoals een kwast of een schaar het
-achterlaat — op een dansende lijn (±3 px) met elke letter een paar graden gedraaid. Het puntje
-op de i is een kraal in het merkviolet, zodat woordmerk en beeldmerk één familie zijn.
+**Idee.** De grote snipper blijft de held en vult het vlak; de vier andere piepen er als smalle,
+scheve stukjes onderuit — linksboven blauw, rechtsboven teal, links oker, rechtsonder roze.
 
-**Palet.** Papier: basis `#fbf7f0`, inkt `#28245c` (13,1:1), zacht `#5a5585` (6,4:1), merk
-violet `#4f43c4` (wit erop 7,2:1). Accenten `#b97f0a` `#2a8f88` `#d9663f` `#c8508a` `#3f86d0`,
-alle 3:1+ op de basis, elk met een tint en een tekstkleur die 4,5:1 haalt. Voor het donkere veld
-(icoon, donkere lockup) zijn er nachttinten die 3:1+ op de inkt halen. Kleur is nooit het enige
-teken: elke groep houdt zijn eigen icoon en zijn naam.
+**Palet en letter.** Zie hierboven; dit zijn de paletwaarden van `tokens.json`.
 
-**Letter.** Fredoka voor koppen, Nunito voor tekst, Andika voor lettertegels; schaal vanaf 16 px.
+**Hoe het de brief haalt.** Het is kleurrijk van zichzelf (vijf kleuren in het beeldmerk), het is
+onmiskenbaar geknipt in plaats van uitgerekend, en de b blijft groot: op 48 px lees je de letter
+én het dakje, op 24 px een gekleurde stapel met een crème b. Het draagt een systeem (snipper per
+groep) en het past in een vierkant icoon zonder trucjes.
 
-**Hoe het de brief haalt.** Kleurrijk van zichzelf (vijf kleuren zijn het merk, niet een accent
-erbij), het mag lachen, het is één gebaar, het is rustig genoeg voor een app die niet aan je
-trekt, en vijf dikke kralen met een donker koord ertussen houden het op 24 px moeiteloos vol
-(de slijtagetest op 96 px verliest niets). Het draagt een systeem: één kraal per spelgroep, één
-koord voor de hele app, en het beeldmerk kan verder groeien (meer kralen = meer spelletjes).
+**Risico's.** Een gekleurd vlak met een letter erin is ook de vorm van elk ander app-icoon; de
+snippers eromheen moeten het onderscheid maken, en op 16 px worden die randjes stof. Een lettermerk
+zegt bovendien niets over spelen — het dakje in de b is de enige knipoog, en die is klein.
 
-**Risico's.** Vijf stippen op een rij is op zichzelf generiek; het koord, de knopen van ongelijke
-kralen en de krullende uiteinden moeten het dragen — op heel klein formaat (16 px favicon) kan
-het als een rij puntjes lezen. En de glimlach is een leesbaarheid die je moet willen zien.
+## Direction knipsel-waaier — "Knipsel waaier" (afgevallen)
 
-## Direction mees — C, "Mees"
+**Idee.** Dezelfde b op dezelfde snipper, maar de vier andere snippers liggen als een waaier
+achter de held, elk met een flinke hoek naar buiten.
 
-**Idee.** Een pimpelmees-achtig tuinvogeltje van voren: donkere kap, crème gezicht, gele borst
-met zijn zwarte baan, blauwgrijze vleugels. Nederlands door wat er in de tuin zit, niet door
-tulpen of molens. Een figuurtje dat in de app verder kan leven (uitleg, lege staat, beloning).
+**Palet en letter.** Gelijk aan de aanbevolen richting.
 
-**Palet.** Polder: basis `#f2f5f4`, inkt `#1f2e3d` (12,6:1), zacht `#4c5d6b` (6,0:1), merk groen
-`#2f6b5e` (wit erop 6,2:1), met de vijf accenten van de polder.
+**Waarom afgevallen.** Kleurrijker op het eerste gezicht, maar de held moet 26 % kleiner om de
+waaier binnen het vlak te houden, en daarmee krimpt de letter. Op 24 px is het resultaat een
+bloemetje van vlakken waarin de b verdwijnt; op het donkere veld wordt het rommelig. Mark vroeg om
+"goed doen op 24 en 48 px", en daar verliest de waaier van de stapel.
 
-**Letter.** Fredoka / Nunito / Andika, als B.
+## Wat ik onderweg heb weggegooid
 
-**Hoe het de brief haalt.** Het warmste en het speelste van de drie, kleurrijk van zichzelf, en
-een figuurtje is onmiskenbaar "gemaakt".
-
-**Risico's.** Eerlijk: dit is de zwakste van de drie. Vogels zijn het drukstbevolkte hoekje van
-de merkenwereld, dus de kans op gelijkenis is het grootst; de zwarte baan op de borst leest in
-een oogopslag als een stropdas; en een mascotte kost onderhoud (elke nieuwe situatie vraagt een
-nieuwe pose). De vijf spelkleuren hebben er geen plek in het beeldmerk, alleen in de tokens.
+1. *De grote snipper in violet* (het merkviolet van Kralen) — mooiste contrast met crème (7,2:1),
+   maar dan is het merk niet meer de terracotta die Mark koos, en violet is de UI-kleur.
+2. *De b uit vijf gekleurde stukjes* — de letter zelf in vijf kleuren geknipt: valt op 24 px uit
+   elkaar en de groepskleuren worden onleesbaar klein.
+3. *Een diepere terracotta voor de held* (`#b4532f`, 4,7:1 met crème) — beter contrast, maar dan
+   staat de snipper los van de accentkleur van de bordspellen; één palet is belangrijker.
+4. *Snippers als nette rechthoekjes* — de eerste versie; die lazen als gedraaide vierkanten, niet
+   als knipsels. Nu heeft elke snipper vijf knippen en geen twee evenwijdige randen.
+5. *Confetti rondom in de feature graphic* — vrolijk, maar het is precies de drukte die de brief
+   uitsluit.
 
 ## Recommendation
 
-**B, "Kralen".** Het is het enige van de drie dat tegelijk een merk én een systeem is: één koord
-met vijf kralen zegt "één app, vijf soorten spel", het is kleurrijk zonder druk te worden, het
-lacht zonder een gezicht te lenen, en het is op 24 px even duidelijk als op een gevel. A is het
-sterkste icoon maar het armste verhaal; C is het liefste maar het risicovolste en het duurste in
-onderhoud. De volledige set in deze levering (`logo/`, `icon/`, `adaptive/`, `store/`,
-`tokens.json`, `tokens.css`) is voor B gebouwd.
+**knipsel-kleur.** Het is de combinatie die Mark koos, nu echt kleurrijk, en het is de enige van
+de twee die op 24 px nog een letter is. De volledige set in deze levering (`logo/`, `icon/`,
+`adaptive/`, `store/`, `tokens.json`, `tokens.css`) is voor deze opstelling gebouwd.
 
-**Wat ik zou doen vóór productie.** (1) Een merkenonderzoek laten doen — ik kan geen
-merkvrijheid garanderen. (2) Het beeldmerk één keer op een echt toestel op het beginscherm
-zetten, tussen andere iconen, en kijken of het donkere icoon overeind blijft. (3) Het woordmerk
-op 16 px favicon testen; als de kralen daar samenvallen, maak ik een kleine-maat-versie met drie
-kralen.
+**Wat ik zou doen vóór productie.** (1) Een merkenonderzoek laten doen — ik kan geen merkvrijheid
+garanderen. (2) Het icoon één keer op een echt toestel tussen andere iconen zetten; Play rondt af
+en dat haalt de hoekpunten van de snippers weg. (3) Op 16 px (favicon) de snippers wegsnoeien als
+ze dichtslaan: een kleine-maat-versie met alleen de held en de b ligt klaar in de monochrome laag.
 
 ### Wat er in de map staat
 
-- `directions/<id>/` — per richting het beeldmerk, zijn palet en `preview.png`: het merk op
-  192, 48 en 24 px op papier, hetzelfde merk op het inktvlak, en daaronder de stalen in de
-  volgorde basis, inkt, zacht, merk, dan de vijf accenten (leren, puzzels, bordspellen,
-  creatief, actie) met hun tint en tekstkleur eronder.
-- `logo/` — `mark`, `wordmark`, `full-light`, `full-dark` als SVG en PNG, plus `mark-24.png` en
-  `mark-96.png` met transparantie. `mark.svg` en `wordmark.svg` zijn transparant en vrij te
-  plaatsen; de twee lockups dragen hun eigen goedgekeurde achtergrond mee.
+- `logo/` — `mark`, `wordmark`, `wordmark-dark` (crème letters voor het inktveld), `full-light`,
+  `full-dark` als SVG en PNG, `mark-24.png` en `mark-96.png` met transparantie, en
+  `mark-learning|puzzles|board|creative|action` (SVG + PNG op 96 px) voor gebruik in de app.
 - `icon/` — `icon.svg` als bron, `play-512.png` (32-bit, dekkend, sleutelvorm binnen Play's
   keyline) en `appstore-1024.png` (zonder alfakanaal).
 - `adaptive/` — voor-, achter- en monochrome laag, 108 dp op 4x (432 px), beeld binnen de veilige
-  cirkel van 66 dp; de monochrome laag is één kleur (zwart), de achtergrond is dekkend.
-- `store/` — feature graphic 1024 x 500 en screenshotkaders 1080 x 1920 in NL en EN, met kop,
-  vlak voor de echte schermafbeelding en de vertrouwensrij. Alle tekst is omgezet naar paden.
+  cirkel van 66 dp; de monochrome laag is één kleur met de b en het dakje uit de snipper gesneden,
+  de achtergrond is dekkend inkt.
+- `store/` — feature graphic 1024 x 500 en screenshotkaders 1080 x 1920 in NL en EN, met kop, vlak
+  voor de echte schermafbeelding en de vertrouwensrij. Alle tekst is omgezet naar paden. In het
+  Engelse kader ontbrak "· no ads" in de vertrouwensrij (een fout uit ronde 2, de ruimte stond er
+  wel); die staat er nu, in dezelfde Nunito-omtrek als de rest van de regel.
+- `directions/` — `knipsel-kleur/` en `knipsel-waaier/` zijn de twee opstellingen van ronde 3, elk
+  met `mark.svg`, `tokens.json` en `preview.png` (het merk op 192, 48 en 24 px, op papier en op
+  inkt, met de stalen eronder). `knipsel/`, `kralen/` en `mees/` zijn ronde 2, als geschiedenis.
 - `tokens.json` / `tokens.css` — kleuren en letters, met de gemeten verhoudingen in de CSS.
