@@ -6,7 +6,9 @@
 // the child sees where they already looked (clearer for a three-year-old than a spot that closes
 // all the way and looks untouched; the memory question of tier 3 closes them all on purpose).
 // Found: a little celebration, the animal stays in sight, then the next round. Stars count only
-// the extra looks, gently.
+// the extra looks, gently. A bit of every hidden animal peeks out over its spot (`cluesOf`; from the
+// start in tier 1, now and then in tier 2, rarely and with its feature's colour in tier 3), so a
+// child who watches is not just guessing (Mark's playtest, 23 Nov 2026).
 //
 // The rounds and what a tap means are pure (rules.js), the drawings in art.js; the shell
 // (web/js/main.js) owns the overlay card, the sound settings and the purchase, passed in as `shell`.
@@ -32,6 +34,7 @@ import {
   starsFor,
   spotLayout,
   isTarget,
+  cluesOf,
 } from './rules.js';
 import { figureSvg, spotSvg, sceneSvg, sceneCardSvg, howSvg, figureFit, SPOT_ART } from './art.js';
 import * as store from '../../js/storage.js';
@@ -305,13 +308,14 @@ export function createVerstop(shell) {
     $('#vz-bg').innerHTML = sceneSvg(game.scene);
     const box = $('#vz-spots');
     box.textContent = '';
+    const clues = cluesOf(game.round); // a bit of each hidden animal peeks out (none on a friend's spot)
     game.round.spots.forEach((spot, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'vz-spot';
       b.dataset.i = String(i);
       b.dataset.kind = spot.kind;
-      b.innerHTML = spotSvg(spot.kind, spot.who, i + 1);
+      b.innerHTML = spotSvg(spot.kind, spot.who, i + 1, clues[i]);
       const fit = figureFit(spot.kind);
       if (fit.k !== 1) {
         // a figure in a doorway grows to full size once found (see .vz-spot.found in verstop.css)
@@ -335,6 +339,8 @@ export function createVerstop(shell) {
   /** Each spot's look from the state: closed, ajar (looked), found; in the memory question all closed. */
   function syncSpots() {
     const { play, round } = game;
+    // the hints only while seeking: not in the memory question, nor once the round is over
+    $('#vz-stage').dataset.clues = play.phase === 'seek' ? 'on' : 'off';
     for (const b of document.querySelectorAll('#vz-spots .vz-spot')) {
       const i = Number(b.dataset.i);
       const found = play.found.includes(i) || (play.phase === 'done' && play.ask === i);
@@ -531,19 +537,22 @@ export function createVerstop(shell) {
     leave,
     testHook() {
       return {
-        state: () =>
-          game && {
+        state: () => {
+          if (!game) return game;
+          const clues = cluesOf(game.round);
+          return {
             scene: game.scene,
             tier: game.tier,
             roundId: game.roundId,
-            spots: game.round.spots.map((s) => ({ kind: s.kind, who: { ...s.who }, target: isTarget(game.round, s.who) })),
+            spots: game.round.spots.map((s, i) => ({ kind: s.kind, who: { ...s.who }, target: isTarget(game.round, s.who), clue: clues[i] })),
             find: game.round.find.map((f) => ({ ...f })),
             memory: game.round.memory,
             play: JSON.parse(JSON.stringify(game.play)),
             waiting: game.waiting,
             done: game.done,
             stars: starsFor(game.play.extra, game.round),
-          },
+          };
+        },
         start: (id) => startRound(id),
         random: (tier, scene) => playRandom(tier, scene),
         tap: (i) => tapSpot(i),

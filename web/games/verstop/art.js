@@ -1,7 +1,8 @@
 // Verstoppertje's pictures, all drawn in code (no image files), in Bazibo's soft style: round
 // shapes, a dark outline in each figure's own colour, big friendly eyes. The animals to find, the
 // creatures that live behind the other spots and wave, the three features that tell look-alikes
-// apart (a red scarf, a yellow bow, a pink flower), the hiding spots, the four scenes, the home
+// apart (a red scarf, a yellow bow, a pink flower), the hints (a bit of a hidden animal peeking out
+// over its spot), the hiding spots, the four scenes, the home
 // tile and the how-to picture. Every animal, creature and spot differs from the others by shape and
 // by colour (COLORS, checked in tests/verstop.test.js).
 //
@@ -202,6 +203,91 @@ export const ANIMALS = Object.freeze({
   },
 });
 
+// ---------- the hints: a bit of the animal peeking out ----------
+// What peeks out over the top of the spot an animal hides behind (`clueFor` in rules.js): the top
+// of its head, the bit that tells it apart (spines, long ears, floppy ears, tufts, eye stalks...).
+// Drawn round (0, 0), the cover's edge, pointing up; everything below y = 2 sits behind the cover,
+// so the drawing reaches down to y = 16 and slides away behind it. In its own colours (ANIMALS).
+// Every peek reaches about as high (its top near y = -15) and stays within x = -16..16, so it shows
+// as much over any spot and never leaves its spot's box (tests/smoke.py measures it in pixels).
+
+const PEEKS = {
+  hedgehog: () => {
+    const c = { b: '#8a5a3b', d: '#4f2d17', f: '#f3d2a2' };
+    return `<ellipse cx="0" cy="5" rx="12.5" ry="16" fill="${c.d}"/><path d="${spikes(0, 5, 11, 14, 7, 1.45)}" fill="${c.d}"/>` +
+      `<ellipse cx="0" cy="5" rx="10.5" ry="10" ${ring(c.b, c.d, 2)}/>` +
+      `<circle cx="-7.5" cy="-4" r="3" ${ring(c.f, c.d, 1.6)}/><circle cx="7.5" cy="-4" r="3" ${ring(c.f, c.d, 1.6)}/>` +
+      `<path d="M-12 16h24" stroke="${c.b}" stroke-width="4"/>` + eyes(-4, 4, 1, 2.3);
+  },
+  rabbit: () => {
+    const c = { b: '#c3c0dc', d: '#625d8c', p: '#f7b6c8' };
+    return `<ellipse cx="-5" cy="-7" rx="4.2" ry="9.5" transform="rotate(-12 -5 -7)" ${ring(c.b, c.d, 2)}/><ellipse cx="-5" cy="-6" rx="1.8" ry="6" transform="rotate(-12 -5 -6)" fill="${c.p}"/>` +
+      `<ellipse cx="5" cy="-7" rx="4.2" ry="9.5" transform="rotate(12 5 -7)" ${ring(c.b, c.d, 2)}/><ellipse cx="5" cy="-6" rx="1.8" ry="6" transform="rotate(12 5 -6)" fill="${c.p}"/>` +
+      `<ellipse cx="0" cy="7" rx="12" ry="10" ${ring(c.b, c.d, 2)}/>` + eyes(-4, 4, 2, 2.2);
+  },
+  puppy: () => {
+    // floppy ears from the top of the head, so they show over the edge
+    const c = { b: '#e6b265', d: '#8a5a2b', e: '#a8672e' };
+    return `<rect x="-11" y="0" width="22" height="16" fill="${c.b}"/><ellipse cx="0" cy="-1" rx="11.5" ry="12" ${ring(c.b, c.d, 2)}/>` +
+      `<ellipse cx="-10" cy="-4" rx="4.6" ry="8.5" transform="rotate(30 -10 -4)" ${ring(c.e, c.d, 2)}/>` +
+      `<ellipse cx="10" cy="-4" rx="4.6" ry="8.5" transform="rotate(-30 10 -4)" ${ring(c.e, c.d, 2)}/>` +
+      `<path d="M-3-9q3-3 6 0" fill="none" stroke="${c.d}" stroke-width="1.6" stroke-linecap="round"/>` + eyes(-4, 4, -1, 2.3);
+  },
+  squirrel: () => {
+    const c = { b: '#d4692a', d: '#8a3d12', t: '#e8843f' };
+    return `<path d="M-11 16c-6-6-6-16-2-24 3-5 8-7 11-5-4 3-5 8-3 13z" ${ring(c.t, c.d, 1.8)} stroke-linejoin="round"/>` +
+      `<path d="M-10 0l1-13 8 7zM10 0l-1-13-8 7z" ${ring(c.b, c.d, 1.8)} stroke-linejoin="round"/>` +
+      `<path d="M-9-13l-1-3M9-13l1-3" stroke="${c.d}" stroke-width="1.8" stroke-linecap="round"/>` +
+      `<ellipse cx="0" cy="5" rx="11" ry="10" ${ring(c.b, c.d, 2)}/>` + eyes(-4, 4, 1, 2.2);
+  },
+  owl: () => {
+    const c = { b: '#8e6fb3', d: '#4e3473' };
+    return `<path d="M-13 0l3-15 8 8zM13 0l-3-15-8 8z" ${ring(c.b, c.d, 1.8)} stroke-linejoin="round"/>` +
+      `<ellipse cx="0" cy="5" rx="14" ry="12" ${ring(c.b, c.d, 2)}/>` +
+      `<circle cx="-5.5" cy="0" r="5" ${ring('#fff', c.d, 1.6)}/><circle cx="5.5" cy="0" r="5" ${ring('#fff', c.d, 1.6)}/>` + eyes(-5, 6, 0.4, 2.6);
+  },
+  crab: () => {
+    const c = { b: '#f26b5b', d: '#a33024' };
+    return `<path d="M-5 14l-3-21M5 14l3-21" stroke="${c.d}" stroke-width="3" stroke-linecap="round"/>` +
+      `<circle cx="-8" cy="-9" r="4.6" ${ring('#fff', c.d, 1.6)}/><circle cx="8" cy="-9" r="4.6" ${ring('#fff', c.d, 1.6)}/>` + eyes(-7.5, 8.5, -8.6, 2.3) +
+      `<g transform="translate(10.5 -5) rotate(-10) scale(.55) translate(-82 -46)"><path d="M86 54c6-2 8-10 3-15-2 4-6 6-10 5 1-6-2-10-7-10 1 8 4 18 14 20z" ${ring(c.b, c.d, 3)} stroke-linejoin="round"/></g>` +
+      `<path d="M10 14q4-8 2-14" fill="none" stroke="${c.d}" stroke-width="3.4" stroke-linecap="round"/>` +
+      `<ellipse cx="0" cy="10" rx="14" ry="8" ${ring(c.b, c.d, 2)}/>`;
+  },
+  turtle: () => {
+    const c = { b: '#3f9a6b', d: '#1f5c3c', s: '#b8d86b', l: '#6cc08f' };
+    return `<rect x="2" y="-4" width="9" height="20" fill="${c.s}" stroke="${c.d}" stroke-width="2"/>` +
+      `<circle cx="6.5" cy="-6.5" r="8" ${ring(c.s, c.d, 2)}/>` + eyes(3.5, 9.5, -7.5, 2) +
+      `<path d="M3-2q3.5 2 7 0" fill="none" stroke="${c.d}" stroke-width="1.5" stroke-linecap="round"/>` +
+      `<path d="M-15 16c0-17 6-23 12-23s12 6 12 23z" ${ring(c.b, c.d, 2)} stroke-linejoin="round"/>` +
+      `<path d="M-7 1h8l3 5-3 5h-8l-3-5z" fill="${c.l}" stroke="${c.d}" stroke-width="1.4" stroke-linejoin="round"/>` +
+      `<path d="M-7 1l-3-4M1 1l3-4" stroke="${c.d}" stroke-width="1.4" stroke-linecap="round"/>`;
+  },
+  piglet: () => {
+    const c = { b: '#f7b0c4', d: '#b8506f', s: '#f489a8' };
+    return `<path d="M-10 0l-3-15 11 6zM10 0l3-15-11 6z" ${ring(c.s, c.d, 1.8)} stroke-linejoin="round"/>` +
+      `<ellipse cx="0" cy="5" rx="12" ry="11" ${ring(c.b, c.d, 2)}/>` + eyes(-4, 4, 0, 2.2);
+  },
+  lamb: () => {
+    const c = { w: '#fbf8f0', o: '#a99e8c', f: '#4a4048' };
+    return `<ellipse cx="-10.5" cy="3" rx="6" ry="3.2" transform="rotate(-18 -10.5 3)" fill="${c.f}"/><ellipse cx="10.5" cy="3" rx="6" ry="3.2" transform="rotate(18 10.5 3)" fill="${c.f}"/>` +
+      `<ellipse cx="0" cy="6" rx="9" ry="11" fill="${c.f}"/>` +
+      `<circle cx="-5.5" cy="-6" r="5.5" ${ring(c.w, c.o, 1.5)}/><circle cx="5.5" cy="-6" r="5.5" ${ring(c.w, c.o, 1.5)}/><circle cx="0" cy="-9.5" r="5.5" ${ring(c.w, c.o, 1.5)}/>` +
+      `<circle cx="-3.5" cy="1" r="2.4" fill="#fff"/><circle cx="3.5" cy="1" r="2.4" fill="#fff"/><circle cx="-3.2" cy="1.3" r="1.4" fill="${INK}"/><circle cx="3.8" cy="1.3" r="1.4" fill="${INK}"/>`;
+  },
+};
+
+/**
+ * The glimpse of a feature that peeks out with the head in tier 3, as high as the head goes, so it
+ * shows over every spot, on the side away from the spot's middle: a bow, a flower, a scarf's end flying up.
+ */
+const PEEK_FEATURES = {
+  bow: () => `<g transform="translate(5.5 -14) rotate(-12) scale(.86)">${FEATURES.bow({ x: 0, y: 0 })}</g>`,
+  flower: () => `<g transform="translate(7.5 -12.5) scale(.86)">${FEATURES.flower({ x: 0, y: 0 })}</g>`,
+  scarf: () => `<g class="vz-feat" transform="translate(6 -3) rotate(22)"><path d="M-4.5 2V-15.2l1.5-1.8 1.5 1.8 1.5-1.8 1.5 1.8 1.5-1.8 1.5 1.8V2z" ${ring(FEATURE_COLORS.scarf, '#a3201b', 1.6)} stroke-linejoin="round"/>` +
+    `<path d="M-4.5-6h9" stroke="#ff8a80" stroke-width="1.8"/></g>`,
+};
+
 // ---------- the creatures that wave ----------
 
 export const CREATURES = Object.freeze({
@@ -329,10 +415,18 @@ export function figureSvg(who, cls = '') {
 }
 
 // ---------- the hiding spots ----------
-// Each: `color` (for the tests) and `draw(n)` -> { under, frame, cover }: `under` is drawn before the
-// figure (the shadow, and the dark inside of a doorway), `frame` after it and never moves (a door's
-// tree or panel, with the doorway cut out), `cover` last: the part that lifts, slides or swings.
+// Each: `color` (for the tests) and `draw(n)` -> { under, frame, front, cover }: `under` is drawn
+// before the figure (the shadow, and the dark inside of a doorway), `frame` after it and never moves
+// (a door's tree or panel, with the doorway cut out), `front` (optional, never moves) after the place
+// of a hint that comes out of the spot (the stump's front rim), `cover` last: the part that lifts,
+// slides or swings.
 // `hole` is a doorway's box: the figure is shrunk into it.
+
+/**
+ * The sandcastle's flag: sky blue, a colour no feature has (a red flag next to a red scarf peeking
+ * over the battlements would read as the scarf) and far from every animal's (tested).
+ */
+export const CASTLE_FLAG = '#2a9fd6';
 
 const shadow = (rx = 40) => `<ellipse cx="50" cy="95" rx="${rx}" ry="5" fill="#000" opacity=".13"/>`;
 
@@ -439,7 +533,7 @@ export const SPOT_ART = Object.freeze({
       frame: '',
       cover: `<path d="M10 95V56h10v-6h8v6h8V40h8v-6h12v6h8v16h8v-6h8v6h10v39z" ${ring('#e8cf96', '#a88848', 2.6)} stroke-linejoin="round"/>` +
         `<path d="M44 95V80a6 6 0 0 1 12 0v15z" fill="#b89a5a"/>` +
-        `<path d="M50 34V18" stroke="#7a5a2a" stroke-width="2.2"/><path d="M50 18l12 4-12 4z" fill="#ff5a5a"/>` +
+        `<path d="M50 34V18" stroke="#7a5a2a" stroke-width="2.2"/><path d="M50 18l12 4-12 4z" fill="${CASTLE_FLAG}"/>` +
         `<circle cx="22" cy="72" r="2" fill="#c9ad6e"/><circle cx="78" cy="68" r="2" fill="#c9ad6e"/><circle cx="66" cy="84" r="2" fill="#c9ad6e"/><circle cx="30" cy="86" r="2" fill="#c9ad6e"/>`,
     }),
   },
@@ -459,14 +553,22 @@ export const SPOT_ART = Object.freeze({
     color: '#d94a4a',
     hole: { x: 28, y: 44, w: 44, h: 52 },
     draw: () => {
-      // a fat old tree stump with a little red door in it
+      // a fat old hollow tree stump with a little red door in it
       const doorway = 'M28 96V64a22 22 0 0 1 44 0v32z';
       return {
         under: shadow(44) + `<path d="${doorway}" fill="#3b2a24"/>`,
         frame: `<path d="M8 96c4-10 4-30 4-52 0-16 16-26 38-26s38 10 38 26c0 22 0 42 4 52z${doorway}" fill-rule="evenodd" ${ring('#8f7460', '#4f3a2a', 2.6)} stroke-linejoin="round"/>` +
           `<path d="M14 24c10-8 24-10 36-10s26 2 36 10" fill="none" stroke="#4f3a2a" stroke-width="2.6"/><ellipse cx="50" cy="24" rx="34" ry="8" fill="#d9b88f" stroke="#4f3a2a" stroke-width="2.2"/>` +
-          `<ellipse cx="50" cy="24" rx="20" ry="4.2" fill="none" stroke="#b08a60" stroke-width="1.8"/>` +
+          `<ellipse cx="50" cy="24" rx="20" ry="4.2" fill="#3b2a24" stroke="#b08a60" stroke-width="1.8"/>` +
           `<path d="M16 50v30M84 52v28" stroke="#6e5644" stroke-width="2.2" stroke-linecap="round"/>`,
+        // in front of the hollow, on every stump with or without a hint (so they all look alike):
+        // the front of the rim and the stump just below it, round the doorway's edge, which a peek
+        // out of the hollow goes down behind
+        front: `<path d="M22 28.54A34 8 0 0 0 78 28.54V50H66.97A22 22 0 0 0 33.03 50H22z" fill="#8f7460"/>` +
+          `<path d="M28 64a22 22 0 0 1 44 0" fill="none" stroke="#4f3a2a" stroke-width="2.6"/>` +
+          `<path d="M16 24a34 8 0 0 0 68 0H70a20 4.2 0 0 1-40 0z" fill="#d9b88f"/>` +
+          `<path d="M16 24a34 8 0 0 0 68 0" fill="none" stroke="#4f3a2a" stroke-width="2.2"/>` +
+          `<path d="M30 24a20 4.2 0 0 0 40 0" fill="none" stroke="#b08a60" stroke-width="1.8"/>`,
         cover: `<path d="${doorway}" ${ring('#d94a4a', '#8a2020', 2.4)}/>` +
           `<circle cx="50" cy="60" r="7" ${ring('#ffe9a8', '#8a2020', 2)}/><path d="M50 53v14M43 60h14" stroke="#8a2020" stroke-width="1.6"/>` +
           `<path d="M34 76h32M34 86h32" stroke="#b23434" stroke-width="2"/><circle cx="64" cy="80" r="2.6" fill="#ffd23f" stroke="#8a6400" stroke-width="1.2"/>`,
@@ -492,6 +594,39 @@ export const SPOT_ART = Object.freeze({
   },
 });
 
+/**
+ * Where a hint peeks out over each kind of spot: the point on the cover's (or frame's) top edge,
+ * a little tilt, clear of the moss on the pot and the log's mushroom, behind the castle's battlements;
+ * low enough that the whole peek, at its highest, stays inside the spot's 100 x 100 box.
+ */
+export const PEEK_AT = Object.freeze({
+  stone: { x: 66, y: 37, a: 10 },
+  bush: { x: 68, y: 31, a: 12 },
+  tree: { x: 78, y: 33, a: 22 },
+  pot: { x: 35, y: 45, a: -8 },
+  bucket: { x: 60, y: 27, a: 6 },
+  hay: { x: 67, y: 35, a: 16 },
+  shell: { x: 62, y: 30, a: 8 },
+  castle: { x: 78, y: 49, a: 0 },
+  log: { x: 62, y: 56, a: 6 },
+  door: { x: 50, y: 24, a: 0, over: true },
+  flap: { x: 70, y: 20, a: 6 },
+});
+
+/**
+ * A hint as SVG (`vz-clue`): the animal's peek (with its feature's glimpse) at the spot's PEEK_AT,
+ * drawn behind the cover (or, `over`, out of the stump's hollow, under the stump's `front`). CSS
+ * slides `vz-peek` up and away (`data-show`, `data-beat`). Nothing else is in it, so with the peek
+ * away a spot with a hint looks exactly like one without (tests/smoke.py checks it in pixels).
+ */
+export function clueG(kind, clue) {
+  if (!clue) return '';
+  const at = PEEK_AT[kind];
+  const feat = clue.feature ? PEEK_FEATURES[clue.feature]() : '';
+  return `<g class="vz-clue" data-show="${clue.show}" data-beat="${clue.beat || 0}" data-animal="${clue.animal}" data-feature="${clue.feature || ''}">` +
+    `<g transform="translate(${at.x} ${at.y}) rotate(${at.a}) scale(.9)"><g class="vz-peek">${PEEKS[clue.animal]()}${feat}</g></g></g>`;
+}
+
 /** Where a figure sits in a spot: shrunk into the doorway of a door or flap, else the whole box. */
 export function figureFit(kind) {
   const h = SPOT_ART[kind].hole;
@@ -502,22 +637,26 @@ export function figureFit(kind) {
 }
 
 /**
- * One spot as an SVG: the shadow and doorway, the figure behind it (`vz-who`, shown only while the
- * spot is open), the frame and the cover (`vz-cover`). `n` is its number (on a flap).
+ * One spot as an SVG: the shadow and doorway, the hint (`clue`, from `cluesOf` in rules.js; none on a
+ * friend's spot; between the frame and the stump's front when it comes out of the stump), the figure behind it (`vz-who`, shown only while the spot is open), the frame and
+ * the cover (`vz-cover`). `n` is its number (on a flap).
  */
-export function spotSvg(kind, who, n = 1) {
+export function spotSvg(kind, who, n = 1, clue = null) {
   const art = SPOT_ART[kind].draw(n);
   const fit = figureFit(kind);
   const fig = fit.k === 1 ? figureG(who) : `<g transform="translate(${fit.x.toFixed(2)} ${fit.y.toFixed(2)}) scale(${fit.k.toFixed(3)})">${figureG(who)}</g>`;
   const sparks = [[14, 24], [86, 20], [92, 60], [8, 62], [50, 6]].map(([x, y]) => `<path class="vz-spark" d="M${x} ${y - 6}l1.8 4.2 4.2 1.8-4.2 1.8-1.8 4.2-1.8-4.2-4.2-1.8 4.2-1.8z" fill="#ffcf2e" stroke="#c99a00" stroke-width="1"/>`).join('');
-  return `<svg class="vz-svg" viewBox="0 0 100 100" aria-hidden="true" data-open="${SPOTS[kind]}">${art.under}<g class="vz-who">${fig}</g>` +
-    `${art.frame ? `<g class="vz-frame">${art.frame}</g>` : ''}<g class="vz-cover">${art.cover}</g>${sparks}</svg>`;
+  const hint = clueG(kind, clue);
+  const over = PEEK_AT[kind].over;
+  return `<svg class="vz-svg" viewBox="0 0 100 100" aria-hidden="true" data-open="${SPOTS[kind]}">${art.under}${over ? '' : hint}<g class="vz-who">${fig}</g>` +
+    `${art.frame ? `<g class="vz-frame">${art.frame}</g>` : ''}${over ? hint : ''}${art.front ? `<g class="vz-frame vz-front">${art.front}</g>` : ''}` +
+    `<g class="vz-cover">${art.cover}</g>${sparks}</svg>`;
 }
 
 /** A spot alone, closed (the menu and how-to pictures). */
 function spotOnly(kind, n = 1) {
   const art = SPOT_ART[kind].draw(n);
-  return `${art.under}${art.frame}${art.cover}`;
+  return `${art.under}${art.frame}${art.front || ''}${art.cover}`;
 }
 
 // ---------- the scenes ----------

@@ -138,6 +138,8 @@
 .vz-spot.ajar .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.5); }
 .vz-spot.found .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.06); opacity: 0.4; }
 .vz-spot.found .vz-svg[data-open="door"] .vz-frame { opacity: 0.3; }
+/* the stump's front is drawn again over the hint's place; the faded frame already shows it */
+.vz-spot.found .vz-svg[data-open="door"] .vz-front { opacity: 0; }
 .vz-spot.found .vz-svg[data-open="door"] .vz-who { transform: translate(var(--fx, 0), var(--fy, 0)) scale(var(--fs, 1)); }
 
 /* the wave, the found hop and its sparkles */
@@ -151,6 +153,32 @@
 .vz-spot.found .vz-spark { animation: vz-spark 1.3s ease-out both; }
 .vz-spot.found .vz-spark:nth-of-type(2n) { animation-delay: 0.15s; }
 @keyframes vz-spark { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 1; transform: scale(1.25); } 100% { opacity: 0; transform: scale(0.9); } }
+
+/* the hint (cluesOf in rules.js): a bit of the hidden animal peeks out over the top of its spot.
+   t1 a little of it from the start, still; t2 the head comes up now and then and goes back; t3
+   rarely and only a little, with its feature's colour. Slow slides, never a flash; each clue spot on
+   its own beat. Gone once the spot is opened, in the memory question and when the round is over. */
+.vz-svg .vz-peek { transform: translateY(24px); opacity: 0; }
+.vz-clue[data-show="always"] .vz-peek { transform: translateY(2px); opacity: 1; }
+.vz-clue[data-show="sometimes"] .vz-peek { animation: vz-peek-some 9s ease-in-out infinite both; }
+.vz-clue[data-show="rarely"] .vz-peek { animation: vz-peek-rare 12s ease-in-out infinite both; }
+.vz-clue[data-show="sometimes"][data-beat="1"] .vz-peek { animation-delay: 0.9s; }
+.vz-clue[data-show="sometimes"]:not([data-beat="1"]) .vz-peek { animation-delay: -3.6s; }
+.vz-clue[data-show="rarely"] .vz-peek { animation-delay: -6.6s; }
+.vz-clue[data-show="rarely"][data-beat="1"] .vz-peek { animation-delay: -2.6s; }
+.vz-clue[data-show="rarely"][data-beat="2"] .vz-peek { animation-delay: 1.4s; }
+@keyframes vz-peek-some {
+  0%, 58% { transform: translateY(24px); opacity: 0; }
+  66%, 86% { transform: translateY(-2px); opacity: 1; }
+  94%, 100% { transform: translateY(24px); opacity: 0; }
+}
+@keyframes vz-peek-rare {
+  0%, 70% { transform: translateY(24px); opacity: 0; }
+  78%, 88% { transform: translateY(6px); opacity: 1; }
+  96%, 100% { transform: translateY(24px); opacity: 0; }
+}
+.vz-spot:not(.shut) .vz-clue, #vz-stage[data-clues="off"] .vz-clue { visibility: hidden; }
+.vz-spot:not(.shut) .vz-peek, #vz-stage[data-clues="off"] .vz-peek { animation: none; }
 
 /* short phones: a smaller animal at the top, so the scene keeps room */
 @media (max-height: 640px) {
@@ -189,4 +217,8 @@
   .vz-svg .vz-who, .vz-svg .vz-cover, .vz-svg .vz-frame { transition-duration: 0.01s; }
   .vz-spot.found .vz-fig, .vz-spot.found .vz-spark { animation: none; }
   .vz-spot.wave .vz-arm { animation-iteration-count: 2; }
+  /* the hint stays still, in sight, as far out as at the peak of its peek (vz-peek-some, vz-peek-rare) */
+  .vz-svg .vz-clue[data-show] .vz-peek { animation: none; }
+  .vz-svg .vz-clue[data-show="sometimes"] .vz-peek { transform: translateY(-2px); opacity: 1; }
+  .vz-svg .vz-clue[data-show="rarely"] .vz-peek { transform: translateY(6px); opacity: 1; }
 }
