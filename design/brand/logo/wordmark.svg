@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 130" width="410" height="130" role="img" aria-labelledby="wordmark-t">
+  <title id="wordmark-t">bazibo</title>
+  <desc>The name bazibo in drawn lowercase letters: round bowls of uneven weight on a dancing baseline, the dot on the i a bead.</desc>
+  <defs>
+    <!-- One drawn alphabet, only the five letters the name needs. Every bowl is a
+         four-anchor curve with four different radii, so the stroke is heavier at the
+         foot than at the shoulder, the way a brush or a pair of scissors leaves it. -->
+    <g id="wordmark-b">
+      <path d="M10 -88.5L10.6 -8.5" fill="none" stroke-width="19.5" stroke-linecap="round"/>
+      <path fill-rule="evenodd" d="M65 -31C65 -13.05 50.67 1.5 33 1.5C15.6 1.5 1.5 -13.05 1.5 -31C1.5 -48.12 15.6 -62 33 -62C50.67 -62 65 -48.12 65 -31ZM46.5 -30.5C46.5 -23.04 40.68 -17 33.5 -17C25.77 -17 19.5 -23.04 19.5 -30.5C19.5 -37.96 25.77 -44 33.5 -44C41.23 -44 46.5 -37.96 46.5 -30.5Z"/>
+    </g>
+    <g id="wordmark-a">
+      <path fill-rule="evenodd" d="M59.5 -31C59.5 -13.33 46.29 1 30 1C13.43 1 0 -13.33 0 -31C0 -48.12 13.43 -62 30 -62C46.29 -62 59.5 -48.12 59.5 -31ZM42 -30.5C42 -23.32 36.4 -17.5 29.5 -17.5C22.04 -17.5 16 -23.32 16 -30.5C16 -37.68 22.04 -43.5 29.5 -43.5C36.4 -43.5 42 -37.68 42 -30.5Z"/>
+      <path d="M53.5 -52L54.2 -8.5" fill="none" stroke-width="19" stroke-linecap="round"/>
+    </g>
+    <g id="wordmark-z">
+      <path stroke-width="3.5" stroke-linejoin="round" d="M3 -61.5L58 -62.5L58.5 -46.5L26 -17.8L59 -18.3L59.5 -2L1.5 -1L1 -18L33.5 -46.5L3.5 -46Z"/>
+    </g>
+    <g id="wordmark-i">
+      <path d="M9.75 -54L10.3 -8.5" fill="none" stroke-width="19.5" stroke-linecap="round"/>
+    </g>
+    <g id="wordmark-o">
+      <path fill-rule="evenodd" d="M62.5 -31C62.5 -13.05 48.4 1.5 31 1.5C13.88 1.5 0 -13.05 0 -31C0 -48.4 13.88 -62.5 31 -62.5C48.4 -62.5 62.5 -48.4 62.5 -31ZM45 -30.5C45 -23.32 38.96 -17.5 31.5 -17.5C23.66 -17.5 17.3 -23.32 17.3 -30.5C17.3 -38.12 23.66 -44.3 31.5 -44.3C38.96 -44.3 45 -38.12 45 -30.5Z"/>
+    </g>
+    <!-- the dot on the i is a bead from the mark -->
+    <path id="wordmark-bead" d="M9.2 0C9.2 6.19 5.08 11.2 0 11.2C-6.08 11.2-11 6.19-11 0C-11-5.14-6.08-9.3 0-9.3C5.08-9.3 9.2-5.14 9.2 0Z"/>
+  </defs>
+  <g fill="#28245c" stroke="#28245c">
+    <use href="#wordmark-b" transform="translate(10 114) rotate(-2 33 -31)"/>
+    <use href="#wordmark-a" transform="translate(86 117) rotate(2.2 32 -31)"/>
+    <use href="#wordmark-z" transform="translate(159 111.5) rotate(-1.6 30 -31)"/>
+    <use href="#wordmark-i" transform="translate(231 116.5) rotate(2.5 10 -31)"/>
+    <use href="#wordmark-b" transform="translate(262 111) rotate(1.2 33 -31)"/>
+    <use href="#wordmark-o" transform="translate(336 115.5) rotate(-2.2 31 -31)"/>
+  </g>
+  <use href="#wordmark-bead" transform="translate(241.8 37.5) rotate(-18) scale(0.98)" fill="#4f43c4"/>
+</svg>
