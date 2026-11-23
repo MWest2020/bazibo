@@ -6898,6 +6898,60 @@ def drums_flow(browser, base, problems):
     ctx.close()
 
 
+def music_bars(browser, base, problems, game):
+    """Piano and Drumstel on the shell's bar (phase 2): with every song or rhythm (the longest
+    names too) the bar stays 100 px or less at 320x568, in Dutch and English, so the keys and pads
+    keep their room. Full version, so every one can be opened."""
+    btn, card, key = {"piano": ("#piano-songs-btn", ".piano-card", "song"), "drums": ("#drums-list-btn", ".drums-card", "rhythm")}[game]
+    for lang in ("nl", "en"):
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": 320, "height": 568}, has_touch=True, is_mobile=True)
+        ctx.add_init_script(OWNED_APP)
+        ctx.add_init_script("localStorage.setItem('bubbels.settings.v1', JSON.stringify({muted: true, lang: '%s'}))" % lang)
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        page.locator(f"#tile-{game}").scroll_into_view_if_needed()
+        page.click(f"#tile-{game}")
+        page.wait_for_timeout(300)
+        page.click(btn)
+        page.wait_for_timeout(200)
+        levels = page.eval_on_selector_all(".piano-level", "els => els.map((e) => e.dataset.level)") or [None]
+        worst = (0, "")
+        for level in levels:
+            if level:
+                page.click(f".piano-level[data-level='{level}']")
+                page.wait_for_timeout(150)
+            ids = page.eval_on_selector_all(f"{card}:not(.lead)", f"els => els.map((e) => e.dataset.{key})")
+            for rid in ids:
+                page.click(f"{card}[data-{key}='{rid}']")
+                page.wait_for_timeout(200)
+                hud = page.locator(f".{game}-hud").bounding_box()
+                title = page.inner_text(f"#{game}-title")
+                if hud["height"] > worst[0]:
+                    worst = (hud["height"], title)
+                page.click(f"#{game}-back")
+                page.wait_for_timeout(150)
+                if not page.is_visible(card):
+                    page.click(btn)
+                    page.wait_for_timeout(150)
+                if level and page.get_attribute(f".piano-level[data-level='{level}']", "aria-pressed") != "true":
+                    page.click(f".piano-level[data-level='{level}']")
+                    page.wait_for_timeout(150)
+        if worst[0] > 100:
+            problems.append(f"{game} 320x568 {lang}: the bar is {worst[0]:.0f} px high with {worst[1]!r} (100 at most)")
+        print(f"[{game} 320x568 {lang}] highest bar {worst[0]:.0f} px ({worst[1]!r})")
+        ctx.close()
+
+
+def piano_bars(browser, base, problems):
+    music_bars(browser, base, problems, "piano")
+
+
+def drums_bars(browser, base, problems):
+    music_bars(browser, base, problems, "drums")
+
+
 def drums_layouts(browser, base, problems):
     """Drumstel on a small phone, an ordinary phone (in English), sideways and on desktop, free play
     and a rhythm: the pads stand like a real drum kit (never the plain grid at these sizes), every
@@ -8751,7 +8805,9 @@ def home_targets(browser, base, problems):
     group's colour, the chosen option and the next level bordered in that colour, and every button
     of a menu (the fold opened too) 48 px or more."""
     for w, h, lang in ((320, 568, "nl"), (320, 568, "en"), (390, 844, "nl")):
-        ctx = browser.new_context(bypass_csp=True, locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, has_touch=True, is_mobile=True)
+        # the real CSP (no bypass): every menu must build without a style attribute or anything else it blocks
+        ctx = browser.new_context(locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, has_touch=True, is_mobile=True)
+        ctx.add_init_script("document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))")
         page = ctx.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
@@ -8779,6 +8835,9 @@ def home_targets(browser, base, problems):
                 problems.append(f"{label}: the header on {got['screen']} is {got['over']}px too wide")
             if tid == "tile-bubbels" and (not got["jump"] or got["jump"][1] < 48):
                 problems.append(f"{label}: the random button is {got['jump']}")
+            csp = page.evaluate("window.__csp || []")
+            if csp:
+                problems.append(f"{label}: the CSP blocked {csp[:3]}")
             if tid != "btn-settings":
                 menu = page.evaluate(MENU_CHECK)
                 if menu["group"] != groups[tid]:
@@ -8907,8 +8966,8 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "memory": (memory_flow, memory_layouts),
          "kwartet": (kwartet_flow, kwartet_layouts),
          "legpuzzel": (legpuzzel_flow, legpuzzel_layouts, legpuzzel_big),
-         "piano": (piano_flow, piano_layouts, piano_big),
-         "drums": (drums_flow, drums_layouts),
+         "piano": (piano_flow, piano_layouts, piano_big, piano_bars),
+         "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),

@@ -14,16 +14,21 @@ type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names;
 (`--primary`, `--ink`, `--gold`...) are aliases. Text never sits white on the orange accent (ink
 instead), locked text is `--bz-ink-quiet`, an empty star is an outline (`--bz-star-empty`), and
 Bubbels shows no points. Every game menu is built from the shell's menu components (phase 2):
-`web/js/menu.js` makes them (`menuHead`, `menuLine`, `optionCard`, `optionBox` with `segCard`,
+`web/js/menu.js` makes them (`menuHead`, `menuLine`, `optionCard`, `optionBox`, `segCard`,
 `levelCell`, `starsHtml`) and `web/css/style.css` styles them (`.menu`, `.option-card` with its
 `.wide`, `.pic` and `.lead` forms, `.option-box` and `.seg-card` for the computer's levels,
 `.player-slot` for who plays, `.level-cell` in a `.level-grid`, the random card, `.menu-actions` for
-the Play bar, `.bar-title` for a bar with a line under its title). A game adds its own hook classes
-(`puzzel-opt size-p9`) and art, never its own button look. Every option has a picture from the
+the Play bar with `.with-actions` on its scroll area, `.bar-title` for a bar with a line under its
+title). Use the helpers; a few parts are still built in the game with the same classes (the
+computer's level segments and the player slots of the board games, Kwartet's set counts,
+Paartjes' cards, Ganzenbord's counting cards): keep their picture `aria-hidden="true"`, so a
+button's name is its words only. A game adds its own hook classes (`puzzel-opt size-p9`) and art,
+never its own button look. Every option has a picture from the
 game's own art; a level cell shows its stars only once played (quiet stars). The selected option,
 segment, player and the next level are the group's tint with a 3 px border in the group's accent:
 each group has three colours in `style.css` (`--bz-learning-acc`, `-tint`, `-ink`, and the same for
-puzzles, board, creative, action; text sits on the tint or in the ink, never on the accent), and
+puzzles, board, creative, action; an accent is 3:1 or more on white and on the sky, lilac and pink
+page, text sits on the tint or in the ink, never on the accent), and
 `main.js` gives every game screen its group (`data-group`, from `meta.group`), which sets
 `--bz-group-acc/-tint/-ink`. Touch targets in a menu are 48 px or more. Locked choices never sit between the free ones: every game menu ends its
 render with `foldLocked(box)` (`web/js/fold.js`), which moves each button with the class `locked`
@@ -120,7 +125,7 @@ home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
 the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Tijgers en geitjes, Ganzenbord, Ludo, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
-the store links, the home layout and the menus (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall; the home sections in the order Leren, Puzzels, Bordspellen, Creatief, Actie, every game screen in its tile's group, the chosen option and the next level bordered in the group's accent, and every menu button (the fold opened too) 48 px or more.
+the store links, the home layout and the menus (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall; the home sections in the order Leren, Puzzels, Bordspellen, Creatief, Actie, every game screen in its tile's group, the chosen option and the next level bordered in the group's accent, and every menu button (the fold opened too) 48 px or more, all under the real CSP (any violation fails); Piano's and Drumstel's bar 100 px or less at 320x568 in Dutch and English with every song and rhythm (`piano_bars`, `drums_bars`).
 CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
 offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
 right. The test hook `window.__bubbels` only exists with `?test` in the address.

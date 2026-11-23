@@ -122,7 +122,7 @@ export function createMemory(shell) {
       b.type = 'button';
       b.className = `option-card memory-opt ${cls} ${isLocked ? 'locked' : ''}`;
       b.setAttribute('aria-pressed', String(!!pressed && !isLocked));
-      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span>${extra}</span>${isLocked ? lockIcon : ''}`;
+      b.innerHTML = `<span class="option-art" aria-hidden="true">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span>${extra}</span>${isLocked ? lockIcon : ''}`;
       b.querySelector('.option-title').textContent = title;
       b.querySelector('.option-sub').textContent = isLocked ? t('memory.fullVersion') : sub;
       b.addEventListener('click', () => {

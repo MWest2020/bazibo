@@ -158,7 +158,7 @@ export function createKwartet(shell) {
       b.type = 'button';
       b.className = `option-card kwartet-opt sets-${n} ${isLocked ? 'locked' : ''}`;
       b.setAttribute('aria-pressed', String(choice.sets === n && !isLocked));
-      b.innerHTML = `<span class="option-art"><span class="kwartet-stack">${'<i></i>'.repeat(Math.min(n, 4))}</span></span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>${isLocked ? lockIcon : ''}`;
+      b.innerHTML = `<span class="option-art" aria-hidden="true"><span class="kwartet-stack">${'<i></i>'.repeat(Math.min(n, 4))}</span></span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>${isLocked ? lockIcon : ''}`;
       // the set colours through el.style: the CSP blocks style attributes in HTML
       b.querySelectorAll('.kwartet-stack i').forEach((i, k) => i.style.setProperty('--c', SETS[k].color));
       b.querySelector('.option-title').textContent = t('kwartet.sets', { n });
@@ -196,7 +196,7 @@ export function createKwartet(shell) {
       b.dataset.slot = String(p);
       b.disabled = p === 0;
       const face = kind === 'off' ? '<span class="kwartet-empty" aria-hidden="true">+</span>' : faces[p];
-      b.innerHTML = `<span class="slot-face">${face}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind"></span></span>${isLocked ? lockIcon : p ? '<span class="swap" aria-hidden="true">⟳</span>' : ''}`;
+      b.innerHTML = `<span class="slot-face" aria-hidden="true">${face}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind"></span></span>${isLocked ? lockIcon : p ? '<span class="swap" aria-hidden="true">⟳</span>' : ''}`;
       b.querySelector('.slot-name').textContent = kind === 'off' ? t('kwartet.player', { n: p + 1 }) : names[p];
       b.querySelector('.slot-kind').textContent = isLocked ? t('kwartet.fullVersion') : t(`kwartet.kind.${kind}`);
       b.setAttribute('aria-label', t('kwartet.swap', { who: t('kwartet.player', { n: p + 1 }), kind: t(`kwartet.kind.${kind}`) }));

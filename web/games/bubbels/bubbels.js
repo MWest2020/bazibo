@@ -82,7 +82,7 @@ export function createBubbels(shell) {
         });
         full.appendChild(b);
       } else {
-        b.setAttribute('aria-label', t('bubbels.levelStars', { n: l.id, stars }));
+        b.setAttribute('aria-label', stars ? t('bubbels.levelStars', { n: l.id, stars }) : t('bubbels.levelOpen', { n: l.id }));
         b.addEventListener('click', () => {
           tap();
           play(i);

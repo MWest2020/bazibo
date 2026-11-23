@@ -20,6 +20,7 @@ import { gooseSvg, iconSvg, dieSvg, boardThumb, kidSvg, robotBadge, THEMES, BOAR
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard } from '../../js/menu.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 // two arrows going round: tap to change
@@ -119,13 +120,7 @@ export function createGanzen(shell) {
     for (const id of BOARDS) {
       const isLocked = locked({ board: id, players: ['kid', 'kid'] });
       const n = counts[winKey(id)] || 0;
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `option-card ganzen-boardopt board-${id} ${isLocked ? 'locked' : ''}`;
-      b.setAttribute('aria-pressed', String(choice.board === id));
-      b.innerHTML = `<span class="option-art">${boardThumb(id)}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>${isLocked ? lockIcon : ''}`;
-      b.querySelector('.option-title').textContent = t(`ganzen.board.${id}`);
-      b.querySelector('.option-sub').textContent = isLocked ? t('ganzen.fullVersion') : n ? t('ganzen.wins', { n }) : t(`ganzen.board.${id}Sub`);
+      const b = optionCard({ art: boardThumb(id), title: t(`ganzen.board.${id}`), sub: isLocked ? t('ganzen.fullVersion') : n ? t('ganzen.wins', { n }) : t(`ganzen.board.${id}Sub`), pressed: choice.board === id, locked: isLocked, cls: `ganzen-boardopt board-${id}` });
       b.addEventListener('click', () => {
         tap();
         if (isLocked) {
@@ -150,7 +145,7 @@ export function createGanzen(shell) {
       b.className = `player-slot ganzen-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(k);
       const who = kind === 'kid' ? kidSvg() : kind === 'cpu' ? robotBadge() : '';
-      b.innerHTML = `<span class="slot-face">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
+      b.innerHTML = `<span class="slot-face" aria-hidden="true">${gooseSvg(k, { num: k + 1 })}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
       b.querySelector('.slot-name').textContent = nameOf(k);
       b.querySelector('.slot-kind > span').textContent = t(`ganzen.kind.${kind}`);
       b.setAttribute('aria-label', isLocked ? t('ganzen.slotLocked', { name: nameOf(k) }) : t('ganzen.slotLabel', { name: nameOf(k), kind: t(`ganzen.kind.${kind}`) }));
@@ -184,7 +179,7 @@ export function createGanzen(shell) {
       b.type = 'button';
       b.className = `option-card ganzen-count count-${on ? 'on' : 'off'}`;
       b.setAttribute('aria-pressed', String(choice.count === on));
-      b.innerHTML = `<span class="option-art ganzen-count-art">${on ? '<span class="big-num">1 2 3</span>' : dieSvg(4)}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+      b.innerHTML = `<span class="option-art ganzen-count-art" aria-hidden="true">${on ? '<span class="big-num">1 2 3</span>' : dieSvg(4)}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
       b.querySelector('.option-title').textContent = t(on ? 'ganzen.countSelf' : 'ganzen.countAuto');
       b.querySelector('.option-sub').textContent = t(on ? 'ganzen.countSelfSub' : 'ganzen.countAutoSub');
       b.addEventListener('click', () => {

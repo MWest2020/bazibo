@@ -83,13 +83,6 @@ export function optionCard({ art = '', title, sub = '', age = '', pressed, locke
   return b;
 }
 
-/** A row of option cards (two or more side by side where they fit). */
-export function optionRow(cls = '') {
-  const row = document.createElement('div');
-  row.className = `option-row${cls ? ` ${cls}` : ''}`;
-  return row;
-}
-
 /**
  * A card that holds segmented choices (the computer with its levels): a picture and a title, then
  * the segments. `on`: this card is the one chosen. `foldHead` names the segments in the fold.

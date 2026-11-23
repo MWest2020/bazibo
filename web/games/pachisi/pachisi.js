@@ -31,6 +31,7 @@ import { robotSvg } from '../vier/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard } from '../../js/menu.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const SWAP = '<svg class="swap" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 0 0-13.5-2M5 16a8 8 0 0 0 13.5 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 2.5v4h4M19 21.5v-4h-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -190,13 +191,7 @@ export function createPachisi(shell) {
       box.appendChild(h);
     };
     const option = ({ art, title, sub, pressed, onPick, cls = '' }) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `option-card pachisi-opt ${cls}`;
-      b.setAttribute('aria-pressed', String(!!pressed));
-      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
-      b.querySelector('.option-title').textContent = title;
-      b.querySelector('.option-sub').textContent = sub;
+      const b = optionCard({ art, title, sub, pressed: !!pressed, cls: `pachisi-opt ${cls}` });
       b.addEventListener('click', () => {
         tap();
         onPick();
@@ -243,7 +238,7 @@ export function createPachisi(shell) {
       b.className = `player-slot pachisi-slot slot-${k} kind-${kind} ${isLocked ? 'locked' : ''}`;
       b.dataset.slot = String(k);
       const who = kind === 'kid' ? kidSvg() : kind === 'cpu' ? robotBadge() : '';
-      b.innerHTML = `<span class="slot-face">${pawnSvg(k)}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
+      b.innerHTML = `<span class="slot-face" aria-hidden="true">${pawnSvg(k)}</span><span class="slot-text"><span class="slot-name"></span><span class="slot-kind">${who}<span></span></span></span>${isLocked ? lockIcon : SWAP}`;
       b.querySelector('.slot-name').textContent = nameOf(k);
       b.querySelector('.slot-kind > span').textContent = t(`pachisi.kind.${kind}`);
       b.setAttribute('aria-label', isLocked ? t('pachisi.slotLocked', { name: nameOf(k) }) : t('pachisi.slotLabel', { name: nameOf(k), kind: t(`pachisi.kind.${kind}`) }));

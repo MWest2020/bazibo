@@ -29,6 +29,7 @@ import { robotSvg, duoSvg, TROPHY } from '../vier/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionBox } from '../../js/menu.js';
 
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const UNDO = '<path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
@@ -171,7 +172,7 @@ export function createSchaak(shell) {
     duo.type = 'button';
     duo.className = 'option-card schaak-opt mode-duo';
     duo.setAttribute('aria-pressed', String(choice.mode === 'duo'));
-    duo.innerHTML = `<span class="option-art">${duoSvg()}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
+    duo.innerHTML = `<span class="option-art" aria-hidden="true">${duoSvg()}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
     duo.querySelector('.option-title').textContent = t('schaak.duo');
     duo.querySelector('.option-sub').textContent = t('schaak.duoSub');
     duo.addEventListener('click', () => {
@@ -181,12 +182,8 @@ export function createSchaak(shell) {
     });
     opp.appendChild(duo);
 
-    const cpu = document.createElement('div');
-    cpu.className = `option-box ${choice.mode === 'cpu' ? 'on' : ''}`;
-    cpu.innerHTML = `<span class="option-art">${robotSvg()}</span><span class="option-title"></span><span class="seg-cards" role="group"></span>`;
-    cpu.querySelector('.option-title').textContent = t('schaak.cpu');
-    cpu.querySelector('.seg-cards').setAttribute('aria-label', t('schaak.cpu'));
-    cpu.querySelector('.seg-cards').dataset.foldHead = t('schaak.cpu'); // its locked levels wait in the fold under this name
+    // its locked levels wait in the fold under its name
+    const cpu = optionBox({ art: robotSvg(), title: t('schaak.cpu'), on: choice.mode === 'cpu', foldHead: t('schaak.cpu') });
     const counts = wins();
     for (const level of [1, 2, 3]) {
       const setup = { mode: 'cpu', level };

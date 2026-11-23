@@ -21,6 +21,7 @@ import { TOKENS, tokenById, nextToken, tokenSvg, robotSvg, duoSvg, boardSvg, TRO
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
+import { optionCard, optionBox } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
@@ -111,13 +112,7 @@ export function createVier(shell) {
       box.appendChild(h);
     };
     const option = ({ art, title, sub, pressed, onPick, cls = '', label = '' }) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `option-card ${cls}`;
-      b.setAttribute('aria-pressed', String(!!pressed));
-      b.innerHTML = `<span class="option-art">${art}</span><span class="option-text"><span class="option-title"></span><span class="option-sub"></span></span>`;
-      b.querySelector('.option-title').textContent = title;
-      b.querySelector('.option-sub').textContent = sub;
+      const b = optionCard({ art, title, sub, pressed: !!pressed, cls });
       if (label) b.setAttribute('aria-label', label);
       b.addEventListener('click', () => {
         tap();
@@ -165,12 +160,8 @@ export function createVier(shell) {
         },
       }),
     );
-    const cpu = document.createElement('div');
-    cpu.className = `option-box ${choice.mode === 'cpu' ? 'on' : ''}`;
-    cpu.innerHTML = `<span class="option-art">${robotSvg()}</span><span class="option-title"></span><span class="seg-cards" role="group"></span>`;
-    cpu.querySelector('.option-title').textContent = t('vier.cpu');
-    cpu.querySelector('.seg-cards').setAttribute('aria-label', t('vier.cpu'));
-    cpu.querySelector('.seg-cards').dataset.foldHead = t('vier.cpu'); // its locked levels wait in the fold under this name
+    // its locked levels wait in the fold under its name
+    const cpu = optionBox({ art: robotSvg(), title: t('vier.cpu'), on: choice.mode === 'cpu', foldHead: t('vier.cpu') });
     const counts = wins();
     for (const level of [1, 2, 3]) {
       const setup = { board: choice.board, mode: 'cpu', level };

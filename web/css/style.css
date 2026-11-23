@@ -35,11 +35,12 @@
   --bz-scrim: rgba(43, 35, 112, 0.45);
 
   /* colour: one accent per game group (v2-proposal.md, section 1). -acc for shapes and borders
-     (3:1 or more on white), -tint for backgrounds, -ink for text on the tint (5.5:1 or more).
+     (3:1 or more on white and on the sky, lilac and pink page; learning and board a step darker
+     than the proposal for that), -tint for backgrounds, -ink for text on the tint (5.5:1 or more).
      Text never sits on an accent. A game screen gets its group from main.js (data-group). */
-  --bz-learning-acc: #b97f0a; --bz-learning-tint: #fbf1d6; --bz-learning-ink: #7a5600;
+  --bz-learning-acc: #ac7609; --bz-learning-tint: #fbf1d6; --bz-learning-ink: #7a5600;
   --bz-puzzles-acc: #2a8f88;  --bz-puzzles-tint: #e3f4f2;  --bz-puzzles-ink: #1d6b66;
-  --bz-board-acc: #d9663f;    --bz-board-tint: #fbe9e1;    --bz-board-ink: #9c3f1f;
+  --bz-board-acc: #ce603b;    --bz-board-tint: #fbe9e1;    --bz-board-ink: #9c3f1f;
   --bz-creative-acc: #c8508a; --bz-creative-tint: #fae6ef; --bz-creative-ink: #8f2f5e;
   --bz-action-acc: #3f86d0;   --bz-action-tint: #e3eefa;   --bz-action-ink: #235a96;
   /* the group of the screen in view; outside a game, the brand */
@@ -470,7 +471,15 @@ html, body {
 .bar-spacer { width: var(--bz-target-icon); flex: none; }
 /* a title with a small line under it (Piano, Drumstel: the song and its age) */
 .bar-title { flex: 1; min-width: 0; text-align: center; }
-.bar .bar-title h2 { flex: none; }
+.bar .bar-title h2 {
+  flex: none;
+  font-size: clamp(1.1rem, 5.4vw, 1.5rem); /* a long song name stays two lines and leaves the keys their room */
+  line-height: 1.1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .bar-sub { margin: 2px 0 0; font-size: var(--bz-text-s); font-weight: var(--bz-weight-head); line-height: 1.2; color: var(--bz-ink-soft); }
 .bar-sub:empty { display: none; }
 
@@ -851,7 +860,7 @@ html, body {
 
 /* Play stays in reach at the bottom of a setup menu, also before the child scrolls; the scroll
    area's bottom padding moves into the bar, so it sits flush on the bottom edge */
-.levels-scroll:has(> .menu > .menu-actions) { padding-bottom: 0; }
+.levels-scroll.with-actions { padding-bottom: 0; } /* set in index.html on the setup menus with a Play bar */
 .menu-actions {
   position: sticky;
   bottom: 0;
