@@ -192,9 +192,12 @@ test('verstop: every animal can peek over every kind of spot, in its own colours
         }
       }
     }
-    // in the spot: drawn behind the figure, the frame and the cover; none on a friend's spot
+    // in the spot: drawn behind the cover (behind the figure and the frame too, unless it comes out
+    // of the stump's hollow); none on a friend's spot
     const svg = spotSvg(kind, { kind: 'animal', id: 'hedgehog', feature: null }, 2, { animal: 'hedgehog', feature: null, show: 'always', beat: 0 });
-    assert.ok(svg.indexOf('vz-clue') < svg.indexOf('vz-who') && svg.indexOf('vz-who') < svg.indexOf('vz-cover'), kind);
+    assert.ok(svg.indexOf('vz-clue') < svg.indexOf('vz-cover'), kind);
+    if (!PEEK_AT[kind].over) assert.ok(svg.indexOf('vz-clue') < svg.indexOf('vz-who'), kind);
+    else assert.ok(svg.indexOf('vz-frame') < svg.indexOf('vz-clue'), kind);
     assert.ok(!spotSvg(kind, { kind: 'creature', id: 'frog' }, 2, null).includes('vz-clue'), kind);
   }
 });

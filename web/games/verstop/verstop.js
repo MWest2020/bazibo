@@ -537,19 +537,22 @@ export function createVerstop(shell) {
     leave,
     testHook() {
       return {
-        state: () =>
-          game && {
+        state: () => {
+          if (!game) return game;
+          const clues = cluesOf(game.round);
+          return {
             scene: game.scene,
             tier: game.tier,
             roundId: game.roundId,
-            spots: game.round.spots.map((s, i) => ({ kind: s.kind, who: { ...s.who }, target: isTarget(game.round, s.who), clue: cluesOf(game.round)[i] })),
+            spots: game.round.spots.map((s, i) => ({ kind: s.kind, who: { ...s.who }, target: isTarget(game.round, s.who), clue: clues[i] })),
             find: game.round.find.map((f) => ({ ...f })),
             memory: game.round.memory,
             play: JSON.parse(JSON.stringify(game.play)),
             waiting: game.waiting,
             done: game.done,
             stars: starsFor(game.play.extra, game.round),
-          },
+          };
+        },
         start: (id) => startRound(id),
         random: (tier, scene) => playRandom(tier, scene),
         tap: (i) => tapSpot(i),

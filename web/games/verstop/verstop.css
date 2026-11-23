@@ -215,8 +215,8 @@
   .vz-svg .vz-who, .vz-svg .vz-cover, .vz-svg .vz-frame { transition-duration: 0.01s; }
   .vz-spot.found .vz-fig, .vz-spot.found .vz-spark { animation: none; }
   .vz-spot.wave .vz-arm { animation-iteration-count: 2; }
-  /* the hint stays still: as much of it as at its peak, a little less than in t1 */
+  /* the hint stays still, in sight, as far out as at the peak of its peek (vz-peek-some, vz-peek-rare) */
   .vz-svg .vz-clue[data-show] .vz-peek { animation: none; }
-  .vz-svg .vz-clue[data-show="sometimes"] .vz-peek { transform: translateY(6px); opacity: 1; }
-  .vz-svg .vz-clue[data-show="rarely"] .vz-peek { transform: translateY(9px); opacity: 1; }
+  .vz-svg .vz-clue[data-show="sometimes"] .vz-peek { transform: translateY(-2px); opacity: 1; }
+  .vz-svg .vz-clue[data-show="rarely"] .vz-peek { transform: translateY(6px); opacity: 1; }
 }
