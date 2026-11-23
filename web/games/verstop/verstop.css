@@ -138,6 +138,8 @@
 .vz-spot.ajar .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.5); }
 .vz-spot.found .vz-svg[data-open="door"] .vz-cover { transform: scaleX(0.06); opacity: 0.4; }
 .vz-spot.found .vz-svg[data-open="door"] .vz-frame { opacity: 0.3; }
+/* the stump's front is drawn again over the hint's place; the faded frame already shows it */
+.vz-spot.found .vz-svg[data-open="door"] .vz-front { opacity: 0; }
 .vz-spot.found .vz-svg[data-open="door"] .vz-who { transform: translate(var(--fx, 0), var(--fy, 0)) scale(var(--fs, 1)); }
 
 /* the wave, the found hop and its sparkles */
