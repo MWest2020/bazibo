@@ -11,6 +11,23 @@ winkel, site, startscherm); de spellen houden hun eigen SVG-stijl. Achtergrond:
 
 ## Nederlands
 
+**Ronde 3 (Mark, 23 nov 2026): de keuze. Dit gaat voor alles hieronder, ook voor ronde 2.**
+Mark koos uit ronde 2 (#94): **"Knipsel met verschillende kleuren, lettertype van Kralen. Erg
+leuk!"** Maak de definitieve set van die combinatie:
+- **Beeldmerk:** de geknipte b van Knipsel (`design/brand/directions/knipsel/`), maar kleurrijk:
+  de snippers in meerdere kleuren uit het palet van de vijf spelgroepen (oker, groen, oranje,
+  roze, blauw), niet alleen terracotta. Geef daarnaast een variant per spelgroep (de b op de
+  snipper in die groepskleur), voor gebruik in de app. Het dakje in de b blijft.
+- **Woordmerk:** de getekende letters van Kralen (`design/brand/logo/wordmark.svg`), inclusief de
+  kraal als punt op de i, in inkt; die kraal mag de kleur van een snipper krijgen.
+- **Palet:** de vijf groepsaccenten van ronde 2 (Kralen), met de basis, inkt en tinten; gemeten
+  zoals hieronder (AA voor tekst, 3:1 voor vormen op de basis en op de lichte pagina's).
+- **De volledige set**, nu voor deze combinatie: logo (volledig, beeldmerk, woordmerk; licht en
+  donker), app-iconen (Play 512, App Store 1024, adaptive voor- en achtergrond en monochroom),
+  de winkelset (feature graphic, screenshotkaders NL en EN), tokens. Vervang de bestanden van
+  ronde 2 in `design/brand/`; `directions/` mag blijven als geschiedenis.
+- Eén richting dit keer, geen nieuwe ideeën: afmaken en goed doen op 24 en 48 px.
+
 **Ronde 2 (Mark, 23 nov 2026). Dit gaat voor alles hieronder.** De eerste ronde (drie
 richtingen: Prieel, Zegel, Plattegrond; draft-PR #88) was netjes maar te braaf, en vooral het logo
 ziet er te *gegenereerd* uit: strakke geometrie die bij elk merk zou passen. Nu:
@@ -97,6 +114,23 @@ geen `url(#)`-id's die botsen; tekst in het logo omgezet naar paden). Geen CDN, 
 alles moet als losse bestanden in `web/` passen. Strakke CSP: geen inline styles.
 
 ## English
+
+**Round 3 (Mark, 23 Nov 2026): the choice. This overrides everything below, round 2 included.**
+Mark chose from round 2 (#94): **"Knipsel in several colours, the lettering of Kralen. Really
+nice!"** Make the final set of that combination:
+- **Mark:** Knipsel's cut-paper b (`design/brand/directions/knipsel/`), but colourful: the scraps
+  in several colours from the five game-group palette (ochre, teal, orange, pink, blue), not only
+  terracotta. Also a variant per game group (the b on a scrap in that group's colour) for use in
+  the app. The little roof inside the b stays.
+- **Wordmark:** Kralen's drawn letters (`design/brand/logo/wordmark.svg`), including the bead as
+  the dot on the i, in ink; that bead may take a scrap's colour.
+- **Palette:** round 2's (Kralen) five group accents with the base, ink and tints, measured as
+  below (AA for text, 3:1 for shapes on the base and on the light pages).
+- **The full set**, now for this combination: logo (full, mark, wordmark; light and dark), app
+  icons (Play 512, App Store 1024, adaptive foreground, background and monochrome), the store set
+  (feature graphic, screenshot frames NL and EN), tokens. Replace round 2's files in
+  `design/brand/`; `directions/` may stay as history.
+- One direction this time, no new ideas: finish it, and get it right at 24 and 48 px.
 
 **Round 2 (Mark, 23 Nov 2026). This overrides everything below.** Round 1 (three directions:
 Gazebo, Seal, Floor plan; draft PR #88) was tidy but too tame, and above all the logo looks too
