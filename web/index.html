@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#5B4BDB">
+  <meta name="theme-color" content="#fbf7f0">
   <!-- For search engines and link previews (js/seo.js explains): the Dutch title and description,
        which main.js swaps for the reader's language through t() ('meta.title', 'meta.description').
        The brand name is repeated here by hand, like the manifest; tests/seo.test.js keeps it in step
@@ -56,8 +56,9 @@
   }
   </script>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/bazibo-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="games/bubbels/bubbels.css">
@@ -98,7 +99,7 @@
       <div class="home-inner">
         <div class="brand">
           <span class="brand-mark" id="brand-mark" aria-hidden="true"></span>
-          <h1 class="logo" id="brand-name">Bazibo</h1>
+          <h1 class="logo" id="brand-name"><span class="logo-word" id="brand-word" aria-hidden="true"></span><span class="logo-text" id="brand-text">Bazibo</span></h1>
         </div>
         <p class="tagline" id="brand-tagline">Spelen en leren, zonder reclame</p>
         <!-- the game tiles, in sections (Puzzels, Bordspellen, ...): built by main.js from GROUPS and GAMES in js/games.js -->

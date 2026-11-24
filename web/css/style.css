@@ -9,40 +9,39 @@
 }
 
 /* ---------- design tokens (docs/design/v2-proposal.md, section 1) ----------
-   Everything a screen is built from lives here. The colours are still today's brand: the new
-   palette (docs/design/brand-brief.md) replaces only the first block. The old names further down
-   are aliases, so the games keep working while they move to the --bz- names. */
+   Everything a screen is built from lives here. The colours are the brand of round 3
+   (design/brand/tokens.css, Mark 24 Nov 2026: the cut-paper b in five colours with Kralen's
+   palette); tests/brand.test.js checks them against design/brand/tokens.json and the contrast
+   rules. The old names further down are aliases, so the games keep working on the --bz- names. */
 :root {
-  /* colour: the brand (swap this block for the 2.0 palette) */
-  --bz-sky: #d6eeff;          /* page background: sky, lilac, pink from top to bottom */
-  --bz-lilac: #efe6ff;
-  --bz-pink: #ffe6f3;
+  /* colour: the brand (design/brand/tokens.json) */
+  --bz-base: #fbf7f0;         /* the page: warm paper */
   --bz-surface: #ffffff;      /* cards, tiles, sheets */
-  --bz-ink: #2b2370;          /* text: 13.3:1 on white, 11.1:1 on the sky */
-  --bz-ink-soft: #5d5699;     /* secondary text: 6.5:1 on white */
-  --bz-ink-quiet: #635e8e;    /* locked / inactive text and padlocks: 6.0:1 on white, 4.9:1 on lilac (was #a59fd0, 2.5:1) */
-  --bz-brand: #5b4bdb;        /* white on it 6.0:1 */
-  --bz-brand-dark: #3b2fa8;   /* pressed edge of a brand button, headings */
-  --bz-brand-tint: #ece8ff;   /* selected tint, quiet borders */
-  --bz-brand-edge: #c9c1ff;   /* pressed edge of a white button or tile */
-  --bz-accent: #ff8a3d;       /* orange: shapes and fills; text on it is ink (5.7:1), never white (2.35:1) */
-  --bz-accent-dark: #c95f17;  /* pressed edge of an orange button */
+  --bz-ink: #28245c;          /* text: 14.0:1 on white, 13.1:1 on the paper */
+  --bz-ink-soft: #5a5585;     /* secondary text: 6.8:1 on white, 6.4:1 on the paper */
+  --bz-ink-quiet: #635e8e;    /* locked / inactive text and padlocks: 6.0:1 on white, 5.6:1 on the paper */
+  --bz-brand: #4f43c4;        /* buttons and links; white on it 7.2:1 */
+  --bz-brand-dark: #382e9c;   /* pressed edge of a brand button, headings (9.6:1 on the paper) */
+  --bz-brand-tint: #edeafb;   /* selected tint, quiet borders */
+  --bz-brand-edge: #c8c2f0;   /* pressed edge of a white button or tile */
+  --bz-accent: #f08a5e;       /* the warm accent (the board scrap's night shade): shapes and fills; text on it is ink (5.7:1), never white */
+  --bz-accent-dark: #d9663f;  /* pressed edge of an accent button: the board scrap */
   --bz-on-accent: var(--bz-ink);
   --bz-star: #ffc531;         /* an earned star */
   --bz-star-edge: #c98a00;    /* its thin outline, so a gold star still reads as a shape on white */
   --bz-star-empty: var(--bz-ink-quiet); /* an empty star is an outline in this colour, never only a paler fill */
-  --bz-focus: var(--bz-ink);  /* focus ring: ink with a white gap (gold on the sky was 1.5:1) */
-  --bz-scrim: rgba(43, 35, 112, 0.45);
+  --bz-focus: var(--bz-ink);  /* focus ring: ink with a gap */
+  --bz-scrim: rgba(40, 36, 92, 0.45);
 
-  /* colour: one accent per game group (v2-proposal.md, section 1). -acc for shapes and borders
-     (3:1 or more on white and on the sky, lilac and pink page; learning and board a step darker
-     than the proposal for that), -tint for backgrounds, -ink for text on the tint (5.5:1 or more).
-     Text never sits on an accent. A game screen gets its group from main.js (data-group). */
-  --bz-learning-acc: #ac7609; --bz-learning-tint: #fbf1d6; --bz-learning-ink: #7a5600;
-  --bz-puzzles-acc: #2a8f88;  --bz-puzzles-tint: #e3f4f2;  --bz-puzzles-ink: #1d6b66;
-  --bz-board-acc: #ce603b;    --bz-board-tint: #fbe9e1;    --bz-board-ink: #9c3f1f;
-  --bz-creative-acc: #c8508a; --bz-creative-tint: #fae6ef; --bz-creative-ink: #8f2f5e;
-  --bz-action-acc: #3f86d0;   --bz-action-tint: #e3eefa;   --bz-action-ink: #235a96;
+  /* colour: one scrap per game group, as in the mark (design/brand/logo/mark-<group>.svg).
+     -acc for shapes and borders (3:1 or more on white and on the paper), -tint for backgrounds,
+     -ink for text on the tint (5.3:1 or more). Text never sits on an accent. A game screen gets
+     its group from main.js (data-group). */
+  --bz-learning-acc: #b97f0a; --bz-learning-tint: #f7edd4; --bz-learning-ink: #7d5606;
+  --bz-puzzles-acc: #2a8f88;  --bz-puzzles-tint: #e2f1ef;  --bz-puzzles-ink: #1d6b66;
+  --bz-board-acc: #d9663f;    --bz-board-tint: #fbe8de;    --bz-board-ink: #9d4524;
+  --bz-creative-acc: #c8508a; --bz-creative-tint: #fae4ef; --bz-creative-ink: #993963;
+  --bz-action-acc: #3f86d0;   --bz-action-tint: #e4eefa;   --bz-action-ink: #2a5f94;
   /* the group of the screen in view; outside a game, the brand */
   --bz-group-acc: var(--bz-brand);
   --bz-group-tint: var(--bz-brand-tint);
@@ -87,14 +86,14 @@
   /* depth: a pressed edge and one soft shadow */
   --bz-edge: 0 6px 0;         /* + a colour: the pressed edge of a button */
   --bz-edge-s: 0 5px 0;       /* tiles and icon buttons */
-  --bz-shadow: 0 10px 22px rgba(59, 47, 168, 0.22);
-  --bz-shadow-s: 0 8px 16px rgba(59, 47, 168, 0.15);
+  --bz-shadow: 0 10px 22px rgba(40, 36, 92, 0.22);
+  --bz-shadow-s: 0 8px 16px rgba(40, 36, 92, 0.15);
   --bz-motion: 0.08s ease;
 
   /* the old names, kept as aliases (used across the 23 game stylesheets) */
-  --sky: var(--bz-sky);
-  --lilac: var(--bz-lilac);
-  --pink: var(--bz-pink);
+  --sky: var(--bz-base);      /* the 1.0 page was a sky-lilac-pink gradient; now one paper colour */
+  --lilac: var(--bz-base);
+  --pink: var(--bz-base);
   --ink: var(--bz-ink);
   --ink-soft: var(--bz-ink-soft);
   --primary: var(--bz-brand);
@@ -115,7 +114,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: linear-gradient(180deg, var(--bz-sky), var(--bz-lilac) 60%, var(--bz-pink));
+  background: var(--bz-base);
   color: var(--bz-ink);
   font-family: var(--bz-font);
   line-height: 1.2; /* Nunito's own line gap is 1.36; this keeps the layouts measured with the system font */
@@ -154,7 +153,7 @@ html, body {
   transition: transform var(--bz-motion), box-shadow var(--bz-motion);
   touch-action: manipulation;
 }
-.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--bz-brand-dark), 0 4px 10px rgba(59, 47, 168, 0.25); }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--bz-brand-dark), 0 4px 10px rgba(40, 36, 92, 0.25); }
 .btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 4px; }
 .btn svg { width: 30px; height: 30px; fill: currentColor; flex: none; }
 
@@ -168,7 +167,7 @@ html, body {
 }
 .btn.secondary { background: var(--bz-surface); color: var(--bz-brand); box-shadow: var(--bz-edge) var(--bz-brand-edge), var(--bz-shadow); }
 .btn.secondary:active { box-shadow: 0 2px 0 var(--bz-brand-edge); }
-.btn.orange { background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: var(--bz-edge) var(--bz-accent-dark), 0 10px 22px rgba(201, 95, 23, 0.25); }
+.btn.orange { background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: var(--bz-edge) var(--bz-accent-dark), 0 10px 22px rgba(217, 102, 63, 0.25); }
 .btn.icon {
   flex: none;
   width: var(--bz-target-icon);
@@ -194,17 +193,14 @@ html, body {
   padding: 84px 16px 16px; /* the top 84px belong to .home-top (the gear) */
   text-align: center;
 }
-.logo {
-  margin: 0;
-  font-size: clamp(2.6rem, 15vw, 6rem);
-  font-weight: 900;
-  line-height: 1;
-  color: var(--primary);
-  letter-spacing: 0.01em;
-  text-shadow: 0 5px 0 var(--bz-brand-edge), 0 12px 30px rgba(91, 75, 219, 0.3);
-}
-.brand { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; max-width: 100%; }
-.brand-mark { width: clamp(56px, 19vw, 96px); height: clamp(56px, 19vw, 96px); flex: none; filter: drop-shadow(0 6px 10px rgba(91, 75, 219, 0.25)); }
+/* the brand: the cut-paper b beside the drawn name (web/js/logo.js). The h1 keeps the name as
+   words for screen readers and tests (.logo-text, from brand.js); the drawing is aria-hidden. */
+.logo { margin: 0; line-height: 0; color: var(--bz-ink); font-size: 1rem; }
+.logo-word { display: block; height: clamp(46px, 14vw, 74px); aspect-ratio: 410 / 130; }
+.logo-word svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.logo-text { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.brand { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; max-width: 100%; }
+.brand-mark { width: clamp(56px, 17vw, 88px); height: clamp(56px, 17vw, 88px); flex: none; filter: drop-shadow(0 4px 6px rgba(40, 36, 92, 0.16)); }
 .brand-mark svg { width: 100%; height: 100%; display: block; }
 .tagline {
   margin: -4px 0 18px;
@@ -278,8 +274,12 @@ html, body {
 /* each section in its group's tint, its name in the group's ink (the colour the game's menus use) */
 .tile-group[data-group] { background: var(--bz-group-tint); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
 .tile-group[data-group] .group-name { color: var(--bz-group-ink); }
+/* a section's name beside its own mark (the b on the group's scrap): colour is never the only cue */
+.group-head { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; }
+.group-mark { width: 26px; height: 26px; flex: none; }
+.group-mark svg { width: 100%; height: 100%; display: block; }
 .group-name {
-  margin: 0 6px 8px;
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 900;
   line-height: 1.2;
@@ -312,7 +312,7 @@ html, body {
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   container-type: inline-size; /* the name's size follows the tile's width (cqi) */
 }
-.tile:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--bz-brand-edge), 0 3px 8px rgba(59, 47, 168, 0.18); }
+.tile:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--bz-brand-edge), 0 3px 8px rgba(40, 36, 92, 0.18); }
 .tile:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
 .tile-art { width: 92px; height: 92px; display: block; flex: none; zoom: var(--art); }
 .tile-art > span { flex: none; } /* the drawn mini boards keep their shape */
@@ -359,7 +359,7 @@ html, body {
   image-rendering: pixelated;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 6px 18px rgba(59, 47, 168, 0.18);
+  box-shadow: 0 6px 18px rgba(40, 36, 92, 0.18);
 }
 .transfer-part { margin: 0; min-height: 1.4em; font-weight: 900; color: var(--primary-dark); }
 .transfer-msg { margin: 0; min-height: 1.4em; font-weight: 700; color: var(--ink-soft); line-height: 1.4; }
@@ -556,7 +556,7 @@ html, body {
 /* short landscape screens: keep buttons reachable */
 @media (max-height: 520px) {
   .home-inner { gap: 12px; padding-top: 16px; } /* wide enough that the gear sits beside the name */
-  .logo { font-size: 3.4rem; }
+  .logo-word { height: 42px; }
   .brand-mark { width: 52px; height: 52px; }
   .btn.big { min-height: 60px; font-size: 1.4rem; }
   .tagline { margin-bottom: 4px; }
@@ -564,7 +564,8 @@ html, body {
   .tile-groups { --tile-min: 92px; --tile-gap: 8px; --group-pad: 8px; --art: 0.62; }
   .tile { min-height: 108px; padding: 8px 4px; }
   .tile-name { font-size: min(0.92rem, 14.6cqi); }
-  .group-name { margin-bottom: 6px; font-size: 1rem; }
+  .group-head { margin-bottom: 6px; }
+  .group-name { font-size: 1rem; }
 }
 
 /* narrow phones (320 px): two tiles a row, so the names stay whole; the drawings a bit bigger */
@@ -870,7 +871,7 @@ html, body {
   justify-content: center;
   margin-top: var(--bz-space-5);
   padding: var(--bz-space-4) 0 var(--bz-space-4);
-  background: linear-gradient(180deg, rgba(255, 230, 243, 0), var(--bz-pink) 30%);
+  background: linear-gradient(180deg, rgba(251, 247, 240, 0), var(--bz-base) 30%);
 }
 .menu-actions .btn.big { min-width: 180px; }
 /* short screens: a pinned bar would cover the choices, so it scrolls with the menu */

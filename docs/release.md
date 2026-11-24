@@ -48,7 +48,10 @@ Store texts, form answers and screenshots are in `store/` (screenshots per langu
 `store/screenshots/nl/` and `store/screenshots/en/`). To regenerate the screenshots and the
 feature graphics, run `uv run --with playwright --with pillow python tools/store_shots.py`. To
 regenerate the app icons and launch screens, run
-`uv run --with playwright --with pillow python tools/make_icons.py --native`.
+`uv run --with playwright --with pillow python tools/make_icons.py --native`: it renders them from
+the brand files in `design/brand/` (`icon/icon.svg`, `adaptive/*.svg`, `logo/mark.svg`). The
+feature graphics alone (the brand's own SVGs in `design/brand/store/`):
+`uv run --with playwright --with pillow python tools/store_shots.py --feature`.
 
 ## 2. Google Play (organisation account)
 
