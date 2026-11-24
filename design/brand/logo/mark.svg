@@ -1,19 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="mark-t">
   <title id="mark-t">Bazibo</title>
-  <desc>Five strung beads hanging in a smile from a knotted cord: one bead for each kind of play.</desc>
-  <defs>
-    <!-- Three hand-shaped beads. Each is a four-anchor curve whose four radii differ, so no
-         bead is a true circle; rotating and rescaling them gives every bead its own lean. -->
-    <path id="mark-u1" d="M11.4 0C11.4 4.97 6.3 9 0 9C-5.52 9-10 4.97-10 0C-10-5.97-5.52-10.8 0-10.8C6.3-10.8 11.4-5.97 11.4 0Z"/>
-    <path id="mark-u2" d="M9.2 0C9.2 6.19 5.08 11.2 0 11.2C-6.08 11.2-11 6.19-11 0C-11-5.14-6.08-9.3 0-9.3C5.08-9.3 9.2-5.14 9.2 0Z"/>
-    <path id="mark-u3" d="M10.6 0C10.6 5.41 5.85 9.8 0 9.8C-5.08 9.8-9.2 5.41-9.2 0C-9.2-6.35-5.08-11.5 0-11.5C5.85-11.5 10.6-6.35 10.6 0Z"/>
-  </defs>
-  <!-- the cord, sagging under the beads, its two ends curling up like a smile -->
-  <path d="M6.5 27C8.5 30.17 9.08 31.92 12.5 36.5C15.75 40.83 21.17 50.08 27 54.5C32.83 58.92 40.5 62.75 47.5 63C54.5 63.25 62.92 59.67 69 56C75.08 52.33 80.58 45.92 84 41C87.42 36.08 87.67 31.33 89.5 26.5" fill="none" stroke="#28245c" stroke-width="6" stroke-linecap="round"/>
-  <!-- one bead per kind of play: leren, puzzels, bordspellen, creatief, actie -->
-  <use href="#mark-u1" transform="translate(12.5 36.5) rotate(18) scale(0.8)" fill="#b97f0a"/>
-  <use href="#mark-u2" transform="translate(27 54.5) rotate(-25) scale(1)" fill="#2a8f88"/>
-  <use href="#mark-u3" transform="translate(47.5 63) rotate(62) scale(0.84)" fill="#d9663f"/>
-  <use href="#mark-u1" transform="translate(69 56) rotate(-70) scale(0.98)" fill="#c8508a"/>
-  <use href="#mark-u2" transform="translate(84 41) rotate(140) scale(0.74)" fill="#3f86d0"/>
+  <desc>A lowercase b cut from cream paper on a terracotta scrap, with four more cut scraps in the other game-group colours peeking out from underneath; the counter of the b is cut as a little roof.</desc>
+  <!-- four scraps under the big one, one per other kind of play: action, puzzles, learning,
+       creative. Every scrap is cut with five strokes of the scissors, no two edges parallel. -->
+  <path d="M3 10L32 2L45.5 14L40 25.5L8 27Z" fill="#3f86d0"/>
+  <path d="M58 2L92 8.5L96 30L88.5 45L63 39Z" fill="#2a8f88"/>
+  <path d="M1 33L13 29.5L17.5 84L9 93.5L2.5 76Z" fill="#b97f0a"/>
+  <path d="M46 82.5L84 74.5L94 85.5L85 96L50 96Z" fill="#c8508a"/>
+  <g transform="translate(4.8 4.8) scale(0.9)">
+    <!-- the big cut scrap: eight scissor cuts, no two edges parallel -->
+    <path d="M9 13L52 8.5L89 12L92.5 60L86 89L40 92L11 87.5L6.5 50Z" fill="#d9663f"/>
+    <g transform="translate(-6.5 -1.5) scale(1.06)">
+      <!-- the b, cut from cream paper: a tapered stem and a bowl that is nowhere a true circle -->
+      <path d="M27 20L41.5 18.5L43 76L28.5 77.5Z" fill="#fbf7f0"/>
+      <path transform="translate(55.5 58.5) scale(2.05)" d="M11.4 0C11.4 4.97 6.3 9 0 9C-5.52 9-10 4.97-10 0C-10-5.97-5.52-10.8 0-10.8C6.3-10.8 11.4-5.97 11.4 0Z" fill="#fbf7f0"/>
+      <!-- the counter, cut out as a little roof: the gazebo, hidden in the letter -->
+      <path d="M56 49L69.5 65.5L45 66Z" fill="#d9663f" stroke="#d9663f" stroke-width="3" stroke-linejoin="round"/>
+    </g>
+  </g>
 </svg>

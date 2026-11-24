@@ -1,6 +1,6 @@
-/* Bazibo brand tokens, round 2, direction B "Kralen".
-   The same values as tokens.json. Drop this block in place of the colour block at the top of
-   web/css/style.css; the --bz-* names the app already uses are kept. */
+/* Bazibo brand tokens, round 3: the cut-paper b of "Knipsel in kleur" with the lettering and
+   the palette of "Kralen". The same values as tokens.json. Drop this block in place of the
+   colour block at the top of web/css/style.css; the --bz-* names the app already uses are kept. */
 
 :root {
   /* base and ink */
@@ -10,8 +10,9 @@
   --bz-brand: #4f43c4;        /* white on it: 7.16:1 */
   --bz-on-brand: #ffffff;
 
-  /* one bead per kind of play; colour is never the only cue, every group keeps
-     its own icon and its name */
+  /* one scrap per kind of play; the b lies on the board scrap and the other four peek out
+     from under it (logo/mark-<group>.svg puts the b on that group's scrap). Colour is never
+     the only cue: every group keeps its own icon and its name. */
   --bz-learning-acc: #b97f0a;
   --bz-learning-tint: #f7edd4;
   --bz-learning-ink: #7d5606;
@@ -32,7 +33,9 @@
   --bz-action-tint: #e4eefa;
   --bz-action-ink: #2a5f94;
 
-  /* the night shades: the same beads on an ink field (icon, dark lockup) */
+  /* the night shades: for coloured type and thin shapes on an ink field. The mark keeps its
+     day colours on ink (every accent is 3.3:1 or more on #28245c), so the icon and the dark
+     lockup are the same drawing as the light one. */
   --bz-learning-night: #e9b43f;
   --bz-puzzles-night: #4cc0b4;
   --bz-board-night: #f08a5e;

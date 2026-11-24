@@ -2,8 +2,10 @@
 
 ## The artwork
 
-Everything in `design/brand/` — every mark, letterform, icon and store image — was drawn
-for Bazibo as plain SVG geometry. No stock, no traced material, no third-party artwork.
+Everything in `design/brand/` — every mark, letterform, icon and store image, round 3 included —
+was drawn for Bazibo as plain SVG geometry. No stock, no traced material, no third-party artwork.
+The round-3 mark (the cut-paper b on its coloured scraps) and the drawn `bazibo` lettering are my
+own path data, carried over and reworked from the round-2 directions `knipsel` and `kralen`.
 
 **CC0-1.0** (public domain dedication). Bazibo may use, change and relicense all of it, in the
 app, in the stores, on the site and in the public MIT repository, without attribution.
@@ -19,8 +21,8 @@ font and nothing here needs a webfont or a CDN.
 | Fredoka | display: the store captions and the feature-graphic line | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/fredoka/OFL.txt` |
 | Nunito | text: the trust rows | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/nunito/OFL.txt` |
 | Andika | reading: letter tiles in the learning games (named in `tokens.json`, not used in this artwork) | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/andika/OFL.txt` |
-| Baloo 2 | display in direction A's palette (`directions/knipsel/tokens.json`) | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/baloo2/OFL.txt` |
-| Lexend | text in direction A's palette (`directions/knipsel/tokens.json`) | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/lexend/OFL.txt` |
+| Baloo 2 | display in the round-2 palette of `directions/knipsel/tokens.json` (history; not used in the round-3 set) | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/baloo2/OFL.txt` |
+| Lexend | text in the round-2 palette of `directions/knipsel/tokens.json` (history; not used in the round-3 set) | SIL Open Font License 1.1 (OFL-1.1) | `/opt/habitat/fonts/lexend/OFL.txt` |
 
 Shipping a font with the app means copying its `OFL.txt` into `web/fonts/<family>/` and listing
 it in `CREDITS.md`, as the repository's rules already require for Nunito.

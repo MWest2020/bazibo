@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 130" width="410" height="130" role="img" aria-labelledby="wordmark-t">
   <title id="wordmark-t">bazibo</title>
-  <desc>The name bazibo in drawn lowercase letters: round bowls of uneven weight on a dancing baseline, the dot on the i a bead.</desc>
+  <desc>The name bazibo in drawn lowercase letters: round bowls of uneven weight on a dancing baseline, the dot on the i a bead in the colour of the big scrap.</desc>
   <defs>
     <!-- One drawn alphabet, only the five letters the name needs. Every bowl is a
          four-anchor curve with four different radii, so the stroke is heavier at the
@@ -33,5 +33,5 @@
     <use href="#wordmark-b" transform="translate(262 111) rotate(1.2 33 -31)"/>
     <use href="#wordmark-o" transform="translate(336 115.5) rotate(-2.2 31 -31)"/>
   </g>
-  <use href="#wordmark-bead" transform="translate(241.8 37.5) rotate(-18) scale(0.98)" fill="#4f43c4"/>
+  <use href="#wordmark-bead" transform="translate(241.8 37.5) rotate(-18) scale(0.98)" fill="#d9663f"/>
 </svg>

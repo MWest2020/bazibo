@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="mka-t">
+  <title id="mka-t">Bazibo, action games</title>
+  <desc>The cut-paper b on a scrap in the action colour, blue; the four scraps underneath carry the colours of the other kinds of play.</desc>
+  <path d="M3 10L32 2L45.5 14L40 25.5L8 27Z" fill="#2a8f88"/>
+  <path d="M58 2L92 8.5L96 30L88.5 45L63 39Z" fill="#b97f0a"/>
+  <path d="M1 33L13 29.5L17.5 84L9 93.5L2.5 76Z" fill="#c8508a"/>
+  <path d="M46 82.5L84 74.5L94 85.5L85 96L50 96Z" fill="#d9663f"/>
+  <g transform="translate(4.8 4.8) scale(0.9)">
+    <path d="M9 13L52 8.5L89 12L92.5 60L86 89L40 92L11 87.5L6.5 50Z" fill="#3f86d0"/>
+    <g transform="translate(-6.5 -1.5) scale(1.06)">
+      <path d="M27 20L41.5 18.5L43 76L28.5 77.5Z" fill="#fbf7f0"/>
+      <path transform="translate(55.5 58.5) scale(2.05)" d="M11.4 0C11.4 4.97 6.3 9 0 9C-5.52 9-10 4.97-10 0C-10-5.97-5.52-10.8 0-10.8C6.3-10.8 11.4-5.97 11.4 0Z" fill="#fbf7f0"/>
+      <path d="M56 49L69.5 65.5L45 66Z" fill="#3f86d0" stroke="#3f86d0" stroke-width="3" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
