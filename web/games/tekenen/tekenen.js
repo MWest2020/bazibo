@@ -127,7 +127,7 @@ export function createTekenen(shell) {
     clearTimeout(thumbTimer);
     thumbQueue = [];
     const grid = document.createElement('div');
-    grid.className = 'level-grid kleur-grid teken-grid';
+    grid.className = 'level-grid kleur-grid teken-grid keep-grid';
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'kleur-card teken-new';

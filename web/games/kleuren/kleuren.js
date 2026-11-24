@@ -92,7 +92,7 @@ export function createKleuren(shell) {
       .filter(([key]) => pageFor(key))
       .sort((a, b) => (b[1]?.t || 0) - (a[1]?.t || 0));
     if (mine.length) {
-      const grid = section(t('kleur.mine'), '', 'kleur-mine');
+      const grid = section(t('kleur.mine'), '', 'kleur-mine keep-grid');
       for (const [key, saved] of mine) {
         const p = pageFor(key);
         const c = card(p, saved, () => openPage(key));

@@ -132,7 +132,8 @@ export const THROW_AWAY_WAIT = 400;
 /**
  * A saved picture in a list (Tekenen's "my drawings", Kleurplaten's "my pictures") with its own
  * small trash button on its corner: a separate button of 48 px, so a tap on the picture opens it
- * and only the bin asks to throw it away. `label` names the bin for screen readers.
+ * and only the bin asks to throw it away. `label` names the bin for screen readers. Its grid gets
+ * the class `keep-grid` (more room between the rows, where the bin hangs out below the card).
  */
 export function withTrash(card, { label, onTrash }) {
   const box = document.createElement('div');
@@ -152,8 +153,10 @@ export function withTrash(card, { label, onTrash }) {
 
 /**
  * The short card before a picture is thrown away: its thumbnail (`art`), "Weggooien?" and big
- * Ja / Nee buttons. "Ja" does nothing in the first THROW_AWAY_WAIT ms, so one accidental tap or
- * a double tap on the bin never deletes. No parental gate: it is the child's own picture.
+ * Nee / Ja buttons. Nee comes first (where a second tap on the bin lands) and has the focus, so a
+ * second or held Enter on the bin only closes the card; "Ja" does nothing in the first
+ * THROW_AWAY_WAIT ms, so one accidental tap or a double tap never deletes. No parental gate: it is
+ * the child's own picture.
  */
 export function askThrowAway(shell, { art = '', onYes }) {
   const { t } = shell;
@@ -162,16 +165,17 @@ export function askThrowAway(shell, { art = '', onYes }) {
     art,
     title: t('common.throwAway'),
     buttons: [
+      [t('common.no'), 'big primary throw-no', shell.hideOverlay],
       [
         t('common.yes'),
-        'big primary throw-yes',
+        'big secondary throw-yes',
         () => {
           if (performance.now() - shown < THROW_AWAY_WAIT) return;
           shell.hideOverlay();
           onYes();
         },
       ],
-      [t('common.no'), 'big secondary throw-no', shell.hideOverlay],
     ],
   });
+  document.querySelector('#ov-buttons .throw-no')?.focus({ preventScroll: true });
 }
