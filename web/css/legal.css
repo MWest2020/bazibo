@@ -1,4 +1,4 @@
-:root { --ink: #2b2370; --soft: #5d5699; --primary: #5b4bdb; --bg: #f6f4ff; }
+:root { --ink: #28245c; --soft: #5a5585; --primary: #4f43c4; --bg: #fbf7f0; }
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -23,6 +23,6 @@ nav a { color: var(--primary); }
   display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; max-width: 100%;
   border-radius: 999px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none;
 }
-.store-btn:hover { background: #3b2fa8; }
+.store-btn:hover { background: #382e9c; }
 .store-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .store-soon { color: var(--soft); font-weight: 700; }

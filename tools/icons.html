@@ -2,69 +2,68 @@
 <html lang="en"><head><meta charset="utf-8"><title>Bazibo icons</title></head>
 <body>
 <script type="module">
-// Renders every app icon and launch screen from the Bazibo logo (web/js/logo.js): a garden
-// gazebo with a bubble under its roof, on the app's purple. Used by tools/make_icons.py; open
-// it through a local server to look at the result.
-import { gazeboSvg } from '../web/js/logo.js';
+// Renders every app icon and launch screen from the brand files in design/brand/ (round 3, CC0):
+// icon/icon.svg (the cut-paper b on its scraps, on a flat ink field), adaptive/*.svg (the Android
+// layers) and logo/mark.svg (the mark alone, for the favicon and the launch screens). Used by
+// tools/make_icons.py; open it through a local server at the repository root to look at it.
+const INK = '#28245c';   // the icon's field (design/brand/tokens.json: ink)
+const PAPER = '#fbf7f0'; // the launch screen (base)
 
-// The logo as an image, loaded once; drawn onto canvases at any size.
-const logo = await new Promise((resolve, reject) => {
+const load = (path) => new Promise((resolve, reject) => {
   const img = new Image();
   img.onload = () => resolve(img);
-  img.onerror = reject;
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(gazeboSvg({ outline: false }));
+  img.onerror = () => reject(new Error(`cannot load ${path}`));
+  img.src = path;
 });
+const [ICON, FG, MONO, MARK] = await Promise.all([
+  load('../design/brand/icon/icon.svg'),
+  load('../design/brand/adaptive/foreground.svg'),
+  load('../design/brand/adaptive/monochrome.svg'),
+  load('../design/brand/logo/mark.svg'),
+]);
 
-function background(ctx, x, y, w, h, radius) {
-  const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, '#6B5CF0');
-  g.addColorStop(1, '#3B2FA8');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  if (radius === 'circle') ctx.arc(x + w / 2, y + h / 2, w / 2, 0, Math.PI * 2);
-  else ctx.roundRect(x, y, w, h, radius);
-  ctx.fill();
-}
-
-// the gazebo in a box of side s at (o, o), with a little margin
-function mark(ctx, o, s) {
-  const m = s * 0.08;
-  ctx.drawImage(logo, o + m, o + m, s - 2 * m, s - 2 * m);
-}
-
-// shape: 'rounded' (web/legacy), 'square' (maskable, iOS), 'circle' (Android round legacy),
-// 'foreground' (Android adaptive foreground: transparent, the gazebo inside the 66/108 safe zone)
-function icon(size, shape) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  if (shape !== 'foreground') background(ctx, 0, 0, size, size, shape === 'circle' ? 'circle' : shape === 'square' ? 0 : size * 0.22);
-  // safe zones: maskable icons keep the centre 80%, adaptive foregrounds the centre 66/108
-  const k = shape === 'square' && size !== 1024 ? 0.78 : shape === 'foreground' ? 0.64 : shape === 'circle' ? 0.8 : 1;
-  const s = size * k;
-  mark(ctx, (size - s) / 2, s);
-  return c.toDataURL('image/png');
-}
-
-// Launch screen: the game's soft background with the rounded icon in the middle.
-function splash(w, h) {
+function canvas(w, h = w) {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
-  const ctx = c.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, '#DCE8FF');
-  g.addColorStop(1, '#FBE4F3');
-  ctx.fillStyle = g;
+  return [c, c.getContext('2d')];
+}
+
+// shape: 'rounded' (web 'any', Android legacy), 'square' (maskable, iOS, Play: the stores round it),
+// 'circle' (Android round legacy). icon.svg keeps the mark inside the centre 58%, inside every
+// safe zone (maskable 80%), so every shape is the same drawing, only clipped.
+function icon(size, shape) {
+  const [c, ctx] = canvas(size);
+  ctx.beginPath();
+  if (shape === 'circle') ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  else if (shape === 'rounded') ctx.roundRect(0, 0, size, size, size * 0.22);
+  else ctx.rect(0, 0, size, size);
+  ctx.clip();
+  ctx.drawImage(ICON, 0, 0, size, size);
+  return c.toDataURL('image/png');
+}
+
+// an Android adaptive layer (108 dp) at this size: the foreground or the monochrome
+function layer(img, size) {
+  const [c, ctx] = canvas(size);
+  ctx.drawImage(img, 0, 0, size, size);
+  return c.toDataURL('image/png');
+}
+
+// the mark alone on transparency: the favicon (a browser tab is light or dark, the mark holds on both)
+function mark(size) {
+  const [c, ctx] = canvas(size);
+  ctx.drawImage(MARK, 0, 0, size, size);
+  return c.toDataURL('image/png');
+}
+
+// Launch screen: the paper with the mark in the middle, as the home screen opens.
+function splash(w, h) {
+  const [c, ctx] = canvas(w, h);
+  ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, w, h);
-  const size = Math.round(Math.min(w, h) * 0.28);
-  const x = (w - size) / 2;
-  const y = (h - size) / 2;
-  background(ctx, x, y, size, size, size * 0.22);
-  ctx.save();
-  ctx.translate(x, y);
-  mark(ctx, 0, size);
-  ctx.restore();
+  const size = Math.round(Math.min(w, h) * 0.3);
+  ctx.drawImage(MARK, Math.round((w - size) / 2), Math.round((h - size) / 2), size, size);
   return c.toDataURL('image/png');
 }
 
@@ -74,7 +73,8 @@ function nativeSet() {
   for (const [d, f] of Object.entries(dens)) {
     out[`android/app/src/main/res/mipmap-${d}/ic_launcher.png`] = icon(48 * f, 'rounded');
     out[`android/app/src/main/res/mipmap-${d}/ic_launcher_round.png`] = icon(48 * f, 'circle');
-    out[`android/app/src/main/res/mipmap-${d}/ic_launcher_foreground.png`] = icon(108 * f, 'foreground');
+    out[`android/app/src/main/res/mipmap-${d}/ic_launcher_foreground.png`] = layer(FG, 108 * f);
+    out[`android/app/src/main/res/mipmap-${d}/ic_launcher_monochrome.png`] = layer(MONO, 108 * f);
   }
   const splashes = { mdpi: [480, 320], hdpi: [800, 480], xhdpi: [1280, 720], xxhdpi: [1600, 960], xxxhdpi: [1920, 1280] };
   for (const [d, [w, h]] of Object.entries(splashes)) {
@@ -91,11 +91,14 @@ function nativeSet() {
 }
 
 window.icons = {
+  'favicon-32.png': mark(32),
+  'apple-touch-icon.png': icon(180, 'square'),
   'icon-192.png': icon(192, 'rounded'),
   'icon-512.png': icon(512, 'rounded'),
   'icon-maskable-512.png': icon(512, 'square'),
 };
 if (new URLSearchParams(location.search).has('native')) window.nativeIcons = nativeSet();
 document.body.append(...Object.values(window.icons).map((src) => Object.assign(new Image(), { src })));
+document.body.style.background = INK;
 </script>
 </body></html>

@@ -1,7 +1,7 @@
 // The shell: home screen with a tile per game, settings, the overlay card, the parental gate and
 // the one purchase that opens every game. Each game lives in web/games/<id>/.
 import { BRAND } from './brand.js';
-import { gazeboSvg } from './logo.js';
+import { markSvg, wordmarkSvg } from './logo.js';
 import { GAMES, GROUPS, OTHER_GROUP } from './games.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
 import { COLORS, drawBubble } from './bubble-art.js';
@@ -126,7 +126,7 @@ function renderLanguage() {
   const lang = getLang();
   document.documentElement.lang = lang;
   document.title = BRAND.name;
-  $('#brand-name').textContent = BRAND.name;
+  $('#brand-text').textContent = BRAND.name; // the words; the drawn wordmark beside them is aria-hidden
   $('#brand-tagline').textContent = BRAND.tagline[lang];
   $('#brand-lore').textContent = BRAND.lore[lang];
   translateDom(document);
@@ -136,7 +136,9 @@ function renderLanguage() {
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);
-$('#brand-mark').innerHTML = gazeboSvg(); // the logo next to the name, drawn once
+// the logo, drawn once: the cut-paper b and the drawn name (web/js/logo.js, from design/brand/logo/)
+$('#brand-mark').innerHTML = markSvg();
+$('#brand-word').innerHTML = wordmarkSvg();
 
 document.querySelectorAll('[data-lang]').forEach((b) =>
   b.addEventListener('click', () => {
@@ -229,6 +231,17 @@ function buildTiles() {
     head.id = `group-${group.id}`;
     head.dataset.i18n = group.titleKey;
     head.textContent = t(group.titleKey);
+    // the section's name beside its own mark: the b on this group's scrap (design/brand/logo/mark-<group>.svg)
+    const top = document.createElement('div');
+    top.className = 'group-head';
+    if (group !== OTHER_GROUP) {
+      const mark = document.createElement('span');
+      mark.className = 'group-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.innerHTML = markSvg(group.id);
+      top.append(mark);
+    }
+    top.append(head);
     const tiles = document.createElement('div');
     tiles.className = 'tiles';
     tiles.setAttribute('role', 'group');
@@ -259,7 +272,7 @@ function buildTiles() {
       }
       tiles.append(tile);
     }
-    section.append(head, tiles);
+    section.append(top, tiles);
     box.append(section);
   }
 }

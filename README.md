@@ -16,8 +16,9 @@ country as a puzzle and as "where is...?") and Papegaai ("Parrot", record your v
 says it back, in funny voices too); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
 `web/js/brand.js` (issue #2): Bazibo, from "bāzi", the Persian word for play; it rhymes with
-gazebo, and a garden gazebo with a bubble under its roof is the logo (`web/js/logo.js`, also
-the source of every app icon). The repository (`MWest2020/bazibo`, renamed from `bubbels` on 2026-11-09), the package id
+gazebo. The logo is a lowercase b cut from paper, with a little roof (the gazebo) as its counter,
+on five scraps in the colours of the game groups, beside the drawn name (`design/brand/`, drawn
+inline by `web/js/logo.js`; every app icon is rendered from `design/brand/`). The repository (`MWest2020/bazibo`, renamed from `bubbels` on 2026-11-09), the package id
 (`work.westerweel.bazibo`) and the website path (`/bazibo/`) carry the brand name; the first game
 and the storage keys keep the name `bubbels`.
 

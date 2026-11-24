@@ -58,8 +58,8 @@
   box-shadow: 0 4px 0 #d6cff7;
 }
 .piano-songbar[hidden] { display: none; }
-#piano-listen { height: 56px; border-radius: 18px; background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: 0 5px 0 #c95f17, 0 8px 16px rgba(201, 95, 23, 0.25); }
-#piano-listen:active { box-shadow: 0 1px 0 #c95f17; }
+#piano-listen { height: 56px; border-radius: 18px; background: var(--bz-accent); color: var(--bz-on-accent); box-shadow: 0 5px 0 var(--bz-accent-dark), 0 8px 16px rgba(217, 102, 63, 0.25); }
+#piano-listen:active { box-shadow: 0 1px 0 var(--bz-accent-dark); }
 #piano-listen[aria-pressed="true"] { background: var(--primary); box-shadow: 0 5px 0 var(--primary-dark); }
 .piano-notes { flex: 1; min-width: 0; }
 .piano-strip { height: 42px; display: flex; align-items: center; gap: 6px; padding-left: 4px; overflow: hidden; }
