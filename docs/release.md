@@ -45,8 +45,10 @@ Android Studio brings the JDK and the SDK.
    longer used.)
 
 Store texts, form answers and screenshots are in `store/` (screenshots per language in
-`store/screenshots/nl/` and `store/screenshots/en/`). To regenerate the screenshots and the
-feature graphics, run `uv run --with playwright --with pillow python tools/store_shots.py`. To
+`store/screenshots/nl/` and `store/screenshots/en/`, each in the brand's screenshot frame from
+`design/brand/store/`). To regenerate the screenshots and the
+feature graphics, run `uv run --with playwright --with pillow python tools/store_shots.py`, then
+`node tools/store-to-fastlane.mjs` and `npm test` (the store limits). To
 regenerate the app icons and launch screens, run
 `uv run --with playwright --with pillow python tools/make_icons.py --native`: it renders them from
 the brand files in `design/brand/` (`icon/icon.svg`, `adaptive/*.svg`, `logo/mark.svg`). The
