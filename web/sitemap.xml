@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The pages for search engines, each with its other language (hreflang). The redirect pages
+     (/privacy/, /plannen/, ...) are left out: they are noindex. tests/seo.test.js checks that
+     every page here exists and carries the same hreflang links as this file. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://bazibo.nl/?lang=nl</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/?lang=nl"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/?lang=nl"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/?lang=nl"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/nl/plannen/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/plannen/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/roadmap/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/roadmap/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/en/roadmap/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/plannen/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/roadmap/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/roadmap/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/nl/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/privacy/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/en/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/privacy/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/nl/voorwaarden/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/voorwaarden/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/terms/"/>
+  </url>
+  <url>
+    <loc>https://bazibo.nl/en/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://bazibo.nl/nl/voorwaarden/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bazibo.nl/en/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/terms/"/>
+  </url>
+</urlset>

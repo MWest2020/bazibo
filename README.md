@@ -1,5 +1,9 @@
 # Bazibo
 
+**[bazibo.nl](https://bazibo.nl/)**: kids' games with no ads and no tracking, ages 3 to 10
+(kinderspelletjes zonder reclame). Get it on
+[Google Play](https://play.google.com/store/apps/details?id=work.westerweel.bazibo).
+
 An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no accounts, one
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter

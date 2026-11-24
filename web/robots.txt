@@ -1,0 +1,6 @@
+# bazibo.nl: every page may be crawled (the scripts and styles too, so the home screen renders).
+# The Sitemap line must be an absolute address; the page itself never loads this file.
+User-agent: *
+Allow: /
+
+Sitemap: https://bazibo.nl/sitemap.xml
