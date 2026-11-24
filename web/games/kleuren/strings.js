@@ -5,6 +5,7 @@ addStrings({
   nl: {
     'kleur.choose': 'Kies een kleurplaat',
     'kleur.mine': 'Mijn kleurplaten',
+    'kleur.throwAway': '{name} weggooien',
     'kleur.pictures': 'Kleurplaten',
     'kleur.picturesAge': 'vanaf 3 jaar',
     'kleur.mandalas': 'Mandala’s',
@@ -68,6 +69,7 @@ addStrings({
   en: {
     'kleur.choose': 'Pick a picture',
     'kleur.mine': 'My pictures',
+    'kleur.throwAway': 'Throw away {name}',
     'kleur.pictures': 'Colouring pages',
     'kleur.picturesAge': 'from age 3',
     'kleur.mandalas': 'Mandalas',

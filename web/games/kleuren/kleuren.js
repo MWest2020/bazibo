@@ -12,7 +12,7 @@ import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import { foldLocked } from '../../js/fold.js';
-import { menuHead } from '../../js/menu.js';
+import { menuHead, withTrash, askThrowAway } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
@@ -95,7 +95,19 @@ export function createKleuren(shell) {
       const grid = section(t('kleur.mine'), '', 'kleur-mine');
       for (const [key, saved] of mine) {
         const p = pageFor(key);
-        grid.appendChild(card(p, saved, () => openPage(key)));
+        const c = card(p, saved, () => openPage(key));
+        // a locked page (after a refund) goes into the fold on its own: it gets no bin
+        if (locked(p)) grid.appendChild(c);
+        else
+          grid.appendChild(
+            withTrash(c, {
+              label: t('kleur.throwAway', { name: nameOf(p) }),
+              onTrash: () => {
+                tap();
+                throwAway(key);
+              },
+            }),
+          );
       }
     }
     const pics = section(t('kleur.pictures'), t('kleur.picturesAge'));
@@ -123,6 +135,36 @@ export function createKleuren(shell) {
       mand.appendChild(c);
     }
     foldLocked(box);
+  }
+
+  /**
+   * The bin on a page in "my pictures": a short card with the page asks first (menu.js
+   * askThrowAway), then storage.js deleteArt throws its colours away. A picture or free mandala
+   * stays in its own section, blank again; a new mandala is gone.
+   */
+  function throwAway(key) {
+    const p = pageFor(key);
+    const saved = store.loadArtPage(meta.id, key);
+    if (!p || !saved) {
+      renderList();
+      return;
+    }
+    askThrowAway(shell, {
+      art: pageSvg(p, saved.f, { cls: 'ov-kleur' }),
+      onYes: () => {
+        if (page?.key === key) {
+          // the page still held: nothing waiting to be written may bring its colours back
+          clearTimeout(saveTimer);
+          saveTimer = 0;
+          dirty = false;
+          fills = {};
+          done = false;
+          undo = [];
+        }
+        if (store.deleteArt(meta.id, key)) sfx.plink(1);
+        renderList();
+      },
+    });
   }
 
   function offer() {

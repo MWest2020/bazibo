@@ -1,7 +1,7 @@
 // The drawing on the page and when it is kept: what the controller (tekenen.js) does with a
 // drawing, without the screen, so it can be tested (tests/tekenen.test.js). `store` is storage.js
-// (or a stand-in with loadDrawing, countDrawings and saveDrawing); `owned()` says whether the full
-// version is open.
+// (or a stand-in with loadDrawing, countDrawings, saveDrawing and deleteDrawing); `owned()` says
+// whether the full version is open.
 //
 // The rules:
 //   - undo goes back to the drawing as it was opened, never further (a kept drawing can not be
@@ -11,6 +11,9 @@
 //   - a page that is empty is never written by the autosave. Only when the child leaves (or the
 //     page is finished) does an empty page delete the kept drawing: after "clear the page", or a
 //     new drawing undone to nothing.
+//   - a drawing thrown away in "my drawings" (remove) is gone for good: when it is the one the
+//     page still holds, the page forgets it, so no autosave or later write brings it back. It
+//     frees its place in the album at once (the free version's FREE_DRAWINGS).
 import { visible, decode, pack, mayKeep, newId } from './drawing.js';
 
 export function createSession({ store, gameId, owned, now = () => Date.now() }) {
@@ -59,6 +62,20 @@ export function createSession({ store, gameId, owned, now = () => Date.now() }) 
       if (!visible(items).length) return false;
       items.push({ k: 'c' });
       return true;
+    },
+    /**
+     * Throw a kept drawing away (its id), after the child said yes. If it is the drawing on the
+     * page, the page becomes a new empty one that is not kept. True when it was thrown away.
+     */
+    remove(key) {
+      if (!key || !store.loadDrawing(gameId, key)) return false;
+      if (key === id) {
+        id = null;
+        items = [];
+        floor = 0;
+        keptAtOpen = false;
+      }
+      return store.deleteDrawing(gameId, key, now());
     },
     /**
      * Write the drawing. `final`: the child leaves or finishes it. Returns 'saved', 'empty'

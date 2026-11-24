@@ -546,6 +546,24 @@ export function saveArt(gameId, id, { f = {}, done = false, t = Date.now(), coun
   persist();
 }
 
+/**
+ * Throw a colouring page away ("my pictures"): it becomes a `{t, gone}` marker, so a later merge or
+ * transfer carries the delete over and an older copy of the page never comes back. The marker's
+ * time is always newer than the page's own. Fields this version does not know are kept (the
+ * colours and `done` are not). False when there was no coloured page to throw away.
+ */
+export function deleteArt(gameId, id, t = Date.now()) {
+  const g = save.games[gameId];
+  const was = g?.art?.[id];
+  if (!live(was)) return false;
+  const { f, done, gone, ...rest } = was;
+  const art = { ...g.art, [id]: { ...rest, t: Math.max(Number(t) || Date.now(), (Number(was.t) || 0) + 1), gone: true } };
+  boundArt(art);
+  save.games[gameId] = { ...g, art };
+  persist();
+  return true;
+}
+
 // ---------- drawings (Tekenen) ----------
 // The text format is web/games/tekenen/drawing.js's (DRAWING_MAX, DRAWING_RE, isDrawingText).
 
@@ -637,6 +655,18 @@ export function saveDrawing(gameId, id, s, t = Date.now()) {
   save.games[gameId] = { ...g, drawings };
   persist();
   return true;
+}
+
+/**
+ * Throw a kept drawing away ("my drawings"): saveDrawing with an empty text, so it becomes a
+ * `{t, gone}` marker with the fields this version does not know kept. The marker's time is always
+ * newer than the drawing's own, so a merge never brings that copy back. False when there was no
+ * kept drawing with this id.
+ */
+export function deleteDrawing(gameId, id, t = Date.now()) {
+  const e = save.games[gameId]?.drawings?.[id];
+  if (!liveDrawing(e)) return false;
+  return saveDrawing(gameId, id, '', Math.max(Number(t) || Date.now(), (Number(e.t) || 0) + 1));
 }
 
 export const fullCache = {

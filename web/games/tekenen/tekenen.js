@@ -14,13 +14,13 @@ import { createSession } from './session.js';
 import { PALETTE, WHITE, ICONS } from '../kleuren/art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
+import { withTrash, askThrowAway, TRASH } from '../../js/menu.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
 const SAVE_DELAY = 600; // ms after the last stroke before the drawing is written
 const TOOL_ICONS = {
-  clear:
-    '<path d="M6 7h12l-1 13a1.5 1.5 0 0 1-1.5 1.4h-7A1.5 1.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M4 7h16M9.5 7V4.5h5V7M10 11v6.5M14 11v6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  clear: TRASH,
   eraser:
     '<path d="M3.5 15.5 13 6a2 2 0 0 1 2.8 0l4.2 4.2a2 2 0 0 1 0 2.8L13 20H8z" fill="#ff8fc7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.2 10.8l7 7M8 20h12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   plus: '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>',
@@ -159,10 +159,46 @@ export function createTekenen(shell) {
         tap();
         openDrawing(key);
       });
-      grid.appendChild(b);
+      grid.appendChild(
+        withTrash(b, {
+          label: t('teken.throwAway', { n: d.n }),
+          onTrash: () => {
+            tap();
+            throwAway(key);
+          },
+        }),
+      );
     }
     box.appendChild(grid);
     if (thumbQueue.length) thumbTimer = setTimeout(drawThumbs, 0);
+  }
+
+  /**
+   * The bin on a drawing in "my drawings": a short card with its picture asks first (menu.js
+   * askThrowAway), then session.js throws it away, so its place in the album is free at once.
+   */
+  function throwAway(key) {
+    const d = store.loadDrawing(meta.id, key);
+    if (!d) {
+      renderList();
+      return;
+    }
+    const art = `<img class="ov-kleur ov-teken" src="${thumbCanvas(decode(d.s), 150).toDataURL('image/png')}" alt="">`;
+    askThrowAway(shell, {
+      art,
+      onYes: () => {
+        if (session.id === key) {
+          // the page still holds it: nothing waiting to be written may bring it back
+          clearTimeout(saveTimer);
+          saveTimer = 0;
+          dirty = false;
+          lastSave = 'saved';
+        }
+        if (session.remove(key)) sfx.plink(1);
+        thumbs.delete(key);
+        renderList();
+      },
+    });
   }
 
   // ---------- drawing ----------
@@ -686,6 +722,7 @@ export function createTekenen(shell) {
           px,
         }),
         drawings: () => store.loadDrawings(meta.id),
+        raw: () => store.snapshot().games[meta.id]?.drawings || {},
         /** The colour on the page at (fx, fy), 0-1 from the top left, as [r, g, b]. */
         pixel: (fx, fy) => [...ctx.getImageData(Math.floor(fx * (px - 1)), Math.floor(fy * (px - 1)), 1, 1).data.slice(0, 3)],
       };

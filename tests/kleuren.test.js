@@ -181,6 +181,25 @@ test('save: pages are kept per key, a page without colour is never stored, at mo
   assert.ok(JSON.parse(prefs.dump()[store.SAVE_KEY]).games.kleuren.art['f:m1:1101']);
 });
 
+test('throw away: a page from "my pictures" becomes a newer marker, keeps unknown fields and stays gone after a merge', async () => {
+  const doc = { version: 1, games: { kleuren: { art: { 'p:zon': { f: { face: 2 }, t: 5000, done: true, c: 1, note: 'newer app' }, 'p:vis': { f: { body: 3 }, t: 10 } } } }, settings: {}, purchase: {} };
+  const prefs = fakePreferences({ [store.SAVE_KEY]: JSON.stringify(doc) });
+  await store.init({ backend: store.preferencesBackend(prefs), legacyStorage: null });
+  assert.equal(store.deleteArt(meta.id, 'p:huis', 100), false, 'nothing coloured: nothing to throw away');
+  assert.equal(store.snapshot().games.kleuren.art['p:huis'], undefined, 'and no marker');
+  // a clock behind the page's own time still gives a newer marker
+  assert.equal(store.deleteArt(meta.id, 'p:zon', 100), true);
+  assert.deepEqual(store.snapshot().games.kleuren.art['p:zon'], { c: 1, note: 'newer app', t: 5001, gone: true });
+  assert.equal(store.loadArtPage(meta.id, 'p:zon'), null);
+  assert.deepEqual(Object.keys(store.loadArt(meta.id)), ['p:vis'], 'the other page stays');
+  assert.equal(store.deleteArt(meta.id, 'p:zon', 6000), false, 'already gone');
+  // an older copy of the page (another device, a transfer) does not bring it back
+  const merged = store.mergeSaves({ version: 1, games: { kleuren: { art: { 'p:zon': { f: { face: 4 }, t: 5000, done: true } } } }, settings: {}, purchase: {} }, store.snapshot(), false);
+  assert.equal(merged.games.kleuren.art['p:zon'].gone, true);
+  await store.flushed();
+  assert.equal(JSON.parse(prefs.dump()[store.SAVE_KEY]).games.kleuren.art['p:zon'].gone, true);
+});
+
 test('save: after a failed read, the newer version of each page wins when the save is read again', async () => {
   const real = JSON.stringify({
     version: 1,

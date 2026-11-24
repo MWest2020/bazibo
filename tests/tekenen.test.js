@@ -281,6 +281,25 @@ test('mergeDrawings: the receiver never loses its own drawings; the oldest that 
   assert.equal(droppedDrawings(stored, { games: {} }), 0);
 });
 
+test('storage: deleteDrawing leaves a newer marker, keeps unknown fields, and a merge never brings the drawing back', async () => {
+  const doc = { version: 1, games: { tekenen: { drawings: { d1: { s: dot(1), t: 9000, title: 'Zon' }, d2: { s: dot(2), t: 20 } } } }, settings: {}, purchase: {} };
+  await store.init({ backend: store.preferencesBackend({ get: async () => ({ value: JSON.stringify(doc) }), set: async () => {} }), legacyStorage: noLegacy });
+  assert.equal(store.deleteDrawing('tekenen', 'nope', 100), false);
+  assert.equal(store.snapshot().games.tekenen.drawings.nope, undefined, 'no marker for a drawing that was never kept');
+  assert.equal(store.deleteDrawing('tekenen', 'd1', 100), true, 'a clock behind the drawing still deletes it');
+  assert.deepEqual(store.snapshot().games.tekenen.drawings.d1, { title: 'Zon', t: 9001, gone: true });
+  assert.equal(store.deleteDrawing('tekenen', 'd1', 9500), false, 'already gone');
+  assert.deepEqual(Object.keys(store.loadDrawings('tekenen')), ['d2']);
+  assert.equal(store.countDrawings('tekenen'), 1);
+  // the save as it was before (another device, an older backup): the delete wins both ways
+  const before = { version: 1, games: { tekenen: { drawings: { d1: { s: dot(1), t: 9000 }, d2: { s: dot(2), t: 20 } } } }, settings: {}, purchase: {} };
+  assert.equal(store.mergeSaves(before, store.snapshot(), false).games.tekenen.drawings.d1.gone, true);
+  const mine = store.snapshot().games.tekenen.drawings;
+  store.mergeDrawings(mine, before.games.tekenen.drawings);
+  assert.equal(mine.d1.gone, true);
+  assert.equal(mine.d2.s, dot(2));
+});
+
 // ---------- the drawing on the page (session.js) ----------
 
 /** A stand-in for storage.js with only the drawing calls, so the session can be tested alone. */
@@ -295,6 +314,12 @@ function fakeStore(drawings = {}) {
     saveDrawing(g, id, s, t) {
       this.writes++;
       d[id] = s ? { s, t } : { t, gone: true };
+      return true;
+    },
+    deleteDrawing(g, id, t) {
+      if (!live(d[id])) return false;
+      this.writes++;
+      d[id] = { t: Math.max(t, d[id].t + 1), gone: true };
       return true;
     },
   };
@@ -380,6 +405,70 @@ test('session: a page too full to save is never taken for an empty one', () => {
   s.items.push(...dots.slice(added)); // as if something slipped past add()
   assert.equal(s.write({ final: true }), 'full');
   assert.ok(st.loadDrawing('tekenen', 'k1'), 'still not deleted');
+});
+
+test('session: a drawing thrown away while the page holds it never comes back from the autosave or leaving', () => {
+  const st = fakeStore({ k1: { s: encode([line(1)]), t: 1 }, k2: { s: encode([line(2)]), t: 2 } });
+  const s = createSession({ store: st, gameId: 'tekenen', owned: () => false, now: () => 50 });
+  s.open('k1');
+  s.add(line(3)); // a stroke waiting for the autosave
+  assert.equal(s.remove('k1'), true);
+  assert.equal(st.loadDrawing('tekenen', 'k1'), null);
+  assert.equal(s.id, null);
+  assert.equal(s.kept(), false);
+  assert.equal(s.hasInk(), false);
+  assert.equal(s.canUndo(), false, 'undo can not bring it back either');
+  assert.equal(s.undo(), false);
+  assert.equal(s.write(), 'empty', 'the autosave');
+  assert.equal(s.write({ final: true }), 'empty', 'leaving');
+  assert.equal(st.loadDrawing('tekenen', 'k1'), null);
+  assert.deepEqual(st.d.k1, { t: 50, gone: true });
+  assert.ok(st.loadDrawing('tekenen', 'k2'), 'the other drawing stays');
+  assert.equal(s.remove('k1'), false, 'twice: nothing more happens');
+  assert.equal(s.remove(null), false);
+});
+
+test('session: throwing away another drawing leaves the page alone', () => {
+  const st = fakeStore({ k1: { s: encode([line(1)]), t: 1 }, k2: { s: encode([line(2)]), t: 2 } });
+  const s = createSession({ store: st, gameId: 'tekenen', owned: () => false, now: () => 50 });
+  s.open('k1');
+  s.add(line(3));
+  assert.equal(s.remove('k2'), true);
+  assert.equal(s.id, 'k1');
+  assert.equal(s.items.length, 2);
+  assert.equal(s.write(), 'saved');
+  assert.equal(decode(st.d.k1.s).length, 2);
+  assert.equal(st.loadDrawing('tekenen', 'k2'), null);
+});
+
+test('session: on the free version a thrown-away drawing frees its place, so a 4th can be kept again (real storage)', async () => {
+  await fresh();
+  let t = 1000;
+  const s = createSession({ store, gameId: 'tekenen', owned: () => false, now: () => ++t });
+  const kept = [];
+  for (let i = 0; i < FREE_DRAWINGS; i++) {
+    s.open(null);
+    s.add(line(i));
+    assert.equal(s.write({ final: true }), 'saved');
+    kept.push(s.id);
+  }
+  assert.equal(store.countDrawings('tekenen'), FREE_DRAWINGS);
+  s.open(null);
+  s.add(line(9));
+  assert.equal(s.write(), 'nospace', 'the free album is full');
+  assert.equal(mayKeep({ owned: false, count: store.countDrawings('tekenen'), saved: false }), false);
+  // throw one away from "my drawings" (the page holds the new one, not kept yet)
+  assert.equal(s.remove(kept[1]), true);
+  assert.equal(store.countDrawings('tekenen'), FREE_DRAWINGS - 1);
+  assert.equal(mayKeep({ owned: false, count: store.countDrawings('tekenen'), saved: false }), true, '"+" is open again');
+  assert.equal(s.write({ final: true }), 'saved', 'the 4th is kept now');
+  assert.equal(store.countDrawings('tekenen'), FREE_DRAWINGS);
+  assert.deepEqual(Object.keys(store.loadDrawings('tekenen')).sort(), [kept[0], kept[2], s.id].sort());
+  assert.equal(store.snapshot().games.tekenen.drawings[kept[1]].gone, true);
+  // and the album is full again: one more waits for the full version
+  s.open(null);
+  s.add(line(10));
+  assert.equal(s.write(), 'nospace');
 });
 
 // ---------- Voortgang overzetten ----------

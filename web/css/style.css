@@ -832,6 +832,40 @@ html, body {
 .level-cell.locked { background: rgba(255, 255, 255, 0.6); color: var(--bz-ink-quiet); box-shadow: 0 3px 0 var(--bz-brand-tint); }
 .level-cell.locked > .lock { width: 20px; height: 20px; fill: currentColor; }
 
+/* a saved picture with its own bin (menu.js withTrash: Tekenen's "my drawings", Kleurplaten's
+   "my pictures"): a separate 48 px button on the card's lower corner, a small white disc inside it */
+.keep-item { position: relative; min-width: 0; }
+.keep-item > :first-child { width: 100%; }
+.trash-btn {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.trash-disc {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bz-surface);
+  color: var(--bz-ink-soft);
+  box-shadow: 0 0 0 2px var(--bz-brand-edge), 0 3px 8px rgba(40, 36, 92, 0.22);
+}
+.trash-disc > svg { width: 22px; height: 22px; display: block; }
+.trash-btn:active .trash-disc { transform: translateY(1px); background: var(--bz-brand-tint); }
+.trash-btn:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 0; }
+
 /* the "random" card (full version), one per tier in a level list (js/random.js): a whole row */
 .level-grid .level-cell.random-btn {
   grid-column: 1 / -1;
