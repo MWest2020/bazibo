@@ -72,7 +72,7 @@ EN: "Privacy and roadmap: https://bazibo.nl" and "Open source (MIT): https://git
 Result: **NL 3987, EN 3978** characters.
 
 The game count (24) is in the first line because numbers draw the eye; it must change with every
-new game (the feature graphic in `design/brand/store/` says 23 today).
+new game. The feature graphics carry no count, so they never go stale.
 
 ## Reviews
 

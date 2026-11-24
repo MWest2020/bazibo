@@ -2,8 +2,12 @@
 Chromium. Writes store/screenshots/<lang>/<device>/*.png (Dutch and English) and
 store/feature-graphic{,-en}-1024x500.png.
 
-Run: uv run --with playwright --with pillow python tools/store_shots.py [--feature]
-(--feature: only the two feature graphics, from design/brand/store/ through tools/feature.html)
+Run: uv run --with playwright --with pillow python tools/store_shots.py [--feature | --share]
+(--feature: only the two feature graphics, from design/brand/store/ through tools/feature.html,
+and then the share image; --share: only web/img/share.png, from the Dutch feature graphic as it is)
+
+The share image (web/img/share.png, the Open Graph picture of bazibo.nl) is the Dutch feature
+graphic centred on 1200x630 on its own paper colour, so a link preview never drifts from the store.
 
 The screenshots are flattened to RGB (the App Store refuses images with an alpha channel).
 """
@@ -68,6 +72,21 @@ def flatten(path):
     img = Image.open(path)
     if img.mode != "RGB":
         img.convert("RGB").save(path, optimize=True)
+
+
+SHARE = ROOT / "web" / "img" / "share.png"
+
+
+def make_share(src=OUT / "feature-graphic-1024x500.png", dst=SHARE):
+    """The link-preview image: the feature graphic centred on 1200x630 (1.91:1, what Open Graph
+    previews crop to), padded with the graphic's own background colour."""
+    from PIL import Image
+
+    img = Image.open(src).convert("RGB")
+    out = Image.new("RGB", (1200, 630), img.getpixel((2, 2)))
+    out.paste(img, ((1200 - img.width) // 2, (630 - img.height) // 2))
+    out.save(dst, optimize=True)
+    print("wrote", dst.relative_to(ROOT), "(run npm run stamp)")
 
 
 def shoot(browser, base, name, viewport, dpr, lang):
@@ -243,6 +262,9 @@ def shoot(browser, base, name, viewport, dpr, lang):
 
 
 def main():
+    if "--share" in sys.argv:
+        make_share()
+        return
     port = free_port()
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Quiet, directory=str(ROOT)))
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -263,6 +285,7 @@ def main():
                 flatten(fg)
                 print("wrote", fg.relative_to(ROOT))
             browser.close()
+        make_share()
     finally:
         httpd.shutdown()
 

@@ -61,8 +61,11 @@ art in `design/brand/` first, then `logo.js`. Every icon and launch screen comes
 (favicon, apple-touch-icon, web and maskable icons, Android legacy, round, adaptive foreground and
 monochrome on an ink background, iOS AppIcon, launch screens on paper, `store/play-icon-512.png`);
 the feature graphics are the brand's own SVGs (`design/brand/store/feature-graphic{,-en}.svg`, the
-English one assembled from the English screenshot frame's outlines) through `tools/feature.html`
-(`tools/store_shots.py --feature`). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
+English one assembled from the English screenshot frame's outlines, the Dutch line likewise from the
+Dutch frame: "Spelen en leren, zonder reclame", never a game count that goes stale) through
+`tools/feature.html` (`tools/store_shots.py --feature`), which also writes `web/img/share.png`, the
+link-preview image of bazibo.nl (the Dutch feature graphic centred on 1200x630); `--share` remakes
+only that one. After either, `npm run stamp`; never edit `share.png` by hand. Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
 phones, 2 at 320 px, the sections side by side on wider screens; a section wider than the screen wraps its tiles (`.home-inner` keeps `max-width: 100%`), so there is never sideways scroll from 320 to 1400 px.
 
 **Hard rules**
@@ -113,7 +116,7 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 **Search engines** (`web/js/seo.js`, `tests/seo.test.js`): `web/robots.txt`, `web/sitemap.xml`, and in
 the heads of `index.html` and the six parents' pages a title, a description, the canonical address,
 hreflang (Dutch, English, x-default) and on the home page and Plannen / Roadmap Open Graph with
-`web/img/share.png` (the brand's feature graphic on 1200x630). The home page also carries one
+`web/img/share.png` (the Dutch feature graphic on 1200x630, made by `tools/store_shots.py`). The home page also carries one
 schema.org `MobileApplication` block (`application/ld+json`: a data block, never run, so the CSP
 needs no change). These name `https://bazibo.nl/` absolutely because crawlers need that; the page
 never loads any of them, and that is the only exception to "relative URLs only". The home screen
