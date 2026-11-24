@@ -9,9 +9,10 @@ apps (`android/`, `ios/`; release steps in `docs/release.md`). Roadmap:
 evidence, in the same PR). Design: `docs/design/` (the style audit and the 2.0 proposal, approved by
 Mark 21 Nov 2026 and built in phases; `tools/design_audit.py` re-measures contrast and touch targets
 with screenshots). The design tokens are the `--bz-*` custom properties at the top of
-`web/css/style.css`: colours (still today's brand; the 2.0 palette replaces only that block),
-type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names; the old ones
-(`--primary`, `--ink`, `--gold`...) are aliases. Text never sits white on the orange accent (ink
+`web/css/style.css`: colours (the brand of round 3 from `design/brand/tokens.json`, Mark 24 Nov
+2026: paper `--bz-base` page, ink, soft ink, brand violet; `tests/brand.test.js` checks them against
+that file and the contrast rules below), type scale, spacing, radii, touch sizes, depth. New CSS uses the `--bz-*` names; the old ones
+(`--primary`, `--ink`, `--gold`, `--sky`...) are aliases. Text never sits white on the warm accent (ink
 instead), locked text is `--bz-ink-quiet`, an empty star is an outline (`--bz-star-empty`), and
 Bubbels shows no points. Every game menu is built from the shell's menu components (phase 2):
 `web/js/menu.js` makes them (`menuHead`, `menuLine`, `optionCard`, `optionBox`, `segCard`,
@@ -27,8 +28,9 @@ never its own button look. Every option has a picture from the
 game's own art; a level cell shows its stars only once played (quiet stars). The selected option,
 segment, player and the next level are the group's tint with a 3 px border in the group's accent:
 each group has three colours in `style.css` (`--bz-learning-acc`, `-tint`, `-ink`, and the same for
-puzzles, board, creative, action; an accent is 3:1 or more on white and on the sky, lilac and pink
-page, text sits on the tint or in the ink, never on the accent), and
+puzzles, board, creative, action, the five scraps of the logo; an accent is 3:1 or more on white and
+on the paper page, the ink 4.5:1 or more on its tint, text sits on the tint or in the ink, never on
+the accent), and
 `main.js` gives every game screen its group (`data-group`, from `meta.group`), which sets
 `--bz-group-acc/-tint/-ink`. Touch targets in a menu are 48 px or more. Locked choices never sit between the free ones: every game menu ends its
 render with `foldLocked(box)` (`web/js/fold.js`), which moves each button with the class `locked`
@@ -46,7 +48,21 @@ The home screen builds one tile per game in `GAMES` (`web/js/games.js`), in the 
 `meta.js` names with `group` (the sections and their order are `GROUPS` in the same file, ordered by
 audience: Leren first for teachers, then Puzzels, Bordspellen, Creatief, Actie; a new game picks
 one); each section sits on its group's tint with its name in the group's ink; an optional `subKey`
-puts a small second line under the name (Ludo). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
+puts a small second line under the name (Ludo); a section's name stands beside its group mark.
+
+**The brand** (round 3, `design/brand/`, CC0; Mark 24 Nov 2026): the cut-paper b on five coloured
+scraps and the drawn name "bazibo". `web/js/logo.js` draws them inline from the same paths as
+`design/brand/logo/` (`markSvg(group)`, the b on that group's scrap; `wordmarkSvg()`, the letters in
+`currentColor`): presentation attributes only, no ids, `url(#)` or `<use>`, aria-hidden;
+`tests/brand.test.js` fails if a path drifts from the SVG files. The home header is the mark beside
+the wordmark, with the name as visually hidden words in `#brand-text` (from `brand.js`). Change the
+art in `design/brand/` first, then `logo.js`. Every icon and launch screen comes from
+`design/brand/icon/`, `adaptive/` and `logo/mark.svg` through `tools/make_icons.py --native`
+(favicon, apple-touch-icon, web and maskable icons, Android legacy, round, adaptive foreground and
+monochrome on an ink background, iOS AppIcon, launch screens on paper, `store/play-icon-512.png`);
+the feature graphics are the brand's own SVGs (`design/brand/store/feature-graphic{,-en}.svg`, the
+English one assembled from the English screenshot frame's outlines) through `tools/feature.html`
+(`tools/store_shots.py --feature`). Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
 phones, 2 at 320 px, the sections side by side on wider screens; a section wider than the screen wraps its tiles (`.home-inner` keeps `max-width: 100%`), so there is never sideways scroll from 320 to 1400 px.
 
 **Hard rules**
@@ -97,7 +113,7 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,
-native config, Papegaai's privacy rule) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
+native config, Papegaai's privacy rule, the brand's paths and colours) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Paartjes: the bigger boards and the other cards offer only OK on the web, a game alone on 2×3 with one miss (a third tap does nothing) won with 3 stars saved, a game together on 3×4 won by player 1 with back + keep playing during a miss and "More cards" at the end of the free part, a game against the computer whose turn is slow and visible, won and counted; the layout at 320x568, sideways and on desktop with 12 and 20 cards (`tests/smoke.py memory`);
 home → Legpuzzel: the sizes as level cells, 9, 16 and 25 pieces free with their age and 30, 48 and 60 locked in the fold (no 4, 6, 12 or 20), a save from before with the last size on 12 opening on 9 and keeping its old ticks, 30, 48, 60 pieces and the other pictures offer only OK on the web, the 9-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 16-piece sea with the example picture off and back + keep puzzling halfway, the 16 and the 25 pieces finished by the test hook and a last real drag, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 9 to 60 pieces, every piece on screen and 44 px or more with its tabs, the magnifier only for small pieces; 48 and 60 pieces at 390x844 and 844x390 in Dutch and English: a real drag without and through the magnifier (the view moving along to a place out of view), a finger on an empty spot moving the view, the rest by the test hook and the last by a real drag, saved and ticked off (`tests/smoke.py legpuzzel`);

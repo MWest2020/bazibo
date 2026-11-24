@@ -34,7 +34,7 @@
   font-size: 0.9rem;
   font-weight: 900;
   line-height: 24px;
-  box-shadow: 0 2px 0 #c95f17;
+  box-shadow: 0 2px 0 var(--bz-accent-dark);
 }
 #pdoku-hint .count:empty { display: none; }
 #pdoku-hint.empty { opacity: 0.55; }

@@ -2,7 +2,8 @@
 Chromium. Writes store/screenshots/<lang>/<device>/*.png (Dutch and English) and
 store/feature-graphic{,-en}-1024x500.png.
 
-Run: uv run --with playwright --with pillow python tools/store_shots.py
+Run: uv run --with playwright --with pillow python tools/store_shots.py [--feature]
+(--feature: only the two feature graphics, from design/brand/store/ through tools/feature.html)
 
 The screenshots are flattened to RGB (the App Store refuses images with an alpha channel).
 """
@@ -12,6 +13,7 @@ import json
 import math
 import os
 import socket
+import sys
 import threading
 from pathlib import Path
 
@@ -248,7 +250,7 @@ def main():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME)
-            for lang in ("nl", "en"):
+            for lang in () if "--feature" in sys.argv else ("nl", "en"):
                 for name, (viewport, dpr) in DEVICES.items():
                     for s in shoot(browser, base, name, viewport, dpr, lang):
                         print("wrote", s.relative_to(ROOT))
