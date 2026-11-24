@@ -94,6 +94,21 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
   calm card and nothing else changes. No speech synthesis and no recorded voices of others: every
   voice is the child's own recording, changed on the device.
 
+**Search engines** (`web/js/seo.js`, `tests/seo.test.js`): `web/robots.txt`, `web/sitemap.xml`, and in
+the heads of `index.html` and the six parents' pages a title, a description, the canonical address,
+hreflang (Dutch, English, x-default) and on the home page and Plannen / Roadmap Open Graph with
+`web/img/share.png` (the brand's feature graphic on 1200x630). The home page also carries one
+schema.org `MobileApplication` block (`application/ld+json`: a data block, never run, so the CSP
+needs no change). These name `https://bazibo.nl/` absolutely because crawlers need that; the page
+never loads any of them, and that is the only exception to "relative URLs only". The home screen
+is one page in two languages, so `?lang=nl` and `?lang=en` give search engines an address per
+language (a saved choice still wins); its canonical link is set by `seo.js`, not in the HTML. The
+home's title and description go through `t()` (`meta.title`, `meta.description`); the Dutch copy
+in `index.html` must equal them, and the brand name in these static copies must equal
+`brand.js` (the test checks both). The redirect pages (`/privacy/`, `/plannen/`, ...) are `noindex`
+and stay out of the sitemap. A new parents' page gets the same head and a sitemap entry.
+Search Console is verified by a DNS record, never a script (`docs/marketing/search-console.md`).
+
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,

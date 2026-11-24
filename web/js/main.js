@@ -13,6 +13,7 @@ import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
 import { createTransfer } from './transfer-ui.js';
 import { PLAY_URL } from './store-links.js'; // shows the store links on the website, never in the app
+import { urlLang, setCanonical } from './seo.js';
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
 import '../games/dogudoku/strings.js';
@@ -125,7 +126,8 @@ document.addEventListener('click', (e) => {
 function renderLanguage() {
   const lang = getLang();
   document.documentElement.lang = lang;
-  document.title = BRAND.name;
+  document.title = t('meta.title'); // the tab and search results; the static copy in index.html is the Dutch one
+  $('meta[name="description"]')?.setAttribute('content', t('meta.description'));
   $('#brand-name').textContent = BRAND.name;
   $('#brand-tagline').textContent = BRAND.tagline[lang];
   $('#brand-lore').textContent = BRAND.lore[lang];
@@ -136,6 +138,7 @@ function renderLanguage() {
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 onLangChange(renderLanguage);
+setCanonical(document, location.search); // bazibo.nl, with ?lang= when the address has it (js/seo.js)
 $('#brand-mark').innerHTML = gazeboSvg(); // the logo next to the name, drawn once
 
 document.querySelectorAll('[data-lang]').forEach((b) =>
@@ -553,7 +556,8 @@ async function boot() {
   listenForBack(); // first, so the button works even if loading fails below
   await store.init();
   settings = store.loadSettings();
-  setLang(pickLang(settings.lang, navigator.languages || [navigator.language]));
+  // a saved choice first, then the address (?lang=, for search engines: js/seo.js), then the device
+  setLang(pickLang(settings.lang, [urlLang(location.search), ...(navigator.languages || [navigator.language])]));
   sfx.setMuted(settings.muted);
   unlock = createUnlock({ billing: isNativeApp() ? createNativeBilling() : noBilling, cache: store.fullCache });
   unlock.onChange(() => {
