@@ -1854,6 +1854,339 @@ def tekenen_locked_four(browser, base, problems):
     ctx.close()
 
 
+def touch_context(browser, base, w, h, lang="nl", save=None, owned=False):
+    ctx = browser.new_context(bypass_csp=True, locale={"nl": "nl-NL", "en": "en-GB"}[lang], viewport={"width": w, "height": h},
+                              device_scale_factor=2, is_mobile=True, has_touch=True)
+    if owned:
+        ctx.add_init_script(OWNED_APP)
+    if save:
+        ctx.add_init_script(seeded(save))
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    return ctx, page, errors
+
+
+def tekenen_play(browser, base, problems):
+    """The main Tekenen walk (play_tekenen) on its own, for `tests/smoke.py tekenen`."""
+    ctx, page, errors = touch_context(browser, base, 390, 844)
+    play_tekenen(page, "phone", TEXT["nl"], problems)
+    if errors:
+        problems.append(f"tekenen: page errors {errors[:2]}")
+    ctx.close()
+
+
+def kleuren_play(browser, base, problems):
+    """The main Kleurplaten walk (play_kleuren) on its own, for `tests/smoke.py kleuren`."""
+    ctx, page, errors = touch_context(browser, base, 390, 844)
+    play_kleuren(page, "phone", TEXT["nl"], problems)
+    if errors:
+        problems.append(f"kleuren: page errors {errors[:2]}")
+    ctx.close()
+
+
+def trash_checks(page, label, w, h, problems, sel):
+    """Every bin in the list: 48 px or more, on screen, no sideways scroll, never over its card's
+    middle third (that stays for opening the picture) and never over another card or bin."""
+    got = page.evaluate(f"""() => {{
+      const box = (el) => {{ const r = el.getBoundingClientRect(); return {{ x: r.x, y: r.y, w: r.width, h: r.height }}; }};
+      const bins = [...document.querySelectorAll({json.dumps(sel)})];
+      return bins.map((b) => {{
+        const card = b.parentElement.firstElementChild;
+        const grid = b.closest('.level-grid');
+        const others = [...grid.querySelectorAll('.kleur-card, .trash-btn')].filter((el) => el !== card && el !== b && el.offsetParent);
+        return {{ bin: box(b), card: box(card), others: others.map(box) }};
+      }});
+    }}""")
+    if not got:
+        problems.append(f"{label}: no trash buttons")
+    hit = lambda a, b: a["x"] < b["x"] + b["w"] - 0.5 and b["x"] < a["x"] + a["w"] - 0.5 and a["y"] < b["y"] + b["h"] - 0.5 and b["y"] < a["y"] + a["h"] - 0.5
+    for g in got:
+        r, c = g["bin"], g["card"]
+        if r["w"] < 47.5 or r["h"] < 47.5:
+            problems.append(f"{label}: a trash button is {r['w']:.0f}x{r['h']:.0f} px")
+        if r["x"] < -0.5 or r["x"] + r["w"] > w + 0.5:
+            problems.append(f"{label}: a trash button sticks out sideways: {r}")
+        middle = {"x": c["x"] + c["w"] / 3, "y": c["y"] + c["h"] / 3, "w": c["w"] / 3, "h": c["h"] / 3}
+        if hit(r, middle):
+            problems.append(f"{label}: a bin {r} reaches the middle third of its {c['w']:.0f} px card {c}")
+        for o in g["others"]:
+            if hit(r, o):
+                problems.append(f"{label}: a bin {r} lies over another card or bin {o}")
+    if page.evaluate("document.documentElement.scrollWidth") > w + 1:
+        problems.append(f"{label}: the list scrolls sideways")
+
+
+def tap_card_middle(page, label, card_sel, opened, back_sel, listed, problems):
+    """A real tap on a card's centre and on the corner of its middle third nearest the bin opens the
+    picture, never the throw-away card."""
+    for fx, fy in ((0.5, 0.5), (0.66, 0.66)):
+        c = page.locator(card_sel).bounding_box()
+        page.touchscreen.tap(c["x"] + c["width"] * fx, c["y"] + c["height"] * fy)
+        page.wait_for_timeout(350)
+        if page.locator("#overlay:not([hidden])").count() or not page.locator(f"{opened}.active").count():
+            problems.append(f"{label}: a tap at {fx}, {fy} of the card did not open it (card: {page.locator('#overlay:not([hidden])').count()})")
+            if page.locator("#overlay:not([hidden])").count():
+                page.locator("#ov-buttons .throw-no").tap()
+                page.wait_for_selector("#overlay", state="hidden")
+            continue
+        page.locator(back_sel).tap()
+        page.wait_for_selector(f"{listed}.active")
+        page.wait_for_timeout(250)
+
+
+def throw_card_checks(page, label, say_title, say_yes, say_no, problems, art_sel):
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.wait_for_timeout(450)  # the card pops in (scaled); measure it once it stands
+    title = page.inner_text("#ov-title").strip()
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if title != say_title or labels != [say_no, say_yes]:
+        problems.append(f"{label}: the throw-away card says {title!r} {labels}")
+    if page.locator(f"#ov-art {art_sel}").count() != 1:
+        problems.append(f"{label}: the throw-away card shows no picture")
+    if not page.evaluate("document.activeElement?.classList.contains('throw-no')"):
+        problems.append(f"{label}: the focus is not on {say_no}: {page.evaluate('document.activeElement?.className')}")
+    for b in page.locator("#ov-buttons button").all():
+        r = b.bounding_box()
+        if r is None or r["height"] < 48 or r["width"] < 120:
+            problems.append(f"{label}: a Ja/Nee button is small: {r}")
+    # a second tap where any bin is never lands on Ja
+    yes = page.locator("#ov-buttons .throw-yes").bounding_box()
+    for r in page.evaluate("[...document.querySelectorAll('.screen.active .trash-btn')].map((b) => { const r = b.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })"):
+        if r["x"] < yes["x"] + yes["width"] and yes["x"] < r["x"] + r["w"] and r["y"] < yes["y"] + yes["height"] and yes["y"] < r["y"] + r["h"]:
+            problems.append(f"{label}: {say_yes} {yes} lies under a bin {r}")
+
+
+def teken_draw_new(page, pts):
+    """A new drawing by real taps and a drag, then back to "my drawings"."""
+    page.locator("#teken-list .teken-new").tap()
+    page.wait_for_selector("#screen-tekenen.active")
+    page.wait_for_timeout(250)
+    teken_drag(page, pts)
+    page.locator("#teken-back").tap()
+    page.wait_for_selector("#screen-tekenen-list.active")
+    page.wait_for_timeout(200)
+
+
+def teken_ids(page):
+    """The kept drawings' ids, oldest first."""
+    return page.evaluate("Object.entries(window.__bubbels.teken.drawings()).sort((a, b) => a[1].t - b[1].t).map(([k]) => k)")
+
+
+def teken_bin(page, key):
+    return page.locator(f"#teken-list .keep-item:has(.teken-card[data-id='{key}']) .trash-btn")
+
+
+def tekenen_delete(browser, base, problems):
+    """Throwing a drawing away (Mark, 24 Nov 2026): two drawings made by real input, the bin on
+    one asks "Weggooien?" with its picture; a double tap never deletes, Nee keeps it, Ja throws it
+    away; after a reload it is gone and the other stays. At the free limit (3) a bin frees a place:
+    the "+" opens again and a new drawing is kept. Then the list and card at 844x390 and in English."""
+    label = "tekenen delete 390x844"
+    ctx, page, errors = touch_context(browser, base, 390, 844)
+    page.locator("#tile-tekenen").tap()
+    page.wait_for_selector("#screen-tekenen-list.active")
+    teken_draw_new(page, [(0.2, 0.3), (0.8, 0.3)])
+    teken_draw_new(page, [(0.5, 0.2), (0.5, 0.8)])
+    ids = teken_ids(page)
+    if len(ids) != 2 or page.locator("#teken-list .teken-card").count() != 2 or page.locator("#teken-list .trash-btn").count() != 2:
+        problems.append(f"{label}: expected 2 drawings with a bin each: {ids}, {page.locator('#teken-list .trash-btn').count()} bins")
+        ctx.close()
+        return
+    old, new = ids
+    trash_checks(page, label, 390, 844, problems, "#teken-list .trash-btn")
+    page.wait_for_timeout(200)  # the thumbnails are drawn one at a time
+    page.screenshot(path=str(SHOTS / "teken-delete-list-390x844.png"))
+    # a double tap on the bin (the second tap lands on "Ja" at once) throws nothing away
+    page.evaluate(f"""() => {{ document.querySelector("#teken-list .keep-item:has(.teken-card[data-id='{old}']) .trash-btn").click();
+      document.querySelector('#ov-buttons .throw-yes').click(); }}""")
+    if len(teken_ids(page)) != 2 or page.locator("#overlay[hidden]").count():
+        problems.append(f"{label}: a double tap on the bin threw a drawing away or closed the card")
+    page.locator("#ov-buttons .throw-no").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    # Nee keeps it
+    teken_bin(page, old).tap()
+    throw_card_checks(page, label, "Weggooien?", "Ja", "Nee", problems, "img.ov-teken")
+    page.wait_for_timeout(450)
+    page.screenshot(path=str(SHOTS / "teken-delete-confirm-390x844.png"))
+    page.locator("#ov-buttons button", has_text="Nee").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    if teken_ids(page) != [old, new] or page.locator("#teken-list .teken-card").count() != 2:
+        problems.append(f"{label}: Nee did not keep the drawing: {teken_ids(page)}")
+    # Ja throws it away
+    teken_bin(page, old).tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.wait_for_timeout(450)
+    page.locator("#ov-buttons button", has_text="Ja").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    page.wait_for_timeout(900)  # longer than the autosave's pause
+    cards = page.evaluate("[...document.querySelectorAll('#teken-list .teken-card')].map((b) => b.dataset.id)")
+    if teken_ids(page) != [new] or cards != [new]:
+        problems.append(f"{label}: Ja did not throw the drawing away: kept {teken_ids(page)}, list {cards}")
+    if not page.evaluate(f"window.__bubbels.teken.raw()['{old}']?.gone === true"):
+        problems.append(f"{label}: no 'deleted' marker for the thrown-away drawing")
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    if teken_ids(page) != [new]:
+        problems.append(f"{label}: after a reload the drawings are {teken_ids(page)}")
+    page.locator("#tile-tekenen").tap()
+    page.wait_for_selector("#screen-tekenen-list.active")
+    cards = page.evaluate("[...document.querySelectorAll('#teken-list .teken-card')].map((b) => b.dataset.id)")
+    if cards != [new]:
+        problems.append(f"{label}: after a reload the list shows {cards}")
+    # the free limit: 3 drawings lock "+", a bin frees a place, a new one is kept
+    teken_draw_new(page, [(0.2, 0.6), (0.8, 0.6)])
+    teken_draw_new(page, [(0.2, 0.8), (0.8, 0.2)])
+    ids = teken_ids(page)
+    if len(ids) != 3 or page.locator("#teken-list .teken-new .kleur-badge.lock").count() != 1:
+        problems.append(f"{label}: 3 drawings should fill the free album: {ids}")
+    gone = ids[1]
+    teken_bin(page, gone).tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.wait_for_timeout(450)
+    page.locator("#ov-buttons .throw-yes").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    if len(teken_ids(page)) != 2 or page.locator("#teken-list .teken-new.full, #teken-list .teken-new .kleur-badge.lock").count():
+        problems.append(f"{label}: after throwing one away the '+' is still locked ({teken_ids(page)})")
+    teken_draw_new(page, [(0.3, 0.3), (0.7, 0.7)])
+    if page.locator("#overlay:not([hidden])").count():
+        problems.append(f"{label}: the new drawing after a delete asked {page.inner_text('#ov-title')!r}")
+    ids = teken_ids(page)
+    if len(ids) != 3 or gone in ids or page.evaluate("window.__bubbels.teken.state().lastSave") != "saved":
+        problems.append(f"{label}: the 4th drawing after a delete was not kept: {ids}")
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    after = teken_ids(page)
+    if after != ids:
+        problems.append(f"{label}: after a reload {after}, expected {ids}")
+    if errors:
+        problems.append(f"{label}: page errors {errors[:2]}")
+    ctx.close()
+
+    # sideways, and the card in English
+    two = {"version": 1, "games": {"tekenen": {"drawings": {f"k{i}": {"s": "s" + "ABCD"[i] + "BA" + "IAIA" + "QAQA", "t": 1000 + i} for i in range(2)}}},
+           "settings": {"muted": True}, "purchase": {"owned": False}}
+    for w, h, lang in ((320, 568, "nl"), (844, 390, "nl"), (390, 844, "en")):
+        label = f"tekenen delete {w}x{h} {lang}"
+        ctx, page, errors = touch_context(browser, base, w, h, lang=lang, save=two)
+        page.locator("#tile-tekenen").tap()
+        page.wait_for_selector("#screen-tekenen-list.active")
+        page.wait_for_timeout(300)
+        trash_checks(page, label, w, h, problems, "#teken-list .trash-btn")
+        name = page.get_attribute("#teken-list .keep-item:has([data-id='k1']) .trash-btn", "aria-label")
+        want = {"nl": "Tekening 2 weggooien", "en": "Throw away drawing 2"}[lang]
+        if name != want:
+            problems.append(f"{label}: the bin is called {name!r}")
+        if lang == "nl":
+            page.screenshot(path=str(SHOTS / f"teken-delete-list-{w}x{h}.png"))
+        tap_card_middle(page, label, "#teken-list .teken-card[data-id='k1']", "#screen-tekenen", "#teken-back", "#screen-tekenen-list", problems)
+        if teken_ids(page) != ["k0", "k1"]:
+            problems.append(f"{label}: opening by the card's middle changed the album: {teken_ids(page)}")
+        teken_bin(page, "k1").tap()
+        say = {"nl": ("Weggooien?", "Ja", "Nee"), "en": ("Throw it away?", "Yes", "No")}[lang]
+        throw_card_checks(page, label, *say, problems, "img.ov-teken")
+        for b in page.locator("#ov-buttons button").all():
+            r = b.bounding_box()
+            if r["y"] < 0 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"{label}: a Ja/Nee button is off screen: {r}")
+        page.wait_for_timeout(450)
+        if lang == "nl":
+            page.screenshot(path=str(SHOTS / f"teken-delete-confirm-{w}x{h}.png"))
+        page.locator("#ov-buttons .throw-yes").tap()
+        page.wait_for_selector("#overlay", state="hidden")
+        if teken_ids(page) != ["k0"]:
+            problems.append(f"{label}: Ja kept {teken_ids(page)}")
+        if errors:
+            problems.append(f"{label}: page errors {errors[:2]}")
+        ctx.close()
+
+
+def kleuren_delete(browser, base, problems):
+    """Throwing a page away in "my pictures": the bin asks "Weggooien?" with the page, Nee keeps it,
+    Ja throws its colours away (the sun stays in Pictures, blank); after a reload it is gone and
+    the house stays. A locked page in "my pictures" (a new mandala on the web) has no bin. The
+    last one thrown away takes the "my pictures" section with it."""
+    label = "kleuren delete 390x844"
+    save = {"version": 1, "games": {"kleuren": {"art": {
+        "p:zon": {"f": {"face": 2, "ray0": 1}, "t": 3000, "done": True},
+        "p:huis": {"f": {"roof": 0, "wall": 6}, "t": 2000},
+        "m:m1:5": {"f": {"c0": 3}, "t": 1000}}}}, "settings": {"muted": True}, "purchase": {"owned": False}}
+    ctx, page, errors = touch_context(browser, base, 390, 844, save=save)
+    page.locator("#tile-kleuren").tap()
+    page.wait_for_selector("#screen-kleuren-list.active")
+    page.wait_for_timeout(200)
+    mine = lambda: page.evaluate("[...document.querySelectorAll('#kleur-list .kleur-mine .kleur-card:not(.locked)')].map((b) => b.dataset.page)")
+    if mine() != ["p:zon", "p:huis"] or page.locator("#kleur-list .kleur-mine .trash-btn").count() != 2:
+        problems.append(f"{label}: my pictures shows {mine()} with {page.locator('#kleur-list .kleur-mine .trash-btn').count()} bins")
+    if page.locator("#kleur-list .trash-btn").count() != 2:
+        problems.append(f"{label}: bins outside my pictures, or on the locked mandala")
+    trash_checks(page, label, 390, 844, problems, "#kleur-list .trash-btn")
+    page.screenshot(path=str(SHOTS / "kleur-delete-list-390x844.png"))
+    bin_ = lambda key: page.locator(f"#kleur-list .kleur-mine .keep-item:has([data-page='{key}']) .trash-btn")
+    bin_("p:zon").tap()
+    throw_card_checks(page, label, "Weggooien?", "Ja", "Nee", problems, "svg.ov-kleur")
+    page.wait_for_timeout(450)
+    page.screenshot(path=str(SHOTS / "kleur-delete-confirm-390x844.png"))
+    page.locator("#ov-buttons .throw-no").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    if mine() != ["p:zon", "p:huis"]:
+        problems.append(f"{label}: Nee did not keep the sun: {mine()}")
+    bin_("p:zon").tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.wait_for_timeout(450)
+    page.locator("#ov-buttons .throw-yes").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    page.wait_for_timeout(600)
+    art = page.evaluate("window.__bubbels.kleur.art()")
+    if mine() != ["p:huis"] or "p:zon" in art or "p:huis" not in art:
+        problems.append(f"{label}: Ja did not throw the sun away: {mine()}, {sorted(art)}")
+    if page.locator("#kleur-list .kleur-card[data-page='p:zon']").count() != 1 or page.locator("#kleur-list .kleur-card[data-page='p:zon'] .kleur-badge.check").count():
+        problems.append(f"{label}: the sun is not back in Pictures as a blank page")
+    page.reload()
+    page.wait_for_selector("html[data-ready='1']")
+    art = page.evaluate("window.__bubbels.kleur.art()")
+    if "p:zon" in art or "p:huis" not in art:
+        problems.append(f"{label}: after a reload the pages are {sorted(art)}")
+    page.locator("#tile-kleuren").tap()
+    page.wait_for_selector("#screen-kleuren-list.active")
+    page.wait_for_timeout(200)
+    bin_("p:huis").tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button")
+    page.wait_for_timeout(450)
+    page.locator("#ov-buttons .throw-yes").tap()
+    page.wait_for_selector("#overlay", state="hidden")
+    art = page.evaluate("window.__bubbels.kleur.art()")
+    if page.locator("#kleur-list .kleur-mine .keep-item").count() or sorted(art) != ["m:m1:5"]:
+        problems.append(f"{label}: after throwing the house away my pictures shows {mine()}, kept {sorted(art)}")
+    if errors:
+        problems.append(f"{label}: page errors {errors[:2]}")
+    ctx.close()
+
+    # a small phone and sideways: the bins clear of the middle and of Ja, the card's middle opens it
+    for w, h in ((320, 568), (844, 390)):
+        label = f"kleuren delete {w}x{h}"
+        ctx, page, errors = touch_context(browser, base, w, h, save=save)
+        page.locator("#tile-kleuren").tap()
+        page.wait_for_selector("#screen-kleuren-list.active")
+        page.wait_for_timeout(300)
+        trash_checks(page, label, w, h, problems, "#kleur-list .trash-btn")
+        page.screenshot(path=str(SHOTS / f"kleur-delete-list-{w}x{h}.png"))
+        tap_card_middle(page, label, "#kleur-list .kleur-mine .kleur-card[data-page='p:huis']", "#screen-kleuren", "#kleur-back", "#screen-kleuren-list", problems)
+        page.locator("#kleur-list .kleur-mine .keep-item:has([data-page='p:huis']) .trash-btn").tap()
+        throw_card_checks(page, label, "Weggooien?", "Ja", "Nee", problems, "svg.ov-kleur")
+        page.screenshot(path=str(SHOTS / f"kleur-delete-confirm-{w}x{h}.png"))
+        page.locator("#ov-buttons .throw-no").tap()
+        page.wait_for_selector("#overlay", state="hidden")
+        if sorted(page.evaluate("window.__bubbels.kleur.art()")) != ["m:m1:5", "p:huis", "p:zon"]:
+            problems.append(f"{label}: opening or Nee changed the pages")
+        if errors:
+            problems.append(f"{label}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def kleuren_fits(browser, base, problems):
     """Kleurplaten in the full version on small and sideways phones: a new mandala and a picture
     fit (page, palette and the done button on screen, no sideways scroll), and mirroring colours
@@ -8931,6 +9264,8 @@ def main():
             kleuren_fits(browser, base, problems)
             tekenen_fits(browser, base, problems)
             tekenen_locked_four(browser, base, problems)
+            tekenen_delete(browser, base, problems)
+            kleuren_delete(browser, base, problems)
             klok_layouts(browser, base, problems)
             klok_touch(browser, base, problems)
             klok_digital(browser, base, problems)
@@ -9009,7 +9344,9 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "papegaai": (papegaai_flow, papegaai_no_mic, papegaai_permission, papegaai_layouts),
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
-         "store": (store_links, home_targets, home_calm)}
+         "store": (store_links, home_targets, home_calm),
+         "tekenen": (tekenen_play, tekenen_delete, tekenen_fits, tekenen_locked_four),
+         "kleuren": (kleuren_play, kleuren_delete, kleuren_fits)}
 
 
 def report(problems):

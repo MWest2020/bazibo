@@ -121,3 +121,61 @@ export function levelCell({ num, stars = 0, played, next = false, locked = false
   b.innerHTML = `<span class="num">${num}</span>${locked ? LOCK_SVG : starsHtml(stars, { played: played ?? stars > 0 })}`;
   return b;
 }
+
+/** A waste bin (the trash button, and the "clear the page" tool in Tekenen). */
+export const TRASH =
+  '<path d="M6 7h12l-1 13a1.5 1.5 0 0 1-1.5 1.4h-7A1.5 1.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M4 7h16M9.5 7V4.5h5V7M10 11v6.5M14 11v6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+
+/** How long (ms) "Ja" on the throw-away card waits before it listens: a double tap never deletes. */
+export const THROW_AWAY_WAIT = 400;
+
+/**
+ * A saved picture in a list (Tekenen's "my drawings", Kleurplaten's "my pictures") with its own
+ * small trash button on its corner: a separate button of 48 px, so a tap on the picture opens it
+ * and only the bin asks to throw it away. `label` names the bin for screen readers. Its grid gets
+ * the class `keep-grid` (more room between the rows, where the bin hangs out below the card).
+ */
+export function withTrash(card, { label, onTrash }) {
+  const box = document.createElement('div');
+  box.className = 'keep-item';
+  const bin = document.createElement('button');
+  bin.type = 'button';
+  bin.className = 'trash-btn';
+  bin.setAttribute('aria-label', label);
+  bin.innerHTML = `<span class="trash-disc" aria-hidden="true"><svg viewBox="0 0 24 24">${TRASH}</svg></span>`;
+  bin.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onTrash();
+  });
+  box.append(card, bin);
+  return box;
+}
+
+/**
+ * The short card before a picture is thrown away: its thumbnail (`art`), "Weggooien?" and big
+ * Nee / Ja buttons. Nee comes first (where a second tap on the bin lands) and has the focus, so a
+ * second or held Enter on the bin only closes the card; "Ja" does nothing in the first
+ * THROW_AWAY_WAIT ms, so one accidental tap or a double tap never deletes. No parental gate: it is
+ * the child's own picture.
+ */
+export function askThrowAway(shell, { art = '', onYes }) {
+  const { t } = shell;
+  const shown = performance.now();
+  shell.showOverlay({
+    art,
+    title: t('common.throwAway'),
+    buttons: [
+      [t('common.no'), 'big primary throw-no', shell.hideOverlay],
+      [
+        t('common.yes'),
+        'big secondary throw-yes',
+        () => {
+          if (performance.now() - shown < THROW_AWAY_WAIT) return;
+          shell.hideOverlay();
+          onYes();
+        },
+      ],
+    ],
+  });
+  document.querySelector('#ov-buttons .throw-no')?.focus({ preventScroll: true });
+}
