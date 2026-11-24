@@ -67,7 +67,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy_retry.outputs.page_url }}
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -77,5 +77,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
+      # deploy-pages sometimes asks for the artifact before GitHub lists it ("Fetching artifact
+      # metadata failed" / "No artifacts named github-pages", 2026-11-21 and 24): one retry after
+      # a pause instead of a red run and a site left on the previous version.
       - id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - if: steps.deploy.outcome == 'failure'
+        run: sleep 45
+      - id: deploy_retry
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
