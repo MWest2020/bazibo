@@ -1,5 +1,5 @@
 /* Keukentje (Little Kitchen): home tile, the menu picture and the question screen (the kitchen with
-   the dish and its bowls, the pictures to tap, the line and the dots). The menu reuses Klok kijken's
+   the cook and its speech bubble, the dish and its bowls, the pictures to tap and the dots). The menu reuses Klok kijken's
    round grid and dots (klok.css); shared look lives in css/style.css. */
 
 /* ---------- home tile and menu ---------- */
@@ -42,7 +42,43 @@
   box-shadow: 0 4px 0 #e6d3b3;
   overflow: hidden;
 }
-.ke-lead { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--bz-group-ink, var(--ink)); line-height: 1.2; text-align: center; text-wrap: balance; flex: none; }
+
+/* the cook and what it says: the bubble on the left, its tail pointing at the cook on the right */
+.ke-chat { flex: none; width: 100%; display: flex; align-items: flex-end; justify-content: flex-end; gap: 12px; }
+.ke-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: center;
+  padding: 5px 10px;
+  border: 3px solid #e0c79f;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: left;
+}
+.ke-bubble::before,
+.ke-bubble::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 9px solid transparent;
+}
+.ke-bubble::before { right: -21px; margin-top: -9px; border-left: 12px solid #e0c79f; }
+.ke-bubble::after { right: -16px; margin-top: -7px; border-width: 7px; border-left: 10px solid #ffffff; }
+.ke-chat.happy .ke-bubble { border-color: #8fd16e; }
+.ke-chat.happy .ke-bubble::before { border-left-color: #8fd16e; }
+.ke-say { margin: 0; min-height: 2.4em; display: flex; align-items: center; font-size: 1rem; font-weight: 800; color: var(--bz-ink); line-height: 1.2; text-wrap: pretty; }
+.ke-cook { flex: none; display: block; width: 62px; height: 74px; }
+.ke-cook svg { width: 100%; height: 100%; display: block; overflow: visible; }
+/* a slow, small bob of joy on a right answer; a stir and a wobbling hat when a dish is ready */
+.ke-cook.happy svg { transform-origin: 50% 100%; animation: ke-bob 1.5s ease-in-out infinite alternate; }
+.ke-cook.ready .ke-cook-hat { transform-box: fill-box; transform-origin: 50% 100%; animation: ke-wobble 0.9s ease-in-out infinite alternate; }
+.ke-cook.ready .ke-cook-spoon { transform-box: fill-box; transform-origin: 30% 90%; animation: ke-stir 0.8s ease-in-out infinite alternate; }
+@keyframes ke-bob { from { transform: translateY(0) rotate(0); } to { transform: translateY(-4px) rotate(-2deg); } }
+@keyframes ke-wobble { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+@keyframes ke-stir { from { transform: rotate(-14deg); } to { transform: rotate(10deg); } }
 
 .ke-wall { display: none; }
 .ke-wall svg { display: block; width: 100%; height: 100%; }
@@ -152,7 +188,6 @@
   75% { transform: translateY(-4px); }
   100% { transform: translateY(0); }
 }
-.ke-status { min-height: 2.4em; }
 
 /* the odd one out has no dish: the kitchen keeps only its wall, the four pictures get the room */
 #screen-keuken[data-kind='odd'] .ke-top { flex: 0 0 auto; }
@@ -168,6 +203,8 @@
   .ke-options.n8 .ke-pic { width: 46px; height: 46px; }
   .ke-options.odd .ke-opt { min-height: 150px; font-size: 1.05rem; }
   .ke-options.odd .ke-pic { width: 92px; height: 92px; }
+  .ke-cook { width: 70px; height: 84px; }
+  .ke-say { font-size: 1.05rem; }
 }
 
 /* wider screens: the six or eight pictures in one or two calm rows */
@@ -175,13 +212,17 @@
   .ke-options.n6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ke-options.odd { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ke-opt .ke-pic { width: 60px; height: 60px; }
+  .ke-cook { width: 84px; height: 101px; }
 }
 
 /* short phones: a smaller kitchen, so the pictures keep their size */
 @media (max-height: 640px) {
   #ke-stage { gap: 6px; padding-bottom: 6px; }
   .ke-top { padding: 6px 10px 12px; }
-  .ke-lead { font-size: 0.95rem; }
+  .ke-chat { gap: 10px; }
+  .ke-cook { width: 50px; height: 60px; }
+  .ke-say { font-size: 0.9rem; min-height: 2.4em; }
+  .ke-bubble { padding: 3px 8px; }
   .ke-bowl, .ke-slot { width: 48px; height: 48px; }
   .ke-slot .ke-pic { width: 38px; height: 38px; }
   .ke-opt { min-height: 58px; padding: 4px 3px; font-size: 0.74rem; }
@@ -191,7 +232,6 @@
   .ke-options.odd .ke-pic { width: 52px; height: 52px; }
   .ke-options.steps .ke-pic { width: 38px; height: 38px; }
   .ke-options.steps .ke-opt { font-size: 0.78rem; min-height: 52px; }
-  .ke-status { min-height: 2.2em; font-size: 0.9rem; }
 }
 
 /* sideways phones: the bar on the left (like Klok kijken), the kitchen beside the pictures */
@@ -212,7 +252,10 @@
   #screen-keuken[data-kind='odd'] #ke-stage { flex-direction: column; }
   #screen-keuken[data-kind='odd'] .ke-top { flex: none; width: 100%; padding: 6px 10px 14px; }
   #screen-keuken[data-kind='odd'] .ke-options { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 640px; }
-  .ke-lead { font-size: 0.92rem; }
+  .ke-chat { gap: 10px; }
+  .ke-cook { width: 50px; height: 60px; }
+  .ke-bubble { padding: 3px 8px; }
+  .ke-say { min-height: 0; font-size: 0.85rem; line-height: 1.2; }
   .ke-name { font-size: 0.85rem; }
   .ke-dish { max-height: 120px; }
   .ke-opt { min-height: 54px; padding: 3px 2px; font-size: 0.72rem; gap: 1px; }
@@ -226,7 +269,6 @@
   .ke-options.steps .ke-opt { min-height: 48px; font-size: 0.8rem; }
   .ke-options.which .ke-opt, .ke-options.from .ke-opt { min-height: 84px; }
   .ke-options.steps .ke-pic { width: 34px; height: 34px; }
-  .ke-status { min-height: 2.2em; font-size: 0.85rem; }
 }
 
 /* small sideways phones: eight pictures in three columns, so each keeps 48 px */
@@ -239,4 +281,5 @@
   .ke-opt.help { animation: none; box-shadow: 0 0 0 5px var(--bz-group-acc, #b97f0a), 0 4px 0 #e6d3b3; }
   .ke-steam i { animation: none; opacity: 0.8; }
   .ke-dish svg { transition: none; }
+  .ke-cook.happy svg, .ke-cook.ready .ke-cook-hat, .ke-cook.ready .ke-cook-spoon { animation: none; }
 }

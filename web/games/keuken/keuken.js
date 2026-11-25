@@ -2,8 +2,13 @@
 // kitchen drawn in code: a dish with empty bowls, and the ingredients to tap; when every bowl is
 // full the dish is ready (it steams or sparkles). Older children say which dish the full bowls make,
 // where an ingredient comes from, put the steps of a recipe in order and find the odd one out.
-// Nothing is ever wrong: a tap that does not fit bounces back with a short line ("Dat hoort bij de
-// pizza!"); after MAX_TRIES the answer glows. No timers, no voice; the shell's sounds.
+// A cook (a little bear in a chef's hat and an apron, cookSvg) stands in the kitchen and says every
+// line in a speech bubble (cookLine): the task at the start ("Hoi! We maken pannenkoeken. Wat hebben
+// we nodig?"), each right tap ("Lekker! Nu hebben we de melk."), the dish ready ("Klaar! Eet
+// smakelijk!"). It bobs on a right answer and stirs with its hat wobbling when a dish is ready (CSS
+// only, still with reduced motion). Nothing is ever wrong: a tap that does not fit bounces back with
+// the cook's short line ("Hmm, kaas? Dat hoort bij de tosti!"); after MAX_TRIES the answer glows. No
+// timers, no voice; the shell's sounds.
 // The rounds and what a tap means are pure (rules.js), the data in dishes.js, the drawings in
 // art.js; the shell (web/js/main.js) owns the overlay card, the sound settings and the purchase.
 //
@@ -11,9 +16,9 @@
 // how-to cards were seen and the last tier. All read from the save each time. An unfinished round
 // is kept while the app stays open ("keep playing").
 import { meta } from './meta.js';
-import { TIERS, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, MAX_TRIES, makeRound, starsFor, hashSeed, startState, tapOption, stillToTap } from './rules.js';
+import { TIERS, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, MAX_TRIES, makeRound, starsFor, hashSeed, startState, tapOption, stillToTap, cookLine, lineText } from './rules.js';
 import { HOT, RECIPES } from './dishes.js';
-import { ingredientSvg, dishSvg, sourceSvg, actSvg, howSvg, wallSvg, clocheSvg, DISH_TOP } from './art.js';
+import { ingredientSvg, dishSvg, sourceSvg, actSvg, howSvg, wallSvg, clocheSvg, cookSvg, DISH_TOP } from './art.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
@@ -40,12 +45,13 @@ export function createKeuken(shell) {
   };
 
   // { tier, roundId (null when random), seed, qs, i, st, tried: Set, mistakes, results, tries, help,
-  //   say: () => text, waiting, done }
+  //   line (what the cook says now, from cookLine), mood ('' | 'happy' | 'ready'), waiting, done }
   let game = null;
   let plays = 0; // counts rounds started, so a late timer never acts on a newer round
   let timer = null;
 
   $('#ke-wall').innerHTML = wallSvg();
+  $('#ke-cook').innerHTML = cookSvg();
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
   const overlayUp = () => !$('#overlay').hidden;
   const locked = (tier) => meta.isLocked({ tier }, shell.unlock.owned);
@@ -183,7 +189,7 @@ export function createKeuken(shell) {
     clearTimer();
     if (lastTier() !== tier) store.saveGameOption(meta.id, 'lastTier', tier);
     const qs = makeRound({ tier, seed, round });
-    game = { tier, roundId, seed, qs, i: 0, st: startState(), tried: new Set(), mistakes: 0, results: [], tries: 0, help: false, say: null, waiting: false, done: false };
+    game = { tier, roundId, seed, qs, i: 0, st: startState(), tried: new Set(), mistakes: 0, results: [], tries: 0, help: false, line: null, mood: '', waiting: false, done: false };
     shell.show('keuken');
     render();
     if (!seenHow()[tier]) {
@@ -236,17 +242,21 @@ export function createKeuken(shell) {
     screen.dataset.kind = it.kind;
     $('#ke-sub').textContent = t('keuken.menu');
     $('#ke-title').textContent = game.roundId ? t('keuken.round', { n: game.roundId.split('-')[1] }) : t('random.title');
-    $('#ke-lead').textContent = lead(it);
     renderShow();
     renderBowls();
     renderOptions();
     renderDots();
-    $('#ke-status').textContent = game.say ? game.say() : '';
+    renderSay();
   }
 
-  function lead(it) {
-    if (it.kind === 'fill') return t(game.tier === 't1' ? 'keuken.lead.fill' : 'keuken.lead.fillAll', { dish: t(`keuken.the.${it.dish}`) });
-    return t(`keuken.lead.${it.kind}`);
+  /** The cook's line in the bubble (the task when nothing was said yet), and its mood. */
+  function renderSay() {
+    if (!game.line) game.line = cookLine(q(), { say: 'hello', i: game.i, tier: game.tier });
+    $('#ke-say').textContent = lineText(game.line, t);
+    const cook = $('#ke-cook');
+    cook.classList.toggle('happy', game.mood === 'happy' || game.mood === 'ready');
+    cook.classList.toggle('ready', game.mood === 'ready');
+    $('#ke-chat').classList.toggle('happy', !!game.mood);
   }
 
   /** The big picture: the dish being made (fading in as the bowls fill), or the ingredient asked about. */
@@ -269,7 +279,7 @@ export function createKeuken(shell) {
       pic.innerHTML = clocheSvg();
       name.textContent = '';
       name.hidden = true; // the question is in the line above; no lone "?" under the cover
-      box.setAttribute('aria-label', t('keuken.lead.which'));
+      box.setAttribute('aria-label', t('keuken.covered'));
     } else {
       pic.innerHTML = dishSvg(it.dish);
       name.textContent = dishName(it.dish);
@@ -383,9 +393,11 @@ export function createKeuken(shell) {
     box.setAttribute('aria-label', t('keuken.progress', { done: Math.min(game.i, ROUND_LEN), total: ROUND_LEN }));
   }
 
-  function say(fn) {
-    game.say = fn;
-    $('#ke-status').textContent = fn ? fn() : '';
+  /** The cook says `line` (from cookLine); `mood` is '' (calm), 'happy' (a bob) or 'ready' (a stir). */
+  function say(line, mood = '') {
+    game.line = line;
+    game.mood = mood;
+    renderSay();
   }
 
   // ---------- tapping ----------
@@ -405,9 +417,9 @@ export function createKeuken(shell) {
     if (it.kind === 'fill' || it.kind === 'steps') {
       renderBowls(true);
       syncFill();
-      if (!r.done && !game.help) say(null);
+      if (!r.done) say(cookLine(it, { say: 'try', res: r, id, help: game.help }), 'happy');
     }
-    if (r.done) correct(it);
+    if (r.done) correct(it, r, id);
     if (it.kind === 'which') renderShow(); // the cover comes off
     renderOptions();
   }
@@ -422,37 +434,21 @@ export function createKeuken(shell) {
     game.tries++;
     if (it.kind !== 'steps') game.tried.add(id);
     sfx.boop();
-    const line = whyLine(r);
     if (game.tries >= MAX_TRIES) game.help = true;
-    say(game.help ? () => `${line()} ${t('keuken.help')}` : line);
+    say(cookLine(it, { say: 'try', res: r, id, help: game.help }));
     renderOptions();
     const again = document.querySelector(`#ke-options .ke-opt[data-id="${CSS.escape(id)}"]`) || btn;
     again?.classList.add('bounce');
   }
 
-  function whyLine(r) {
-    if (r.why === 'belongs') return () => t('keuken.belongs', { dish: t(`keuken.the.${r.about}`) });
-    if (r.why === 'lacks') return () => t('keuken.lacks', { ing: ingName(r.about.ing).replace(/­/g, ''), dish: t(`keuken.the.${r.about.dish}`) });
-    if (r.why === 'gives') return () => t(`keuken.gives.${r.about}`);
-    if (r.why === 'later') return () => t('keuken.later');
-    return () => t(`keuken.also.${r.about}`);
-  }
-
-  function correct(it) {
+  /** The question is done: the cook says so (a dish ready makes it stir), then the next one. */
+  function correct(it, r, id) {
     if (game.results[game.i] === undefined) game.results[game.i] = true;
     game.waiting = true;
     game.help = false;
-    let ms = 1500;
-    if (it.kind === 'fill' || it.kind === 'steps') {
-      say(() => t('keuken.ready'));
-      ms = 1900;
-    } else if (it.kind === 'from') {
-      say(() => t(`keuken.fact.${it.ing}`));
-      ms = 2800;
-    } else if (it.kind === 'odd') {
-      say(() => t(`keuken.group.${it.group}`));
-      ms = 2200;
-    } else say(() => t('keuken.good'));
+    const made = it.kind === 'fill' || it.kind === 'steps';
+    say(cookLine(it, { say: 'try', res: r, id }), made ? 'ready' : 'happy');
+    const ms = made ? 1900 : it.kind === 'from' ? 2800 : it.kind === 'odd' ? 2200 : 1500;
     sfx.chime();
     renderDots();
     later(ms, nextQuestion);
@@ -463,7 +459,8 @@ export function createKeuken(shell) {
     game.waiting = false;
     game.tries = 0;
     game.help = false;
-    game.say = null;
+    game.line = null;
+    game.mood = '';
     game.tried = new Set();
     game.i++;
     if (game.i >= ROUND_LEN) {
@@ -542,6 +539,8 @@ export function createKeuken(shell) {
             done: game.done,
             waiting: game.waiting,
             todo: stillToTap(game.qs[game.i] || game.qs[0], game.st),
+            line: game.line && { key: game.line.key, text: $('#ke-say').textContent },
+            mood: game.mood,
           },
         start: (id) => startRound(id),
         random: (tier, seed) => playRandom(tier, seed),
