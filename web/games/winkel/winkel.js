@@ -233,7 +233,11 @@ export function createWinkel(shell) {
   function resume() {
     if (!game || game.done) return;
     shell.show('winkel');
-    if (game.waiting) nextQuestion();
+    // left in the pause after a second try: the shop still shows how to pay before moving on
+    if (game.waiting && !game.right && !game.shown && game.tries >= MAX_TRIES) {
+      render();
+      later(600, showWay);
+    } else if (game.waiting) nextQuestion();
     else render();
   }
 
@@ -368,7 +372,8 @@ export function createWinkel(shell) {
     }
     const sum = total(game.laid);
     $('#wk-total').textContent = t(it.ask === 'change' ? 'winkel.back' : 'winkel.onCounter', { amount: fmt(sum) });
-    const extra = new Set(fb && fb.why === 'over' && fb.extra ? fb.extra : []);
+    // too much: the pieces that are over; too little that the purse cannot make: the pieces to swap
+    const extra = new Set(fb && fb.why === 'over' && fb.extra ? fb.extra : fb && fb.why === 'short' ? fb.back : []);
     const done = game.right || game.shown;
     if (!TIERS[game.tier].piles) {
       // the youngest: every coin on its own, so they can be counted
@@ -590,7 +595,8 @@ export function createWinkel(shell) {
     renderGoods();
     renderDots();
     syncPay();
-    if (res.why === 'short') setStatus(t('winkel.short', { amount: fmt(res.missing) }));
+    if (res.why === 'short' && res.back.length) setStatus(t('winkel.swap', { amount: fmt(res.missing), back: fmt(res.back.reduce((n, i) => n + game.laid[i], 0)) }));
+    else if (res.why === 'short') setStatus(t('winkel.short', { amount: fmt(res.missing) }));
     else if (res.why === 'more') setStatus(t('winkel.more', { n: res.n }));
     else if (q().ask === 'basket') setStatus(t('winkel.overBudget', { sum: fmt(res.sum), amount: fmt(res.over) }));
     else setStatus(t('winkel.over', { amount: fmt(res.over) }));
@@ -678,12 +684,14 @@ export function createWinkel(shell) {
   });
 
   // ---------- taps and drags on the purse and the counter ----------
-  // A tap is a click (so the keyboard works too); a finger or mouse that moves DRAG_START px
-  // carries a copy of the coin: dropped on the counter it is laid, a coin from the counter dropped
-  // anywhere else goes back. The click that follows a drag is ignored.
+  // A finger or mouse that lifts where it went down is a tap, handled on pointerup (a browser may
+  // send no click for a touch right after a drag); one that moves DRAG_START px carries a copy of
+  // the coin: dropped on the counter it is laid, a coin from the counter dropped anywhere else goes
+  // back. The click a browser sends after either is eaten; a click without a pointer before it
+  // (the keyboard) does the tap.
 
   let drag = null; // { from, d, i, x0, y0, id, ghost }
-  let eatClick = false; // the click a browser sends after a drag
+  let eatUntil = 0; // eat the click that follows a tap or drag handled here
 
   function dropDrag() {
     if (drag?.ghost) drag.ghost.remove();
@@ -697,7 +705,7 @@ export function createWinkel(shell) {
   };
 
   function onDown(e) {
-    eatClick = false;
+    eatUntil = 0;
     if (e.button > 0 || drag) return;
     const b = e.target.closest('button[data-d]');
     if (!b || b.disabled || busy()) return;
@@ -725,22 +733,29 @@ export function createWinkel(shell) {
     $('#wk-counter').classList.toggle('drop', drag.from === 'wallet' && inCounter(e.clientX, e.clientY));
   }
 
+  const piece = (d) => (d.i !== null ? { i: d.i } : { d: d.d });
+
   function onUp(e) {
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag;
     const moved = !!d.ghost;
     dropDrag();
-    if (!moved) return; // a tap: the click does it
-    eatClick = true;
-    setTimeout(() => (eatClick = false), 0);
+    eatUntil = performance.now() + 700;
+    sfx.unlock();
+    if (!moved) {
+      // a tap: lay the coin, or take it back
+      if (d.from === 'wallet') layCoin(d.d);
+      else takeCoin(piece(d));
+      return;
+    }
     const over = inCounter(e.clientX, e.clientY);
     if (d.from === 'wallet' && over) layCoin(d.d);
-    else if (d.from === 'counter' && !over) takeCoin(d.i !== null ? { i: d.i } : { d: d.d });
+    else if (d.from === 'counter' && !over) takeCoin(piece(d));
   }
 
-  const afterDrag = () => {
-    const eat = eatClick;
-    eatClick = false;
+  const eaten = () => {
+    const eat = performance.now() < eatUntil;
+    eatUntil = 0;
     return eat;
   };
   for (const sel of ['#wk-wallet', '#wk-laid']) $(sel).addEventListener('pointerdown', onDown);
@@ -752,13 +767,13 @@ export function createWinkel(shell) {
 
   $('#wk-wallet').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-d]');
-    if (!b || afterDrag()) return;
+    if (!b || eaten()) return;
     sfx.unlock();
     layCoin(Number(b.dataset.d));
   });
   $('#wk-laid').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-d]');
-    if (!b || afterDrag()) return;
+    if (!b || eaten()) return;
     sfx.unlock();
     takeCoin(b.dataset.i != null ? { i: Number(b.dataset.i) } : { d: Number(b.dataset.d) });
   });

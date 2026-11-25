@@ -202,6 +202,53 @@ export function subsetFor(laid, amount) {
   return best.get(amount) || null;
 }
 
+/**
+ * Too little, and the purse cannot make the rest: the fewest pieces of `laid` to take back (their
+ * indexes) so that the purse can then make the price, and the pieces that go on instead.
+ */
+export function swapFor(q, laid) {
+  const kinds = [...new Set(laid)].sort((a, b) => b - a);
+  const have = kinds.map((d) => laid.filter((x) => x === d).length);
+  const rest = left(q.wallet, laid);
+  const sum = total(laid);
+  // every way to take k pieces back, k = 1, 2, ... (by kind, so the same coin twice is one way)
+  for (let k = 1; k <= laid.length; k++) {
+    let found = null;
+    const walk = (i, need, out) => {
+      if (found) return;
+      if (need === 0) {
+        const off = total(out);
+        const purse = { ...rest };
+        for (const d of out) purse[d] = (purse[d] || 0) + 1;
+        const add = fewest(q.target - (sum - off), purse);
+        if (add) found = { out: [...out], add };
+        return;
+      }
+      if (i >= kinds.length) return;
+      for (let j = Math.min(need, have[i]); j >= 0; j--) walk(i + 1, need - j, [...out, ...Array(j).fill(kinds[i])]);
+    };
+    walk(0, k, []);
+    if (found) {
+      const back = [];
+      for (const d of found.out) {
+        const i = laid.findIndex((x, n) => x === d && !back.includes(n));
+        back.push(i);
+      }
+      // a piece taken back and laid again is no swap: drop it from both sides
+      const ghosts = [...found.add];
+      for (let n = back.length - 1; n >= 0; n--) {
+        const g = ghosts.indexOf(laid[back[n]]);
+        if (g >= 0) {
+          ghosts.splice(g, 1);
+          back.splice(n, 1);
+        }
+      }
+      return { back: back.sort((a, b) => a - b), ghosts };
+    }
+  }
+  return { back: laid.map((_, i) => i), ghosts: [...q.solution] };
+}
+
 /** Counting up from the price: the totals after each coin, small coins first ("3,40 → 3,50 → 4"). */
 export function countUp(from, laid) {
   const out = [from];
@@ -252,7 +299,12 @@ export function judge(q, laid) {
   const sum = total(laid);
   if (sum < q.target) {
     const missing = q.target - sum;
-    return { ok: false, why: 'short', missing, ghosts: fewest(missing, left(q.wallet, laid)) || [] };
+    const add = fewest(missing, left(q.wallet, laid));
+    if (add) return { ok: false, why: 'short', missing, ghosts: add, back: [] };
+    // what is left in the purse cannot make the rest (the twos purse: € 2 with the € 1 laid):
+    // take the fewest pieces back so it can, and show what goes on instead
+    const swap = swapFor(q, laid);
+    return { ok: false, why: 'short', missing, ghosts: swap.ghosts, back: swap.back };
   }
   if (sum > q.target) {
     const over = sum - q.target;
@@ -347,11 +399,16 @@ function make(kind, tier, round, rand) {
 }
 
 /** The same kind of question again with a new number, never the same as the one before. */
-function question(kind, tier, round, rand, prev) {
-  for (let tries = 0; tries < 200; tries++) {
+function question(kind, tier, round, rand, before) {
+  const prev = before[before.length - 1];
+  const key = (x) => (x.ask === 'basket' ? `${x.budget}:${x.items.map((i) => i.price).join(',')}` : String(x.target));
+  for (let tries = 0; tries < 300; tries++) {
     const q = make(kind, tier, round, rand);
     if (!q) continue;
-    if (prev && prev.kind === q.kind && prev.target === q.target && prev.items[0].id === q.items[0].id) continue;
+    if (prev && prev.kind === q.kind && key(prev) === key(q)) continue;
+    // an amount at most once per kind in a round while there are others to ask, then twice
+    const seen = before.filter((x) => x.kind === q.kind && key(x) === key(q)).length;
+    if (seen >= (tries < 150 ? 1 : 2) && tries < 250) continue;
     return Object.freeze(q);
   }
   throw new Error(`no ${kind} question`);
@@ -368,6 +425,6 @@ export function makeRound({ tier, seed, round = 0 }) {
   // the first rounds start with their easiest kind; the rest are shuffled
   const kinds = shuffle(KINDS[tier][r], rand);
   const out = [];
-  for (const kind of kinds) out.push(question(kind, tier, r, rand, out[out.length - 1]));
+  for (const kind of kinds) out.push(question(kind, tier, r, rand, out));
   return out;
 }

@@ -12,11 +12,14 @@ const METAL = {
   gold: { face: '#ecc85e', rim: '#b98e22', ink: '#5a4310', shine: '#fbe7a2' },
   silver: { face: '#d5dae0', rim: '#8e97a3', ink: '#2f3742', shine: '#f4f6f8' },
 };
-const NOTE = {
+/** The notes' colours: the face, the band at the left, the ink of the value, a soft circle. */
+export const NOTE = {
   500: { face: '#dfe1e4', band: '#a9adb3', ink: '#3a3f46', mark: '#c4c8cd' },
   1000: { face: '#f7d4cb', band: '#d9796a', ink: '#6b2219', mark: '#efb3a6' },
   2000: { face: '#d3e3f6', band: '#6f9ad6', ink: '#1d3a66', mark: '#adc8ec' },
 };
+/** How strongly the band shows over the face (the small value on it is ink: tested 4.5:1). */
+export const BAND_OPACITY = 0.35;
 const metalOf = (d) => (d < 10 ? 'copper' : d < 100 ? 'gold' : 'bi');
 
 /** The biggest coin's diameter in mm: a coin is drawn at SIZE_MM[d] / BIG of its box. */
@@ -63,10 +66,10 @@ export function noteSvg(d, { unit = 'euro', cls = '' } = {}) {
   const v = faceValue(d);
   return `<svg class="wk-note ${cls}" viewBox="0 0 140 76" aria-hidden="true">
     <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" rx="5" fill="${c.face}" stroke="${c.band}" stroke-width="2.4"/>
-    <rect x="${(x + 4).toFixed(2)}" y="${(y + 4).toFixed(2)}" width="${(w * 0.2).toFixed(2)}" height="${(h - 8).toFixed(2)}" rx="3" fill="${c.band}" opacity="0.55"/>
+    <rect x="${(x + 4).toFixed(2)}" y="${(y + 4).toFixed(2)}" width="${(w * 0.2).toFixed(2)}" height="${(h - 8).toFixed(2)}" rx="3" fill="${c.band}" opacity="${BAND_OPACITY}"/>
     <circle cx="${(x + w * 0.78).toFixed(2)}" cy="${(y + h * 0.5).toFixed(2)}" r="${(h * 0.34).toFixed(2)}" fill="${c.mark}"/>
     <circle cx="${(x + w * 0.78).toFixed(2)}" cy="${(y + h * 0.5).toFixed(2)}" r="${(h * 0.2).toFixed(2)}" fill="none" stroke="${c.band}" stroke-width="1.6" opacity="0.7"/>
-    <text x="${(x + w * 0.14).toFixed(2)}" y="${(y + h * 0.36).toFixed(2)}" font-size="${(h * 0.26).toFixed(2)}" text-anchor="middle" font-weight="900" fill="#fff" class="wk-face">${v}</text>
+    <text x="${(x + w * 0.14).toFixed(2)}" y="${(y + h * 0.36).toFixed(2)}" font-size="${(h * 0.26).toFixed(2)}" text-anchor="middle" font-weight="900" fill="${c.ink}" class="wk-face wk-band-value">${v}</text>
     <text x="${(x + w * 0.5).toFixed(2)}" y="${(y + h * 0.6).toFixed(2)}" font-size="${(h * 0.5).toFixed(2)}" text-anchor="middle" font-weight="900" fill="${c.ink}" class="wk-face">${v}</text>
     ${unit ? `<text x="${(x + w * 0.5).toFixed(2)}" y="${(y + h * 0.86).toFixed(2)}" font-size="${(h * 0.17).toFixed(2)}" text-anchor="middle" font-weight="800" fill="${c.ink}" class="wk-unit">${unit}</text>` : ''}
   </svg>`;

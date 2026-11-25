@@ -24,6 +24,7 @@ import {
   total,
   left,
   fewest,
+  swapFor,
   subsetFor,
   countUp,
   lay,
@@ -36,7 +37,7 @@ import {
   makeRound,
 } from '../web/games/winkel/rules.js';
 import { meta } from '../web/games/winkel/meta.js';
-import { coinSvg, noteSvg, moneySvg, itemSvg, tileSvg, howSvg, ITEM_ART, BIG } from '../web/games/winkel/art.js';
+import { coinSvg, noteSvg, moneySvg, itemSvg, tileSvg, howSvg, ITEM_ART, BIG, NOTE, BAND_OPACITY } from '../web/games/winkel/art.js';
 import { sanitizePayload, payloadOf, mergeTransfer, encodeSave, decodeText } from '../web/js/transfer.js';
 
 const SEEDS = 200;
@@ -117,6 +118,10 @@ test('fewest: the fewest coins and notes, checked against a brute force, null wh
     for (const d of [...DENOMS].reverse()) while (r >= d) (greedy.push(d), (r -= d));
     assert.deepEqual(fewest(a, plenty), greedy, `${a}`);
   }
+  // where the biggest first goes wrong: 60 from one 50 and three 20s is 20 + 20 + 20
+  assert.deepEqual(fewest(60, { 50: 1, 20: 3 }), [20, 20, 20]);
+  assert.deepEqual(fewest(80, { 50: 1, 20: 4, 10: 0 }), [20, 20, 20, 20]);
+  assert.deepEqual(fewest(6, { 5: 1, 3: 2, 1: 0 }), [3, 3]);
   assert.deepEqual(fewest(1350, WALLETS.half), [1000, 200, 100, 50]);
   assert.deepEqual(fewest(340, WALLETS.till), [200, 100, 20, 20]);
   assert.equal(fewest(3, WALLETS.ones), null);
@@ -166,6 +171,7 @@ test('never wrong: too little says what is missing (with coins that make it), to
   const q = { kind: 'exact', ask: 'pay', goal: 'exact', items: [{ id: 'book', price: 750 }], target: 750, wallet: WALLETS.half, solution: [500, 200, 50] };
   const short = judge(q, [500, 100]);
   assert.equal(short.why, 'short');
+  assert.deepEqual(short.back, []);
   assert.equal(short.missing, 150);
   assert.deepEqual(short.ghosts, [100, 50]);
   const over = judge(q, [500, 200, 100]);
@@ -182,6 +188,51 @@ test('never wrong: too little says what is missing (with coins that make it), to
   assert.deepEqual(subsetFor([100, 50, 20, 20, 10], 40), [2, 3]);
   assert.deepEqual(subsetFor([100, 50, 20, 20, 10], 30), [2, 4]);
   assert.equal(subsetFor([100], 50), null);
+});
+
+test('too little that the purse cannot make: take the fewest pieces back and show what goes on instead', () => {
+  const twos = (target) => ({ kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'book', price: target }], target, wallet: WALLETS.twos, solution: fewest(target, WALLETS.twos) });
+  // € 2 with the only € 1 laid: no € 1 left, so the € 1 goes back and a € 2 goes on
+  assert.deepEqual(judge(twos(200), [100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
+  // € 4 with the € 1: back, and two € 2
+  assert.deepEqual(judge(twos(400), [100]), { ok: false, why: 'short', missing: 300, ghosts: [200, 200], back: [0] });
+  // € 4 with € 1 and € 2: the € 1 back, one more € 2 (the € 2 stays)
+  assert.deepEqual(judge(twos(400), [100, 200]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
+  assert.deepEqual(judge(twos(400), [200, 100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [1] });
+  // what the purse can make needs no swap
+  assert.deepEqual(judge(twos(500), [200, 200]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
+  assert.deepEqual(judge(twos(300), [200]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
+  // every twos price with every too-little counter: the help always leads to a right answer
+  for (const target of [200, 300, 400, 500]) {
+    const q = twos(target);
+    for (let ones = 0; ones <= 1; ones++) {
+      for (let tw = 0; tw <= 3; tw++) {
+        const laid = [...Array(ones).fill(100), ...Array(tw).fill(200)];
+        if (total(laid) >= target) continue;
+        const res = judge(q, laid);
+        assert.equal(res.why, 'short');
+        const after = [...laid.filter((_, i) => !res.back.includes(i)), ...res.ghosts];
+        assert.equal(total(after), target, `${target} from ${laid}: ${JSON.stringify(res)}`);
+        for (const n of Object.values(left(q.wallet, after))) assert.ok(n >= 0, `${target} from ${laid}: more than the purse has`);
+        assert.ok(res.ghosts.length, 'always a coin to show');
+      }
+    }
+  }
+  // the same over 200 seeds of every tier: whatever too little lies there, the help adds up
+  for (const tier of TIER_IDS) {
+    for (let s = 0; s < 40; s++) {
+      for (const q of makeRound({ tier, seed: seedOf(s) })) {
+        if (q.ask === 'basket') continue;
+        for (let k = 0; k < q.solution.length; k++) {
+          const laid = q.solution.slice(0, k);
+          const res = judge(q, laid);
+          const after = [...laid.filter((_, i) => !res.back.includes(i)), ...res.ghosts];
+          assert.equal(total(after), q.target);
+        }
+      }
+    }
+  }
+  assert.deepEqual(swapFor(twos(200), [100]), { back: [0], ghosts: [200] });
 });
 
 test('a budget: two things that together cost no more than you have; over says by how much', () => {
@@ -306,6 +357,27 @@ test('200 random rounds per tier: every question sound, and the rounds differ', 
   }
 });
 
+test('variety: an amount comes back in a round only when the kind has run out of others', () => {
+  const key = (q) => (q.ask === 'basket' ? `${q.budget}:${q.items.map((i) => i.price)}` : q.target);
+  const check = (qs, label) => {
+    for (const kind of new Set(qs.map((q) => q.kind))) {
+      const mine = qs.filter((q) => q.kind === kind).map(key);
+      const counts = {};
+      for (const k of mine) counts[k] = (counts[k] || 0) + 1;
+      assert.ok(Math.max(...Object.values(counts)) <= 2, `${label} ${kind}: ${mine}`);
+    }
+  };
+  for (const tier of TIER_IDS) {
+    fixed(tier).forEach((qs, k) => check(qs, `${tier}-${k + 1}`));
+    for (let s = 0; s < SEEDS; s++) check(makeRound({ tier, seed: seedOf(s) }), `${tier} seed ${s}`);
+  }
+  // 3-5 round 3: four "two at once" questions, each a different amount
+  const twos = fixed('t1')[2].filter((q) => q.kind === 'twos').map((q) => q.target);
+  assert.equal(new Set(twos).size, twos.length, `t1-3 twos: ${twos}`);
+  // round 1 of 3-5 starts with an amount where too few coins can be laid (the smoke test needs it)
+  assert.ok(fixed('t1')[0][0].target >= 200);
+});
+
 test('every price a tier asks has at least two things that may cost it', () => {
   const ranges = { t1: [100, 500, 100], t2: [100, 2000, 50] };
   for (const [tier, [lo, hi, step]] of Object.entries(ranges)) {
@@ -321,6 +393,29 @@ test('art: our own coins and notes with the value large, every thing drawn, no i
     assert.ok(svg.includes(`>${d >= 100 ? d / 100 : d}</text>`), `${d}: the value on the face`);
   }
   for (const d of NOTES) assert.ok(noteSvg(d).includes(`>${d / 100}</text>`));
+  // drawn to scale: a coin's radius is its real diameter against the 2 euro coin's, a note's width likewise
+  const radius = (d) => Number(coinSvg(d).match(/<circle cx="50" cy="50" r="([\d.]+)"/)[1]);
+  for (const d of COINS) assert.ok(Math.abs(radius(d) / radius(200) - SIZE_MM[d] / SIZE_MM[200]) < 0.002, `${d}: drawn at the wrong size`);
+  const width = (d) => Number(noteSvg(d).match(/<rect [^>]*? width="([\d.]+)"/)[1]);
+  const height = (d) => Number(noteSvg(d).match(/<rect [^>]*? height="([\d.]+)"/)[1]);
+  for (const d of NOTES) {
+    assert.ok(Math.abs(width(d) / width(2000) - SIZE_MM[d][0] / SIZE_MM[2000][0]) < 0.002, `${d}: note width`);
+    assert.ok(Math.abs(height(d) / height(2000) - SIZE_MM[d][1] / SIZE_MM[2000][1]) < 0.002, `${d}: note height`);
+  }
+  // the small value on a note's band is readable: 4.5:1 or more on the band over the face
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lum = (c) => {
+    const [r, g, b] = c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  for (const d of NOTES) {
+    const c = NOTE[d];
+    const band = rgb(c.band).map((v, i) => v * BAND_OPACITY + rgb(c.face)[i] * (1 - BAND_OPACITY));
+    const [a, b] = [lum(band), lum(rgb(c.ink))].sort((x, y) => y - x);
+    const ratio = (a + 0.05) / (b + 0.05);
+    assert.ok(ratio >= 4.5, `${d}: the value on the band is ${ratio.toFixed(2)}:1`);
+    assert.match(noteSvg(d), new RegExp(`fill="${c.ink}" class="wk-face wk-band-value">${d / 100}<`));
+  }
   // the bi-metal coins, the other way round: € 1 a gold ring round silver, € 2 a silver ring round gold
   const fills = (d) => [...coinSvg(d).matchAll(/<circle[^>]*fill="(#[0-9a-f]+)"/g)].map((m) => m[1]);
   assert.deepEqual(fills(100).slice(0, 2), ['#ecc85e', '#d5dae0']);

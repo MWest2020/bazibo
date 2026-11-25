@@ -7754,6 +7754,23 @@ def wk_drag(page, src, dst):
     page.wait_for_timeout(80)
 
 
+def wk_finger(page, cdp, src, dst):
+    """A real finger drag (touch events through CDP) from the middle of `src` to the middle of `dst`."""
+    a = page.locator(src).first.bounding_box()
+    b = page.locator(dst).first.bounding_box()
+    ax, ay = a["x"] + a["width"] / 2, a["y"] + a["height"] / 2
+    bx, by = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": ax, "y": ay, "id": 1}]})
+    # out and back when the drop is on the coin's own button: a real drag, not a tap
+    path = [(ax + 40 * k / 4, ay - 40 * k / 4) for k in range(1, 5)] + [(ax + 40 - 40 * k / 4, ay - 40 + 40 * k / 4) for k in range(1, 5)] if (ax, ay) == (bx, by) else \
+        [(ax + (bx - ax) * k / 8, ay + (by - ay) * k / 8) for k in range(1, 9)]
+    for x, y in path:
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y, "id": 1}]})
+        page.wait_for_timeout(16)
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    page.wait_for_timeout(120)
+
+
 def winkel_flow(browser, base, problems):
     """Winkeltje at 390x844 with real taps: the tile in Leren opens the menu, a locked tier offers
     only OK on the web; round t1-1 (3-5, whole euros) played to the end by taps on the purse with
@@ -7805,7 +7822,7 @@ def winkel_flow(browser, base, problems):
         page.screenshot(path=str(SHOTS / "winkel-how-390x844.png"))
         page.click("#ov-buttons button")
         page.wait_for_timeout(150)
-    did = {"short": False, "tapBack": False, "dragLay": False, "dragBack": False}
+    did = {"short": False, "tapBack": False, "dragLay": False, "dragBack": False, "finger": False}
     for i in range(6):
         st = wk_state(page)
         q = st["q"]
@@ -7845,6 +7862,23 @@ def winkel_flow(browser, base, problems):
             if wk_state(page)["laid"]:
                 problems.append(f"{label}: a drag off the counter left {wk_state(page)['laid']}")
             did["dragBack"] = True
+            # the same by a finger (touch events), and a drop back on the coin's own button does nothing
+            cdp = ctx.new_cdp_session(page)
+            wk_finger(page, cdp, "#wk-wallet .wk-stack[data-d='100']", "#wk-wallet .wk-stack[data-d='100']")
+            if wk_state(page)["laid"]:
+                problems.append(f"{label}: a finger drag dropped on its own purse coin laid {wk_state(page)['laid']}")
+            wk_finger(page, cdp, "#wk-wallet .wk-stack[data-d='100']", "#wk-counter")
+            if wk_state(page)["laid"] != [100]:
+                problems.append(f"{label}: a finger drag onto the counter laid {wk_state(page)['laid']}")
+            wk_finger(page, cdp, "#wk-laid button.wk-piece >> nth=0", "#wk-laid button.wk-piece >> nth=0")
+            if wk_state(page)["laid"] != [100]:
+                problems.append(f"{label}: a finger drag dropped on its own counter coin left {wk_state(page)['laid']}")
+            wk_finger(page, cdp, "#wk-laid button.wk-piece >> nth=0", "#wk-wallet")
+            if wk_state(page)["laid"]:
+                problems.append(f"{label}: a finger drag off the counter left {wk_state(page)['laid']}")
+            if page.locator(".wk-drag").count():
+                problems.append(f"{label}: a dragged coin was left on screen")
+            did["finger"] = True
             wk_lay_taps(page, [100] * n)
         else:
             # one too many, then a tap on the counter takes it back (before paying: not a mistake)
@@ -7893,6 +7927,31 @@ def winkel_flow(browser, base, problems):
     st2 = wk_state(page)
     if where(page) != ["winkel", False] or st2["i"] != 1 or st2["roundId"] != "t1-2" or st2["laid"] != [100]:
         problems.append(f"winkel: Verder spelen opened {where(page)} at question {st2['i'] + 1} with {st2['laid']}")
+    # two wrong tries, then away in the pause before the shop shows the way: "keep playing" still shows it
+    n = st2["q"]["target"] // 100
+    for _ in range(n + 1 - len(st2["laid"])):
+        page.evaluate("window.__bubbels.winkel.lay(100)")
+    page.evaluate("window.__bubbels.winkel.pay()")  # one too many
+    if n >= 2:
+        page.evaluate("window.__bubbels.winkel.take(0)")
+        page.evaluate("window.__bubbels.winkel.take(0)")  # one too few
+    else:
+        page.evaluate("window.__bubbels.winkel.lay(100)")  # two too many
+    page.evaluate("window.__bubbels.winkel.pay()")
+    st3 = wk_state(page)
+    if st3["tries"] != 2 or not st3["waiting"] or st3["shown"]:
+        problems.append(f"winkel: two wrong tries gave tries={st3['tries']} waiting={st3['waiting']} shown={st3['shown']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(1800)  # longer than the pause: nothing happens while away
+    if wk_state(page)["shown"] or wk_state(page)["i"] != 1:
+        problems.append(f"winkel: the help went on while away ({wk_state(page)})")
+    page.locator("#winkel-continue").tap()
+    st4 = wk_poll(page, lambda x: x["shown"] or x["i"] != 1, "winkel: Verder spelen after two tries", problems)
+    if not st4["shown"] or st4["i"] != 1 or sorted(st4["laid"]) != sorted(st4["q"]["solution"]):
+        problems.append(f"winkel: Verder spelen after two tries skipped the help ({st4})")
+    elif "Kijk" not in page.inner_text("#wk-status"):
+        problems.append(f"winkel: the help says {page.inner_text('#wk-status')!r}")
+    wk_next(page, 1, problems, "winkel t1-2 help")
     page.evaluate("window.__bubbels.back()")
     page.wait_for_timeout(100)
     page.evaluate("window.__bubbels.back()")  # the menu goes home
@@ -7904,12 +7963,32 @@ def winkel_flow(browser, base, problems):
     page.locator("#tile-winkel").click()
     page.evaluate("window.__bubbels.winkel.start('t1-3')")
     page.wait_for_timeout(150)
+    swapped = False
     for i in range(6):
+        q = wk_state(page)["q"]
+        if not swapped and q["kind"] == "twos" and q["target"] in (200, 400):
+            # too little that the purse cannot make (no 1 euro left): the 1 euro marked to take back,
+            # a 2 euro ghost, and a line that says so
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(120)
+            wk_lay_taps(page, [100])
+            wk_tap(page, "#wk-pay")
+            page.wait_for_timeout(120)
+            st = wk_state(page)
+            line = page.inner_text("#wk-status").replace("\u00a0", " ")
+            if not st["fb"] or st["fb"]["back"] != [0] or page.locator("#wk-laid button.wk-piece.over").count() != 1 or page.locator("#wk-laid .wk-ghost").count() != q["target"] // 200 or "Pak eerst € 1 terug" not in line:
+                problems.append(f"winkel t1-3 q{i + 1}: € {q['target'] // 100} with the 1 euro laid: fb={st['fb']} line={line!r}")
+            page.screenshot(path=str(SHOTS / "winkel-swap-390x844.png"))
+            wk_tap(page, "#wk-laid button.wk-piece")
+            swapped = True
         wk_pay_hook(page, i, problems, "winkel t1-3")
+    if not swapped:
+        problems.append("winkel t1-3: no twos question of 2 or 4 euro to swap in")
     if "laatste gratis" not in page.inner_text("#ov-text"):
         problems.append(f"winkel: the end of t1-3 says {page.inner_text('#ov-text')!r}")
     if web_offer_ok(page, "winkel t1-3", "winkel-menu", problems):
-        if page.evaluate("window.__bubbels.winkel.stars()").get("t1-3") != 3:
+        if page.evaluate("window.__bubbels.winkel.stars()").get("t1-3") != 2:  # the swap was one mistake
             problems.append(f"winkel: t1-3 not saved ({page.evaluate('window.__bubbels.winkel.stars()')})")
     if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
         problems.append("winkel: something speaks")
