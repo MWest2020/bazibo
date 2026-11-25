@@ -8,7 +8,7 @@
 //              one out
 // A wrong tap is never "wrong": it bounces back with a short line (the dish it belongs to, the
 // ingredient the picked dish lacks, what the picked source gives). After MAX_TRIES the answer glows.
-import { PREFERRED, DISHES, DISH_IDS, INGREDIENT_IDS, LOOKALIKES, lookalikesOf, ORIGINS, ORIGIN_IDS, SOURCE_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from './dishes.js';
+import { PREFERRED, DISHES, DISH_IDS, INGREDIENT_IDS, LOOKALIKES, lookalikesOf, MADE_OF, ORIGINS, ORIGIN_IDS, SOURCE_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from './dishes.js';
 
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
 export const TIERS = Object.freeze({
@@ -86,9 +86,24 @@ export function canMake(d, shown) {
   return DISHES[d].need.every((i) => shown.includes(i)) || DISHES[d].key.every((i) => shown.includes(i));
 }
 
-/** For a picked dish that is not the answer: the first shown ingredient that is not in it. */
-export function missingIn(d, shown) {
+/**
+ * Everything a dish has in it, also in a made form: what it needs or may have, what those are made of
+ * (`MADE_OF`: the flour, water, yeast and salt in a tosti's bread, the milk in its cheese) and the dish
+ * itself (the bread in bread).
+ */
+export function hasIn(d) {
   const has = inDish(d);
+  has.add(d);
+  for (const i of [...has]) for (const m of MADE_OF[i] || []) has.add(m);
+  return has;
+}
+
+/**
+ * For a picked dish that is not the answer: the first shown ingredient that is really not in it, in
+ * no form ("Hmm, geen kaas in het brood!", never "geen bloem in de tosti" or "geen brood in het brood").
+ */
+export function missingIn(d, shown) {
+  const has = hasIn(d);
   return shown.find((i) => !has.has(i)) ?? null;
 }
 
@@ -237,9 +252,16 @@ export function answersOf(q) {
 // ---------- what the cook says ----------
 
 /**
- * What the cook says, as { key, vars, help } for t(). Every value in `vars` is another key (an
+ * The grammatical forms of an ingredient (`keuken.form.<id>` per language): a de-word (or English
+ * singular), a het-word, a plural. A line with `form` has a key per form ("Die horen bij ...").
+ */
+export const FORMS = Object.freeze(['sg', 'n', 'pl']);
+
+/**
+ * What the cook says, as { key, form, vars, help } for t(). Every value in `vars` is another key (an
  * ingredient or a dish as said in a sentence); null is left out (the greeting after the first
- * question). `help` adds the line about the glowing help.
+ * question). `form` names the key of the tapped ingredient's form; the text is then
+ * `<key>.<form>` (plurals and het-words agree). `help` adds the line about the glowing help.
  *   say 'hello'  at the start of question `i` of a round (the first with "Hoi!"), in tier `tier`
  *   say 'try'    after a tap on option `id`: `res` is what tapOption said about it
  */
@@ -262,11 +284,11 @@ export function cookLine(q, { say, i = 0, tier = 't1', res = null, id = null, he
     else if (q.kind === 'which') return { key: 'keuken.say.dish', vars: { dish: make(q.dish) } };
     else if (q.kind === 'from') return { key: `keuken.fact.${q.ing}`, vars: {} };
     else return { key: `keuken.group.${q.group}`, vars: {} };
-  } else if (res.why === 'belongs') line = { key: 'keuken.belongs', vars: { ing: `keuken.some.${id}`, dish: `keuken.the.${res.about}` } };
+  } else if (res.why === 'belongs') line = { key: 'keuken.belongs', form: `keuken.form.${id}`, vars: { ing: `keuken.some.${id}`, dish: `keuken.the.${res.about}` } };
   else if (res.why === 'lacks') line = { key: 'keuken.lacks', vars: { ing: `keuken.ing.${res.about.ing}`, dish: `keuken.the.${res.about.dish}` } };
   else if (res.why === 'gives') line = { key: `keuken.gives.${res.about}`, vars: {} };
   else if (res.why === 'later') line = { key: 'keuken.later', vars: {} };
-  else line = { key: `keuken.also.${res.about}`, vars: {} };
+  else line = { key: `keuken.also.${res.about}`, form: `keuken.form.${id}`, vars: {} };
   return help ? { ...line, help: true } : line;
 }
 
@@ -275,28 +297,30 @@ export const LINE_KEYS = Object.freeze([
   'keuken.hi',
   'keuken.help',
   'keuken.ready',
-  'keuken.belongs',
+  ...FORMS.map((f) => `keuken.belongs.${f}`),
   'keuken.lacks',
   'keuken.later',
   ...['fill', 'fillAll', 'from', 'steps', 'which', 'odd', 'yum', 'next', 'dish'].map((k) => `keuken.say.${k}`),
   ...DISH_IDS.flatMap((d) => [`keuken.make.${d}`, `keuken.the.${d}`]),
-  ...INGREDIENT_IDS.flatMap((i) => [`keuken.ing.${i}`, `keuken.some.${i}`, `keuken.art.${i}`]),
+  ...INGREDIENT_IDS.flatMap((i) => [`keuken.ing.${i}`, `keuken.some.${i}`, `keuken.art.${i}`, `keuken.form.${i}`]),
   ...ORIGIN_IDS.map((i) => `keuken.fact.${i}`),
   ...SOURCE_IDS.map((s) => `keuken.gives.${s}`),
-  ...GROUP_IDS.flatMap((g) => [`keuken.group.${g}`, `keuken.also.${g}`]),
+  ...GROUP_IDS.flatMap((g) => [`keuken.group.${g}`, ...FORMS.map((f) => `keuken.also.${g}.${f}`)]),
 ]);
 
 /**
- * A line as text through `t`: the soft hyphens of the picture names dropped, spaces left by a
- * greeting that is left out dropped, and every sentence starting with a capital ("Hmm, een ei?
- * Dat hoort ...", "Lekker! Nu hebben we ...").
+ * A line as text through `t`: the key of the ingredient's form when the line has one, spaces left by
+ * a greeting that is left out dropped, and every sentence starting with a capital ("Hmm, een ei?
+ * Dat hoort ...", "Fijn! Nu hebben we ..."). Soft hyphens stay, so a long word (boerenkool-
+ * stamppot) can break in a narrow bubble.
  */
 export function lineText(line, t) {
   const vars = {};
   for (const [k, v] of Object.entries(line.vars)) vars[k] = v === null ? '' : t(v);
-  let s = t(line.key, vars);
+  const form = line.form ? t(line.form) : null;
+  let s = t(form ? `${line.key}.${FORMS.includes(form) ? form : 'sg'}` : line.key, vars);
   if (line.help) s = `${s} ${t('keuken.help')}`;
-  s = s.replace(/­/g, '').replace(/ {2,}/g, ' ').trim();
+  s = s.replace(/ {2,}/g, ' ').trim();
   return s.replace(/(^|[.!?] )(\p{Ll})/gu, (_, a, b) => a + b.toLocaleUpperCase());
 }
 

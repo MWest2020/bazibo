@@ -171,7 +171,7 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KEUKEN_DISHES) used.add(`keuken.dish.${id}`).add(`keuken.the.${id}`);
   for (const id of KEUKEN_SOURCES) used.add(`keuken.src.${id}`).add(`keuken.gives.${id}`);
   for (const id of KEUKEN_ORIGINS) used.add(`keuken.fact.${id}`);
-  for (const id of KEUKEN_GROUPS) used.add(`keuken.group.${id}`).add(`keuken.also.${id}`);
+  for (const id of KEUKEN_GROUPS) used.add(`keuken.group.${id}`);
   for (const [r, steps] of Object.entries(KEUKEN_RECIPES)) steps.forEach((_, k) => used.add(`keuken.step.${r}.${k + 1}`));
   for (const id of WINKEL_TIERS) used.add(`winkel.tier.${id}`).add(`winkel.short.${id}`).add(`winkel.how.${id}`);
   for (const k of WINKEL_LINES) used.add(k); // the shopkeeper's lines, built by shopLine

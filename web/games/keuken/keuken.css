@@ -69,7 +69,7 @@
 .ke-bubble::after { right: -16px; margin-top: -7px; border-width: 7px; border-left: 10px solid #ffffff; }
 .ke-chat.happy .ke-bubble { border-color: #8fd16e; }
 .ke-chat.happy .ke-bubble::before { border-left-color: #8fd16e; }
-.ke-say { margin: 0; min-height: 2.4em; display: flex; align-items: center; font-size: 1rem; font-weight: 800; color: var(--bz-ink); line-height: 1.2; text-wrap: pretty; }
+.ke-say { margin: 0; min-height: 2.4em; display: flex; align-items: center; font-size: 1rem; font-weight: 800; color: var(--bz-ink); line-height: 1.2; text-wrap: pretty; overflow-wrap: anywhere; hyphens: manual; }
 .ke-cook { flex: none; display: block; width: 62px; height: 74px; }
 .ke-cook svg { width: 100%; height: 100%; display: block; overflow: visible; }
 /* a slow, small bob of joy on a right answer; a stir and a wobbling hat when a dish is ready */
@@ -254,7 +254,7 @@
   #screen-keuken[data-kind='odd'] .ke-options { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 640px; }
   .ke-chat { gap: 10px; }
   .ke-cook { width: 50px; height: 60px; }
-  .ke-bubble { padding: 3px 8px; }
+  .ke-bubble { padding: 3px 6px; }
   .ke-say { min-height: 0; font-size: 0.85rem; line-height: 1.2; }
   .ke-name { font-size: 0.85rem; }
   .ke-dish { max-height: 120px; }

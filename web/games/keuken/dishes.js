@@ -45,6 +45,21 @@ export const DISHES = Object.freeze({
 });
 export const DISH_IDS = Object.freeze(Object.keys(DISHES));
 
+/**
+ * What some ingredients are made of, so a line never says a dish lacks what is already in it in a
+ * made form: there is flour in the bread of a tosti, milk in its cheese ("Hmm, geen bloem in de
+ * tosti!" would be wrong). Mark checks this list.
+ */
+export const MADE_OF = Object.freeze({
+  brood: Object.freeze(['bloem', 'water', 'gist', 'zout']),
+  pasta: Object.freeze(['bloem', 'water', 'ei']),
+  kaas: Object.freeze(['melk', 'zout']),
+  boter: Object.freeze(['melk']),
+  yoghurt: Object.freeze(['melk']),
+  hagelslag: Object.freeze(['suiker']),
+  pindakaas: Object.freeze(['zout']),
+});
+
 /** Hot dishes steam when they are ready; the rest sparkle. */
 /**
  * The dish a wrong ingredient is said to belong to ("Dat hoort bij de stamppot!"): the one a child

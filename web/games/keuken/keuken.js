@@ -545,6 +545,7 @@ export function createKeuken(shell) {
         start: (id) => startRound(id),
         random: (tier, seed) => playRandom(tier, seed),
         tap: (id) => pick(id),
+        say: (line) => game && say(line), // the layout test pins the longest lines in the bubble
         stars: () => stars(),
         saved: () => ({ stars: stars(), random: randomDone(), howSeen: seenHow(), lastTier: lastTier() }),
       };

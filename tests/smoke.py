@@ -10294,12 +10294,12 @@ def ke_todo(st):
 
 def ke_t(page, key):
     """A string of the page's language, as the game reads it."""
-    return page.evaluate("async (k) => (await import('./js/i18n.js')).t(k)", key)
+    return page.evaluate("async (k) => (await import('./js/i18n.js')).t(k)", key).replace("\u00ad", "")
 
 
 def ke_say(page):
     """What the cook says now (its bubble)."""
-    return page.inner_text("#ke-say").strip()
+    return page.inner_text("#ke-say").replace("\u00ad", "").strip()
 
 
 def ke_wrong_of(q):
@@ -10357,7 +10357,7 @@ def keuken_flow(browser, base, problems):
     Android back button and "keep playing" with the bowls kept; the end of the free part offers only OK
     and lands on the menu with the save kept; no voice, nothing from outside. The cook (a bear in a
     chef's hat) says it all in its bubble: the greeting with the task, a wrong ingredient ("Hmm, kaas?
-    Dat hoort bij de tosti!"), each right one with a bob ("Lekker! Nu hebben we ..."), the dish ready
+    Dat hoort bij de tosti!"), each right one with a bob ("Fijn! Nu hebben we ..."), the dish ready
     ("Klaar! Eet smakelijk!") with a stir. Then the full version: a 6-7 "which dish?" round and an 8-10
     round (steps in order, where from, the odd one out) by real taps, each kind greeted with its own
     question and with one tap that does not fit first."""
@@ -10443,7 +10443,7 @@ def keuken_flow(browser, base, problems):
             if k == 0 and i == 0:
                 art = ke_t(page, "keuken.art." + oid)
                 bob = page.locator("#ke-cook svg").evaluate("e => getComputedStyle(e).animationName")
-                if ke_say(page) != f"Lekker! Nu hebben we {art}." or bob != "ke-bob":
+                if ke_say(page) != f"Fijn! Nu hebben we {art}." or bob != "ke-bob":
                     problems.append(f"{label}: a right ingredient: the cook says {ke_say(page)!r} and bobs {bob!r}")
                 page.wait_for_timeout(400)
                 page.screenshot(path=str(SHOTS / "keuken-right-390x844.png"))
@@ -10596,14 +10596,39 @@ KE_SEED_JS = """async ([tier, kind]) => {
 }"""
 
 
+# the lines the cook may say that are longest, and those with the longest word (which a narrow bubble
+# must break): every line of 60 rounds per tier, every option tapped first (wrong ones with the help)
+KE_LONG_JS = r"""async () => {
+  const R = await import('./games/keuken/rules.js');
+  const I = await import('./js/i18n.js');
+  const all = new Map();
+  const add = (l) => all.set(JSON.stringify(l), l);
+  for (const tier of R.TIER_IDS) for (let s = 1; s <= 60; s++) R.makeRound({ tier, seed: s }).forEach((q, i) => {
+    add(R.cookLine(q, { say: 'hello', i, tier }));
+    for (const id of q.options) {
+      const res = R.tapOption(q, R.startState(), id);
+      if (res.ok !== null) add(R.cookLine(q, { say: 'try', res, id, help: !res.ok }));
+    }
+  });
+  const text = (l) => R.lineText(l, I.t).replace(/\u00ad/g, '');
+  const word = (l) => Math.max(...text(l).split(/\s+/).map((w) => w.length));
+  const lines = [...all.values()];
+  const longest = [...lines].sort((a, b) => text(b).length - text(a).length).slice(0, 2);
+  const widest = [...lines].sort((a, b) => word(b) - word(a) || text(b).length - text(a).length).slice(0, 2);
+  return [...longest, ...widest].map((line) => ({ line, text: text(line) }));
+}"""
+
+
 def keuken_layouts(browser, base, problems):
     """Every kind of question (the full version) at 320x568, 390x844 in English, 568x320, 844x390 and
     desktop: every target (the back button, every picture) 48 px or more, on screen and not
     overlapping, the bowls or slots and the dish on screen, no sideways scroll, no label spilling out;
     the English names (Little Kitchen). The cook and its bubble inside the kitchen, the cook 48 px or
     more, neither covering the back button, a picture, a bowl or slot, the dish or its name, nor each
-    other, and every line it says there (the greeting, a tap that does not fit with the help, the
-    longest fact) inside its bubble."""
+    other, and the line inside its bubble: the greeting, two taps that do not fit (with the help), the
+    fact after a right "where from?", and the lines pinned from every line of 60 rounds per tier (the
+    two longest, with the yeast fact, and the two with the longest word, the stamppot lines) with the
+    dish still 48 px or more."""
     cases = (("t1", "fill"), ("t2", "fill"), ("t2", "which"), ("t3", "from"), ("t3", "steps"), ("t3", "odd"))
     for w, h, lang in ((320, 568, "nl"), (390, 844, "en"), (568, 320, "nl"), (844, 390, "nl"), (1280, 800, "nl")):
         label0 = f"keuken {w}x{h} {lang}"
@@ -10617,6 +10642,10 @@ def keuken_layouts(browser, base, problems):
         if lang == "en" and page.inner_text("#screen-keuken-menu .bar h2").strip() != "Little Kitchen":
             problems.append(f"{label0}: the menu says {page.inner_text('#screen-keuken-menu .bar h2')!r}")
         page.screenshot(path=str(SHOTS / f"keuken-menu-{w}x{h}-{lang}.png"))
+        pinned = page.evaluate(KE_LONG_JS)
+        texts = [p["text"] for p in pinned]
+        if lang == "nl" and (not any("schimmeltje" in x for x in texts) or not any("boerenkoolstamppot" in x for x in texts)):
+            problems.append(f"{label0}: the pinned lines miss the yeast fact or the stamppot: {texts}")
         for tier, kind in cases:
             label = f"{label0} {tier} {kind}"
             seed = page.evaluate(KE_SEED_JS, [tier, kind])
@@ -10685,6 +10714,20 @@ def keuken_layouts(browser, base, problems):
                 page.wait_for_timeout(120)
                 ke_cook_clear(page, f"{label} the fact", problems)
             page.screenshot(path=str(SHOTS / f"keuken-{tier}-{kind}-said-{w}x{h}-{lang}.png"))
+            # the longest lines and the longest words, said in this kitchen
+            for k, p in enumerate(pinned):
+                page.evaluate("(l) => window.__bubbels.keuken.say(l)", p["line"])
+                page.wait_for_timeout(60)
+                if ke_say(page) != p["text"]:
+                    problems.append(f"{label}: pinned line {p['text']!r} shows as {ke_say(page)!r}")
+                ke_cook_clear(page, f"{label} pinned {p['text'][:40]!r}", problems)
+                dish = page.locator("#ke-show .ke-dish")
+                if kind != "odd" and dish.count() and dish.first.is_visible():
+                    r, top = dish.first.bounding_box(), page.locator("#ke-top").bounding_box()
+                    if r["height"] < 47.5 or r["y"] + r["height"] > top["y"] + top["height"] + 0.5:
+                        problems.append(f"{label}: with {p['text'][:40]!r} the dish is {r['height']:.0f} px or out of the kitchen")
+                if tier == "t2" and kind == "fill":
+                    page.screenshot(path=str(SHOTS / f"keuken-long-{k}-{w}x{h}-{lang}.png"))
             page.evaluate("window.__bubbels.back()")
             page.wait_for_timeout(100)
         if errors:
