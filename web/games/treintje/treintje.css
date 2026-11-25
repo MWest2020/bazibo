@@ -1,0 +1,69 @@
+/* Treintje (Train Tracks): home tile, the age cards, the board (grass squares, the railway, the
+   station signs, fences, the little train) and its line of help. Shared look lives in
+   css/style.css; the HUD is Dogudoku's (a column on the left on short sideways phones). */
+
+/* ---------- home tile and menu ---------- */
+#tile-treintje .tile-art { display: flex; align-items: center; justify-content: center; }
+.tj-tile-svg { width: 100%; height: 100%; max-width: 104px; display: block; border-radius: 14px; }
+.tj-age .option-art > svg { border-radius: 8px; }
+.tj-ov { display: inline-flex; width: 200px; height: 80px; }
+.tj-ov svg { width: 100%; height: 100%; }
+
+/* ---------- the puzzle ---------- */
+#tj-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px 10px;
+}
+.tj-side { flex: none; width: min(100%, 560px); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tj-status {
+  margin: 0;
+  min-height: 2.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-size: var(--bz-text-m);
+  font-weight: var(--bz-weight-head);
+  line-height: 1.25;
+  color: var(--bz-ink);
+  text-align: center;
+  text-wrap: balance;
+}
+.tj-status.why { color: var(--bz-group-ink); }
+.tj-count { margin: 0; font-size: var(--bz-text-s); font-weight: var(--bz-weight-head); color: var(--bz-ink-soft); }
+#tj-boardbox { flex: none; display: flex; align-items: center; justify-content: center; }
+#tj-board {
+  display: block;
+  flex: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 #9fc58a, var(--bz-shadow-s);
+  background: #dcefc9;
+  cursor: pointer;
+}
+.tj-num { font-family: var(--bz-font); font-weight: var(--bz-weight-brand); pointer-events: none; }
+.tj-head { animation: tj-pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.tj-next-ring { animation: tj-glow 1.6s ease-in-out infinite; }
+#tj-board.arrived .tj-puff { animation: tj-puff 0.9s ease-out 2; }
+@keyframes tj-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes tj-glow { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.3; } }
+@keyframes tj-puff { from { opacity: 0.9; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
+@media (prefers-reduced-motion: reduce) {
+  .tj-head, .tj-next-ring, #tj-board.arrived .tj-puff { animation: none; }
+}
+
+/* short sideways phones: the HUD a column on the left, the help beside the board */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-treintje { flex-direction: row; }
+  #tj-stage { flex-direction: row-reverse; align-items: stretch; padding: 4px 8px 4px 0; gap: 8px; }
+  .tj-side { width: auto; flex: 0 1 200px; min-width: 110px; justify-content: center; }
+}

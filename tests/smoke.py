@@ -15,7 +15,7 @@ klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes an
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), lay Treintje's track (treintje_flow; `tests/smoke.py treintje`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -9216,6 +9216,284 @@ def home_targets(browser, base, problems):
         ctx.close()
 
 
+def tj_state(page):
+    return page.evaluate("window.__bubbels.treintje.state()")
+
+
+def tj_xy(page, i):
+    return page.evaluate(f"window.__bubbels.treintje.at({i})")
+
+
+def tj_drag(page, cells, steps=5):
+    """A real mouse drag through the middles of these squares, in order."""
+    x, y = tj_xy(page, cells[0])
+    page.mouse.move(x, y)
+    page.mouse.down()
+    for c in cells[1:]:
+        x1, y1 = tj_xy(page, c)
+        for k in range(1, steps + 1):
+            page.mouse.move(x + (x1 - x) * k / steps, y + (y1 - y) * k / steps)
+        x, y = x1, y1
+    page.mouse.up()
+    page.wait_for_timeout(60)
+
+
+def tj_touch_drag(page, cdp, cells, steps=5):
+    """A real finger drag (touch events) through the middles of these squares."""
+    x, y = tj_xy(page, cells[0])
+    pi_touch(cdp, "touchStart", [{"x": x, "y": y}])
+    for c in cells[1:]:
+        x1, y1 = tj_xy(page, c)
+        for k in range(1, steps + 1):
+            pi_touch(cdp, "touchMove", [{"x": x + (x1 - x) * k / steps, "y": y + (y1 - y) * k / steps}])
+        x, y = x1, y1
+    pi_touch(cdp, "touchEnd", [])
+    page.wait_for_timeout(60)
+
+
+# a place along the way through and a square next to it where a step is not allowed: track already
+# there (not the square before), a station out of its turn, or the last station too early
+TJ_BLOCKED_JS = """async () => {
+  const R = await import('./games/treintje/rules.js');
+  const s = window.__bubbels.treintje.state();
+  const p = { w: s.w, h: s.h, nums: s.nums, walls: s.walls };
+  for (let k = 1; k < s.solution.length - 3; k++) {
+    const path = s.solution.slice(0, k + 1);
+    for (const j of R.neighbours(p, path[k])) {
+      if (j === s.solution[k + 1] || j === path[k - 1]) continue;
+      const why = R.whyNot(p, path, j);
+      if (why === 'used' || why === 'order' || why === 'early') return { k, j, why, next: R.nextStation(p, path) };
+    }
+  }
+  return null;
+}"""
+
+
+def treintje_flow(browser, base, problems):
+    """Treintje at 390x844 by real drags: the tile in Puzzels opens the menu with the three ages,
+    6-7 and 8-10 in the fold offering only OK on the web; a 3-5 puzzle laid by real drags with one
+    blocked step first (nothing happens, a line says why) and one take-back by dragging back, the
+    last part by a finger; the little train rides from station 1 to the last; the end card, saved
+    per age, "Nog een" gives the next puzzle; back + keep playing with the track kept, the Android
+    back button; no voice, nothing from outside."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    cdp = ctx.new_cdp_session(page)
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    name = page.inner_text("#tile-treintje .tile-name").strip()
+    if name != "Treintje":
+        problems.append(f"treintje: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-treintje').closest('.tile-group').querySelector('.group-name').textContent") != "Puzzels":
+        problems.append("treintje: the tile is not in the Puzzels section")
+    page.locator("#tile-treintje").scroll_into_view_if_needed()
+    page.locator("#tile-treintje").screenshot(path=str(SHOTS / "treintje-tile.png"))
+    page.locator("#tile-treintje").tap()
+    page.wait_for_timeout(200)
+    if where(page) != ["treintje-menu", False]:
+        problems.append(f"treintje: the tile opened {where(page)}")
+    ages = page.eval_on_selector_all("#treintje-menu .tj-age", "els => els.map(e => [e.dataset.age, e.classList.contains('locked'), !!e.closest('details.full-fold')])")
+    if ages != [["a3", False, False], ["a6", True, True], ["a8", True, True]]:
+        problems.append(f"treintje: the age cards are {ages}")
+    page.screenshot(path=str(SHOTS / "treintje-menu-390x844.png"), full_page=True)
+    for age in ("a6", "a8"):
+        choose(page, f"#treintje-menu .tj-age[data-age='{age}']", tap=True)
+        page.wait_for_timeout(150)
+        if card_buttons(page) != ["Oké"]:
+            problems.append(f"treintje: the locked age {age} offers {card_buttons(page)}, not the web's OK")
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+        if where(page) != ["treintje-menu", False] or tj_state(page):
+            problems.append(f"treintje: after OK on {age}: {where(page)}")
+
+    # a 3-5 puzzle: the how-to card first
+    page.locator("#treintje-menu .tj-age[data-age='a3']").tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=8000)
+    if page.inner_text("#ov-title").strip() != "Leg het spoor":
+        problems.append(f"treintje: the first puzzle opens with {page.inner_text('#ov-title')!r}")
+    page.screenshot(path=str(SHOTS / "treintje-how-390x844.png"))
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    st = tj_state(page)
+    if not st or st["age"] != "a3" or (st["w"], st["h"]) != (4, 4) or st["path"] != [st["nums"].index(1)]:
+        problems.append(f"treintje: the 3-5 puzzle starts as {st}")
+        ctx.close()
+        return
+    if not 4 <= max(st["nums"]) <= 6:
+        problems.append(f"treintje: a 3-5 puzzle with {max(st['nums'])} stations")
+    if st["cell"] < 44:
+        problems.append(f"treintje: squares of {st['cell']} px at 390x844")
+    # a puzzle with a step that is not allowed on the way (the "andere puzzel" button otherwise)
+    blocked = page.evaluate(TJ_BLOCKED_JS)
+    for _ in range(25):
+        if blocked:
+            break
+        seed = tj_state(page)["seed"]
+        page.locator("#treintje-new").tap()
+        page.wait_for_function(f"window.__bubbels.treintje.state().seed !== {seed} && document.querySelector('#overlay').hidden", timeout=8000)
+        blocked = page.evaluate(TJ_BLOCKED_JS)
+    if not blocked:
+        problems.append("treintje: no 3-5 puzzle with a blocked step in 25 tries")
+        ctx.close()
+        return
+    st = tj_state(page)
+    sol, k, j = st["solution"], blocked["k"], blocked["j"]
+    tj_drag(page, sol[: k + 1])
+    if tj_state(page)["path"] != sol[: k + 1]:
+        problems.append(f"treintje: dragging the first {k + 1} squares laid {tj_state(page)['path']}")
+    tj_drag(page, [sol[k], j])  # not allowed: nothing happens
+    status = page.inner_text("#tj-status")
+    want = {"used": "Daar ligt al spoor.", "order": f"Eerst station {blocked['next']}!", "early": "Het laatste station komt als laatste."}[blocked["why"]]
+    if tj_state(page)["path"] != sol[: k + 1] or status != want:
+        problems.append(f"treintje: the blocked step ({blocked['why']}) laid {tj_state(page)['path']}, says {status!r}")
+    page.screenshot(path=str(SHOTS / "treintje-blocked-390x844.png"))
+    tj_drag(page, sol[k: k + 3])
+    tj_drag(page, [sol[k + 2], sol[k + 1]])  # dragging back takes one square back
+    if tj_state(page)["path"] != sol[: k + 2]:
+        problems.append(f"treintje: the take-back left {tj_state(page)['path']}, want {sol[: k + 2]}")
+    page.screenshot(path=str(SHOTS / "treintje-half-390x844.png"))
+    # the rest by a finger, then the little train rides
+    tj_touch_drag(page, cdp, sol[k + 1:])
+    st = tj_state(page)
+    if not st["done"] or st["path"] != sol:
+        problems.append(f"treintje: the whole track by a finger: done={st['done']} path={st['path']}")
+    else:
+        a = page.evaluate("window.__bubbels.treintje.trainAt()")
+        page.wait_for_timeout(700)
+        b = page.evaluate("window.__bubbels.treintje.trainAt()")
+        if not tj_state(page)["riding"] or not a or not b or abs(a[0] - b[0]) + abs(a[1] - b[1]) < 4:
+            problems.append(f"treintje: the train does not ride ({a} -> {b}, riding {tj_state(page)['riding']})")
+        page.screenshot(path=str(SHOTS / "treintje-ride-390x844.png"))
+        page.wait_for_function("window.__bubbels.treintje.state().arrived", timeout=8000)
+        end = page.evaluate(f"window.__bubbels.treintje.at({sol[-1]})")
+        b = page.evaluate("window.__bubbels.treintje.trainAt()")
+        if abs(b[0] - end[0]) > st["cell"] or abs(b[1] - end[1]) > st["cell"]:
+            problems.append(f"treintje: the train stopped at {b}, the last station is at {end}")
+        page.screenshot(path=str(SHOTS / "treintje-done-390x844.png"))
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+        if page.inner_text("#ov-title").strip() != "Tuut tuut!" or card_buttons(page) != ["Nog een", "Menu"]:
+            problems.append(f"treintje: the end card {page.inner_text('#ov-title')!r} {card_buttons(page)}")
+        if page.evaluate("window.__bubbels.treintje.solved()") != {"a3": 1}:
+            problems.append(f"treintje: saved {page.evaluate('window.__bubbels.treintje.solved()')}")
+        if page.evaluate("window.__bubbels.save().games.treintje.lastAge") != "a3":
+            problems.append("treintje: the last age is not saved")
+        page.screenshot(path=str(SHOTS / "treintje-win-390x844.png"))
+        seed = st["seed"]
+        page.click("#ov-buttons button >> nth=0")
+        page.wait_for_function(f"window.__bubbels.treintje.state().seed !== {seed} && document.querySelector('#overlay').hidden", timeout=8000)
+        st = tj_state(page)
+        if st["done"] or len(st["path"]) != 1 or st["age"] != "a3":
+            problems.append(f"treintje: Nog een started {st}")
+    # back + keep playing, with the track kept; the Android back button
+    sol = tj_state(page)["solution"]
+    tj_drag(page, sol[:3])
+    page.locator("#treintje-back").tap()
+    page.wait_for_timeout(150)
+    if where(page) != ["treintje-menu", False] or not page.is_visible("#treintje-continue") or page.inner_text("#treintje-continue").strip() != "Verder spelen":
+        problems.append(f"treintje: back from a puzzle went to {where(page)} without Verder spelen")
+    if "1 gelegd" not in page.inner_text("#treintje-menu .tj-age[data-age='a3']"):
+        problems.append("treintje: the 3-5 card does not say 1 gelegd")
+    page.locator("#treintje-continue").tap()
+    page.wait_for_timeout(150)
+    if where(page) != ["treintje", False] or tj_state(page)["path"] != sol[:3]:
+        problems.append(f"treintje: Verder spelen opened {where(page)} with {tj_state(page)['path']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    if where(page) != ["treintje-menu", False]:
+        problems.append(f"treintje: the Android back button on a puzzle went to {where(page)}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"treintje: back from the menu went to {where(page)}")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("treintje: something speaks")
+    if errors:
+        problems.append(f"treintje: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"treintje: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+# a seed per age that gives its biggest board, so every layout is checked at its tightest
+TJ_BIG_SEED_JS = """async (age) => {
+  const G = await import('./games/treintje/generate.js');
+  const big = Math.max(...G.AGES[age].sizes.map((s) => s[0] * s[1]));
+  for (let seed = 1; seed < 200; seed++) { const p = G.makePuzzle(age, seed); if (p.w * p.h === big) return seed; }
+  return 1;
+}"""
+
+
+def treintje_layouts(browser, base, problems):
+    """Every age (the full version) at 320x568, 390x844 in English, 568x320, 844x390 and desktop on
+    its biggest board: every square 44 px or more and on screen, the HUD on screen, no sideways
+    scroll, a first step by a real drag; the English names (Train Tracks)."""
+    for w, h, lang in ((320, 568, "nl"), (390, 844, "en"), (568, 320, "nl"), (844, 390, "nl"), (1280, 800, "nl")):
+        mobile = w < 1000
+        label = f"treintje {w}x{h} {lang}"
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        if lang == "en":
+            name = page.inner_text("#tile-treintje .tile-name").strip()
+            if name != "Train Tracks":
+                problems.append(f"{label}: the tile says {name!r}")
+        page.click("#tile-treintje")
+        page.wait_for_timeout(200)
+        if lang == "en":
+            title = page.inner_text("#screen-treintje-menu .bar h2").strip()
+            cards = page.eval_on_selector_all("#treintje-menu .tj-age .option-title", "els => els.map(e => e.textContent)")
+            if title != "Train Tracks" or cards != ["Ages 3-5", "Ages 6-7", "Ages 8-10"]:
+                problems.append(f"{label}: the menu says {title!r} {cards}")
+        if page.locator("#treintje-menu .locked").count():
+            problems.append(f"{label}: something is locked in the full version")
+        page.screenshot(path=str(SHOTS / f"treintje-menu-{w}x{h}-{lang}.png"))
+        for age in ("a3", "a6", "a8"):
+            seed = page.evaluate(TJ_BIG_SEED_JS, age)
+            page.evaluate(f"window.__bubbels.treintje.start('{age}', {seed})")
+            page.wait_for_timeout(150)
+            if where(page)[1]:
+                page.click("#ov-buttons button")  # the how-to card
+                page.wait_for_timeout(150)
+            st = tj_state(page)
+            r = page.locator("#tj-board").bounding_box()
+            cw, ch = r["width"] / st["w"], r["height"] / st["h"]
+            if min(cw, ch) < 43.5:
+                problems.append(f"{label} {age} {st['w']}x{st['h']}: squares of {cw:.1f}x{ch:.1f} px")
+            if r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                problems.append(f"{label} {age}: the board is off screen ({r})")
+            for sel in ("#treintje-back", "#treintje-new", "#tj-status"):
+                b = page.locator(sel).bounding_box()
+                if not b or b["x"] < -0.5 or b["y"] < -0.5 or b["x"] + b["width"] > w + 0.5 or b["y"] + b["height"] > h + 0.5:
+                    problems.append(f"{label} {age}: {sel} not on screen ({b})")
+                if sel != "#tj-status" and b and min(b["width"], b["height"]) < 44:
+                    problems.append(f"{label} {age}: {sel} is {b['width']:.0f}x{b['height']:.0f}")
+            boxes = [(r["x"] + cw * (i % st["w"]), r["y"] + ch * (i // st["w"])) for i in range(st["w"] * st["h"])]
+            for i, (x, y) in enumerate(boxes):
+                if x < -0.5 or y < -0.5 or x + cw > w + 0.5 or y + ch > h + 0.5:
+                    problems.append(f"{label} {age}: square {i} off screen")
+                    break
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"{label} {age}: the page scrolls sideways")
+            sol = st["solution"]
+            tj_drag(page, sol[:3])
+            if tj_state(page)["path"] != sol[:3]:
+                problems.append(f"{label} {age}: a real drag laid {tj_state(page)['path']}, want {sol[:3]}")
+            page.screenshot(path=str(SHOTS / f"treintje-{age}-{w}x{h}-{lang}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(100)
+        if errors:
+            problems.append(f"{label}: page errors {errors[:3]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -9307,6 +9585,8 @@ def main():
             verstop_layouts(browser, base, problems)
             verstop_hints(browser, base, problems)
             verstop_hint_pixels(browser, base, problems)
+            treintje_flow(browser, base, problems)
+            treintje_layouts(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
@@ -9338,6 +9618,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "treintje": (treintje_flow, treintje_layouts),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
          "verstop-pixels": (verstop_hint_pixels,),
          "kaart": (kaart_flow, kaart_layouts),

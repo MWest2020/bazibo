@@ -8,6 +8,7 @@ import { meta as picturedoku } from '../games/picturedoku/meta.js';
 import { meta as memory } from '../games/memory/meta.js';
 import { meta as legpuzzel } from '../games/legpuzzel/meta.js';
 import { meta as verstop } from '../games/verstop/meta.js';
+import { meta as treintje } from '../games/treintje/meta.js';
 import { meta as vier } from '../games/vier/meta.js';
 import { meta as dammen } from '../games/dammen/meta.js';
 import { meta as baghchal } from '../games/baghchal/meta.js';
@@ -48,6 +49,7 @@ export const GAMES = [
   { ...memory, status: 'ready' },
   { ...legpuzzel, status: 'ready' },
   { ...verstop, status: 'ready' },
+  { ...treintje, status: 'ready' },
   { ...vier, status: 'ready' },
   { ...dammen, status: 'ready' },
   { ...baghchal, status: 'ready' },

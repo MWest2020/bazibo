@@ -17,6 +17,7 @@ const MODULES = {
   dogudoku: '../games/dogudoku/generate.js',
   picturedoku: '../games/picturedoku/generate.js',
   slang: '../games/slang/generate.js',
+  treintje: '../games/treintje/generate.js',
 };
 
 const WORKER_TIMEOUT_MS = 8000;
