@@ -8,7 +8,7 @@
 //              one out
 // A wrong tap is never "wrong": it bounces back with a short line (the dish it belongs to, the
 // ingredient the picked dish lacks, what the picked source gives). After MAX_TRIES the answer glows.
-import { DISHES, DISH_IDS, INGREDIENT_IDS, LOOKALIKES, lookalikesOf, ORIGINS, ORIGIN_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from './dishes.js';
+import { PREFERRED, DISHES, DISH_IDS, INGREDIENT_IDS, LOOKALIKES, lookalikesOf, ORIGINS, ORIGIN_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from './dishes.js';
 
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
 export const TIERS = Object.freeze({
@@ -68,10 +68,22 @@ export const inDish = (d) => new Set([...DISHES[d].need, ...DISHES[d].maybe]);
  * then one it is needed in, then one it may go on (ham: the tosti).
  */
 export function belongsTo(ing, except = null) {
+  const pref = PREFERRED[ing];
+  if (pref && pref !== except && DISHES[pref] && inDish(pref).has(ing)) return pref;
   for (const field of ['key', 'need', 'maybe']) {
     for (const d of DISH_IDS) if (d !== except && DISHES[d][field].includes(ing)) return d;
   }
   return null;
+}
+
+/**
+ * Could a child say this dish can be made from the shown bowls? When it lacks something shown, no;
+ * when everything it needs (or everything it is known by) is in the bowls, yes (pancakes from the
+ * poffertjes bowls). A "which dish?" never offers such a dish beside the answer.
+ */
+export function canMake(d, shown) {
+  if (!missingIn(d, shown)) return true;
+  return DISHES[d].need.every((i) => shown.includes(i)) || DISHES[d].key.every((i) => shown.includes(i));
 }
 
 /** For a picked dish that is not the answer: the first shown ingredient that is not in it. */
@@ -109,7 +121,7 @@ export function fillQuestion(d, tier, rand) {
 export function whichQuestion(d, rand) {
   const shown = [...DISHES[d].need];
   // the other dishes must lack at least one shown ingredient; ones that share something come first
-  const fits = DISH_IDS.filter((o) => o !== d && missingIn(o, shown));
+  const fits = DISH_IDS.filter((o) => o !== d && !canMake(o, shown));
   const share = shuffle(fits.filter((o) => DISHES[o].need.some((i) => shown.includes(i))), rand);
   const other = shuffle(fits.filter((o) => !share.includes(o)), rand);
   const pick = [...share.slice(0, 1), ...other, ...share.slice(1)].slice(0, WHICH_OPTIONS - 1);

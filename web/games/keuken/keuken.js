@@ -13,7 +13,7 @@
 import { meta } from './meta.js';
 import { TIERS, TIER_IDS, ROUNDS_PER_TIER, ROUND_LEN, MAX_TRIES, makeRound, starsFor, hashSeed, startState, tapOption, stillToTap } from './rules.js';
 import { HOT, RECIPES } from './dishes.js';
-import { ingredientSvg, dishSvg, sourceSvg, actSvg, howSvg, wallSvg, clocheSvg } from './art.js';
+import { ingredientSvg, dishSvg, sourceSvg, actSvg, howSvg, wallSvg, clocheSvg, DISH_TOP } from './art.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
@@ -267,19 +267,23 @@ export function createKeuken(shell) {
     } else if (it.kind === 'which' && !game.st.placed.length) {
       // under the cover until the child names it
       pic.innerHTML = clocheSvg();
-      name.textContent = '?';
+      name.textContent = '';
+      name.hidden = true; // the question is in the line above; no lone "?" under the cover
+      box.setAttribute('aria-label', t('keuken.lead.which'));
     } else {
       pic.innerHTML = dishSvg(it.dish);
       name.textContent = dishName(it.dish);
       if (HOT.has(it.dish)) box.classList.add('hot');
     }
-    box.setAttribute('aria-label', name.textContent);
+    if (!name.hidden) box.setAttribute('aria-label', name.textContent);
     box.append(pic, name);
     if (it.kind === 'fill' || it.kind === 'steps') {
       const steam = document.createElement('div');
       steam.className = 'ke-steam';
       steam.setAttribute('aria-hidden', 'true');
       steam.innerHTML = '<i></i><i></i><i></i>';
+      // just above the top of this dish's drawing, not above its box
+      steam.style.setProperty('--top', `${((DISH_TOP[it.dish] ?? 16) / 64) * 100}%`);
       pic.appendChild(steam);
     }
     syncFill();

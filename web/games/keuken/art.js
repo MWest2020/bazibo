@@ -16,11 +16,11 @@ const WHEAT = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})">
 export const LOOK = Object.freeze({
   bloem: { color: '#f3ece0', shape: 'bag' },
   water: { color: '#5fb4f0', shape: 'glass' },
-  gist: { color: '#c9a46a', shape: 'lump' },
+  gist: { color: '#f3e3b6', shape: 'cube' },
   zout: { color: '#ffffff', shape: 'shaker' },
   melk: { color: '#3b7fd9', shape: 'carton' },
-  ei: { color: '#fbe9cc', shape: 'egg' },
-  brood: { color: '#c98a43', shape: 'loaf' },
+  ei: { color: '#f0c896', shape: 'egg' }, // a brown egg, as most in Dutch shops
+  brood: { color: '#9c5f2a', shape: 'loaf' }, // a dark crust: never the onion's colour
   kaas: { color: '#f6c431', shape: 'wedge' },
   ham: { color: '#f29bb0', shape: 'slice' },
   tomaat: { color: '#e8412f', shape: 'round' },
@@ -39,7 +39,7 @@ export const LOOK = Object.freeze({
   pasta: { color: '#f0c36a', shape: 'bows' },
   wortel: { color: '#f08a24', shape: 'cone' },
   prei: { color: '#7fb54a', shape: 'stalk' },
-  ui: { color: '#c98b3a', shape: 'bulb' },
+  ui: { color: '#d9862a', shape: 'bulb' },
   knoflook: { color: '#f2ede4', shape: 'bulb' },
   paprika: { color: '#f7b500', shape: 'pepper' },
   broccoli: { color: '#3f9b3a', shape: 'tree' },
@@ -55,14 +55,14 @@ const ING = {
   water: () =>
     `<path d="M17 12h30l-4 44H21z" fill="#e9f5ff"/><path d="M19.5 26h25l-2.8 30H22.3z" fill="#5fb4f0" stroke="none"/><path d="M17 12h30l-4 44H21z" fill="none"/><path d="M19.6 26c4 2 8-2 12.5 0s8.5 2 12.5 0" fill="none" stroke="#2a78b8" stroke-width="1.6"/><path d="M25 32v16" stroke="#ffffff" stroke-width="3" opacity="0.7"/>`,
   gist: () =>
-    `<ellipse cx="32" cy="50" rx="22" ry="6" fill="#ffffff"/><path d="M14 46c-2-8 2-16 8-18 3-6 12-8 17-4 7-1 12 5 11 12 3 4 1 10-3 11H18c-3 0-4-0-4-1z" fill="#c9a46a"/>${dots([[24, 36], [33, 32], [40, 38], [29, 42], [43, 45]], 1.6, '#a88247', 'none')}${dots([[48, 18], [53, 12], [44, 11]], 2.4, '#ffffff', '#c9a46a')}`,
+    `<ellipse cx="32" cy="52" rx="24" ry="6" fill="#ffffff"/><path d="M14 30l12-8h26l-12 8z" fill="#faf0d2"/><path d="M14 30h26v20H14z" fill="#f3e3b6"/><path d="M40 30l12-8v20l-12 8z" fill="#ddc78f"/>${dots([[20, 38], [28, 43], [34, 36], [22, 46], [46, 34]], 1.3, '#cdb27a')}<path d="M44 54l3-2 2 2M50 50l2-1" fill="none" stroke="#ddc78f" stroke-width="2"/>${dots([[50, 14], [55, 8], [45, 9]], 2.4, '#ffffff', '#ddc78f')}`,
   zout: () =>
     `<path d="M21 26h22l3 30H18z" fill="#ffffff"/><path d="M22 26c0-8 4-14 10-14s10 6 10 14z" fill="#b9c3cc"/>${dots([[28, 18], [32, 16], [36, 18], [30, 22], [34, 22]], 1.2, OL)}<path d="M22 38h20" stroke="#7fb7e8" stroke-width="3"/>${dots([[50, 40], [53, 46], [48, 50]], 1, '#ffffff', '#b9c3cc')}`,
   melk: () =>
     `<path d="M18 22h28v34H18z" fill="#ffffff"/><path d="M18 22l6-10h16l6 10z" fill="#3b7fd9"/><path d="M28 12V7h8v5" fill="#3b7fd9"/><path d="M18 30h28v8H18z" fill="#3b7fd9"/><path d="M24 48c2-4 6-4 8 0 2-4 6-4 8 0" fill="none" stroke="#3b7fd9"/>`,
-  ei: () => `<path d="M32 8c11 0 19 16 19 30 0 11-8 18-19 18s-19-7-19-18C13 24 21 8 32 8z" fill="#fbe9cc"/><path d="M24 22c2-5 5-8 8-8" fill="none" stroke="#ffffff" stroke-width="3"/>`,
+  ei: () => `<path d="M32 8c11 0 19 16 19 30 0 11-8 18-19 18s-19-7-19-18C13 24 21 8 32 8z" fill="#f0c896"/><path d="M24 22c2-5 5-8 8-8" fill="none" stroke="#ffffff" stroke-width="3"/>`,
   brood: () =>
-    `<path d="M8 50c0-12 4-26 24-26s24 14 24 26c0 4-2 6-6 6H14c-4 0-6-2-6-6z" fill="#c98a43"/><path d="M20 30c2 4 2 8 0 12M30 27c2 4 2 9 0 14M40 28c2 4 2 9 0 13" fill="none" stroke="#f1c77f" stroke-width="2.6"/>`,
+    `<path d="M8 50c0-12 4-26 24-26s24 14 24 26c0 4-2 6-6 6H14c-4 0-6-2-6-6z" fill="#9c5f2a"/><path d="M20 30c2 4 2 8 0 12M30 27c2 4 2 9 0 14M40 28c2 4 2 9 0 13" fill="none" stroke="#f1c77f" stroke-width="2.6"/>`,
   kaas: () =>
     `<path d="M8 44l40-24 8 6v18z" fill="#f6c431"/><path d="M8 44h48v10H8z" fill="#f6c431"/><path d="M8 44l40-24 8 6" fill="#ffd95c"/>${dots([[20, 49], [34, 50], [46, 48]], 2.6, '#e0a514', 'none')}<ellipse cx="40" cy="31" rx="2.6" ry="1.6" fill="#e0a514" stroke="none"/>`,
   ham: () =>
@@ -102,7 +102,7 @@ const ING = {
   prei: () =>
     `<path d="M14 54l20-26 6 4-20 26c-2 2-5 0-6-4z" fill="#f6f8ee"/><path d="M34 28l12-20 4 3-8 22zM40 32l14-14 2 4-12 14z" fill="#7fb54a"/><path d="M30 30l6-18 5 2-1 18z" fill="#a6d16e"/><path d="M14 54l-4 4M17 57l-4 4M12 51l-4 2" stroke-width="1.6"/>`,
   ui: () =>
-    `<path d="M32 16c-4 8-20 14-20 26 0 9 9 14 20 14s20-5 20-14c0-12-16-18-20-26z" fill="#c98b3a"/><path d="M32 16c-6 10-10 22-6 40M32 16c6 10 10 22 6 40" fill="none" stroke="#9a6224" stroke-width="1.6"/><path d="M30 16c0-4 1-8 2-10 1 2 2 6 2 10" fill="#7fb54a" stroke-width="1.6"/>`,
+    `<path d="M32 16c-4 8-20 14-20 26 0 9 9 14 20 14s20-5 20-14c0-12-16-18-20-26z" fill="#d9862a"/><path d="M32 16c-6 10-10 22-6 40M32 16c6 10 10 22 6 40" fill="none" stroke="#9a6224" stroke-width="1.6"/><path d="M30 16c0-4 1-8 2-10 1 2 2 6 2 10" fill="#7fb54a" stroke-width="1.6"/>`,
   knoflook: () =>
     `<path d="M32 14c-4 8-18 14-18 26 0 9 8 15 18 15s18-6 18-15c0-12-14-18-18-26z" fill="#f2ede4"/><path d="M32 14c-6 10-10 22-4 41M32 14c6 10 10 22 4 41M32 20v35" fill="none" stroke="#b49ac4" stroke-width="1.6"/><path d="M28 55l-3 4M32 55v5M36 55l3 4" stroke-width="1.4"/><path d="M31 14c0-3 0-6 1-8 1 2 1 5 1 8" fill="#e4dccd" stroke-width="1.4"/>`,
   paprika: () =>
@@ -130,14 +130,14 @@ export function ingredientSvg(id, cls = '') {
 
 const DISH = {
   brood: () =>
-    `<path d="M4 52h56v6H4z" fill="#d9a86b"/><path d="M10 48c0-12 4-26 22-26s22 14 22 26c0 3-2 4-5 4H15c-3 0-5-1-5-4z" fill="#c98a43"/><path d="M21 28c2 4 2 9 0 13M31 25c2 4 2 10 0 15M41 27c2 4 2 9 0 13" fill="none" stroke="#f1c77f" stroke-width="2.6"/><path d="M24 16c-2-3 2-5 0-8M32 14c-2-3 2-5 0-8M40 16c-2-3 2-5 0-8" fill="none" stroke="#b9b2c9" stroke-width="1.8"/>`,
+    `<path d="M4 52h56v6H4z" fill="#d9a86b"/><path d="M10 48c0-12 4-26 22-26s22 14 22 26c0 3-2 4-5 4H15c-3 0-5-1-5-4z" fill="#9c5f2a"/><path d="M21 28c2 4 2 9 0 13M31 25c2 4 2 10 0 15M41 27c2 4 2 9 0 13" fill="none" stroke="#f1c77f" stroke-width="2.6"/>`,
   pannenkoeken: () => `${PLATE}${[44, 39, 34].map((y) => `<ellipse cx="32" cy="${y}" rx="20" ry="5.5" fill="#f2c35b"/>`).join('')}<path d="M18 33c4 2 8 1 12 2M36 34c3 1 7 0 10-1" fill="none" stroke="#d99a2b" stroke-width="1.4"/><path d="M27 28h10l-2 4h-6z" fill="#fff3b8" stroke-width="1.6"/>`,
   tosti: () =>
     `${PLATE}<path d="M12 46L32 14l20 32z" fill="#d99a4a"/><path d="M17 44L32 20l15 24z" fill="#efc072" stroke="none"/><path d="M22 38l12-12M26 44l14-14M18 34l8-8" stroke="#b5762b" stroke-width="2"/><path d="M14 46c4 3 8-1 12 2s8-1 12 2 8-1 12-2" fill="#f6c431" stroke-width="1.6"/>`,
   pizza: () =>
     `<circle cx="32" cy="34" r="26" fill="#e3b06a"/><circle cx="32" cy="34" r="21" fill="#e2462f" stroke="none"/>${dots([[24, 26], [40, 28], [30, 40], [42, 42], [22, 40], [34, 22]], 4.5, '#ffe08a', 'none')}${dots([[32, 32], [20, 33], [38, 46]], 2.6, '#3c9a3c', 'none')}<path d="M32 8v52M6 34h52M14 16l36 36M50 16L14 52" stroke="#c98a43" stroke-width="1.2" opacity="0.6"/>`,
   groentesoep: () =>
-    `<path d="M6 30h52c0 14-10 24-26 24S6 44 6 30z" fill="#5b8fd6"/><ellipse cx="32" cy="30" rx="26" ry="6" fill="#e8763a"/>${dots([[20, 30], [38, 29], [46, 31]], 2.8, '#f6a24a', '#c4621a')}${dots([[28, 31], [33, 28]], 2.6, '#a6d16e', '#5e9a2a')}<path d="M22 20c-2-3 2-5 0-8M32 18c-2-3 2-5 0-8M42 20c-2-3 2-5 0-8" fill="none" stroke="#b9b2c9" stroke-width="1.8"/>`,
+    `<path d="M6 30h52c0 14-10 24-26 24S6 44 6 30z" fill="#5b8fd6"/><ellipse cx="32" cy="30" rx="26" ry="6" fill="#e8763a"/>${dots([[20, 30], [38, 29], [46, 31]], 2.8, '#f6a24a', '#c4621a')}${dots([[28, 31], [33, 28]], 2.6, '#a6d16e', '#5e9a2a')}`,
   appeltaart: () =>
     `<path d="M6 40h52l-4 14H10z" fill="#c98a43"/><ellipse cx="32" cy="40" rx="26" ry="9" fill="#e9b45a"/><ellipse cx="32" cy="40" rx="21" ry="6.5" fill="#f3dc8a" stroke="none"/>${dots([[24, 39], [34, 41], [40, 38], [29, 42]], 2.4, '#b8d36a', 'none')}<path d="M14 38l10 6M22 35l14 8M32 34l14 8M40 34l10 5M14 42l12-7M24 45l16-10M36 46l14-8" stroke="#c98a43" stroke-width="2.6"/>`,
   salade: () =>
@@ -170,6 +170,12 @@ export function clocheSvg(cls = '') {
   );
 }
 
+/** Where each dish's top is (in its 64 box), so the steam or sparkles sit just above it. */
+export const DISH_TOP = Object.freeze({
+  brood: 22, pannenkoeken: 28, tosti: 14, pizza: 8, groentesoep: 24, appeltaart: 31, salade: 20, yoghurtfruit: 18,
+  hagelslagbrood: 12, poffertjes: 25, roti: 26, rijstgroente: 30, pastasaus: 28, stamppot: 24, smoothie: 14, pindakaasbrood: 12,
+});
+
 export function dishSvg(id, cls = '') {
   const f = DISH[id];
   return f ? svg(f(), `dish ${cls}`) : '';
@@ -183,7 +189,7 @@ const SRC = {
   kip: () =>
     `<path d="M12 36c0-10 8-18 20-16 4-8 14-8 16-2 4 0 6 4 4 8 4 12-4 26-20 26-12 0-20-6-20-16z" fill="#ffffff"/><path d="M38 14c0-4 2-6 4-6 0-3 4-3 4 0 2-2 5 0 4 3 2 1 2 4 0 5z" fill="#e8412f"/><path d="M54 26l6 2-6 3z" fill="#f6b23a"/><circle cx="46" cy="22" r="2" fill="${OL}"/><path d="M50 28c1 3 0 6-2 6" fill="#e8412f" stroke-width="1.4"/><path d="M18 38c6 0 12 4 14 10-8 0-14-4-14-10z" fill="#efe4d0"/><path d="M28 56v4M36 56v4" stroke="#f6b23a" stroke-width="2.4"/>`,
   graan: () => `${WHEAT(20, 34, 1.15)}${WHEAT(32, 30, 1.25)}${WHEAT(44, 34, 1.15)}<path d="M6 56h52" stroke="#8c6a3a" stroke-width="3"/>`,
-  cellen: () =>
+  schimmel: () =>
     `<circle cx="28" cy="28" r="20" fill="#f6efe2"/>${[[20, 22, 6], [32, 20, 5], [26, 34, 6.5], [38, 32, 5], [18, 34, 4]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#e3c992" stroke="#a88247" stroke-width="1.4"/><circle cx="${x - r * 0.3}" cy="${y - r * 0.3}" r="${r * 0.3}" fill="#c9a46a" stroke="none"/>`).join('')}<circle cx="28" cy="28" r="20" fill="none" stroke-width="3.4"/><path d="M42 42l14 14" stroke-width="6"/>${dots([[50, 18], [54, 12]], 2, '#ffffff', '#a88247')}`,
   rijstveld: () =>
     `<path d="M2 44h60v18H2z" fill="#7cc0e8"/><path d="M2 48c6 2 10-2 16 0s10 2 16 0 10-2 16 0 8 2 12 0" fill="none" stroke="#4a96c8" stroke-width="1.6"/>${[12, 32, 52].map((x) => `<path d="M${x} 50V24M${x} 44c-4-6-8-10-10-18M${x} 44c4-6 8-10 10-18M${x} 36c-2-6-4-12-2-20" fill="none" stroke="#4fae46" stroke-width="2.2"/><path d="M${x + 6} 26c2 2 2 5 0 7" fill="none" stroke="#d9c26a" stroke-width="2.4"/>`).join('')}`,
@@ -200,7 +206,6 @@ const SRC = {
   pinda: () =>
     `<path d="M22 14c-8 0-12 8-10 14 1 4 4 6 4 9-1 4-4 6-2 12 2 6 8 9 14 8 6-1 9-6 8-11 0-3-2-5-1-8 2-3 6-5 6-10 0-8-8-14-19-14z" transform="rotate(-25 32 32) translate(8 2)" fill="#e3b97a"/><path d="M26 22c2 2 6 2 8 0M24 32c3 2 6 2 9 0M26 44c2 1 5 1 7 0" transform="rotate(-25 32 32) translate(8 2)" fill="none" stroke="#b88a4a" stroke-width="1.4"/>${dots([[46, 50], [52, 54]], 3.4, '#f2c78f', '#b88a4a')}`,
   melk: () => ING.melk(),
-  bloem: () => ING.bloem(),
 };
 
 export function sourceSvg(id, cls = '') {

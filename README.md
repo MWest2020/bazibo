@@ -618,7 +618,7 @@ glows. No timers, nothing spoken.
 - 3-5 "Wat hoort erbij?": two or three bowls, six pictures; the others plainly from other dishes.
 - 6-7: every ingredient of a bigger dish from eight pictures with look-alikes (sugar next to salt,
   yoghurt next to milk), and "which dish can you make with these?" (the dish under a cover).
-- 8-10: where an ingredient comes from (milk from the cow, cheese from milk, yeast is alive), the
+- 8-10: where an ingredient comes from (milk from the cow, cheese from milk, yeast is a tiny fungus), the
   steps of a simple recipe in order, and the odd one out.
 - Rounds of 6 with stars by mistakes. Free: 3-5; 6-7, 8-10 and random rounds in the full version.
 - Saved under `games.keuken`: stars per round, random rounds per tier, the how-to cards seen and

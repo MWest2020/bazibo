@@ -9906,7 +9906,9 @@ def keuken_layouts(browser, base, problems):
                         problems.append(f"{label}: {boxes[a][0]} and {boxes[b][0]} overlap")
             show = ["#ke-lead", "#ke-status"]
             if kind != "odd":
-                show += ["#ke-show .ke-dish", "#ke-show .ke-name"]
+                show += ["#ke-show .ke-dish"] + (["#ke-show .ke-name"] if kind != "which" else [])
+            if kind == "which" and page.is_visible("#ke-show .ke-name"):
+                problems.append(f"{label}: a name under the cover")
             if kind in ("fill", "which", "steps"):
                 show += [f"#ke-bowls > div >> nth={k}" for k in range(page.locator("#ke-bowls > div").count())]
             top = page.locator("#ke-top").bounding_box()

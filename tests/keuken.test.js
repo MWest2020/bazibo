@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { allStrings, LANGS } from '../web/js/i18n.js';
 import '../web/games/keuken/strings.js';
-import { DISHES, DISH_IDS, INGREDIENT_IDS, HOT, LOOKALIKES, lookalikesOf, SOURCE_IDS, ORIGINS, ORIGIN_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from '../web/games/keuken/dishes.js';
-import { TIERS, TIER_IDS, KINDS, ROUND_LEN, ROUNDS_PER_TIER, MAX_TRIES, BIG_DISHES, makeRound, starsFor, startState, tapOption, stillToTap, answersOf, inDish, belongsTo, missingIn, hashSeed } from '../web/games/keuken/rules.js';
-import { LOOK, ACT_IDS, ingredientSvg, dishSvg, sourceSvg, actSvg, tileSvg, howSvg, wallSvg, clocheSvg } from '../web/games/keuken/art.js';
+import { PREFERRED, VEGETABLES, DISHES, DISH_IDS, INGREDIENT_IDS, HOT, LOOKALIKES, lookalikesOf, SOURCE_IDS, ORIGINS, ORIGIN_IDS, GROUPS, GROUP_IDS, RECIPES, RECIPE_IDS } from '../web/games/keuken/dishes.js';
+import { TIERS, TIER_IDS, KINDS, ROUND_LEN, ROUNDS_PER_TIER, MAX_TRIES, BIG_DISHES, makeRound, starsFor, startState, tapOption, stillToTap, answersOf, inDish, belongsTo, missingIn, canMake, hashSeed } from '../web/games/keuken/rules.js';
+import { LOOK, DISH_TOP, ACT_IDS, ingredientSvg, dishSvg, sourceSvg, actSvg, tileSvg, howSvg, wallSvg, clocheSvg } from '../web/games/keuken/art.js';
 import { meta } from '../web/games/keuken/meta.js';
 import { sanitizePayload, mergeTransfer, replaceTransfer } from '../web/js/transfer.js';
 
@@ -33,6 +33,13 @@ test('the dishes Mark asked for, with the ingredients children know', () => {
   assert.deepEqual(DISHES.pannenkoeken.need, ['bloem', 'melk', 'ei']);
   assert.deepEqual(DISHES.tosti.need, ['brood', 'kaas']);
   assert.ok(DISHES.tosti.maybe.includes('ham'), 'a tosti may be with or without ham');
+  assert.deepEqual(DISHES.brood.key, ['bloem', 'water', 'zout'], 'a 4-year-old is not asked to know yeast');
+  for (const i of ['appel', 'kaas', 'ham', 'banaan']) assert.ok(inDish('pannenkoeken').has(i), `pancakes may have ${i}`);
+  for (const i of ['pasta', 'kipvlees', 'rijst']) assert.ok(inDish('groentesoep').has(i), `soup may have ${i}`);
+  for (const i of VEGETABLES) assert.ok(inDish('rijstgroente').has(i), `rice with vegetables may have ${i}`);
+  for (const i of ['hagelslag', 'banaan']) assert.ok(inDish('pindakaasbrood').has(i));
+  assert.ok(inDish('salade').has('aardappel') && inDish('pizza').has('kipvlees'));
+  for (const d of DISH_IDS) assert.equal(typeof DISH_TOP[d], 'number', `${d}: no top for the steam`);
 });
 
 test('every ingredient has a name in both languages, a picture, and belongs to a dish', () => {
@@ -57,6 +64,17 @@ test('the pictures: our own, no ids, no url(#), no style attributes, every ingre
       if (A.shape === B.shape) assert.ok(dist(A.color, B.color) >= 90, `${INGREDIENT_IDS[a]} and ${INGREDIENT_IDS[b]}: the same shape and colours only ${dist(A.color, B.color).toFixed(0)} apart`);
     }
   }
+  // the colour in LOOK is the colour drawn; round lumpy things never share a colour; yeast (a pale
+  // block) and a potato (a brown lump) are far apart (they were one brown blob, #c9a46a and #c9a066)
+  for (const i of INGREDIENT_IDS) assert.ok(ingredientSvg(i).includes(`fill="${LOOK[i].color}"`), `${i}: ${LOOK[i].color} is not in its picture`);
+  const blobs = INGREDIENT_IDS.filter((i) => ['lump', 'potato', 'loaf', 'bulb', 'round', 'egg'].includes(LOOK[i].shape));
+  for (let a = 0; a < blobs.length; a++) {
+    for (let b = a + 1; b < blobs.length; b++) {
+      const d = dist(LOOK[blobs[a]].color, LOOK[blobs[b]].color);
+      assert.ok(d >= 60, `${blobs[a]} and ${blobs[b]}: two round shapes only ${d.toFixed(0)} apart in colour`);
+    }
+  }
+  assert.ok(dist(LOOK.gist.color, LOOK.aardappel.color) >= 90, 'yeast and a potato look alike');
   const pics = [
     ...INGREDIENT_IDS.map((i) => ingredientSvg(i)),
     ...DISH_IDS.map((d) => dishSvg(d)),
@@ -100,7 +118,7 @@ test('where things come from: a source with a name, a line and a picture, never 
   assert.equal(ORIGINS.melk.src, 'koe');
   assert.equal(ORIGINS.bloem.src, 'graan');
   assert.equal(ORIGINS.kaas.src, 'melk');
-  assert.equal(ORIGINS.gist.src, 'cellen');
+  assert.equal(ORIGINS.gist.src, 'schimmel', 'yeast is a tiny fungus');
   assert.equal(ORIGINS.ei.src, 'kip');
   assert.equal(ORIGINS.rijst.src, 'rijstveld');
   assert.ok(!ORIGINS.kaas.not.includes('koe') && !ORIGINS.kaas.not.includes('zee'), 'cheese: the cow and the salt are partly right');
@@ -154,7 +172,12 @@ function checkQuestion(qq, tier, label) {
   } else if (qq.kind === 'which') {
     assert.equal(qq.options.length, 3);
     assert.ok(qq.shown.every((i) => inDish(qq.answer).has(i)), `${label}: the answer lacks a shown ingredient`);
-    for (const o of qq.options) if (o !== qq.answer) assert.ok(missingIn(o, qq.shown), `${label}: ${o} can be made with ${qq.shown} too`);
+    for (const o of qq.options) {
+      if (o === qq.answer) continue;
+      assert.ok(missingIn(o, qq.shown), `${label}: ${o} can be made with ${qq.shown} too`);
+      assert.ok(!DISHES[o].need.every((i) => qq.shown.includes(i)), `${label}: everything ${o} needs is in the bowls ${qq.shown}`);
+      assert.ok(!DISHES[o].key.every((i) => qq.shown.includes(i)), `${label}: everything ${o} is known by is in the bowls ${qq.shown}`);
+    }
   } else if (qq.kind === 'from') {
     assert.equal(qq.options.length, 3);
     for (const o of qq.options) if (o !== qq.answer) assert.ok(ORIGINS[qq.ing].not.includes(o), `${label}: ${o} as a wrong source for ${qq.ing}`);
@@ -228,6 +251,10 @@ test('a tap: right goes in, wrong bounces with its line, a second tap on a place
   assert.equal(belongsTo('kaas', 'pizza'), 'tosti');
   assert.equal(belongsTo('melk'), 'pannenkoeken');
   assert.equal(belongsTo('ham'), 'tosti', 'ham only ever goes on something: the toastie');
+  assert.equal(belongsTo('aardappel'), 'stamppot', 'a potato: the stamppot, not the roti');
+  assert.equal(belongsTo('aardappel', 'stamppot'), 'roti');
+  for (const [i, d] of Object.entries(PREFERRED)) assert.ok(inDish(d).has(i), `PREFERRED: ${i} is not in ${d}`);
+  for (const i of INGREDIENT_IDS) assert.ok(PREFERRED[i], `${i}: no preferred dish`);
 
   const which = { kind: 'which', dish: 'pannenkoeken', shown: ['bloem', 'melk', 'ei'], answer: 'pannenkoeken', options: ['pannenkoeken', 'pizza', 'salade'] };
   assert.deepEqual(tapOption(which, startState(), 'pizza'), { ok: false, why: 'lacks', about: { dish: 'pizza', ing: 'melk' } });
@@ -245,6 +272,32 @@ test('a tap: right goes in, wrong bounces with its line, a second tap on a place
   const odd = { kind: 'odd', group: 'koe', answer: 'appel', options: ['melk', 'appel', 'kaas', 'boter'] };
   assert.deepEqual(tapOption(odd, startState(), 'kaas'), { ok: false, why: 'also', about: 'koe' });
   assert.equal(tapOption(odd, startState(), 'appel').ok, true);
+});
+
+test('stillToTap: what is left to tap, per kind', () => {
+  const fill = { kind: 'fill', dish: 'pizza', need: ['bloem', 'tomaat', 'kaas'], options: ['bloem', 'tomaat', 'kaas', 'melk', 'banaan', 'pindakaas'] };
+  assert.deepEqual(stillToTap(fill, startState()), ['bloem', 'tomaat', 'kaas']);
+  assert.deepEqual(stillToTap(fill, { placed: ['tomaat'] }), ['bloem', 'kaas'], 'in any order');
+  assert.deepEqual(stillToTap(fill, { placed: ['tomaat', 'kaas', 'bloem'] }), []);
+  const steps = { kind: 'steps', dish: 'tosti', steps: ['tosti.1', 'tosti.2', 'tosti.3'], options: ['tosti.2', 'tosti.3', 'tosti.1'] };
+  assert.deepEqual(stillToTap(steps, startState()), ['tosti.1'], 'only the next step');
+  assert.deepEqual(stillToTap(steps, { placed: ['tosti.1', 'tosti.2'] }), ['tosti.3']);
+  assert.deepEqual(stillToTap(steps, { placed: ['tosti.1', 'tosti.2', 'tosti.3'] }), []);
+  for (const kind of ['which', 'from', 'odd']) {
+    const q = { kind, answer: 'x', options: ['x', 'y', 'z'] };
+    assert.deepEqual(stillToTap(q, startState()), ['x']);
+    assert.deepEqual(stillToTap(q, { placed: ['x'] }), []);
+  }
+});
+
+test('missingIn and canMake respect maybe: what may be in a dish is never said to be missing', () => {
+  assert.equal(missingIn('tosti', ['brood', 'kaas', 'ham']), null, 'ham may go on a tosti');
+  assert.equal(missingIn('pizza', ['bloem', 'kipvlees']), null, 'chicken may go on a pizza');
+  assert.equal(missingIn('pannenkoeken', ['bloem', 'melk', 'appel']), null, 'apple pancakes');
+  assert.equal(missingIn('pannenkoeken', ['bloem', 'gist']), 'gist');
+  assert.equal(missingIn('tosti', ['brood', 'pindakaas']), 'pindakaas');
+  assert.ok(canMake('pannenkoeken', DISHES.poffertjes.need), 'pancakes from the poffertjes bowls');
+  assert.ok(!canMake('pizza', DISHES.poffertjes.need));
 });
 
 test('stars count mistakes only, never time; help after MAX_TRIES', () => {

@@ -19,30 +19,46 @@ export const INGREDIENT_IDS = Object.freeze([
   'boontjes',
 ]);
 
-const dish = (need, key, maybe = []) => Object.freeze({ need: Object.freeze(need), key: Object.freeze(key), maybe: Object.freeze(maybe) });
+const dish = (need, key, maybe = []) => Object.freeze({ need: Object.freeze(need), key: Object.freeze(key), maybe: Object.freeze([...new Set(maybe)].filter((i) => !need.includes(i))) });
+
+/** Every vegetable here: any of them may go into rice with vegetables. */
+export const VEGETABLES = Object.freeze(['tomaat', 'sla', 'komkommer', 'wortel', 'prei', 'ui', 'knoflook', 'paprika', 'broccoli', 'boerenkool', 'boontjes']);
 
 /** The 16 dishes (in this order in the tests and when a line names "the dish it belongs to"). */
 export const DISHES = Object.freeze({
-  brood: dish(['bloem', 'water', 'gist', 'zout'], ['bloem', 'water', 'gist']),
-  pannenkoeken: dish(['bloem', 'melk', 'ei'], ['bloem', 'melk', 'ei'], ['zout', 'boter', 'suiker']),
+  brood: dish(['bloem', 'water', 'gist', 'zout'], ['bloem', 'water', 'zout']), // a 4-year-old is not asked to know yeast
+  pannenkoeken: dish(['bloem', 'melk', 'ei'], ['bloem', 'melk', 'ei'], ['zout', 'boter', 'suiker', 'appel', 'kaas', 'ham', 'banaan']),
   tosti: dish(['brood', 'kaas'], ['brood', 'kaas'], ['ham', 'boter']),
-  pizza: dish(['bloem', 'gist', 'tomaat', 'kaas'], ['bloem', 'tomaat', 'kaas'], ['water', 'zout', 'ham', 'ui', 'paprika', 'knoflook']),
-  groentesoep: dish(['water', 'wortel', 'prei', 'ui'], ['water', 'wortel', 'prei'], ['zout', 'aardappel', 'broccoli', 'paprika', 'boontjes', 'knoflook', 'tomaat']),
+  pizza: dish(['bloem', 'gist', 'tomaat', 'kaas'], ['bloem', 'tomaat', 'kaas'], ['water', 'zout', 'ham', 'ui', 'paprika', 'knoflook', 'kipvlees']),
+  groentesoep: dish(['water', 'wortel', 'prei', 'ui'], ['water', 'wortel', 'prei'], ['zout', 'aardappel', 'broccoli', 'paprika', 'boontjes', 'knoflook', 'tomaat', 'pasta', 'kipvlees', 'rijst']),
   appeltaart: dish(['bloem', 'boter', 'suiker', 'appel', 'kaneel'], ['appel', 'bloem', 'suiker'], ['ei', 'zout']),
-  salade: dish(['sla', 'tomaat', 'komkommer'], ['sla', 'tomaat', 'komkommer'], ['ui', 'paprika', 'ei', 'kaas', 'wortel', 'ham', 'kipvlees', 'appel', 'pasta', 'rijst', 'zout']),
+  salade: dish(['sla', 'tomaat', 'komkommer'], ['sla', 'tomaat', 'komkommer'], ['ui', 'paprika', 'ei', 'kaas', 'wortel', 'ham', 'kipvlees', 'appel', 'pasta', 'rijst', 'zout', 'aardappel']),
   yoghurtfruit: dish(['yoghurt', 'aardbei', 'banaan'], ['yoghurt', 'aardbei', 'banaan'], ['appel']),
   hagelslagbrood: dish(['brood', 'boter', 'hagelslag'], ['brood', 'boter', 'hagelslag']),
   poffertjes: dish(['bloem', 'melk', 'ei', 'gist', 'boter'], ['bloem', 'melk', 'gist'], ['suiker', 'zout']),
   roti: dish(['bloem', 'kipvlees', 'aardappel', 'boontjes'], ['bloem', 'kipvlees', 'aardappel'], ['ei', 'ui', 'knoflook', 'water', 'zout']),
-  rijstgroente: dish(['rijst', 'paprika', 'broccoli', 'wortel'], ['rijst', 'paprika', 'broccoli'], ['ui', 'knoflook', 'boontjes', 'prei', 'ei', 'kipvlees', 'zout']),
+  rijstgroente: dish(['rijst', 'paprika', 'broccoli', 'wortel'], ['rijst', 'paprika', 'broccoli'], ['ui', 'knoflook', 'boontjes', 'prei', 'ei', 'kipvlees', 'zout', ...VEGETABLES]),
   pastasaus: dish(['pasta', 'tomaat', 'ui', 'knoflook'], ['pasta', 'tomaat', 'ui'], ['kaas', 'zout', 'paprika', 'wortel']),
   stamppot: dish(['aardappel', 'boerenkool', 'melk', 'boter'], ['aardappel', 'boerenkool', 'melk'], ['zout']),
   smoothie: dish(['banaan', 'aardbei', 'melk'], ['banaan', 'aardbei', 'melk'], ['yoghurt', 'appel']),
-  pindakaasbrood: dish(['brood', 'pindakaas'], ['brood', 'pindakaas'], ['boter']),
+  pindakaasbrood: dish(['brood', 'pindakaas'], ['brood', 'pindakaas'], ['boter', 'hagelslag', 'banaan']),
 });
 export const DISH_IDS = Object.freeze(Object.keys(DISHES));
 
 /** Hot dishes steam when they are ready; the rest sparkle. */
+/**
+ * The dish a wrong ingredient is said to belong to ("Dat hoort bij de stamppot!"): the one a child
+ * thinks of first. Without an entry (or when it is the dish being made), the first dish it is known by.
+ */
+export const PREFERRED = Object.freeze({
+  aardappel: 'stamppot', bloem: 'brood', gist: 'brood', water: 'groentesoep', zout: 'brood', melk: 'pannenkoeken', ei: 'pannenkoeken',
+  brood: 'tosti', kaas: 'tosti', ham: 'tosti', tomaat: 'pizza', boter: 'hagelslagbrood', suiker: 'appeltaart', appel: 'appeltaart',
+  kaneel: 'appeltaart', sla: 'salade', komkommer: 'salade', yoghurt: 'yoghurtfruit', aardbei: 'smoothie', banaan: 'smoothie',
+  hagelslag: 'hagelslagbrood', pindakaas: 'pindakaasbrood', rijst: 'rijstgroente', pasta: 'pastasaus', wortel: 'groentesoep',
+  prei: 'groentesoep', ui: 'pastasaus', knoflook: 'pastasaus', paprika: 'rijstgroente', broccoli: 'rijstgroente', boerenkool: 'stamppot',
+  kipvlees: 'roti', boontjes: 'roti',
+});
+
 export const HOT = Object.freeze(new Set(['brood', 'pannenkoeken', 'tosti', 'pizza', 'groentesoep', 'appeltaart', 'poffertjes', 'roti', 'rijstgroente', 'pastasaus', 'stamppot']));
 
 /**
@@ -81,7 +97,7 @@ export function lookalikesOf(id) {
  * (cheese comes from milk). Names: keuken.src.<id>; what each one gives: keuken.gives.<id>; the
  * line after a right answer: keuken.fact.<ingredient>.
  */
-export const SOURCE_IDS = Object.freeze(['koe', 'kip', 'graan', 'cellen', 'rijstveld', 'boom', 'grond', 'zee', 'suikerbiet', 'cacao', 'pinda', 'melk', 'bloem']);
+export const SOURCE_IDS = Object.freeze(['koe', 'kip', 'graan', 'schimmel', 'rijstveld', 'boom', 'grond', 'zee', 'suikerbiet', 'cacao', 'pinda', 'melk']);
 export const ORIGINS = Object.freeze({
   melk: Object.freeze({ src: 'koe', not: Object.freeze(['kip', 'graan', 'boom', 'zee', 'rijstveld']) }),
   kaas: Object.freeze({ src: 'melk', not: Object.freeze(['kip', 'graan', 'boom', 'rijstveld', 'cacao']) }),
@@ -89,14 +105,14 @@ export const ORIGINS = Object.freeze({
   yoghurt: Object.freeze({ src: 'melk', not: Object.freeze(['kip', 'graan', 'rijstveld', 'zee', 'pinda']) }),
   ei: Object.freeze({ src: 'kip', not: Object.freeze(['koe', 'graan', 'boom', 'zee', 'grond']) }),
   bloem: Object.freeze({ src: 'graan', not: Object.freeze(['koe', 'kip', 'zee', 'boom', 'rijstveld']) }),
-  gist: Object.freeze({ src: 'cellen', not: Object.freeze(['koe', 'kip', 'boom', 'zee', 'rijstveld']) }),
-  rijst: Object.freeze({ src: 'rijstveld', not: Object.freeze(['koe', 'kip', 'boom', 'zee', 'cellen']) }),
+  gist: Object.freeze({ src: 'schimmel', not: Object.freeze(['koe', 'kip', 'boom', 'zee', 'rijstveld']) }),
+  rijst: Object.freeze({ src: 'rijstveld', not: Object.freeze(['koe', 'kip', 'boom', 'zee', 'schimmel']) }),
   appel: Object.freeze({ src: 'boom', not: Object.freeze(['koe', 'kip', 'zee', 'grond', 'rijstveld']) }),
   aardappel: Object.freeze({ src: 'grond', not: Object.freeze(['koe', 'kip', 'boom', 'zee', 'rijstveld']) }),
   zout: Object.freeze({ src: 'zee', not: Object.freeze(['koe', 'kip', 'boom', 'rijstveld', 'graan']) }),
-  suiker: Object.freeze({ src: 'suikerbiet', not: Object.freeze(['koe', 'kip', 'zee', 'rijstveld', 'cellen']) }),
-  hagelslag: Object.freeze({ src: 'cacao', not: Object.freeze(['kip', 'zee', 'rijstveld', 'cellen', 'graan']) }),
-  pindakaas: Object.freeze({ src: 'pinda', not: Object.freeze(['koe', 'kip', 'boom', 'rijstveld', 'cellen']) }),
+  suiker: Object.freeze({ src: 'suikerbiet', not: Object.freeze(['koe', 'kip', 'zee', 'rijstveld', 'schimmel']) }),
+  hagelslag: Object.freeze({ src: 'cacao', not: Object.freeze(['kip', 'zee', 'rijstveld', 'schimmel', 'graan']) }),
+  pindakaas: Object.freeze({ src: 'pinda', not: Object.freeze(['koe', 'kip', 'boom', 'rijstveld', 'schimmel']) }),
 });
 export const ORIGIN_IDS = Object.freeze(Object.keys(ORIGINS));
 

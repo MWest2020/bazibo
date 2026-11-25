@@ -531,9 +531,9 @@ Keukentje (Little Kitchen, id `keuken`; Mark, 25 Nov 2026: "een spelletje met wa
 of gerechten, zodat kids dat ook leren"): the child cooks in a little kitchen drawn in code (a tiled
 wall with a shelf, the counter, bowls). The data is in `web/games/keuken/dishes.js`: 16 dishes Dutch
 children know and others know too, each with `need` (every ingredient, the 6-7 bowls), `key` (the
-two or three a young child knows it by, the 3-5 bowls) and `maybe` (often in it but not always: ham
-on a tosti, an egg in apple pie, any vegetable in soup), which is never offered and never a
-distractor. Keep the ingredients correct and simple, the way children know them: no amounts, no
+two or three a young child knows it by, the 3-5 bowls; never yeast) and `maybe` (often in it but not always: ham
+on a tosti, an egg in apple pie, apple or cheese in pancakes, pasta in soup, any of `VEGETABLES` with
+rice), which is never offered and never a distractor; when in doubt, add it to `maybe`. Keep the ingredients correct and simple, the way children know them: no amounts, no
 brands (never a brand of peanut butter or sprinkles, in code, strings or art), nothing about
 allergies or diets, and never "good" or "bad", "healthy" or "unhealthy" food. Where things come from
 is `ORIGINS` (the answer and an explicit `not` list of wrong options that are plainly wrong: cheese
@@ -549,12 +549,15 @@ the menu rounds fixed, the three 3-5 rounds showing all 16 dishes). Tiers are ha
 child must know, never by speed: t1 (3-5) "Wat hoort erbij?" (`key`, six pictures); t2 (6-7) every
 ingredient of a dish with four or more from eight pictures with `LOOKALIKES`, and "which dish?" (the
 dish under a cover until named, one of 3); t3 (8-10) where it comes from, the steps in order, the odd
-one out. Nothing is ever wrong: a tap that does not fit bounces back with a short line (`belongsTo`:
+one out. A "which dish?" never offers a dish beside the answer that could be made from the shown bowls
+(`canMake`: nothing shown missing, or all it needs or is known by in the bowls; pancakes beside
+poffertjes). Yeast is "piepkleine schimmeltjes" (a tiny fungus), never "cells". Nothing is ever wrong: a tap that does not fit bounces back with a short line (`belongsTo`, the dish a
+child thinks of first from `PREFERRED`, a potato says stamppot:
 "Dat hoort bij de pizza!"; `missingIn`: "Geen melk in de pizza!"; what the picked source gives; "Dat
 komt later!"; "Die komt ook van de koe!"), counts once per question, and after `MAX_TRIES` the
 answer glows. `starsFor` counts mistakes only. No timers, no voice; the shell's `plink`, `boop` and
 `chime`. Every picture is ours (`art.js`): every ingredient unique by shape and colour (`LOOK`,
-tested), no ids, `url(#)` or style attributes; a new ingredient, dish or source needs a picture and
+the colour drawn; round lumpy shapes 60 or more apart in RGB, yeast and potato 90; tested), no ids, `url(#)` or style attributes; a new ingredient, dish or source needs a picture and
 `keuken.ing.`/`keuken.dish.` + `keuken.the.`/`keuken.src.` + `keuken.gives.` in both languages. Every
 target 48 px or more. Free: tier 1 (`meta.freeTiers`); the full version adds tiers 2 and 3 and random
 rounds. Saved: stars per round, random rounds per tier, the how-to cards seen and the last tier (all
