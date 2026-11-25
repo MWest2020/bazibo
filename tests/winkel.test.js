@@ -35,9 +35,16 @@ import {
   judgeBasket,
   fittingPairs,
   makeRound,
+  shopLine,
+  lineText,
+  LINE_KEYS,
+  GREETINGS,
+  isFood,
 } from '../web/games/winkel/rules.js';
+import { allStrings, setLang, t as tr } from '../web/js/i18n.js';
+import '../web/games/winkel/strings.js';
 import { meta } from '../web/games/winkel/meta.js';
-import { coinSvg, noteSvg, moneySvg, itemSvg, tileSvg, howSvg, ITEM_ART, BIG, NOTE, BAND_OPACITY } from '../web/games/winkel/art.js';
+import { coinSvg, noteSvg, moneySvg, itemSvg, tileSvg, howSvg, keeperSvg, tillSvg, bagSvg, KEEPER, ITEM_ART, BIG, NOTE, BAND_OPACITY } from '../web/games/winkel/art.js';
 import { sanitizePayload, payloadOf, mergeTransfer, encodeSave, decodeText } from '../web/js/transfer.js';
 
 const SEEDS = 200;
@@ -178,6 +185,7 @@ test('never wrong: too little says what is missing (with coins that make it), to
   assert.equal(over.why, 'over');
   assert.equal(over.over, 50);
   assert.equal(over.extra, null, 'no 50 cent on the counter to point at');
+  assert.deepEqual([over.back, over.ghosts], [[2], [50]], 'the € 1 back, a 50 cent on');
   const over2 = judge(q, [500, 200, 50, 100]);
   assert.deepEqual(over2.extra, [3], 'the euro that is too much');
   assert.deepEqual(judge(q, [200, 500, 50]), { ok: true });
@@ -192,20 +200,22 @@ test('never wrong: too little says what is missing (with coins that make it), to
 
 test('too little that the purse cannot make: take the fewest pieces back and show what goes on instead', () => {
   const twos = (target) => ({ kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'book', price: target }], target, wallet: WALLETS.twos, solution: fewest(target, WALLETS.twos) });
-  // € 2 with the only € 1 laid: no € 1 left, so the € 1 goes back and a € 2 goes on
-  assert.deepEqual(judge(twos(200), [100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
-  // € 4 with the € 1: back, and two € 2
-  assert.deepEqual(judge(twos(400), [100]), { ok: false, why: 'short', missing: 300, ghosts: [200, 200], back: [0] });
-  // € 4 with € 1 and € 2: the € 1 back, one more € 2 (the € 2 stays)
-  assert.deepEqual(judge(twos(400), [100, 200]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
-  assert.deepEqual(judge(twos(400), [200, 100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [1] });
-  // what the purse can make needs no swap
+  // € 3 with both € 1 laid: no € 1 left for the last euro, so one € 1 goes back and a € 2 goes on
+  assert.deepEqual(judge(twos(300), [100, 100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
+  // € 5 with both € 1: one back, and two € 2
+  assert.deepEqual(judge(twos(500), [100, 100]), { ok: false, why: 'short', missing: 300, ghosts: [200, 200], back: [0] });
+  // € 5 with both € 1 and a € 2: one € 1 back, one more € 2 (the € 2 stays)
+  assert.deepEqual(judge(twos(500), [100, 200, 100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [0] });
+  assert.deepEqual(judge(twos(500), [200, 100, 100]), { ok: false, why: 'short', missing: 100, ghosts: [200], back: [1] });
+  // what the purse can make needs no swap: € 2 or € 4 with one € 1 laid takes the other
+  assert.deepEqual(judge(twos(200), [100]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
+  assert.deepEqual(judge(twos(400), [100, 200]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
   assert.deepEqual(judge(twos(500), [200, 200]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
   assert.deepEqual(judge(twos(300), [200]), { ok: false, why: 'short', missing: 100, ghosts: [100], back: [] });
   // every twos price with every too-little counter: the help always leads to a right answer
   for (const target of [200, 300, 400, 500]) {
     const q = twos(target);
-    for (let ones = 0; ones <= 1; ones++) {
+    for (let ones = 0; ones <= 2; ones++) {
       for (let tw = 0; tw <= 3; tw++) {
         const laid = [...Array(ones).fill(100), ...Array(tw).fill(200)];
         if (total(laid) >= target) continue;
@@ -232,7 +242,37 @@ test('too little that the purse cannot make: take the fewest pieces back and sho
       }
     }
   }
-  assert.deepEqual(swapFor(twos(200), [100]), { back: [0], ghosts: [200] });
+  assert.deepEqual(swapFor(twos(300), [100, 100]), { back: [0], ghosts: [200] });
+});
+
+test("too much that nothing on the counter makes: the help takes pieces back and lays others, and adds up", () => {
+  // the youngest: € 3 paid 2 + 2, € 5 paid 2 + 2 + 2
+  const twos = (target) => ({ kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'ball', price: target }], target, wallet: WALLETS.twos, solution: fewest(target, WALLETS.twos) });
+  assert.deepEqual(judge(twos(300), [200, 200]), { ok: false, why: 'over', over: 100, extra: null, back: [0], ghosts: [100] });
+  assert.deepEqual(judge(twos(500), [200, 200, 200]), { ok: false, why: 'over', over: 100, extra: null, back: [0], ghosts: [100] });
+  // every too-much counter of every pay question (the solution with one piece swapped up): marked pieces or a swap that adds up
+  for (const tier of TIER_IDS) {
+    const all = [...fixed(tier).flat()];
+    for (let s = 0; s < SEEDS; s++) all.push(...makeRound({ tier, seed: seedOf(s) }));
+    for (const q of all) {
+      if (q.ask === 'basket') continue;
+      for (let k = 0; k < q.solution.length; k++) {
+        const rest = left(q.wallet, q.solution);
+        for (const d of Object.keys(q.wallet).map(Number).filter((x) => x > q.solution[k] && rest[x] > 0)) {
+          const laid = q.solution.map((x, i) => (i === k ? d : x));
+          const res = judge(q, laid);
+          assert.equal(res.why, 'over');
+          if (res.extra) assert.equal(res.extra.reduce((n, i) => n + laid[i], 0), res.over);
+          else {
+            const after = [...laid.filter((_, i) => !res.back.includes(i)), ...res.ghosts];
+            assert.equal(total(after), q.target, `${q.kind} ${q.target} from ${laid}: ${JSON.stringify(res)}`);
+            for (const n of Object.values(left(q.wallet, after))) assert.ok(n >= 0);
+            assert.ok(res.back.length && res.ghosts.length);
+          }
+        }
+      }
+    }
+  }
 });
 
 test('a budget: two things that together cost no more than you have; over says by how much', () => {
@@ -457,4 +497,210 @@ test('what is saved travels with Voortgang overzetten, and nothing odd gets thro
   assert.equal(merged.games.winkel.random.t2, 9);
   assert.equal(merged.games.winkel.random.t3, 1);
   assert.equal(merged.games.winkel.lastTier, 't2');
+});
+
+/**
+ * Every way to lay money from `wallet` (each count of each coin and note), by the amount it makes.
+ * Small wallets only (the cents purse has 31104 ways); kept per wallet.
+ */
+const WAYS = new Map();
+function waysOf(wallet) {
+  const key = JSON.stringify(wallet);
+  if (WAYS.has(key)) return WAYS.get(key);
+  const ds = Object.keys(wallet).map(Number);
+  const out = new Map();
+  const walk = (k, laid, sum) => {
+    if (k === ds.length) {
+      if (!out.has(sum)) out.set(sum, []);
+      out.get(sum).push(laid);
+      return;
+    }
+    for (let j = 0; j <= wallet[ds[k]]; j++) walk(k + 1, [...laid, ...Array(j).fill(ds[k])], sum + j * ds[k]);
+  };
+  walk(0, [], 0);
+  WAYS.set(key, out);
+  return out;
+}
+
+/**
+ * Mark's € 4 (25 Nov 2026): when the amount is exact, every way of making it is right. Every set of
+ * coins and notes from the purse (or till) that adds up to the price, laid one by one through `lay`
+ * and in the other order too, is judged right; in a 'fewest' question it is right with the fewest
+ * pieces and otherwise asks for fewer, never too little or too much.
+ */
+function checkEveryWay(q, label) {
+  if (q.ask === 'basket') return 0;
+  const ways = waysOf(q.wallet).get(q.target) || [];
+  assert.ok(ways.length >= 1, `${label}: no way to pay ${q.target}`);
+  for (const way of ways) {
+    let laid = [];
+    for (const d of way) {
+      laid = lay(q, laid, d);
+      assert.ok(laid, `${label}: cannot lay ${way}`);
+    }
+    for (const order of [laid, [...laid].reverse()]) {
+      const res = judge(q, order);
+      if (q.goal !== 'fewest') assert.deepEqual(res, { ok: true }, `${label}: ${order} for ${q.target} not judged right`);
+      else if (order.length === q.solution.length) assert.deepEqual(res, { ok: true }, `${label}: ${order} is as few as can be`);
+      else assert.deepEqual(res, { ok: false, why: 'more', n: q.solution.length }, `${label}: ${order}`);
+    }
+  }
+  return ways.length;
+}
+
+test('every way to make the exact amount is right: the fixed rounds and 200 seeds per tier', () => {
+  let n = 0;
+  for (const tier of TIER_IDS) {
+    fixed(tier).forEach((qs, k) => qs.forEach((q, i) => (n += checkEveryWay(q, `${tier}-${k + 1} q${i + 1}`))));
+    for (let s = 0; s < SEEDS; s++) makeRound({ tier, seed: seedOf(s) }).forEach((q, i) => (n += checkEveryWay(q, `${tier} seed ${seedOf(s)} q${i + 1}`)));
+  }
+  assert.ok(n > 10000, `only ${n} ways checked`);
+});
+
+test("3-5 never asks for as few coins as possible, and € 4 is 1 + 1 + 2 as well as 2 + 2", () => {
+  for (const kinds of KINDS.t1) assert.ok(!kinds.includes('fewest'));
+  const all = [...fixed('t1').flat()];
+  for (let s = 0; s < SEEDS; s++) all.push(...makeRound({ tier: 't1', seed: seedOf(s) }));
+  let fours = 0;
+  for (const q of all) {
+    assert.equal(q.goal, 'exact', `3-5 ${q.kind}: goal ${q.goal}`);
+    if (q.target !== 400) continue;
+    fours++;
+    if ((q.wallet[100] || 0) >= 2 && (q.wallet[200] || 0) >= 1) assert.deepEqual(judge(q, [100, 100, 200]), { ok: true });
+    if ((q.wallet[200] || 0) >= 2) assert.deepEqual(judge(q, [200, 200]), { ok: true });
+  }
+  assert.ok(fours > 20, `only ${fours} questions of € 4`);
+  // the twos purse makes both ways
+  const q = { kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'ball', price: 400 }], target: 400, wallet: WALLETS.twos, solution: fewest(400, WALLETS.twos) };
+  for (const way of [[100, 100, 200], [200, 100, 100], [200, 200]]) {
+    let laid = [];
+    for (const d of way) laid = lay(q, laid, d);
+    assert.deepEqual(judge(q, laid), { ok: true }, `${way}`);
+  }
+  assert.deepEqual(waysOf(WALLETS.twos).get(400).map((w) => w.join('+')).sort(), ['100+100+200', '200+200']);
+});
+
+// ---------- the shopkeeper's lines ----------
+
+const strings = allStrings();
+const raw = (lang, line, opts = {}) => {
+  setLang(lang);
+  const cents = !!opts.cents;
+  return lineText(line, tr, (c) => money(c, lang, { decimals: cents }));
+};
+/** A line as text, with the no-break space after € written as a space (to compare). */
+const say = (lang, line, opts) => raw(lang, line, opts).replaceAll('\u00a0', ' ');
+
+test('the shopkeeper says every line in Dutch and English, through t(), with nothing left unfilled', () => {
+  for (const key of LINE_KEYS) for (const lang of ['nl', 'en']) assert.ok(strings[lang][key], `${key} has no ${lang} text`);
+  for (const id of ITEM_IDS) assert.equal(typeof isFood(id), 'boolean');
+  const seen = new Set();
+  const check = (q, label, cents) => {
+    const lines = [shopLine(q, { say: 'hello', i: 0 }), shopLine(q, { say: 'hello', i: 3, again: true }), shopLine(q, { say: 'show' }), shopLine(q, { say: 'try', res: { ok: true } })];
+    if (q.ask === 'basket') {
+      lines.push(shopLine(q, { say: 'try', res: judgeBasket(q, [0, 1, 2, 3].filter((k) => !q.best.includes(k)).slice(0, 2)) }));
+    } else {
+      const tries = [q.solution.slice(1), [...q.solution, ...Object.keys(q.wallet).map(Number).filter((d) => left(q.wallet, q.solution)[d] > 0).slice(0, 1)]];
+      if (q.kind === 'twos' && q.target % 200) tries.push([100, 100]); // the swap
+      // the smallest piece swapped for a bigger one: too much, often with nothing on the counter that makes it
+      const small = q.solution.at(-1);
+      const big = Object.keys(q.wallet).map(Number).find((d) => d > small && left(q.wallet, q.solution.slice(0, -1))[d] > 0);
+      if (big) tries.push([...q.solution.slice(0, -1), big]);
+      if (q.goal === 'fewest') tries.push(waysOf(q.wallet).get(q.target).find((w) => w.length > q.solution.length)); // more pieces
+      for (const laid of tries) {
+        const res = judge(q, laid);
+        if (!res.ok) lines.push(shopLine(q, { say: 'try', res, laid }));
+      }
+    }
+    for (const line of lines) {
+      assert.ok(LINE_KEYS.includes(line.key), `${label}: ${line.key} is not in LINE_KEYS`);
+      seen.add(line.key);
+      for (const v of Object.values(line.vars)) if (typeof v === 'string') assert.ok(LINE_KEYS.includes(v) || v.startsWith('winkel.item.'), `${label}: ${v}`);
+      for (const lang of ['nl', 'en']) {
+        const text = raw(lang, line, { cents });
+        assert.doesNotMatch(text, /[{}]|undefined|null|NaN|\s{2}|^\s|\s$/, `${label} ${lang}: ${text}`);
+        assert.match(text, /^(\p{Lu}|€)/u, `${label} ${lang}: no capital: ${text}`);
+        assert.ok(text.length <= 90, `${label} ${lang}: too long for the bubble (${text.length}): ${text}`);
+        assert.doesNotMatch(text, /fout|wrong|helaas/i, `${label} ${lang}: never wrong`);
+      }
+    }
+  };
+  for (const tier of TIER_IDS) {
+    fixed(tier).forEach((qs, k) => qs.forEach((q, i) => check(q, `${tier}-${k + 1} q${i + 1}`, TIERS[tier].cents)));
+    for (let s = 0; s < 40; s++) makeRound({ tier, seed: seedOf(s) }).forEach((q, i) => check(q, `${tier} seed ${s} q${i + 1}`, TIERS[tier].cents));
+  }
+  for (const key of LINE_KEYS.filter((k) => k.startsWith('winkel.say.') && k !== 'winkel.say.count')) assert.ok(seen.has(key), `${key} is never said`);
+  setLang('nl');
+});
+
+test('the lines: a greeting with the price, too little, too much, thanks, change and as few as possible', () => {
+  const kite = { kind: 'exact', ask: 'pay', goal: 'exact', items: [{ id: 'kite', price: 600 }], target: 600, wallet: WALLETS.whole, solution: fewest(600, WALLETS.whole) };
+  assert.equal(say('nl', shopLine(kite, { say: 'hello', i: 0 })), 'Goedemorgen! Een vlieger, dat is € 6.');
+  assert.equal(say('en', shopLine(kite, { say: 'hello', i: 0 })), 'Good morning! A kite, that is € 6.');
+  // the next questions are greeted in turn; after a try the price again, without a greeting
+  const greets = Array.from({ length: 6 }, (_, i) => shopLine(kite, { say: 'hello', i }).vars.hi);
+  assert.deepEqual(greets, ['winkel.hi.0', 'winkel.hi.1', 'winkel.hi.2', 'winkel.hi.1', 'winkel.hi.2', 'winkel.hi.1']);
+  assert.equal(GREETINGS, 3);
+  assert.equal(say('nl', shopLine(kite, { say: 'hello', i: 2, again: true })), 'Een vlieger, dat is € 6.');
+  // too little: what is missing, politely (the ghost coins show it on the counter)
+  const short = judge(kite, [500]);
+  assert.equal(say('nl', shopLine(kite, { say: 'try', res: short, laid: [500] })), 'Nog € 1, alsjeblieft.');
+  assert.equal(say('en', shopLine(kite, { say: 'try', res: short, laid: [500] })), '€ 1 more, please.');
+  // too much without a piece that makes it: pay it exactly (the € 2 marked, a € 1 ghost); with one: take that back (it is marked)
+  const over = judge(kite, [500, 200]);
+  assert.deepEqual(over, { ok: false, why: 'over', over: 100, extra: null, back: [1], ghosts: [100] });
+  assert.equal(say('nl', shopLine(kite, { say: 'try', res: over, laid: [500, 200] })), 'Dat is € 1 te veel. Kun je het precies betalen?');
+  assert.equal(say('en', shopLine(kite, { say: 'try', res: over, laid: [500, 200] })), 'That is € 1 too much. Can you pay it exactly?');
+  const over2 = judge(kite, [500, 100, 100]);
+  assert.deepEqual(over2.extra, [1]);
+  assert.equal(say('nl', shopLine(kite, { say: 'try', res: over2, laid: [500, 100, 100] })), 'Dat is € 1 te veel. Pak die maar terug.');
+  // right: thanks, and fun with a toy or a good meal
+  assert.equal(say('nl', shopLine(kite, { say: 'try', res: { ok: true } })), 'Dank je wel! Veel plezier met je vlieger!');
+  assert.equal(say('en', shopLine(kite, { say: 'try', res: { ok: true } })), 'Thank you! Have fun with your kite!');
+  const apple = { ...kite, items: [{ id: 'apple', price: 100 }], target: 100 };
+  assert.equal(say('nl', shopLine(apple, { say: 'try', res: { ok: true } })), 'Dank je wel! Smullen maar van je appel!');
+  assert.equal(say('en', shopLine(apple, { say: 'hello', i: 1 })), 'Hello! An apple, that is € 1.');
+  // the swap of the twos purse
+  const twos = { kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'ball', price: 300 }], target: 300, wallet: WALLETS.twos, solution: fewest(300, WALLETS.twos) };
+  const sw = judge(twos, [100, 100]);
+  assert.equal(say('nl', shopLine(twos, { say: 'try', res: sw, laid: [100, 100] })), 'Nog € 1, alsjeblieft. Pak eerst € 1 terug en ruil.');
+  assert.equal(say('nl', shopLine(twos, { say: 'hello', i: 0 })), 'Goedemorgen! Een bal, dat is € 3. Een munt van 2 telt voor twee!');
+  // as few as possible: asked plainly up front, and the right amount with more pieces asks for fewer
+  const few = { ...kite, kind: 'fewest', goal: 'fewest', wallet: WALLETS.half, solution: fewest(600, WALLETS.half) };
+  assert.equal(say('nl', shopLine(few, { say: 'hello', i: 0 })), 'Een vlieger, dat is € 6. Kun je betalen met zo min mogelijk munten en briefjes?');
+  assert.equal(say('en', shopLine(few, { say: 'hello', i: 0 })), 'A kite, that is € 6. Can you pay with as few coins and notes as possible?');
+  const more = judge(few, [200, 200, 200]);
+  assert.equal(more.why, 'more');
+  assert.equal(say('nl', shopLine(few, { say: 'try', res: more })), 'Het klopt! Kan het ook met minder munten en briefjes?');
+  assert.equal(say('en', shopLine(few, { say: 'try', res: more })), 'That is right! Can you do it with fewer coins and notes?');
+  // change: counted by the child from the till, "this is what you get back"
+  const change = { kind: 'change', ask: 'change', goal: 'exact', items: [{ id: 'balloon', price: 340 }], price: 340, paid: 500, target: 160, wallet: WALLETS.till, solution: fewest(160, WALLETS.till) };
+  assert.equal(say('nl', shopLine(change, { say: 'hello', i: 0 }), { cents: true }), 'Een ballon, dat is € 3,40. Je geeft me € 5,00. Tel jij wat je terugkrijgt?');
+  assert.equal(say('nl', shopLine(change, { say: 'try', res: { ok: true } })), 'Dat klopt! Dit krijg je terug.');
+  assert.equal(say('nl', shopLine(change, { say: 'show' })), 'Kijk, dit krijg je terug.');
+  assert.equal(say('nl', shopLine(change, { say: 'try', res: judge(change, [100, 50, 10, 10]) }), { cents: true }), 'Dat is € 0,10 te veel. Dat mag terug in de kassa.');
+  // two things and a budget
+  const two = { kind: 'two', ask: 'pay', goal: 'exact', items: [{ id: 'apple', price: 120 }, { id: 'book', price: 340 }], target: 460, wallet: WALLETS.cents, solution: fewest(460, WALLETS.cents) };
+  assert.equal(say('nl', shopLine(two, { say: 'hello', i: 1 })), 'Hallo! Een appel en een boek. Betaal je ze samen?');
+  assert.equal(say('nl', shopLine(two, { say: 'try', res: { ok: true } })), 'Dank je wel! Veel plezier ermee!');
+  const basket = { kind: 'budget', ask: 'basket', items: [{ id: 'apple', price: 120 }, { id: 'book', price: 400 }, { id: 'milk', price: 150 }, { id: 'ball', price: 350 }], budget: 500, pick: 2, best: [0, 2] };
+  assert.equal(say('nl', shopLine(basket, { say: 'hello', i: 0 })), 'Goedemorgen! Je hebt € 5. Welke twee neem je mee?');
+  assert.equal(say('nl', shopLine(basket, { say: 'try', res: judgeBasket(basket, [1, 3]) })), 'Samen is dat € 7,50, € 2,50 te veel. Kies iets anders?');
+  // the no-break space after € stays
+  assert.ok(raw('nl', shopLine(kite, { say: 'hello', i: 0 })).includes('€\u00a06'));
+  assert.throws(() => shopLine(kite, { say: 'sing' }));
+  setLang('nl');
+});
+
+test('the shopkeeper, the till and the bag are our own drawings: no ids, url(#) or styles', () => {
+  const all = [keeperSvg(), tillSvg(), ...ITEM_IDS.map((id) => bagSvg(id))].join('');
+  assert.doesNotMatch(all, /\sid=|url\(#|<use|<image|href=|style=|<text/);
+  // the bag holds the thing it was bought for
+  for (const id of ITEM_IDS) assert.ok(bagSvg(id).includes(ITEM_ART[id]), id);
+  // a mouse of its own colours: never black ears, every colour different
+  const colours = Object.values(KEEPER);
+  assert.equal(new Set(colours).size, colours.length);
+  for (const c of colours) assert.match(c, /^#[0-9a-f]{6}$/);
+  assert.notEqual(KEEPER.ear, '#000000');
+  assert.ok(colours.every((c) => keeperSvg().includes(c)), 'every colour is drawn');
 });
