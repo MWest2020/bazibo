@@ -1,0 +1,312 @@
+/* Winkeltje: home tile, the menu picture, the shop (the thing with its price tag), the counter
+   with what lies on it, the purse or till, and Betalen. The menu reuses Klok kijken's round grid
+   (klok.css); shared look lives in css/style.css. Every coin, note and button is 48 px or more. */
+
+/* ---------- home tile and menu ---------- */
+#tile-winkel .tile-art { display: flex; align-items: center; justify-content: center; }
+.wk-tile-svg { width: 100%; height: 100%; max-width: 104px; display: block; overflow: visible; }
+.wk-menu-art { display: flex; justify-content: center; margin: 0 0 8px; }
+.wk-menu-art svg { width: 180px; height: auto; display: block; }
+.wk-ov { display: inline-flex; width: 170px; height: 117px; }
+.wk-ov svg { width: 100%; height: 100%; }
+.wk-face, .wk-unit { font-family: var(--bz-font); }
+
+/* ---------- the play screen ---------- */
+#screen-winkel { --wk-coin: 56px; --wk-item: 56px; }
+.wk-hud { gap: 10px; }
+#wk-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 620px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "shop" "counter" "." "cap" "wallet" "side";
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 12px 10px;
+}
+/* the two halves only group the parts for the sideways layout; the grid places the parts */
+.wk-col { display: contents; }
+.wk-shop { grid-area: shop; }
+.wk-counter { grid-area: counter; }
+.wk-wallet-cap { grid-area: cap; }
+.wk-wallet { grid-area: wallet; }
+.wk-side { grid-area: side; }
+
+/* the shop: an awning over the thing and its price tag */
+.wk-shop {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px 8px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 4px 0 #ead9c4;
+  text-align: center;
+}
+.wk-shop::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 10px;
+  border-radius: 20px 20px 0 0;
+  background: repeating-linear-gradient(90deg, #ff8a3d 0 22px, #fff4ea 22px 44px);
+  border-bottom: 2px solid #e0a37a;
+}
+.wk-lead { margin: 0; font-size: 1rem; font-weight: 800; color: var(--bz-ink-soft); line-height: 1.2; text-wrap: balance; }
+.wk-goods { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
+.wk-good { display: flex; align-items: center; gap: 6px; }
+.wk-item-art { width: var(--wk-item); height: var(--wk-item); display: block; flex: none; }
+.wk-tag {
+  position: relative;
+  padding: 2px 10px 2px 16px;
+  border: 3px solid var(--bz-brand);
+  border-radius: 10px 14px 14px 10px;
+  background: #fff;
+  color: var(--bz-brand-dark);
+  font: 900 1.5rem/1.15 var(--bz-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wk-tag::before { content: ""; position: absolute; left: 5px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--bz-brand); }
+.wk-goods.n2 .wk-tag { font-size: 1.2rem; }
+.wk-sum { margin: 0; font: 900 1.45rem/1.15 var(--bz-font); color: var(--bz-brand-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wk-sum[hidden], .wk-upline[hidden], .wk-pips[hidden], .wk-wallet-cap[hidden] { display: none; }
+.wk-paid { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.wk-paid .wk-note { width: 72px; height: 40px; display: block; }
+.wk-paid .wk-coin { width: 44px; height: 44px; display: block; }
+.wk-paid-word { font-size: 0.85rem; font-weight: 800; color: var(--bz-ink-soft); }
+
+/* a thing to pick in a budget question */
+[data-ask="basket"] .wk-goods { gap: 6px; }
+button.wk-good {
+  flex-direction: column;
+  gap: 2px;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 4px 4px 6px;
+  border: 3px solid transparent;
+  border-radius: 16px;
+  background: #faf5ee;
+  cursor: pointer;
+  touch-action: manipulation;
+  font: inherit;
+  color: inherit;
+}
+button.wk-good .wk-item-art { width: 48px; height: 48px; }
+button.wk-good .wk-tag { font-size: 1rem; padding: 1px 6px 1px 12px; border-width: 2px; }
+button.wk-good .wk-tag::before { left: 3px; }
+button.wk-good.picked { background: var(--bz-group-tint); border-color: var(--bz-group-acc); }
+button.wk-good.over { border-color: var(--bz-accent-dark); background: #fde7dc; }
+button.wk-good.right { border-color: #3fb35f; background: #dcf7d4; }
+button.wk-good:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; }
+
+/* the counter: a wooden top with what lies on it */
+.wk-counter {
+  position: relative;
+  min-height: calc(var(--wk-coin) * 2 + 54px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px 10px;
+  border-radius: 18px;
+  background: #f1d6b0;
+  box-shadow: inset 0 6px 0 #dcb383, 0 4px 0 #b9864f;
+  transition: box-shadow 0.15s;
+}
+[data-ask="basket"] .wk-counter { min-height: calc(var(--wk-coin) + 54px); }
+.wk-counter.drop { box-shadow: inset 0 6px 0 #dcb383, 0 4px 0 #b9864f, 0 0 0 4px var(--bz-group-acc); }
+.wk-counter.right { background: #dcf3cf; box-shadow: inset 0 6px 0 #b4dea0, 0 4px 0 #6fae5d; }
+.wk-counter-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-height: 26px; padding-top: 4px; }
+.wk-total { font-size: 1.05rem; font-weight: 900; color: #5a3410; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wk-pips { display: flex; gap: 5px; margin-left: auto; }
+.wk-pip { width: 16px; height: 16px; border-radius: 50%; border: 3px solid #b98e22; background: #fff; }
+.wk-pip.on { background: #ecc85e; }
+.wk-pip.over { border-color: var(--bz-accent-dark); border-style: dashed; background: #fde7dc; }
+.wk-upline { margin: 0; font-size: 0.95rem; font-weight: 800; color: #5a3410; font-variant-numeric: tabular-nums; line-height: 1.25; text-align: center; }
+.wk-laid { flex: 1; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 6px; min-height: var(--wk-coin); }
+
+/* a coin or note: on the counter, in a pile, in the purse, or dragged */
+.wk-piece, .wk-stack {
+  position: relative;
+  width: var(--wk-coin);
+  height: var(--wk-coin);
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  font: inherit;
+}
+.wk-piece.note, .wk-stack.note, .wk-ghost.note { width: calc(var(--wk-coin) * 1.6); }
+.wk-piece svg, .wk-stack svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.wk-layer { position: absolute; inset: 4px 6px 6px 4px; }
+.wk-layer.l1 { transform: translate(3px, 3px); }
+.wk-layer.l2 { transform: translate(6px, 5px); }
+.wk-pile .wk-layer.l0 { z-index: 2; }
+.wk-pile .wk-layer.l1 { z-index: 1; }
+.wk-piece:not(.wk-pile) .wk-layer { inset: 0; }
+.wk-count {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 3;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: var(--bz-radius-pill);
+  background: var(--bz-ink);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+}
+.wk-piece.over { border-radius: 50%; box-shadow: 0 0 0 3px var(--bz-accent-dark); animation: wk-lift 0.5s ease-out; background: rgba(253, 231, 220, 0.7); }
+.wk-piece.note.over { border-radius: 8px; }
+.wk-piece.right { border-radius: 50%; box-shadow: 0 0 0 3px #3fb35f; }
+.wk-piece.note.right { border-radius: 8px; }
+.wk-ghost {
+  position: relative;
+  width: var(--wk-coin);
+  height: var(--wk-coin);
+  flex: none;
+  border-radius: 50%;
+  outline: 3px dashed #9a6a3a;
+  outline-offset: -2px;
+  opacity: 0.5;
+}
+.wk-ghost.note { border-radius: 8px; }
+.wk-ghost svg { width: 100%; height: 100%; display: block; }
+.wk-piece:focus-visible, .wk-stack:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-radius: 12px; }
+.wk-basket-item { border-radius: 14px; background: #fff; }
+.wk-basket-item svg { padding: 4px; }
+.wk-basket-item.over { border-radius: 14px; }
+.wk-basket-item.right { border-radius: 14px; }
+
+/* the purse (or the till): a stack per coin and note, with how many are left */
+.wk-wallet-cap { margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--bz-ink-soft); text-align: center; }
+.wk-wallet {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--bz-group-tint);
+}
+.wk-stack { border-radius: 14px; background: #fff; box-shadow: 0 3px 0 #e2d3bb; }
+.wk-stack svg { padding: 3px; }
+.wk-stack:active { transform: translateY(2px); box-shadow: 0 1px 0 #e2d3bb; }
+.wk-stack:disabled { opacity: 0.35; cursor: default; transform: none; }
+.wk-stack.still { background: none; box-shadow: none; cursor: default; }
+.wk-drag {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  width: calc(var(--wk-coin) * 1.1);
+  height: calc(var(--wk-coin) * 1.1);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 6px rgba(40, 36, 92, 0.3));
+}
+.wk-drag.note { width: calc(var(--wk-coin) * 1.75); }
+.wk-drag svg { width: 100%; height: 100%; display: block; }
+
+/* Betalen, the dots and the line under them */
+.wk-side { display: flex; align-items: center; gap: 10px; }
+.btn.big.wk-pay { flex: 0 0 auto; width: min(46%, 220px); min-width: 0; min-height: 56px; padding: 0 12px; font-size: 1.35rem; }
+.btn.big.wk-pay:disabled { opacity: 0.45; }
+.wk-progress { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.klok-status.wk-status { min-height: 2.4em; font-size: 0.95rem; }
+#wk-stage.happy .wk-shop { box-shadow: 0 4px 0 #9be15d; }
+#wk-stage.happy .wk-good:not(button) { animation: wk-hop 0.6s ease-out; }
+
+@keyframes wk-lift { 0% { transform: translateY(0); } 40% { transform: translateY(-8px); } 100% { transform: translateY(0); } }
+@keyframes wk-hop { 0% { transform: translateY(0); } 35% { transform: translateY(-10px) rotate(-4deg); } 100% { transform: translateY(0); } }
+
+/* tall phones and tablets: bigger coins */
+@media (min-height: 780px) and (min-width: 380px) {
+  #screen-winkel { --wk-coin: 64px; --wk-item: 68px; }
+  .wk-tag { font-size: 1.8rem; }
+  .wk-counter { min-height: calc(var(--wk-coin) * 3 + 70px); }
+  [data-ask="basket"] .wk-counter { min-height: calc(var(--wk-coin) * 2 + 54px); }
+}
+
+/* narrow phones */
+@media (max-width: 359px) {
+  #screen-winkel { --wk-coin: 50px; --wk-item: 48px; }
+  .wk-tag { font-size: 1.3rem; }
+  .wk-sum { font-size: 1.25rem; }
+  button.wk-good { flex-direction: row; width: calc(50% - 3px); min-width: 0; justify-content: center; gap: 4px; }
+}
+
+/* short phones: smaller shop and counter, so the purse keeps its room */
+@media (max-height: 700px) {
+  #screen-winkel { --wk-coin: 50px; --wk-item: 46px; }
+  .wk-shop { padding: 14px 10px 6px; gap: 2px; }
+  .wk-lead { font-size: 0.9rem; }
+  .wk-tag { font-size: 1.25rem; }
+  .wk-sum { font-size: 1.2rem; }
+  #wk-stage { gap: 6px; padding-bottom: 6px; }
+  .wk-col { gap: 6px; }
+  .btn.big.wk-pay { min-height: 50px; font-size: 1.2rem; }
+  .wk-counter { padding: 4px 8px 8px; min-height: calc(var(--wk-coin) + 64px); }
+  .wk-counter-head { min-height: 22px; }
+  .wk-wallet-cap { display: none; }
+  .wk-paid .wk-note { width: 58px; height: 32px; }
+  .wk-paid-word { font-size: 0.78rem; }
+  .wk-upline { font-size: 0.88rem; }
+  .klok-status.wk-status { font-size: 0.88rem; }
+}
+
+/* sideways phones: the bar on the left (like Kangoeroe); the shop and the purse left, the counter
+   and Betalen right */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-winkel { flex-direction: row; --wk-coin: 50px; --wk-item: 44px; }
+  .wk-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; max-width: 120px; }
+  .wk-hud .hud-mid { flex: 0; }
+  .wk-hud .hud-level { white-space: normal; font-size: 0.92rem; }
+  .wk-hud .btn.icon { width: 54px; height: 54px; }
+  #wk-stage {
+    grid-template-columns: minmax(236px, 1.15fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "shop counter" "cap counter" "wallet counter" "wallet side";
+    gap: 6px 10px;
+    padding: 6px 12px 6px 4px;
+  }
+  /* the line first, over the whole column; Betalen and the dots under it */
+  .wk-side { flex-wrap: wrap; justify-content: space-between; gap: 2px 6px; }
+  .wk-progress { display: contents; }
+  #wk-status { order: -1; flex: 1 0 100%; }
+  #wk-dots { flex: none; gap: 4px; }
+  #wk-dots .klok-dot { width: 9px; height: 9px; }
+  .wk-paid { display: none; }
+  .wk-goods { flex-wrap: nowrap; }
+  [data-ask="basket"] .wk-goods { flex-wrap: wrap; }
+  .wk-wallet-cap { display: none; }
+  .wk-laid { min-height: 0; overflow-y: auto; }
+  .wk-upline { font-size: 0.85rem; }
+  .wk-shop { padding: 13px 8px 4px; }
+  .wk-lead { font-size: 0.85rem; }
+  .wk-tag { font-size: 1.15rem; }
+  .wk-sum { font-size: 1.05rem; }
+  .wk-counter, [data-ask="basket"] .wk-counter { min-height: 0; padding: 4px 8px 8px; }
+  .wk-wallet { align-content: center; }
+  .wk-piece.note, .wk-stack.note, .wk-ghost.note { width: calc(var(--wk-coin) * 1.45); }
+  .btn.big.wk-pay { width: auto; flex: 1 1 auto; min-height: 50px; padding: 0 8px; font-size: 1.05rem; }
+  .klok-status.wk-status { min-height: 1.2em; font-size: 0.85rem; }
+  button.wk-good { flex-direction: row; width: calc(50% - 3px); min-width: 0; min-height: 50px; padding: 1px 2px; justify-content: center; gap: 2px; }
+  button.wk-good .wk-item-art { width: 40px; height: 40px; }
+  button.wk-good .wk-tag { font-size: 0.85rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-piece.over, #wk-stage.happy .wk-good:not(button) { animation: none; }
+}

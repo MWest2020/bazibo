@@ -26,6 +26,7 @@
 //   a Verstoppertje round (or its card) -> its menu (the round is kept: "keep playing")
 //   a Treintje puzzle (or its card)    -> its menu (the puzzle is kept: "keep playing")
 //   a Kangoeroe round (or its card)    -> its menu (the round is kept: "keep playing")
+//   a Winkeltje round (or its card)    -> its menu (the round is kept: "keep playing")
 //   a Kaartpuzzel round (or its card)  -> its menu (the round is kept: "keep playing")
 //   an Egeltje garden (or its card)    -> its menu (the round is kept: "keep playing")
 //   the Egeltje menu                   -> from one kind of round to the kinds, then home
@@ -41,7 +42,7 @@
 //   the home screen                    -> leave the app
 export function backAction({ screen, overlay = 'none' }) {
   if (overlay === 'busy') return 'ignore';
-  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'kwartet' ? 'kwartet-menu' : screen === 'klok' ? 'klok-menu' : screen === 'letters' ? 'letters-menu' : screen === 'doolhof' ? 'doolhof-menu' : screen === 'verstop' ? 'verstop-menu' : screen === 'treintje' ? 'treintje-menu' : screen === 'kangoeroe' ? 'kangoeroe-menu' : screen === 'kaart' ? 'kaart-menu' : screen === 'piano' ? 'piano-songs' : screen === 'drums' ? 'drums-list' : screen === 'transfer' ? 'transfer-card' : 'close';
+  if (overlay === 'card') return screen === 'game' ? 'levels' : screen === 'slang' ? 'slang-menu' : screen === 'kwartet' ? 'kwartet-menu' : screen === 'klok' ? 'klok-menu' : screen === 'letters' ? 'letters-menu' : screen === 'doolhof' ? 'doolhof-menu' : screen === 'verstop' ? 'verstop-menu' : screen === 'treintje' ? 'treintje-menu' : screen === 'kangoeroe' ? 'kangoeroe-menu' : screen === 'winkel' ? 'winkel-menu' : screen === 'kaart' ? 'kaart-menu' : screen === 'piano' ? 'piano-songs' : screen === 'drums' ? 'drums-list' : screen === 'transfer' ? 'transfer-card' : 'close';
   if (screen === 'game') return 'pause';
   if (screen === 'dogudoku') return 'dogudoku-levels';
   if (screen === 'picturedoku') return 'picturedoku-levels';
@@ -64,6 +65,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'verstop') return 'verstop-menu';
   if (screen === 'treintje') return 'treintje-menu';
   if (screen === 'kangoeroe') return 'kangoeroe-menu';
+  if (screen === 'winkel') return 'winkel-menu';
   if (screen === 'kaart') return 'kaart-menu';
   if (screen === 'doolhof') return 'doolhof-menu';
   if (screen === 'doolhof-menu') return 'doolhof-menu-back';

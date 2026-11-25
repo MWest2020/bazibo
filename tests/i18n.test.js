@@ -31,6 +31,8 @@ import '../web/games/verstop/strings.js';
 import { SCENE_IDS as VZ_SCENES, ANIMAL_IDS as VZ_ANIMALS, CREATURE_IDS as VZ_CREATURES, FEATURE_IDS as VZ_FEATURES, SPOT_KINDS as VZ_SPOTS, TIER_IDS as VZ_TIERS } from '../web/games/verstop/rules.js';
 import '../web/games/kangoeroe/strings.js';
 import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
+import '../web/games/winkel/strings.js';
+import { TIER_IDS as WINKEL_TIERS, ITEM_IDS as WINKEL_ITEMS } from '../web/games/winkel/rules.js';
 import '../web/games/kaart/strings.js';
 import { PACK_IDS as KAART_PACKS } from '../web/games/kaart/packs.js';
 import '../web/games/doolhof/strings.js';
@@ -158,6 +160,10 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);
   for (const k of ['count', 'add', 'land', 'missing', 'skipOn', 'skipBack']) used.add(`kangoeroe.lead.${k}`);
   for (const n of [1, 2, 3]) used.add(`kangoeroe.win${n}`);
+  for (const id of WINKEL_TIERS) used.add(`winkel.tier.${id}`).add(`winkel.short.${id}`).add(`winkel.how.${id}`);
+  for (const k of ['exact', 'fewest', 'two']) used.add(`winkel.lead.${k}`); // built as t(`winkel.lead.${kind}`)
+  for (const id of WINKEL_ITEMS) used.add(`winkel.item.${id}`);
+  for (const n of [1, 2, 3]) used.add(`winkel.win${n}`);
   for (const id of KAART_PACKS) used.add(`kaart.pack.${id}`);
   for (const k of ['t1', 't2', 't3.cities', 't3.seas']) used.add(`kaart.tier.${k}`);
   for (const k of ['puzzle', 'where', 'point.city', 'point.sea']) used.add(`kaart.how.${k}`);

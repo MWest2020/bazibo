@@ -79,6 +79,7 @@
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
+  <link rel="stylesheet" href="games/winkel/winkel.css">
   <link rel="stylesheet" href="games/verstop/verstop.css">
   <link rel="stylesheet" href="games/kaart/kaart.css">
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
@@ -857,6 +858,60 @@
           <div id="vz-spots" class="vz-spots"></div>
         </div>
         <p id="vz-status" class="klok-status vz-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Winkeltje: choose a round (three tiers: whole euros, up to 20 euros, cents and change) -->
+    <section id="screen-winkel-menu" class="screen" data-i18n-aria="games.winkel" aria-label="Winkeltje">
+      <header class="bar">
+        <button id="winkel-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="winkel.menu">Winkeltje</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="winkel-menu" class="menu"></div></div>
+    </section>
+
+    <!-- Winkeltje: pay at the counter with coins and notes (no voice, no timer) -->
+    <section id="screen-winkel" class="screen" data-i18n-aria="games.winkel" aria-label="Winkeltje">
+      <header class="bar dogu-hud klok-hud wk-hud">
+        <button id="winkel-back" class="btn icon" type="button" data-i18n-aria="winkel.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="wk-sub" class="hud-level"></div>
+          <div id="wk-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="wk-stage">
+        <div class="wk-col wk-top">
+          <div id="wk-shop" class="wk-shop">
+            <p id="wk-lead" class="wk-lead"></p>
+            <div id="wk-goods" class="wk-goods" role="group"></div>
+            <p id="wk-sum" class="wk-sum" hidden></p>
+          </div>
+          <div id="wk-counter" class="wk-counter" role="group">
+            <div class="wk-counter-head">
+              <span id="wk-total" class="wk-total"></span>
+              <span id="wk-pips" class="wk-pips" role="img" hidden></span>
+            </div>
+            <p id="wk-upline" class="wk-upline" hidden></p>
+            <div id="wk-laid" class="wk-laid"></div>
+          </div>
+        </div>
+        <div class="wk-col wk-bottom">
+          <p id="wk-wallet-cap" class="wk-wallet-cap" hidden></p>
+          <div id="wk-wallet" class="wk-wallet" role="group"></div>
+          <div class="wk-side">
+            <button id="wk-pay" class="btn big primary wk-pay" type="button" data-i18n="winkel.pay">Betalen</button>
+            <div class="wk-progress">
+              <div id="wk-dots" class="klok-dots" role="img"></div>
+              <p id="wk-status" class="klok-status wk-status" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

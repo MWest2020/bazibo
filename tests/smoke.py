@@ -15,7 +15,7 @@ klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes an
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), lay Treintje's track (treintje_flow; `tests/smoke.py treintje`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), lay Treintje's track (treintje_flow; `tests/smoke.py treintje`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), pay in Winkeltje (winkel_flow; `tests/smoke.py winkel`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -7677,6 +7677,9 @@ def kangoeroe_layouts(browser, base, problems):
                     problems.append(f"{label}: the map is {r['height']:.0f} px high")
             if page.evaluate("document.documentElement.scrollWidth") > w:
                 problems.append(f"{label}: the page scrolls sideways")
+            for sel in ("#wk-shop", "#wk-laid", "#wk-goods"):
+                if page.locator(sel).evaluate("e => e.scrollHeight > e.clientHeight + 1"):
+                    problems.append(f"{label}: {sel} hides part of what is in it")
             text = page.locator("#kg-sum").evaluate("e => e.scrollWidth > e.clientWidth + 1")
             if text:
                 problems.append(f"{label}: the sum does not fit")
@@ -7688,6 +7691,504 @@ def kangoeroe_layouts(browser, base, problems):
         if errors:
             problems.append(f"kangoeroe {w}x{h}: page errors {errors[:2]}")
         ctx.close()
+
+
+def wk_state(page):
+    return page.evaluate("window.__bubbels.winkel.state()")
+
+
+def wk_poll(page, cond, label, problems, tries=100):
+    """Poll the game state in Python (wait_for_function evaluates a string, which the real CSP blocks)."""
+    for _ in range(tries):
+        st = wk_state(page)
+        if st and cond(st):
+            return st
+        page.wait_for_timeout(60)
+    problems.append(f"{label}: waited in vain ({wk_state(page)})")
+    return wk_state(page)
+
+
+def wk_next(page, i, problems, label="winkel"):
+    return wk_poll(page, lambda s: s["i"] > i or s["done"], f"{label}: question {i + 1} did not move on", problems)
+
+
+def wk_tap(page, sel):
+    """A real tap on something that must be on screen and enabled."""
+    loc = page.locator(sel).first
+    if loc.is_disabled():
+        raise AssertionError(f"{sel} is disabled")
+    loc.tap()
+
+
+def wk_lay_taps(page, coins):
+    """Lay coins from the purse (or till) by real taps on their stacks."""
+    for d in coins:
+        wk_tap(page, f"#wk-wallet .wk-stack[data-d='{d}']")
+
+
+def wk_pay_hook(page, i, problems, label):
+    """Answer question i through the test hook (the solution, or the cheapest pair), then wait."""
+    st = wk_state(page)
+    q = st["q"]
+    if q["ask"] == "basket":
+        for k in q["best"]:
+            page.evaluate(f"window.__bubbels.winkel.pick({k})")
+    else:
+        for d in q["solution"]:
+            page.evaluate(f"window.__bubbels.winkel.lay({d})")
+    page.evaluate("window.__bubbels.winkel.pay()")
+    return wk_next(page, i, problems, label)
+
+
+def wk_drag(page, src, dst):
+    """A real drag with the mouse from the middle of `src` to the middle of `dst`."""
+    a = page.locator(src).first.bounding_box()
+    b = page.locator(dst).first.bounding_box()
+    page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2)
+    page.mouse.down()
+    for k in range(1, 9):
+        page.mouse.move(a["x"] + a["width"] / 2 + (b["x"] + b["width"] / 2 - a["x"] - a["width"] / 2) * k / 8,
+                        a["y"] + a["height"] / 2 + (b["y"] + b["height"] / 2 - a["y"] - a["height"] / 2) * k / 8)
+        page.wait_for_timeout(16)
+    page.mouse.up()
+    page.wait_for_timeout(80)
+
+
+def winkel_flow(browser, base, problems):
+    """Winkeltje at 390x844 with real taps: the tile in Leren opens the menu, a locked tier offers
+    only OK on the web; round t1-1 (3-5, whole euros) played to the end by taps on the purse with
+    one too-few payment first (the missing coin shown as a ghost, the line says how much, counted
+    once, a second tap on Betalen counts nothing), one coin taken back by a tap on the counter, one
+    laid and one taken back by a real drag; 2 stars saved; the next round, back (the Android back
+    button) + keep playing with the counter kept; the end of the free part offers only OK and lands
+    on the menu with the save kept; no voice, nothing from outside."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    name = page.inner_text("#tile-winkel .tile-name").strip()
+    if name != "Winkeltje":
+        problems.append(f"winkel: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-winkel').closest('.tile-group').querySelector('.group-name').textContent") != "Leren":
+        problems.append("winkel: the tile is not in the Leren section")
+    page.locator("#tile-winkel").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "winkel-home-390x844.png"))
+    page.locator("#tile-winkel").tap()
+    page.wait_for_timeout(200)
+    if where(page) != ["winkel-menu", False]:
+        problems.append(f"winkel: the tile opened {where(page)}")
+    locked = page.locator("#winkel-menu .level-cell.locked:not(.random-btn)").count()
+    if locked != 6:
+        problems.append(f"winkel: {locked} rounds locked on the web, expected 6 (6-7 and 8-10)")
+    if page.locator("#winkel-menu .level-grid:not(.fold-emptied) .level-cell.locked:not(.random-btn)").count() != page.locator("#winkel-menu .full-fold .level-cell.locked:not(.random-btn)").count():
+        problems.append("winkel: a locked round sits between the free ones (not in the fold)")
+    page.screenshot(path=str(SHOTS / "winkel-menu-390x844.png"), full_page=True)
+    choose(page, "#winkel-menu .level-cell[data-round='t2-1']", tap=True)
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"]:
+        problems.append(f"winkel: a locked round offers {card_buttons(page)}, not the web's OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    if where(page) != ["winkel-menu", False] or wk_state(page):
+        problems.append(f"winkel: after OK on a locked round: {where(page)}")
+
+    # round t1-1 by real taps
+    choose(page, "#winkel-menu .level-cell[data-round='t1-1']", tap=True)
+    page.wait_for_timeout(200)
+    if not page.is_visible("#overlay"):
+        problems.append("winkel: no how-to card on the first round")
+    else:
+        page.screenshot(path=str(SHOTS / "winkel-how-390x844.png"))
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    did = {"short": False, "tapBack": False, "dragLay": False, "dragBack": False}
+    for i in range(6):
+        st = wk_state(page)
+        q = st["q"]
+        n = q["target"] // 100
+        label = f"winkel t1-1 q{i + 1} {q['kind']} {n} euro"
+        if not page.is_disabled("#wk-pay"):
+            problems.append(f"{label}: Betalen works with nothing on the counter")
+        if page.locator("#wk-pips .wk-pip").count() != n:
+            problems.append(f"{label}: {page.locator('#wk-pips .wk-pip').count()} dots for {n} euro")
+        if i == 0:
+            if n < 2:
+                problems.append(f"{label}: the first question asks only 1 euro, no too-few try possible")
+            # too few first: the missing euro as a ghost, the line says how much, counted once
+            wk_lay_taps(page, [100] * (n - 1))
+            wk_tap(page, "#wk-pay")
+            page.wait_for_timeout(120)
+            st = wk_state(page)
+            ghosts = page.locator("#wk-laid .wk-ghost").count()
+            if not st["fb"] or st["fb"]["why"] != "short" or st["mistakes"] != 1 or ghosts != 1 or len(st["laid"]) != n - 1:
+                problems.append(f"{label}: after too few fb={st['fb']} mistakes={st['mistakes']} ghosts={ghosts} laid={st['laid']}")
+            if "Nog € 1 erbij" not in page.inner_text("#wk-status").replace("\u00a0", " "):
+                problems.append(f"{label}: the line after too few says {page.inner_text('#wk-status')!r}")
+            page.screenshot(path=str(SHOTS / "winkel-short-390x844.png"))
+            page.locator("#wk-pay").dispatch_event("click")  # a second tap on the same counter
+            page.wait_for_timeout(80)
+            if wk_state(page)["tries"] != 1:
+                problems.append(f"{label}: a second tap on Betalen counted again ({wk_state(page)['tries']} tries)")
+            did["short"] = True
+            wk_lay_taps(page, [100])
+        elif not did["dragLay"]:
+            # one laid by a real drag onto the counter, one taken back by dragging it off
+            wk_drag(page, "#wk-wallet .wk-stack[data-d='100']", "#wk-counter")
+            if len(wk_state(page)["laid"]) != 1:
+                problems.append(f"{label}: a drag onto the counter laid {wk_state(page)['laid']}")
+            did["dragLay"] = True
+            wk_drag(page, "#wk-laid button.wk-piece >> nth=0", "#wk-wallet")
+            if wk_state(page)["laid"]:
+                problems.append(f"{label}: a drag off the counter left {wk_state(page)['laid']}")
+            did["dragBack"] = True
+            wk_lay_taps(page, [100] * n)
+        else:
+            # one too many, then a tap on the counter takes it back (before paying: not a mistake)
+            wk_lay_taps(page, [100] * (n + 1))
+            if page.locator("#wk-pips .wk-pip.over").count() != 1:
+                problems.append(f"{label}: one euro too many shows {page.locator('#wk-pips .wk-pip.over').count()} extra dots")
+            if not did["tapBack"]:
+                wk_tap(page, f"#wk-laid button.wk-piece >> nth={n}")
+                did["tapBack"] = True
+            else:
+                page.locator("#wk-laid button.wk-piece").first.tap()
+            if len(wk_state(page)["laid"]) != n:
+                problems.append(f"{label}: a tap on the counter did not take a coin back ({wk_state(page)['laid']})")
+        if page.locator("#wk-pips .wk-pip.on").count() != n:
+            problems.append(f"{label}: {page.locator('#wk-pips .wk-pip.on').count()} dots filled with {n} euro laid")
+        if i == 1:
+            page.screenshot(path=str(SHOTS / "winkel-t1-pay-390x844.png"))
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(80)
+        if i < 5 and "Goed" not in page.inner_text("#wk-status"):
+            problems.append(f"{label}: paying right says {page.inner_text('#wk-status')!r}")
+        wk_next(page, i, problems, label)
+    if not all(did.values()):
+        problems.append(f"winkel: round t1-1 did not cover every way: {did}")
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    page.screenshot(path=str(SHOTS / "winkel-win-390x844.png"))
+    if page.inner_text("#ov-title").strip() != "Goed gedaan!" or page.evaluate("window.__bubbels.winkel.stars()").get("t1-1") != 2:
+        problems.append(f"winkel: t1-1 with one mistake ended {page.inner_text('#ov-title')!r}, stars {page.evaluate('window.__bubbels.winkel.stars()')}")
+    if card_buttons(page) != ["Volgende ronde", "Nog een keer", "Rondes"]:
+        problems.append(f"winkel: the end card offers {card_buttons(page)}")
+
+    # the next round; the Android back button halfway and "keep playing" with the counter kept
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(200)
+    st = wk_state(page)
+    if st["roundId"] != "t1-2" or st["i"] != 0:
+        problems.append(f"winkel: Volgende ronde started {st['roundId']}")
+    wk_pay_hook(page, 0, problems, "winkel t1-2")
+    wk_lay_taps(page, [100])
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    if where(page) != ["winkel-menu", False] or not page.is_visible("#winkel-continue") or page.inner_text("#winkel-continue").strip() != "Verder spelen":
+        problems.append(f"winkel: back from a round went to {where(page)} without Verder spelen")
+    page.locator("#winkel-continue").tap()
+    page.wait_for_timeout(150)
+    st2 = wk_state(page)
+    if where(page) != ["winkel", False] or st2["i"] != 1 or st2["roundId"] != "t1-2" or st2["laid"] != [100]:
+        problems.append(f"winkel: Verder spelen opened {where(page)} at question {st2['i'] + 1} with {st2['laid']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    page.evaluate("window.__bubbels.back()")  # the menu goes home
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"winkel: back from the menu went to {where(page)}")
+
+    # the end of the free part: "Meer rondes" offers only OK on the web, and lands on the menu
+    page.locator("#tile-winkel").click()
+    page.evaluate("window.__bubbels.winkel.start('t1-3')")
+    page.wait_for_timeout(150)
+    for i in range(6):
+        wk_pay_hook(page, i, problems, "winkel t1-3")
+    if "laatste gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"winkel: the end of t1-3 says {page.inner_text('#ov-text')!r}")
+    if web_offer_ok(page, "winkel t1-3", "winkel-menu", problems):
+        if page.evaluate("window.__bubbels.winkel.stars()").get("t1-3") != 3:
+            problems.append(f"winkel: t1-3 not saved ({page.evaluate('window.__bubbels.winkel.stars()')})")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("winkel: something speaks")
+    if errors:
+        problems.append(f"winkel: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"winkel: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+def winkel_full(browser, base, problems):
+    """Winkeltje in the full version at 390x844: round t2-1 (6-7) paid exactly by real taps on the
+    purse (notes too), 3 stars; in t2-3 the right amount with more pieces than needed says it can
+    be done with fewer; an 8-10 change question by real taps on the till, counting up from the price
+    (one coin too many first: it is marked, the line says how much, a tap on its pile takes it
+    back); a budget question by real taps (a pair that costs too much first, then one that fits)."""
+    ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(OWNED_APP)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.wait_for_function("window.__bubbels.full()", timeout=8000)
+    page.locator("#tile-winkel").tap()
+    page.wait_for_timeout(150)
+    if page.locator("#winkel-menu .level-cell.locked").count() or page.locator("#winkel-menu .full-fold").count():
+        problems.append("winkel full: something is still locked in the full version")
+    page.locator("#winkel-menu .level-cell[data-round='t2-1']").tap()
+    page.wait_for_timeout(200)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    for i in range(6):
+        q = wk_state(page)["q"]
+        label = f"winkel t2-1 q{i + 1} {q['target']}"
+        wk_lay_taps(page, q["solution"])
+        total = page.inner_text("#wk-total")
+        want = f"€ {q['target'] // 100}" if q["target"] % 100 == 0 else f"€ {q['target'] // 100},{q['target'] % 100:02d}"
+        if want not in total.replace(" ", " "):
+            problems.append(f"{label}: the counter says {total!r}, expected {want}")
+        if i == 0 or (any(d >= 500 for d in q["solution"]) and not (SHOTS / "winkel-pay-390x844.png").exists()):
+            page.screenshot(path=str(SHOTS / "winkel-pay-390x844.png"))
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(60)
+        if "Goed" not in page.inner_text("#wk-status") and i < 5:
+            problems.append(f"{label}: paying exactly says {page.inner_text('#wk-status')!r}")
+        wk_next(page, i, problems, label)
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    if page.evaluate("window.__bubbels.winkel.stars()").get("t2-1") != 3:
+        problems.append(f"winkel: t2-1 paid exactly saved {page.evaluate('window.__bubbels.winkel.stars()')}")
+    page.click("#ov-buttons button >> text=Rondes")
+    page.wait_for_timeout(120)
+
+    # as few as possible: the right amount with more pieces says so
+    page.evaluate("window.__bubbels.winkel.start('t2-3')")
+    page.wait_for_timeout(150)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    q = wk_state(page)["q"]
+    sol = list(q["solution"])
+    more = None
+    if 200 in sol and q["wallet"].get("100", 0) >= 2 + sol.count(100):
+        more = [d for d in sol if d != 200] + [200] * (sol.count(200) - 1) + [100, 100]
+    elif 1000 in sol:
+        more = [d for d in sol if d != 1000] + [500, 500]
+    if more:
+        wk_lay_taps(page, more)
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(100)
+        st = wk_state(page)
+        if not st["fb"] or st["fb"]["why"] != "more" or f"met {len(sol)}" not in page.inner_text("#wk-status"):
+            problems.append(f"winkel t2-3: {more} for {q['target']} said {page.inner_text('#wk-status')!r} ({st['fb']})")
+        page.screenshot(path=str(SHOTS / "winkel-fewest-390x844.png"))
+    else:
+        problems.append(f"winkel t2-3: no way to pay {q['target']} with more pieces ({sol})")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+
+    # change: count up from the price with coins from the till
+    page.evaluate("window.__bubbels.winkel.start('t3-2')")
+    page.wait_for_timeout(150)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    for i in range(6):
+        q = wk_state(page)["q"]
+        if q["kind"] == "change":
+            break
+        wk_pay_hook(page, i, problems, "winkel t3-2")
+    label = f"winkel t3-2 change {q['paid']} - {q['price']}"
+    if q["kind"] != "change":
+        problems.append(f"{label}: no change question in t3-2")
+    else:
+        if page.inner_text("#wk-wallet-cap") != "De kassa" or page.inner_text("#wk-pay") != "Teruggeven":
+            problems.append(f"{label}: the till says {page.inner_text('#wk-wallet-cap')!r}, the button {page.inner_text('#wk-pay')!r}")
+        up = sorted(q["solution"])
+        extra = next((d for d in (10, 20, 50, 5) if q["wallet"].get(str(d), 0) > up.count(d)), None)
+        wk_lay_taps(page, up + [extra])
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(100)
+        st = wk_state(page)
+        over = page.locator(f"#wk-laid .wk-pile.over[data-d='{extra}']").count()
+        if not st["fb"] or st["fb"]["why"] != "over" or st["fb"]["over"] != extra or "te veel" not in page.inner_text("#wk-status") or over != 1:
+            problems.append(f"{label}: one {extra} cent too many: fb={st['fb']} over-pile={over} {page.inner_text('#wk-status')!r}")
+        wk_tap(page, f"#wk-laid .wk-pile[data-d='{extra}']")
+        st = wk_state(page)
+        if sorted(st["laid"]) != up:
+            problems.append(f"{label}: a tap on the {extra} pile left {st['laid']}")
+        line = page.inner_text("#wk-upline").replace(" ", " ")
+        steps = line.split(" → ")
+        if len(steps) != len(up) + 1 or steps[0] != f"€ {q['price'] // 100},{q['price'] % 100:02d}" or steps[-1] != f"€ {q['paid'] // 100},00":
+            problems.append(f"{label}: counting up says {line!r}")
+        page.screenshot(path=str(SHOTS / "winkel-change-390x844.png"))
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(80)
+        if "Goed" not in page.inner_text("#wk-status"):
+            problems.append(f"{label}: the right change says {page.inner_text('#wk-status')!r}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+
+    # a budget: two things that fit, by real taps
+    page.evaluate("window.__bubbels.winkel.start('t3-3')")
+    page.wait_for_timeout(150)
+    for i in range(6):
+        q = wk_state(page)["q"]
+        if q["kind"] == "budget":
+            break
+        wk_pay_hook(page, i, problems, "winkel t3-3")
+    label = "winkel t3-3 budget"
+    items = q["items"]
+    pairs = [(a, b) for a in range(4) for b in range(a + 1, 4)]
+    bad = next(((a, b) for a, b in pairs if items[a]["price"] + items[b]["price"] > q["budget"]), None)
+    if q["kind"] != "budget" or not bad:
+        problems.append(f"{label}: no budget question with a pair that does not fit ({q})")
+    else:
+        for k in bad:
+            wk_tap(page, f"#wk-goods .wk-good[data-k='{k}']")
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(100)
+        st = wk_state(page)
+        if not st["fb"] or st["fb"]["why"] != "over" or "te veel" not in page.inner_text("#wk-status"):
+            problems.append(f"{label}: a pair over the budget said {page.inner_text('#wk-status')!r} ({st['fb']})")
+        page.screenshot(path=str(SHOTS / "winkel-budget-390x844.png"))
+        for k in bad:
+            wk_tap(page, f"#wk-goods .wk-good[data-k='{k}']")
+        for k in q["best"]:
+            wk_tap(page, f"#wk-goods .wk-good[data-k='{k}']")
+        wk_tap(page, "#wk-pay")
+        page.wait_for_timeout(80)
+        if "Goed" not in page.inner_text("#wk-status"):
+            problems.append(f"{label}: a pair that fits says {page.inner_text('#wk-status')!r}")
+    if errors:
+        problems.append(f"winkel full: page errors {errors[:3]}")
+    ctx.close()
+
+
+# the questions to check per layout: (round, kind, extra pieces laid to fill the counter)
+WK_LAYOUT = (("t1-1", "count", "all"), ("t1-3", "twos", "all"), ("t2-3", "fewest", "all"), ("t3-2", "cents", "one-each"), ("t3-2", "change", "solution+1"), ("t3-3", "budget", "two"))
+
+
+def winkel_layouts(browser, base, problems):
+    """Winkeltje (full version) at 320x568, 390x844 in English, 568x320, 844x390 and desktop for
+    every kind of question with the counter as full as it gets (every coin of the youngest's purse,
+    a pile of every coin and note at 8-10): every coin, note, pile, thing and button 48 px or more
+    and on screen, no sideways scroll."""
+    for w, h in ((320, 568), (390, 844), (568, 320), (844, 390), (1280, 800)):
+        mobile = w < 1000
+        english = (w, h) == (390, 844)
+        ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+        ctx.add_init_script(OWNED_APP)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+        if english and page.inner_text("#tile-winkel .tile-name").strip() != "Little Shop":
+            problems.append(f"winkel {w}x{h}: the English tile says {page.inner_text('#tile-winkel .tile-name')!r}")
+        for rid, kind, fill in WK_LAYOUT:
+            label = f"winkel {w}x{h} {rid} {kind}"
+            page.evaluate(f"window.__bubbels.winkel.start('{rid}')")
+            page.wait_for_timeout(150)
+            if page.is_visible("#overlay"):
+                page.click("#ov-buttons button")
+                page.wait_for_timeout(120)
+            # find the question of this kind in the round
+            idx = None
+            for k in range(6):
+                page.evaluate(f"window.__bubbels.winkel.show({k})")
+                if wk_state(page)["q"]["kind"] == kind:
+                    idx = k
+                    break
+            if idx is None:
+                problems.append(f"{label}: no such question")
+                continue
+            q = wk_state(page)["q"]
+            if fill == "all":
+                for d, n in q["wallet"].items():
+                    for _ in range(n):
+                        page.evaluate(f"window.__bubbels.winkel.lay({d})")
+            elif fill == "one-each":
+                for d in q["wallet"]:
+                    page.evaluate(f"window.__bubbels.winkel.lay({d})")
+            elif fill == "solution+1":
+                for d in sorted(q["solution"]) + [next(d for d in (10, 20, 50, 5) if q["wallet"].get(str(d), 0) > q["solution"].count(d))]:
+                    page.evaluate(f"window.__bubbels.winkel.lay({d})")
+            else:
+                for k in q["best"]:
+                    page.evaluate(f"window.__bubbels.winkel.pick({k})")
+            page.wait_for_timeout(80)
+            targets = ["#winkel-back", "#wk-pay"]
+            targets += [f"#wk-wallet .wk-stack >> nth={k}" for k in range(page.locator("#wk-wallet button.wk-stack").count())]
+            targets += [f"#wk-laid button >> nth={k}" for k in range(page.locator("#wk-laid button").count())]
+            targets += [f"#wk-goods button >> nth={k}" for k in range(page.locator("#wk-goods button").count())]
+            shown = ["#wk-shop", "#wk-counter", "#wk-wallet", "#wk-status", "#wk-dots"]
+            for sel in targets + shown:
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"{label}: {sel} not on screen ({r})")
+                elif sel in targets and (r["width"] < 47.5 or r["height"] < 47.5):
+                    problems.append(f"{label}: {sel} only {r['width']:.0f}x{r['height']:.0f} px")
+            # nothing overlaps: every button's centre hits that button
+            for sel in targets:
+                hit = page.locator(sel).evaluate("e => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!h && (h === e || e.contains(h)); }")
+                if not hit:
+                    problems.append(f"{label}: {sel} is covered")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"{label}: the page scrolls sideways")
+            for sel in ("#wk-sum", "#wk-total", ".wk-tag", "#wk-pay"):
+                if page.locator(sel).count() and page.locator(sel).first.is_visible() and page.locator(sel).first.evaluate("e => e.scrollWidth > e.clientWidth + 1"):
+                    problems.append(f"{label}: {sel} does not fit")
+            if english and page.inner_text("#wk-sub") != "Little Shop":
+                problems.append(f"{label}: English title {page.inner_text('#wk-sub')!r}")
+            if english and kind in ("cents", "change") and "." not in page.inner_text("#wk-goods"):
+                problems.append(f"{label}: English prices {page.inner_text('#wk-goods')!r}")
+            page.screenshot(path=str(SHOTS / f"winkel-layout-{kind}-{w}x{h}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(80)
+        if errors:
+            problems.append(f"winkel {w}x{h}: page errors {errors[:2]}")
+        ctx.close()
+
+
+def winkel_csp(browser, base, problems):
+    """Winkeltje under the real CSP (no bypass): a 3-5 question paid by real taps and a real drag
+    (the dragged coin is moved through el.style, never an inline style), without a single violation."""
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script("document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.locator("#tile-winkel").tap()
+    page.wait_for_timeout(150)
+    page.locator("#winkel-menu .level-cell[data-round='t1-1']").tap()
+    page.wait_for_timeout(200)
+    if page.is_visible("#overlay"):
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    for i in range(2):
+        q = wk_state(page)["q"]
+        n = q["target"] // 100
+        wk_drag(page, "#wk-wallet .wk-stack[data-d='100']", "#wk-counter")
+        wk_lay_taps(page, [100] * (n - 1))
+        if len(wk_state(page)["laid"]) != n:
+            problems.append(f"winkel csp q{i + 1}: laid {wk_state(page)['laid']} for {n} euro")
+        if i == 0:
+            page.screenshot(path=str(SHOTS / "winkel-csp-390x844.png"))
+        wk_tap(page, "#wk-pay")
+        wk_next(page, i, problems, "winkel csp")
+    csp = page.evaluate("window.__csp || []")
+    if csp:
+        problems.append(f"winkel csp: the CSP blocked {csp[:3]}")
+    if errors:
+        problems.append(f"winkel csp: page errors {errors[:3]}")
+    ctx.close()
 
 
 def vz_state(page):
@@ -9655,6 +10156,10 @@ def main():
             treintje_csp(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
+            winkel_flow(browser, base, problems)
+            winkel_full(browser, base, problems)
+            winkel_layouts(browser, base, problems)
+            winkel_csp(browser, base, problems)
             kaart_flow(browser, base, problems)
             kaart_layouts(browser, base, problems)
             papegaai_flow(browser, base, problems)
@@ -9684,6 +10189,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "winkel": (winkel_flow, winkel_full, winkel_layouts, winkel_csp),
          "treintje": (treintje_flow, treintje_layouts, treintje_csp),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
          "verstop-pixels": (verstop_hint_pixels,),
