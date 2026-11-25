@@ -10292,6 +10292,16 @@ def ke_todo(st):
     return [q["answer"]] if not st["placed"] else []
 
 
+def ke_t(page, key):
+    """A string of the page's language, as the game reads it."""
+    return page.evaluate("async (k) => (await import('./js/i18n.js')).t(k)", key).replace("\u00ad", "")
+
+
+def ke_say(page):
+    """What the cook says now (its bubble)."""
+    return page.inner_text("#ke-say").replace("\u00ad", "").strip()
+
+
 def ke_wrong_of(q):
     """An option that does not fit (for steps: a later step)."""
     if q["kind"] == "fill":
@@ -10345,9 +10355,12 @@ def keuken_flow(browser, base, problems):
     bounces back with "Dat hoort bij ...", counted once, greyed), the dish fills up bowl by bowl and is
     ready; 2 stars saved; the next round with two wrong taps (the help glows on what is left), the
     Android back button and "keep playing" with the bowls kept; the end of the free part offers only OK
-    and lands on the menu with the save kept; no voice, nothing from outside. Then the full version: a
-    6-7 "which dish?" round and an 8-10 round (steps in order, where from, the odd one out) by real taps,
-    each with one tap that does not fit first."""
+    and lands on the menu with the save kept; no voice, nothing from outside. The cook (a bear in a
+    chef's hat) says it all in its bubble: the greeting with the task, a wrong ingredient ("Hmm, kaas?
+    Dat hoort bij de tosti!"), each right one with a bob ("Fijn! Nu hebben we ..."), the dish ready
+    ("Klaar! Eet smakelijk!") with a stir. Then the full version: a 6-7 "which dish?" round and an 8-10
+    round (steps in order, where from, the odd one out) by real taps, each kind greeted with its own
+    question and with one tap that does not fit first."""
     ctx, page, errors, foreign = ke_context(browser, base)
     name = page.inner_text("#tile-keuken .tile-name").replace("­", "").strip()
     if name != "Keukentje":
@@ -10384,10 +10397,21 @@ def keuken_flow(browser, base, problems):
         page.screenshot(path=str(SHOTS / "keuken-how-390x844.png"))
         page.click("#ov-buttons button")
         page.wait_for_timeout(150)
+    # the cook greets with the task, in its bubble beside it
+    q0 = ke_state(page)["q"]
+    hello = ke_say(page)
+    want = f"Hoi! We maken {ke_t(page, 'keuken.make.' + q0['dish'])}. Wat hebben we nodig?"
+    if hello != want:
+        problems.append(f"keuken t1-1: the cook greets {hello!r}, not {want!r}")
+    if not page.is_visible("#ke-cook svg") or not page.is_visible(".ke-bubble"):
+        problems.append("keuken t1-1: no cook or bubble")
+    page.screenshot(path=str(SHOTS / "keuken-greet-390x844.png"))
     for i in range(6):
         st = ke_state(page)
         q = st["q"]
         label = f"keuken t1-1 q{i + 1} {q['dish']}"
+        if i and (ke_say(page).startswith("Hoi") or "Wat hebben we nodig?" not in ke_say(page)):
+            problems.append(f"{label}: the cook starts with {ke_say(page)!r}")
         if q["kind"] != "fill" or len(q["options"]) != 6 or not 2 <= len(q["need"]) <= 3:
             problems.append(f"{label}: a 3-5 question {q['kind']} with {len(q['options'])} pictures and {len(q['need'])} bowls")
         bowls = page.locator("#ke-bowls .ke-bowl").count()
@@ -10398,24 +10422,40 @@ def keuken_flow(browser, base, problems):
             ke_tap(page, wrong)
             page.wait_for_timeout(120)
             st = ke_state(page)
-            status = page.inner_text("#ke-status")
-            if st["mistakes"] != 1 or st["placed"] or wrong not in st["tried"] or "Dat hoort bij" not in status:
-                problems.append(f"{label}: after a wrong ingredient mistakes={st['mistakes']} placed={st['placed']} status={status!r}")
+            status = ke_say(page)
+            some = ke_t(page, "keuken.some." + wrong)
+            if st["mistakes"] != 1 or st["placed"] or wrong not in st["tried"] or not status.startswith(f"Hmm, {some}? Dat hoort bij "):
+                problems.append(f"{label}: after a wrong ingredient mistakes={st['mistakes']} placed={st['placed']} the cook says {status!r}")
+            if "happy" in (page.get_attribute("#ke-cook", "class") or ""):
+                problems.append(f"{label}: the cook bobs after a wrong ingredient")
             if not page.locator(f"#ke-options .ke-opt[data-id='{wrong}']").is_disabled():
                 problems.append(f"{label}: the wrong ingredient can be tapped again")
             if "bounce" not in (page.get_attribute(f"#ke-options .ke-opt[data-id='{wrong}']", "class") or ""):
                 problems.append(f"{label}: the wrong ingredient does not bounce back")
             page.screenshot(path=str(SHOTS / "keuken-wrong-390x844.png"))
-        for k, oid in enumerate(ke_todo(ke_state(page))):
+        todo = ke_todo(ke_state(page))
+        for k, oid in enumerate(todo):
             ke_tap(page, oid)
             page.wait_for_timeout(60)
             full = page.locator("#ke-bowls .ke-bowl.full").count()
             if full != k + 1:
                 problems.append(f"{label}: {full} bowls full after {k + 1} right taps")
+            if k == 0 and i == 0:
+                art = ke_t(page, "keuken.art." + oid)
+                bob = page.locator("#ke-cook svg").evaluate("e => getComputedStyle(e).animationName")
+                if ke_say(page) != f"Fijn! Nu hebben we {art}." or bob != "ke-bob":
+                    problems.append(f"{label}: a right ingredient: the cook says {ke_say(page)!r} and bobs {bob!r}")
+                page.wait_for_timeout(400)
+                page.screenshot(path=str(SHOTS / "keuken-right-390x844.png"))
         page.wait_for_timeout(120)
-        if "ready" not in (page.get_attribute("#ke-show", "class") or "") or "Klaar" not in page.inner_text("#ke-status"):
-            problems.append(f"{label}: the dish is not ready: {page.get_attribute('#ke-show', 'class')} {page.inner_text('#ke-status')!r}")
+        cook = page.get_attribute("#ke-cook", "class") or ""
+        if "ready" not in (page.get_attribute("#ke-show", "class") or "") or ke_say(page) != "Klaar! Eet smakelijk!" or "ready" not in cook:
+            problems.append(f"{label}: the dish is not ready: {page.get_attribute('#ke-show', 'class')} {ke_say(page)!r} cook {cook!r}")
         if i == 0:
+            stir = page.locator("#ke-cook .ke-cook-spoon").evaluate("e => getComputedStyle(e).animationName")
+            hat = page.locator("#ke-cook .ke-cook-hat").evaluate("e => getComputedStyle(e).animationName")
+            if stir != "ke-stir" or hat != "ke-wobble":
+                problems.append(f"{label}: the dish is ready but the cook does not stir ({stir!r}) or wobble its hat ({hat!r})")
             page.wait_for_timeout(500)
             page.screenshot(path=str(SHOTS / "keuken-ready-390x844.png"))
         ke_next(page, i)
@@ -10496,13 +10536,16 @@ def keuken_flow(browser, base, problems):
             q = st["q"]
             kind = q["kind"]
             label = f"keuken {rid} q{i + 1} {kind}"
+            ask = {"fill": "Zoek alles wat erin hoort.", "which": "Wat kunnen we hiermee maken?", "from": "Weet jij waar ", "steps": "Wat doen we eerst?", "odd": "Welke hoort er niet bij?"}[kind]
+            if ask not in ke_say(page) or (i == 0) != ke_say(page).startswith("Hoi! "):
+                problems.append(f"{label}: the cook asks {ke_say(page)!r}")
             if kind not in seen and kind != "fill":
                 wrong = ke_wrong_of(q)
                 ke_tap(page, wrong)
                 page.wait_for_timeout(120)
                 st = ke_state(page)
-                status = page.inner_text("#ke-status")
-                want = {"which": "Geen ", "steps": "Dat komt later", "from": "", "odd": "ook"}[kind]
+                status = ke_say(page)
+                want = {"which": "Hmm, geen ", "steps": "Dat komt later", "from": "", "odd": "ook"}[kind]
                 if st["mistakes"] < 1 or st["placed"] or want not in status or not status.strip():
                     problems.append(f"{label}: after a tap that does not fit: mistakes={st['mistakes']} placed={st['placed']} status={status!r}")
                 page.screenshot(path=str(SHOTS / f"keuken-{kind}-wrong-390x844.png"))
@@ -10553,11 +10596,39 @@ KE_SEED_JS = """async ([tier, kind]) => {
 }"""
 
 
+# the lines the cook may say that are longest, and those with the longest word (which a narrow bubble
+# must break): every line of 60 rounds per tier, every option tapped first (wrong ones with the help)
+KE_LONG_JS = r"""async () => {
+  const R = await import('./games/keuken/rules.js');
+  const I = await import('./js/i18n.js');
+  const all = new Map();
+  const add = (l) => all.set(JSON.stringify(l), l);
+  for (const tier of R.TIER_IDS) for (let s = 1; s <= 60; s++) R.makeRound({ tier, seed: s }).forEach((q, i) => {
+    add(R.cookLine(q, { say: 'hello', i, tier }));
+    for (const id of q.options) {
+      const res = R.tapOption(q, R.startState(), id);
+      if (res.ok !== null) add(R.cookLine(q, { say: 'try', res, id, help: !res.ok }));
+    }
+  });
+  const text = (l) => R.lineText(l, I.t).replace(/\u00ad/g, '');
+  const word = (l) => Math.max(...text(l).split(/\s+/).map((w) => w.length));
+  const lines = [...all.values()];
+  const longest = [...lines].sort((a, b) => text(b).length - text(a).length).slice(0, 2);
+  const widest = [...lines].sort((a, b) => word(b) - word(a) || text(b).length - text(a).length).slice(0, 2);
+  return [...longest, ...widest].map((line) => ({ line, text: text(line) }));
+}"""
+
+
 def keuken_layouts(browser, base, problems):
     """Every kind of question (the full version) at 320x568, 390x844 in English, 568x320, 844x390 and
     desktop: every target (the back button, every picture) 48 px or more, on screen and not
     overlapping, the bowls or slots and the dish on screen, no sideways scroll, no label spilling out;
-    the English names (Little Kitchen)."""
+    the English names (Little Kitchen). The cook and its bubble inside the kitchen, the cook 48 px or
+    more, neither covering the back button, a picture, a bowl or slot, the dish or its name, nor each
+    other, and the line inside its bubble: the greeting, two taps that do not fit (with the help), the
+    fact after a right "where from?", and the lines pinned from every line of 60 rounds per tier (the
+    two longest, with the yeast fact, and the two with the longest word, the stamppot lines) with the
+    dish still 48 px or more."""
     cases = (("t1", "fill"), ("t2", "fill"), ("t2", "which"), ("t3", "from"), ("t3", "steps"), ("t3", "odd"))
     for w, h, lang in ((320, 568, "nl"), (390, 844, "en"), (568, 320, "nl"), (844, 390, "nl"), (1280, 800, "nl")):
         label0 = f"keuken {w}x{h} {lang}"
@@ -10571,6 +10642,10 @@ def keuken_layouts(browser, base, problems):
         if lang == "en" and page.inner_text("#screen-keuken-menu .bar h2").strip() != "Little Kitchen":
             problems.append(f"{label0}: the menu says {page.inner_text('#screen-keuken-menu .bar h2')!r}")
         page.screenshot(path=str(SHOTS / f"keuken-menu-{w}x{h}-{lang}.png"))
+        pinned = page.evaluate(KE_LONG_JS)
+        texts = [p["text"] for p in pinned]
+        if lang == "nl" and (not any("schimmeltje" in x for x in texts) or not any("boerenkoolstamppot" in x for x in texts)):
+            problems.append(f"{label0}: the pinned lines miss the yeast fact or the stamppot: {texts}")
         for tier, kind in cases:
             label = f"{label0} {tier} {kind}"
             seed = page.evaluate(KE_SEED_JS, [tier, kind])
@@ -10598,7 +10673,7 @@ def keuken_layouts(browser, base, problems):
                     ra, rb = boxes[a][1], boxes[b][1]
                     if ra["x"] < rb["x"] + rb["width"] - 0.5 and rb["x"] < ra["x"] + ra["width"] - 0.5 and ra["y"] < rb["y"] + rb["height"] - 0.5 and rb["y"] < ra["y"] + ra["height"] - 0.5:
                         problems.append(f"{label}: {boxes[a][0]} and {boxes[b][0]} overlap")
-            show = ["#ke-lead", "#ke-status"]
+            show = ["#ke-say", "#ke-cook", ".ke-bubble"]
             if kind != "odd":
                 show += ["#ke-show .ke-dish"] + (["#ke-show .ke-name"] if kind != "which" else [])
             if kind == "which" and page.is_visible("#ke-show .ke-name"):
@@ -10610,10 +10685,11 @@ def keuken_layouts(browser, base, problems):
                 r = page.locator(sel).bounding_box()
                 if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
                     problems.append(f"{label}: {sel} not on screen ({r})")
-                elif sel != "#ke-status" and (r["x"] < top["x"] - 0.5 or r["x"] + r["width"] > top["x"] + top["width"] + 0.5 or r["y"] + r["height"] > top["y"] + top["height"] + 0.5):
+                elif (r["x"] < top["x"] - 0.5 or r["x"] + r["width"] > top["x"] + top["width"] + 0.5 or r["y"] + r["height"] > top["y"] + top["height"] + 0.5):
                     problems.append(f"{label}: {sel} is cut off by the kitchen ({r} in {top})")
                 elif sel == "#ke-show .ke-dish" and r["height"] < 48:
                     problems.append(f"{label}: the dish is only {r['height']:.0f} px")
+            ke_cook_clear(page, label, problems)
             spill = page.eval_on_selector_all("#ke-options .ke-opt", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map(e => e.dataset.id)")
             if spill:
                 problems.append(f"{label}: the labels of {spill} spill out of their buttons")
@@ -10622,10 +10698,96 @@ def keuken_layouts(browser, base, problems):
             if lang == "en" and page.inner_text("#ke-sub") != "Little Kitchen":
                 problems.append(f"{label}: English title {page.inner_text('#ke-sub')!r}")
             page.screenshot(path=str(SHOTS / f"keuken-{tier}-{kind}-{w}x{h}-{lang}.png"))
+            # a tap that does not fit, twice (the line with the help), then the right answer
+            st = ke_state(page)
+            for _ in range(2 if kind != "steps" else 1):
+                st = ke_state(page)
+                wrong = next((o for o in st["q"]["options"] if o not in st["tried"] and o not in ke_todo(st) and o not in st["placed"]), None)
+                if kind == "steps":
+                    wrong = ke_todo(st)[-1]
+                if wrong:
+                    ke_tap(page, wrong)
+                    page.wait_for_timeout(120)
+            ke_cook_clear(page, f"{label} after a miss", problems)
+            if kind == "from":
+                ke_play_right(page)
+                page.wait_for_timeout(120)
+                ke_cook_clear(page, f"{label} the fact", problems)
+            page.screenshot(path=str(SHOTS / f"keuken-{tier}-{kind}-said-{w}x{h}-{lang}.png"))
+            # the longest lines and the longest words, said in this kitchen
+            for k, p in enumerate(pinned):
+                page.evaluate("(l) => window.__bubbels.keuken.say(l)", p["line"])
+                page.wait_for_timeout(60)
+                if ke_say(page) != p["text"]:
+                    problems.append(f"{label}: pinned line {p['text']!r} shows as {ke_say(page)!r}")
+                ke_cook_clear(page, f"{label} pinned {p['text'][:40]!r}", problems)
+                dish = page.locator("#ke-show .ke-dish")
+                if kind != "odd" and dish.count() and dish.first.is_visible():
+                    r, top = dish.first.bounding_box(), page.locator("#ke-top").bounding_box()
+                    if r["height"] < 47.5 or r["y"] + r["height"] > top["y"] + top["height"] + 0.5:
+                        problems.append(f"{label}: with {p['text'][:40]!r} the dish is {r['height']:.0f} px or out of the kitchen")
+                if tier == "t2" and kind == "fill":
+                    page.screenshot(path=str(SHOTS / f"keuken-long-{k}-{w}x{h}-{lang}.png"))
             page.evaluate("window.__bubbels.back()")
             page.wait_for_timeout(100)
         if errors:
             problems.append(f"{label0}: page errors {errors[:3]}")
+        ctx.close()
+
+
+def ke_cook_clear(page, label, problems):
+    """The cook and its bubble cover nothing a child taps or looks at, nor each other; the line fits."""
+    w, h = page.viewport_size["width"], page.viewport_size["height"]
+    cook, bubble = page.locator("#ke-cook").bounding_box(), page.locator(".ke-bubble").bounding_box()
+    for who, k in (("the cook", cook), ("the bubble", bubble)):
+        if not k or k["x"] < -0.5 or k["y"] < -0.5 or k["x"] + k["width"] > w + 0.5 or k["y"] + k["height"] > h + 0.5:
+            problems.append(f"{label}: {who} not on screen ({k})")
+            return
+    if cook["width"] < 47.5 or cook["height"] < 47.5:
+        problems.append(f"{label}: the cook is only {cook['width']:.0f}x{cook['height']:.0f} px")
+    things = ["#keuken-back", "#ke-show .ke-dish", "#ke-show .ke-name"]
+    things += [f"#ke-options .ke-opt >> nth={k}" for k in range(page.locator("#ke-options .ke-opt").count())]
+    things += [f"#ke-bowls > div >> nth={k}" for k in range(page.locator("#ke-bowls > div").count())]
+    for sel in things:
+        loc = page.locator(sel)
+        if not loc.count() or not loc.first.is_visible():
+            continue
+        r = loc.first.bounding_box()
+        for who, k in (("the cook", cook), ("the bubble", bubble)):
+            if min(k["x"] + k["width"], r["x"] + r["width"]) - max(k["x"], r["x"]) > 0.5 and min(k["y"] + k["height"], r["y"] + r["height"]) - max(k["y"], r["y"]) > 0.5:
+                problems.append(f"{label}: {who} covers {sel}")
+    if bubble["x"] + bubble["width"] > cook["x"] + 0.5:
+        problems.append(f"{label}: the bubble runs into the cook")
+    if page.locator("#ke-say").evaluate("e => e.scrollWidth > e.clientWidth + 1 || e.closest('.ke-bubble').scrollHeight > e.closest('.ke-bubble').clientHeight + 1"):
+        problems.append(f"{label}: the cook's line does not fit its bubble: {ke_say(page)!r}")
+    if not ke_say(page):
+        problems.append(f"{label}: the cook says nothing")
+
+
+def keuken_motion(browser, base, problems):
+    """The cook bobs slowly on a right ingredient and stirs with its hat wobbling when the dish is
+    ready; with reduced motion it stands still (the hat and the spoon too)."""
+    for reduce in (False, True):
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, reduced_motion="reduce" if reduce else "no-preference")
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.evaluate("window.__bubbels.keuken.start('t1-1')")
+        ke_skip_how(page)
+        anim = lambda sel: page.locator(sel).evaluate("e => getComputedStyle(e).animationName")
+        still = anim("#ke-cook svg")
+        todo = ke_todo(ke_state(page))
+        page.evaluate(f"window.__bubbels.keuken.tap('{todo[0]}')")
+        page.wait_for_timeout(80)
+        bob, happy = anim("#ke-cook svg"), "happy" in (page.get_attribute("#ke-cook", "class") or "")
+        for oid in todo[1:]:
+            page.evaluate(f"window.__bubbels.keuken.tap('{oid}')")
+        page.wait_for_timeout(80)
+        stir, hat = anim("#ke-cook .ke-cook-spoon"), anim("#ke-cook .ke-cook-hat")
+        want = ("none",) * 4 if reduce else ("ke-bob", "ke-stir", "ke-wobble")
+        got = (bob, stir, hat) if not reduce else (bob, stir, hat, still)
+        if still != "none" or not happy or got != want:
+            problems.append(f"keuken motion (reduce={reduce}): still={still!r} happy={happy} bob={bob!r} stir={stir!r} hat={hat!r}")
         ctx.close()
 
 
@@ -10763,6 +10925,7 @@ def main():
             keuken_flow(browser, base, problems)
             keuken_layouts(browser, base, problems)
             keuken_csp(browser, base, problems)
+            keuken_motion(browser, base, problems)
             winkel_flow(browser, base, problems)
             winkel_full(browser, base, problems)
             winkel_layouts(browser, base, problems)
@@ -10797,7 +10960,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
-         "keuken": (keuken_flow, keuken_layouts, keuken_csp),
+         "keuken": (keuken_flow, keuken_layouts, keuken_csp, keuken_motion),
          "winkel": (winkel_flow, winkel_full, winkel_layouts, winkel_csp, winkel_motion),
          "treintje": (treintje_flow, treintje_layouts, treintje_csp),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),

@@ -297,3 +297,66 @@ export function tileSvg() {
 export function howSvg() {
   return `<svg class="ke-how-svg" viewBox="0 0 120 84" aria-hidden="true">${kitchen()}</svg>`;
 }
+
+// ---------- the cook ----------
+
+/**
+ * The cook's colours: a round little bear of caramel brown with a cream muzzle, a white chef's hat
+ * and a teal apron over its fur, holding a wooden spoon. Our own: no shirt, no scarf, no hat but the
+ * chef's hat, nothing from a franchise (never a famous chef rat or a well-known bear).
+ */
+export const COOK = Object.freeze({
+  fur: '#c4895a',
+  furDark: '#6b4423',
+  muzzle: '#f4dfc4',
+  ear: '#eab08e',
+  eye: '#2e1d12',
+  nose: '#4a2c17',
+  cheek: '#f19d8a',
+  hat: '#fffdf7',
+  hatShade: '#e4ded2',
+  apron: '#86c9bf',
+  apronDark: '#3f8a80',
+  spoon: '#d9a35f',
+});
+
+/**
+ * The cook: a bear in a chef's hat and an apron, seen from the front, a spoon in its paw (80 x 96).
+ * The hat and the spoon are their own groups, so CSS can wobble the hat and stir the spoon when a
+ * dish is ready; the whole bear bobs on a right answer.
+ */
+export function cookSvg(cls = '') {
+  const c = COOK;
+  const line = `stroke="${c.furDark}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"`;
+  return `<svg class="ke-cook-svg${cls ? ` ${cls}` : ''}" viewBox="0 0 80 96" aria-hidden="true">
+    <g class="ke-cook-body">
+      <path d="M17 96c0-22 10-37 23-37s23 15 23 37z" fill="${c.fur}" ${line}/>
+      <path d="M30 70c0-5 4-8 10-8s10 3 10 8v4c5 1 9 3 10 6l-3 16H23l-3-16c1-3 5-5 10-6z" fill="${c.apron}" stroke="${c.apronDark}" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M31 66c-1-3 0-6 3-8M49 66c1-3 0-6-3-8" fill="none" stroke="${c.apronDark}" stroke-width="2.2" stroke-linecap="round"/>
+      <rect x="33" y="80" width="14" height="9" rx="3" fill="none" stroke="${c.apronDark}" stroke-width="2"/>
+      <circle cx="22" cy="32" r="7.5" fill="${c.fur}" ${line}/>
+      <circle cx="22" cy="32" r="3.8" fill="${c.ear}"/>
+      <circle cx="58" cy="32" r="7.5" fill="${c.fur}" ${line}/>
+      <circle cx="58" cy="32" r="3.8" fill="${c.ear}"/>
+      <circle cx="40" cy="42" r="18" fill="${c.fur}" ${line}/>
+      <ellipse cx="40" cy="49.5" rx="9.5" ry="7.5" fill="${c.muzzle}"/>
+      <circle cx="32.5" cy="39" r="3" fill="${c.eye}"/><circle cx="33.6" cy="37.9" r="1" fill="#ffffff"/>
+      <circle cx="47.5" cy="39" r="3" fill="${c.eye}"/><circle cx="48.6" cy="37.9" r="1" fill="#ffffff"/>
+      <circle cx="27" cy="48" r="3.2" fill="${c.cheek}" opacity="0.6"/><circle cx="53" cy="48" r="3.2" fill="${c.cheek}" opacity="0.6"/>
+      <ellipse cx="40" cy="46" rx="3.8" ry="2.8" fill="${c.nose}"/>
+      <path d="M40 48.6v2.2M35.6 51c2.4 2.6 6.4 2.6 8.8 0" fill="none" ${line}/>
+      <ellipse cx="20" cy="86" rx="7" ry="6" fill="${c.fur}" ${line}/>
+      <g class="ke-cook-spoon">
+        <path d="M60 88L69 62" stroke="${c.furDark}" stroke-width="5.4" stroke-linecap="round"/>
+        <path d="M60 88L69 62" stroke="${c.spoon}" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="70.5" cy="57" rx="4.6" ry="6.6" transform="rotate(20 70.5 57)" fill="${c.spoon}" stroke="${c.furDark}" stroke-width="2"/>
+        <ellipse cx="60" cy="86" rx="7" ry="6" fill="${c.fur}" ${line}/>
+      </g>
+    </g>
+    <g class="ke-cook-hat">
+      <path d="M28 27c-8 0-9-12-1-14 0-8 10-10 13-5 3-5 13-3 13 5 8 2 7 14-1 14z" fill="${c.hat}" stroke="${c.furDark}" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M34 14c1 3 1 6 0 9M46 14c-1 3-1 6 0 9" fill="none" stroke="${c.hatShade}" stroke-width="2" stroke-linecap="round"/>
+      <rect x="27" y="22" width="26" height="8" rx="2.5" fill="${c.hat}" stroke="${c.furDark}" stroke-width="2.2"/>
+    </g>
+  </svg>`;
+}
