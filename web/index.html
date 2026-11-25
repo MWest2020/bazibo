@@ -928,15 +928,22 @@
       <div id="wk-stage">
         <div class="wk-col wk-top">
           <div id="wk-shop" class="wk-shop">
-            <p id="wk-lead" class="wk-lead"></p>
-            <div id="wk-goods" class="wk-goods" role="group"></div>
-            <p id="wk-sum" class="wk-sum" hidden></p>
+            <div class="wk-shelf">
+              <div id="wk-goods" class="wk-goods" role="group"></div>
+              <p id="wk-sum" class="wk-sum" hidden></p>
+            </div>
+            <div class="wk-desk">
+              <div class="wk-bubble"><p id="wk-say" class="wk-say" aria-live="polite"></p></div>
+              <span id="wk-keeper" class="wk-keeper" role="img" data-i18n-aria="winkel.keeper" aria-label="De winkelier"></span>
+            </div>
           </div>
           <div id="wk-counter" class="wk-counter" role="group">
             <div class="wk-counter-head">
+              <span id="wk-till-art" class="wk-till-art" aria-hidden="true"></span>
               <span id="wk-total" class="wk-total"></span>
               <span id="wk-pips" class="wk-pips" role="img" hidden></span>
             </div>
+            <p id="wk-sum-side" class="wk-sum wk-sum-side" aria-hidden="true"></p>
             <p id="wk-upline" class="wk-upline" hidden></p>
             <div id="wk-laid" class="wk-laid"></div>
           </div>
@@ -948,7 +955,6 @@
             <button id="wk-pay" class="btn big primary wk-pay" type="button" data-i18n="winkel.pay">Betalen</button>
             <div class="wk-progress">
               <div id="wk-dots" class="klok-dots" role="img"></div>
-              <p id="wk-status" class="klok-status wk-status" aria-live="polite"></p>
             </div>
           </div>
         </div>

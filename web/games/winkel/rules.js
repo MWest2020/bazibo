@@ -37,7 +37,8 @@ export const SIZE_MM = Object.freeze({
 // of that kind, never so much that any coin will do (tested: every amount the kind asks is payable).
 export const WALLETS = Object.freeze({
   ones: Object.freeze({ 100: 6 }),
-  twos: Object.freeze({ 100: 1, 200: 3 }),
+  // two € 1 coins, so € 4 can be 1 + 1 + 2 as well as 2 + 2 (Mark, 25 Nov 2026)
+  twos: Object.freeze({ 100: 2, 200: 3 }),
   whole: Object.freeze({ 100: 4, 200: 3, 500: 1 }),
   half: Object.freeze({ 50: 2, 100: 3, 200: 3, 500: 2, 1000: 1 }),
   cents: Object.freeze({ 1: 3, 2: 2, 5: 2, 10: 3, 20: 2, 50: 2, 100: 3, 200: 2, 500: 1 }),
@@ -46,20 +47,21 @@ export const WALLETS = Object.freeze({
 
 /**
  * The things in the shop with the prices they may have (cents, lo-hi), so an apple never costs
- * € 18. Every price a tier asks has at least two things that may cost it (tested).
+ * € 18. Every price a tier asks has at least two things that may cost it (tested). `food`: the
+ * shopkeeper wishes you a good meal instead of fun with it.
  */
 export const ITEMS = Object.freeze([
-  { id: 'apple', lo: 20, hi: 150 },
-  { id: 'banana', lo: 20, hi: 150 },
-  { id: 'carrot', lo: 10, hi: 120 },
-  { id: 'lolly', lo: 10, hi: 200 },
-  { id: 'cookie', lo: 50, hi: 300 },
-  { id: 'milk', lo: 50, hi: 300 },
+  { id: 'apple', lo: 20, hi: 150, food: true },
+  { id: 'banana', lo: 20, hi: 150, food: true },
+  { id: 'carrot', lo: 10, hi: 120, food: true },
+  { id: 'lolly', lo: 10, hi: 200, food: true },
+  { id: 'cookie', lo: 50, hi: 300, food: true },
+  { id: 'milk', lo: 50, hi: 300, food: true },
   { id: 'pencil', lo: 20, hi: 300 },
   { id: 'balloon', lo: 50, hi: 400 },
-  { id: 'bread', lo: 100, hi: 500 },
-  { id: 'icecream', lo: 100, hi: 500 },
-  { id: 'cheese', lo: 200, hi: 1000 },
+  { id: 'bread', lo: 100, hi: 500, food: true },
+  { id: 'icecream', lo: 100, hi: 500, food: true },
+  { id: 'cheese', lo: 200, hi: 1000, food: true },
   { id: 'car', lo: 100, hi: 1000 },
   { id: 'ball', lo: 200, hi: 1500 },
   { id: 'book', lo: 300, hi: 2000 },
@@ -67,6 +69,7 @@ export const ITEMS = Object.freeze([
   { id: 'kite', lo: 500, hi: 2000 },
 ]);
 export const ITEM_IDS = Object.freeze(ITEMS.map((i) => i.id));
+export const isFood = (id) => !!ITEMS.find((i) => i.id === id)?.food;
 
 /** The kinds of question in each round (shuffled per round); index 0 is the random round. */
 export const KINDS = Object.freeze({
@@ -427,4 +430,65 @@ export function makeRound({ tier, seed, round = 0 }) {
   const out = [];
   for (const kind of kinds) out.push(question(kind, tier, r, rand, out));
   return out;
+}
+
+// ---------- what the shopkeeper says ----------
+
+/** Greetings at the start of a question: the first of a round, then the others in turn. */
+export const GREETINGS = 3;
+
+/**
+ * What the shopkeeper says, as { key, vars } for t(). In `vars` a number is an amount in cents
+ * (the screen writes it with money()), a string is another key (a greeting, a thing with its
+ * article), and null is left out (the greeting when the price is said again).
+ *   say 'hello'  at the start of question `i` (with `again`: the price again after a try, no greeting)
+ *   say 'try'    what `judge` or `judgeBasket` said (`res`) about what lies on the counter (`laid`)
+ *   say 'show'   the shop shows how to pay after MAX_TRIES
+ */
+export function shopLine(q, { say, i = 0, again = false, res = null, laid = [] } = {}) {
+  const a = (k) => `winkel.a.${q.items[k].id}`;
+  const hi = again ? null : `winkel.hi.${i <= 0 ? 0 : 1 + ((i - 1) % (GREETINGS - 1))}`;
+  if (say === 'hello') {
+    if (q.kind === 'two') return { key: 'winkel.say.two', vars: { hi, item: a(0), item2: a(1) } };
+    if (q.kind === 'change') return { key: 'winkel.say.change', vars: { item: a(0), price: q.price, paid: q.paid } };
+    if (q.kind === 'budget') return { key: 'winkel.say.budget', vars: { hi, budget: q.budget } };
+    if (q.goal === 'fewest') return { key: 'winkel.say.fewest', vars: { item: a(0), price: q.target } };
+    if (q.kind === 'twos') return { key: 'winkel.say.twos', vars: { hi, item: a(0), price: q.target } };
+    return { key: 'winkel.say.price', vars: { hi, item: a(0), price: q.target } };
+  }
+  if (say === 'show') return { key: q.ask === 'change' ? 'winkel.say.showChange' : q.ask === 'basket' ? 'winkel.say.showBasket' : 'winkel.say.show', vars: {} };
+  if (say !== 'try' || !res) throw new Error(`unknown line ${say}`);
+  if (res.ok) {
+    if (q.ask === 'change') return { key: 'winkel.say.changeRight', vars: {} };
+    if (q.ask === 'basket' || q.items.length > 1) return { key: 'winkel.say.thanksTwo', vars: {} };
+    const id = q.items[0].id;
+    return { key: isFood(id) ? 'winkel.say.thanksFood' : 'winkel.say.thanks', vars: { item: `winkel.item.${id}` } };
+  }
+  if (res.why === 'short' && res.back && res.back.length) return { key: 'winkel.say.swap', vars: { amount: res.missing, back: res.back.reduce((n, k) => n + laid[k], 0) } };
+  if (res.why === 'short') return { key: 'winkel.say.short', vars: { amount: res.missing } };
+  if (res.why === 'more') return { key: 'winkel.say.more', vars: {} };
+  if (res.why === 'over' && q.ask === 'basket') return { key: 'winkel.say.overBudget', vars: { sum: res.sum, amount: res.over } };
+  if (res.why === 'over' && q.ask === 'change') return { key: 'winkel.say.overChange', vars: { amount: res.over } };
+  if (res.why === 'over' && res.extra) return { key: 'winkel.say.overThis', vars: { amount: res.over } };
+  if (res.why === 'over') return { key: 'winkel.say.over', vars: { amount: res.over } };
+  return { key: 'winkel.say.count', vars: { n: res.n } };
+}
+
+/** Every key a line may use, for the strings test. */
+export const LINE_KEYS = Object.freeze([
+  ...['two', 'change', 'budget', 'fewest', 'twos', 'price', 'show', 'showChange', 'showBasket', 'changeRight', 'thanksTwo', 'thanksFood', 'thanks', 'swap', 'short', 'more', 'overBudget', 'overChange', 'overThis', 'over', 'count'].map((k) => `winkel.say.${k}`),
+  ...Array.from({ length: GREETINGS }, (_, k) => `winkel.hi.${k}`),
+  ...ITEM_IDS.map((id) => `winkel.a.${id}`),
+]);
+
+/**
+ * A line as text: `t` is the strings lookup, `fmt` writes an amount. Spaces left by a greeting that
+ * is left out are dropped (never the no-break space after €), and every sentence starts with a
+ * capital ("Goedemorgen! Een vlieger, ...").
+ */
+export function lineText(line, t, fmt) {
+  const vars = {};
+  for (const [k, v] of Object.entries(line.vars)) vars[k] = v === null ? '' : typeof v === 'number' ? fmt(v) : t(v);
+  const s = t(line.key, vars).replace(/ {2,}/g, ' ').trim();
+  return s.replace(/(^|[.!?] )(\p{Ll})/gu, (_, a, b) => a + b.toLocaleUpperCase());
 }

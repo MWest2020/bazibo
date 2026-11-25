@@ -107,6 +107,79 @@ export function itemSvg(id, cls = '') {
   return `<svg class="wk-item-art ${cls}" viewBox="0 0 64 64" aria-hidden="true">${ITEM_ART[id] || ''}</svg>`;
 }
 
+// ---------- the shopkeeper, the till and the bag ----------
+
+/**
+ * The shopkeeper's colours: a soft taupe mouse with pink ears and a sage apron. Our own: no black
+ * round ears, no shorts, no gloves, nothing from a cartoon franchise.
+ */
+export const KEEPER = Object.freeze({
+  fur: '#b9a596',
+  furDark: '#6f5a4b',
+  muzzle: '#f1e6da',
+  ear: '#f2b5bd',
+  eye: '#33261f',
+  nose: '#e47f95',
+  cheek: '#f3a7a0',
+  apron: '#7fb77e',
+  apronDark: '#4c8a4f',
+  shirt: '#fbe3a6',
+});
+
+/** The shopkeeper: a mouse in an apron, seen from the front, its paws on the counter (80 x 88). */
+export function keeperSvg(cls = '') {
+  const c = KEEPER;
+  const line = `stroke="${c.furDark}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"`;
+  return `<svg class="wk-keeper-svg ${cls}" viewBox="0 0 80 88" aria-hidden="true">
+    <g class="wk-keeper-body">
+      <path d="M17 88c0-18 9-30 23-30s23 12 23 30z" fill="${c.shirt}" ${line}/>
+      <path d="M26 64c3-2 6-3 7-3v6h14v-6c1 0 4 1 7 3l-1 24H27z" fill="${c.apron}" stroke="${c.apronDark}" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M33 61l-3-4M47 61l3-4" stroke="${c.apronDark}" stroke-width="2.2" stroke-linecap="round"/>
+      <rect x="34" y="72" width="12" height="9" rx="2.5" fill="none" stroke="${c.apronDark}" stroke-width="2"/>
+      <ellipse cx="17" cy="20" rx="13" ry="14" fill="${c.fur}" ${line}/>
+      <ellipse cx="17" cy="21" rx="8" ry="9" fill="${c.ear}"/>
+      <ellipse cx="63" cy="20" rx="13" ry="14" fill="${c.fur}" ${line}/>
+      <ellipse cx="63" cy="21" rx="8" ry="9" fill="${c.ear}"/>
+      <path d="M40 15c13 0 22 9 22 21 0 12-10 22-22 22S18 48 18 36c0-12 9-21 22-21z" fill="${c.fur}" ${line}/>
+      <ellipse cx="40" cy="45" rx="12" ry="9" fill="${c.muzzle}"/>
+      <circle cx="31" cy="34" r="3.4" fill="${c.eye}"/><circle cx="32.2" cy="32.8" r="1.1" fill="#fff"/>
+      <circle cx="49" cy="34" r="3.4" fill="${c.eye}"/><circle cx="50.2" cy="32.8" r="1.1" fill="#fff"/>
+      <circle cx="26" cy="43" r="3.2" fill="${c.cheek}" opacity="0.7"/><circle cx="54" cy="43" r="3.2" fill="${c.cheek}" opacity="0.7"/>
+      <ellipse cx="40" cy="41" rx="3.4" ry="2.6" fill="${c.nose}"/>
+      <path d="M36 47c2 2.4 6 2.4 8 0" fill="none" ${line}/>
+      <path d="M29 44l-11-2M29 47l-11 2M51 44l11-2M51 47l11 2" stroke="${c.furDark}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+      <ellipse cx="22" cy="84" rx="7" ry="5" fill="${c.fur}" ${line}/>
+      <ellipse cx="58" cy="84" rx="7" ry="5" fill="${c.fur}" ${line}/>
+    </g>
+  </svg>`;
+}
+
+/** The till on the counter: a small cash register with a drawer and keys (48 x 40). */
+export function tillSvg() {
+  const s = 'stroke="#7a3b1f" stroke-width="2" stroke-linejoin="round"';
+  return `<svg class="wk-till-svg" viewBox="0 0 48 40" aria-hidden="true">
+    <rect x="14" y="2" width="20" height="9" rx="2" fill="#2f4550" ${s}/>
+    <path d="M19 6.5h10" stroke="#9fe0b4" stroke-width="2" stroke-linecap="round"/>
+    <path d="M22 11v3h4v-3" fill="#c9714b" ${s}/>
+    <path d="M7 14h34l4 13H3z" fill="#e0805a" ${s}/>
+    <rect x="11" y="17" width="6" height="3" rx="1" fill="#fff4ea"/><rect x="21" y="17" width="6" height="3" rx="1" fill="#fff4ea"/><rect x="31" y="17" width="6" height="3" rx="1" fill="#fff4ea"/>
+    <rect x="9" y="22" width="6" height="3" rx="1" fill="#fff4ea"/><rect x="21" y="22" width="6" height="3" rx="1" fill="#fff4ea"/><rect x="33" y="22" width="6" height="3" rx="1" fill="#fff4ea"/>
+    <rect x="2" y="27" width="44" height="11" rx="2" fill="#c9714b" ${s}/>
+    <path d="M19 32.5h10" stroke="#7a3b1f" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/** A paper shopping bag with the thing peeking out (64 x 64): what you bought, handed over. */
+export function bagSvg(id, cls = '') {
+  const s = 'stroke="#8a6238" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"';
+  return `<svg class="wk-item-art wk-bag ${cls}" viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M24 30c0-8 4-12 8-12s8 4 8 12" fill="none" ${s}/>
+    <g transform="translate(16 0) scale(0.5)">${ITEM_ART[id] || ''}</g>
+    <path d="M12 30h40l-3 30H15z" fill="#ddb27a" ${s}/>
+    <path d="M12 30l3 6h34l3-6" fill="#c99a5e" ${s}/>
+  </svg>`;
+}
+
 /** The striped awning over the shop. */
 function awning(x, y, w, n = 6) {
   const step = w / n;

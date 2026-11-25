@@ -32,7 +32,7 @@ import { SCENE_IDS as VZ_SCENES, ANIMAL_IDS as VZ_ANIMALS, CREATURE_IDS as VZ_CR
 import '../web/games/kangoeroe/strings.js';
 import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
 import '../web/games/winkel/strings.js';
-import { TIER_IDS as WINKEL_TIERS, ITEM_IDS as WINKEL_ITEMS } from '../web/games/winkel/rules.js';
+import { TIER_IDS as WINKEL_TIERS, ITEM_IDS as WINKEL_ITEMS, LINE_KEYS as WINKEL_LINES } from '../web/games/winkel/rules.js';
 import '../web/games/kaart/strings.js';
 import { PACK_IDS as KAART_PACKS } from '../web/games/kaart/packs.js';
 import '../web/games/doolhof/strings.js';
@@ -174,7 +174,7 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KEUKEN_GROUPS) used.add(`keuken.group.${id}`).add(`keuken.also.${id}`);
   for (const [r, steps] of Object.entries(KEUKEN_RECIPES)) steps.forEach((_, k) => used.add(`keuken.step.${r}.${k + 1}`));
   for (const id of WINKEL_TIERS) used.add(`winkel.tier.${id}`).add(`winkel.short.${id}`).add(`winkel.how.${id}`);
-  for (const k of ['exact', 'fewest', 'two']) used.add(`winkel.lead.${k}`); // built as t(`winkel.lead.${kind}`)
+  for (const k of WINKEL_LINES) used.add(k); // the shopkeeper's lines, built by shopLine
   for (const id of WINKEL_ITEMS) used.add(`winkel.item.${id}`);
   for (const n of [1, 2, 3]) used.add(`winkel.win${n}`);
   for (const id of KAART_PACKS) used.add(`kaart.pack.${id}`);

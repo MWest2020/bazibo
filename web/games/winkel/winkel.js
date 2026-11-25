@@ -2,9 +2,11 @@
 // laying coins (and later notes) from the purse on the counter until the price is paid, then taps
 // Betalen; later it gives change from the till by counting up from the price, adds two things, and
 // picks what fits a budget. A tap on a coin lays it on the counter, a tap on the counter takes it
-// back; dragging works both ways too. Nothing is ever "wrong": too much shows what is over, too
-// little shows what is missing (ghost coins), and after MAX_TRIES the shop shows how to pay. No
-// timers, no voice; the sounds are the shell's (plink, boop, bounce, chime).
+// back; dragging works both ways too. The shopkeeper (a mouse in an apron behind the counter) says
+// everything in a speech bubble, as a shop would (`shopLine`): the price at the start, "Nog € 1,
+// alsjeblieft." with ghost coins for too little, what is over for too much, thanks and the thing in
+// a bag when it is right. Nothing is ever "wrong", and after MAX_TRIES the shop shows how to pay.
+// No voice; the sounds are the shell's (plink, boop, bounce, chime).
 // The maths is pure (rules.js), the drawings in art.js; the shell (web/js/main.js) owns the overlay
 // card, the sound settings and the purchase, passed in as `shell`.
 //
@@ -33,8 +35,10 @@ import {
   countUp,
   fewest,
   isNote,
+  shopLine,
+  lineText,
 } from './rules.js';
-import { moneySvg, itemSvg, howSvg } from './art.js';
+import { moneySvg, itemSvg, howSvg, keeperSvg, tillSvg, bagSvg } from './art.js';
 import * as store from '../../js/storage.js';
 import { newSeed, randomCard } from '../../js/random.js';
 import * as sfx from '../../js/audio.js';
@@ -58,7 +62,8 @@ export function createWinkel(shell) {
   };
 
   // { tier, roundId (null when random), seed, qs, i, laid, picked, fb (what the last try showed,
-  //   until the counter changes), mistakes, results, tries, shown, waiting, done }
+  //   until the counter changes), line (what the shopkeeper says now), mistakes, results, tries,
+  //   shown, waiting, done }
   let game = null;
   let plays = 0; // counts rounds started, so a late timer never acts on a newer round
   let timer = null;
@@ -71,6 +76,9 @@ export function createWinkel(shell) {
   const fmt = (c) => money(c, getLang(), { decimals: !!(game && TIERS[game.tier].cents) });
   const units = () => ({ cent: t('winkel.cent'), euro: t('winkel.euro') });
   const art = (d, cls = '') => moneySvg(d, { unit: d >= 100 ? units().euro : units().cent, cls });
+
+  $('#wk-keeper').innerHTML = keeperSvg();
+  $('#wk-till-art').innerHTML = tillSvg();
 
   shell.unlock.onChange(() => {
     if (onScreen('winkel-menu')) renderMenu();
@@ -208,7 +216,8 @@ export function createWinkel(shell) {
     dropDrag();
     if (lastTier() !== tier) store.saveGameOption(meta.id, 'lastTier', tier);
     const qs = makeRound({ tier, seed, round });
-    game = { tier, roundId, seed, qs, i: 0, laid: [], picked: [], fb: null, mistakes: 0, results: [], tries: 0, shown: false, right: false, waiting: false, done: false };
+    game = { tier, roundId, seed, qs, i: 0, laid: [], picked: [], fb: null, line: null, mistakes: 0, results: [], tries: 0, shown: false, right: false, waiting: false, done: false };
+    hello();
     shell.show('winkel');
     render();
     if (!seenHow()[tier]) {
@@ -265,7 +274,7 @@ export function createWinkel(shell) {
     $('#wk-stage').classList.toggle('happy', !!game.right);
     $('#wk-sub').textContent = t('winkel.menu');
     $('#wk-title').textContent = game.roundId ? t('winkel.round', { n: game.roundId.split('-')[1] }) : t('random.title');
-    renderLead();
+    renderSay();
     renderGoods();
     renderSum();
     renderCounter();
@@ -274,16 +283,21 @@ export function createWinkel(shell) {
     renderDots();
   }
 
-  function renderLead() {
-    const it = q();
-    let lead;
-    if (it.kind === 'count' || it.kind === 'twos') {
-      const n = it.target / 100;
-      lead = it.kind === 'twos' ? t('winkel.lead.twos', { n }) : n === 1 ? t('winkel.lead.count1') : t('winkel.lead.count', { n });
-    } else if (it.kind === 'change') lead = t('winkel.lead.change', { paid: fmt(it.paid), price: fmt(it.price) });
-    else if (it.kind === 'budget') lead = t('winkel.lead.budget', { budget: fmt(it.budget) });
-    else lead = t(`winkel.lead.${it.kind === 'cents' ? 'exact' : it.kind}`);
-    $('#wk-lead').textContent = lead;
+  /** The shopkeeper's line in the bubble; it bobs happily while a right answer is thanked. */
+  function renderSay() {
+    if (!game.line) hello();
+    $('#wk-say').textContent = lineText(game.line, t, fmt);
+    $('#wk-keeper').classList.toggle('happy', !!game.right);
+  }
+
+  /** The greeting with the price at the start of a question (`again`: the price once more). */
+  function hello(again = false) {
+    game.line = { ...shopLine(q(), { say: 'hello', i: game.i, again }), hello: true };
+  }
+
+  function say(line) {
+    game.line = line;
+    renderSay();
   }
 
   /** The thing (or things) to buy with their price tags; in a budget question, four to pick from. */
@@ -296,10 +310,12 @@ export function createWinkel(shell) {
     it.items.forEach((item, k) => {
       const name = t(`winkel.item.${item.id}`);
       const el = document.createElement(it.ask === 'basket' ? 'button' : 'div');
-      el.className = 'wk-good';
+      // paid: the thing goes into a bag (in a budget question the two that were bought)
+      const sold = !!game.right && (it.ask !== 'basket' || game.picked.includes(k));
+      el.className = `wk-good${sold ? ' sold' : ''}`;
       el.dataset.item = item.id;
       el.dataset.k = String(k);
-      el.innerHTML = `${itemSvg(item.id)}<span class="wk-tag">${fmt(item.price)}</span>`;
+      el.innerHTML = `${sold ? bagSvg(item.id) : itemSvg(item.id)}<span class="wk-tag">${fmt(item.price)}</span>`;
       if (it.ask === 'basket') {
         el.type = 'button';
         const on = game.picked.includes(k);
@@ -338,6 +354,8 @@ export function createWinkel(shell) {
     else if (it.kind === 'change') text = `${fmt(it.paid)} ${MINUS} ${fmt(it.price)} = ${end}`;
     el.textContent = text;
     el.hidden = !text;
+    // sideways phones show the sum of two things on the counter (the shelf has no room for it)
+    $('#wk-sum-side').textContent = it.kind === 'two' ? text : '';
   }
 
   /** What lies on the counter (or in the basket), its total, and what is missing or over. */
@@ -509,14 +527,14 @@ export function createWinkel(shell) {
     box.setAttribute('aria-label', t('winkel.progress', { done: Math.min(game.i, ROUND_LEN), total: ROUND_LEN }));
   }
 
-  function setStatus(text) {
-    $('#wk-status').textContent = text;
-  }
-
   /** After the counter changed: forget what the last try showed, draw it again. */
   function changed() {
     game.fb = null;
-    setStatus('');
+    // after a try the shopkeeper says the price once more (no second greeting)
+    if (!game.line?.hello) {
+      hello(true);
+      renderSay();
+    }
     renderCounter();
     renderWallet();
     renderGoods();
@@ -576,10 +594,10 @@ export function createWinkel(shell) {
     if (game.results[game.i] === undefined) game.results[game.i] = true;
     game.waiting = true;
     game.right = true;
-    setStatus(t('winkel.good'));
+    game.line = shopLine(q(), { say: 'try', res: { ok: true } });
     sfx.chime();
     render();
-    later(1300, nextQuestion);
+    later(1800, nextQuestion);
   }
 
   /** Not yet: show what is missing or over, count it once; after MAX_TRIES the shop shows the way. */
@@ -595,11 +613,7 @@ export function createWinkel(shell) {
     renderGoods();
     renderDots();
     syncPay();
-    if (res.why === 'short' && res.back.length) setStatus(t('winkel.swap', { amount: fmt(res.missing), back: fmt(res.back.reduce((n, i) => n + game.laid[i], 0)) }));
-    else if (res.why === 'short') setStatus(t('winkel.short', { amount: fmt(res.missing) }));
-    else if (res.why === 'more') setStatus(t('winkel.more', { n: res.n }));
-    else if (q().ask === 'basket') setStatus(t('winkel.overBudget', { sum: fmt(res.sum), amount: fmt(res.over) }));
-    else setStatus(t('winkel.over', { amount: fmt(res.over) }));
+    say(shopLine(q(), { say: 'try', res, laid: game.laid }));
     if (game.tries < MAX_TRIES) return;
     game.waiting = true;
     syncPay();
@@ -613,8 +627,8 @@ export function createWinkel(shell) {
     game.fb = null;
     if (it.ask === 'basket') game.picked = [...it.best];
     else game.laid = [...it.solution].reverse(); // small first: counting up
+    game.line = shopLine(it, { say: 'show' });
     render();
-    setStatus(t(it.ask === 'change' ? 'winkel.showChange' : it.ask === 'basket' ? 'winkel.showBasket' : 'winkel.show'));
     later(2400, nextQuestion);
   }
 
@@ -632,7 +646,7 @@ export function createWinkel(shell) {
       finish();
       return;
     }
-    setStatus('');
+    hello();
     render();
   }
 
@@ -797,6 +811,7 @@ export function createWinkel(shell) {
             laid: [...game.laid],
             picked: [...game.picked],
             fb: game.fb,
+            line: game.line && { key: game.line.key, text: $('#wk-say').textContent },
             mistakes: game.mistakes,
             tries: game.tries,
             shown: game.shown,
@@ -809,7 +824,7 @@ export function createWinkel(shell) {
           if (!game || !(i >= 0 && i < ROUND_LEN)) return;
           clearTimer();
           Object.assign(game, { i, laid: [], picked: [], fb: null, tries: 0, shown: false, right: false, waiting: false });
-          setStatus('');
+          hello();
           render();
         },
         random: (tier) => playRandom(tier),
@@ -819,6 +834,8 @@ export function createWinkel(shell) {
         pick: (k) => pickItem(k),
         pay: () => pay(),
         stars: () => stars(),
+        /** A string in the language shown (the smoke test builds the expected lines with it). */
+        t: (key) => t(key),
       };
     },
   };
