@@ -5,6 +5,7 @@ const ALLOWED = new Set([
   '../games/dogudoku/generate.js',
   '../games/picturedoku/generate.js',
   '../games/slang/generate.js',
+  '../games/treintje/generate.js',
 ]);
 
 self.onmessage = async (e) => {

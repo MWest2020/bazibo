@@ -34,6 +34,8 @@ import { TIER_IDS as KANGOEROE_TIERS } from '../web/games/kangoeroe/hops.js';
 import '../web/games/kaart/strings.js';
 import { PACK_IDS as KAART_PACKS } from '../web/games/kaart/packs.js';
 import '../web/games/doolhof/strings.js';
+import '../web/games/treintje/strings.js';
+import { AGE_IDS as TREINTJE_AGES } from '../web/games/treintje/generate.js';
 import '../web/games/piano/strings.js';
 import { SONG_IDS as PIANO_SONGS, KEY_IDS as PIANO_KEYS } from '../web/games/piano/songs.js';
 import '../web/games/drums/strings.js';
@@ -135,6 +137,8 @@ test('every key used in index.html and in the code exists', () => {
   for (const p of ['hour', 'minute']) used.add(`klok.dig.${p}Plus`).add(`klok.dig.${p}Minus`);
   for (const n of [1, 2, 3]) used.add(`klok.win${n}`);
   for (const a of ['breakfast', 'school', 'lunch', 'play', 'dinner', 'bath', 'bed']) used.add(`klok.act.${a}`);
+  for (const id of TREINTJE_AGES) used.add(`treintje.age.${id}`).add(`treintje.sub.${id}`).add(`treintje.how.${id}`);
+  for (const w of ['order', 'early', 'wall', 'used']) used.add(`treintje.why.${w}`); // built as t(`treintje.why.${why}`)
   for (const id of PIANO_SONGS) used.add(`piano.song.${id}`); // built as t(`piano.song.${id}`)
   for (const id of PIANO_KEYS) used.add(`piano.note.${id}`);
   for (const n of [1, 2, 3]) used.add(`piano.win${n}`);

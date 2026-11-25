@@ -82,6 +82,7 @@
   <link rel="stylesheet" href="games/verstop/verstop.css">
   <link rel="stylesheet" href="games/kaart/kaart.css">
   <link rel="stylesheet" href="games/doolhof/doolhof.css">
+  <link rel="stylesheet" href="games/treintje/treintje.css">
   <link rel="stylesheet" href="games/piano/piano.css">
   <link rel="stylesheet" href="games/drums/drums.css">
   <link rel="stylesheet" href="games/papegaai/papegaai.css">
@@ -938,6 +939,43 @@
         </div>
       </div>
       <svg id="km-ghost" class="km-ghost" aria-hidden="true" hidden></svg>
+    </section>
+
+    <!-- Treintje: choose an age (an endless stream of new puzzles per age) -->
+    <section id="screen-treintje-menu" class="screen" data-i18n-aria="games.treintje" aria-label="Treintje">
+      <header class="bar">
+        <button id="treintje-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="treintje.menu">Treintje</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="treintje-menu" class="menu"></div></div>
+    </section>
+
+    <!-- Treintje: lay one railway through every square, past the stations in order (no voice, no timer) -->
+    <section id="screen-treintje" class="screen" data-i18n-aria="games.treintje" aria-label="Treintje">
+      <header class="bar dogu-hud tj-hud">
+        <button id="treintje-back" class="btn icon" type="button" data-i18n-aria="treintje.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="tj-sub" class="hud-level"></div>
+          <div id="tj-title" class="dogu-title"></div>
+        </div>
+        <button id="treintje-new" class="btn icon" type="button" data-i18n-aria="treintje.newBtn" aria-label="Andere puzzel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </header>
+      <div id="tj-stage">
+        <div class="tj-side">
+          <p id="tj-status" class="tj-status" aria-live="polite"></p>
+          <p id="tj-count" class="tj-count"></p>
+        </div>
+        <div id="tj-boardbox">
+          <svg id="tj-board" role="img" aria-label="Het spoor"><g id="tj-base"></g><g id="tj-track"></g><g id="tj-headmark"></g><g id="tj-stations"></g><g id="tj-train"></g></svg>
+        </div>
+      </div>
     </section>
 
     <!-- Egeltje: choose a round (the alphabet, words, counting) -->
