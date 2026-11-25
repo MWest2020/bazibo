@@ -76,6 +76,9 @@ import { tileSvg as keukenTileSvg } from '../games/keuken/art.js';
 import '../games/kangoeroe/strings.js';
 import { createKangoeroe } from '../games/kangoeroe/kangoeroe.js';
 import { tileSvg as kangoeroeTileSvg } from '../games/kangoeroe/art.js';
+import '../games/winkel/strings.js';
+import { createWinkel } from '../games/winkel/winkel.js';
+import { tileSvg as winkelTileSvg } from '../games/winkel/art.js';
 import '../games/kaart/strings.js';
 import { createKaart } from '../games/kaart/kaart.js';
 import { tileSvg as kaartTileSvg } from '../games/kaart/art.js';
@@ -404,6 +407,10 @@ function drawKeukenTile() {
 
 function drawKangoeroeTile() {
   $('#tile-kangoeroe .tile-art').innerHTML = kangoeroeTileSvg();
+}
+
+function drawWinkelTile() {
+  $('#tile-winkel .tile-art').innerHTML = winkelTileSvg();
 }
 
 function drawKaartTile() {
@@ -824,6 +831,17 @@ async function boot() {
     onLangChange,
     tap,
   });
+  games.winkel = createWinkel({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    offerUnlock,
+    unlock,
+    onShow: (fn) => showHooks.push(fn),
+    onLangChange,
+    tap,
+  });
   games.kaart = createKaart({
     t,
     show,
@@ -915,6 +933,7 @@ async function boot() {
   drawTreintjeTile();
   drawKeukenTile();
   drawKangoeroeTile();
+  drawWinkelTile();
   drawKaartTile();
   drawDoolhofTile();
   drawPianoTile();
@@ -922,7 +941,7 @@ async function boot() {
   drawPapegaaiTile();
   // a Dogudoku, Picturedoku or Slangetje load error is explained when the game is opened
   // (Vier op een rij has nothing to load)
-  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.verstop.init(), games.treintje.init(), games.kangoeroe.init(), games.keuken.init(), games.kaart.init(), games.piano.init(), games.drums.init(), games.papegaai.init(), fontReady()]);
+  const [ok] = await Promise.all([games.bubbels.init(), games.dogudoku.init(), games.picturedoku.init(), games.memory.init(), games.legpuzzel.init(), games.vier.init(), games.dammen.init(), games.baghchal.init(), games.schaak.init(), games.ganzen.init(), games.pachisi.init(), games.kwartet.init(), games.slang.init(), games.kleuren.init(), games.tekenen.init(), games.klok.init(), games.letters.init(), games.doolhof.init(), games.verstop.init(), games.treintje.init(), games.kangoeroe.init(), games.keuken.init(), games.winkel.init(), games.kaart.init(), games.piano.init(), games.drums.init(), games.papegaai.init(), fontReady()]);
   if (!ok) return;
   // test and debug hook (only with ?test in the address)
   if (new URLSearchParams(location.search).has('test')) {
@@ -948,6 +967,7 @@ async function boot() {
       treintje: games.treintje.testHook(),
       kangoeroe: games.kangoeroe.testHook(),
       keuken: games.keuken.testHook(),
+      winkel: games.winkel.testHook(),
       kaart: games.kaart.testHook(),
       doolhof: games.doolhof.testHook(),
       piano: games.piano.testHook(),
@@ -1003,6 +1023,7 @@ function onBack() {
   else if (action === 'verstop-menu') games.verstop.leave();
   else if (action === 'treintje-menu') games.treintje.leave();
   else if (action === 'kangoeroe-menu') games.kangoeroe.leave();
+  else if (action === 'winkel-menu') games.winkel.leave();
   else if (action === 'kaart-menu') games.kaart.leave();
   else if (action === 'keuken-menu') games.keuken.leave();
   else if (action === 'doolhof-menu') games.doolhof.leave();
