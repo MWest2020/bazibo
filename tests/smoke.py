@@ -15,7 +15,7 @@ klok_digital_layouts, `tests/smoke.py klok`), play Dammen, Tijgers en geitjes an
 dammen_flow, baghchal_flow and ganzen_flow; `tests/smoke.py dammen`, `baghchal` or `ganzen` runs only those), end the free
 part of every game and close the offer (offers_bubbels, offers_others; `tests/smoke.py offers`, or
 `bubbels` for Bubbels alone: every way out of the offer lands on the list, never on the finished
-board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), lay Treintje's track (treintje_flow; `tests/smoke.py treintje`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
+board), play Paartjes (memory_flow; `tests/smoke.py memory`), play Kwartet (kwartet_flow; `tests/smoke.py kwartet`), play Legpuzzel (legpuzzel_flow; `tests/smoke.py legpuzzel`), play the Piano (piano_flow; `tests/smoke.py piano`), play the drums (drums_flow; `tests/smoke.py drums`), play Egeltje (doolhof_play; `tests/smoke.py doolhof`), play Verstoppertje (verstop_flow; `tests/smoke.py verstop`), lay Treintje's track (treintje_flow; `tests/smoke.py treintje`), play Kangoeroe op de getallenlijn (kangoeroe_flow; `tests/smoke.py kangoeroe`), cook in Keukentje (keuken_flow; `tests/smoke.py keuken`), play Kaartpuzzel (kaart_flow; `tests/smoke.py kaart`), record and play back in Papegaai with Chromium's fake microphone (papegaai_flow; `tests/smoke.py papegaai`), check that nothing went to the network and nothing threw, that the
 animation loops stop when they are not needed, that settings, the language switch, the parental
 gate and the free-tier offer work in Dutch and English, that a returning player keeps their
 progress, and save screenshots to shots/ (also a sideways phone).
@@ -9559,6 +9559,415 @@ def treintje_layouts(browser, base, problems):
         ctx.close()
 
 
+def ke_state(page):
+    return page.evaluate("window.__bubbels.keuken.state()")
+
+
+def ke_wait(page, cond_js, timeout=8000):
+    """Poll the page (page.evaluate works under the real CSP, wait_for_function does not)."""
+    end = time.time() + timeout / 1000
+    while time.time() < end:
+        if page.evaluate(cond_js):
+            return True
+        page.wait_for_timeout(80)
+    return False
+
+
+def ke_next(page, i):
+    if not ke_wait(page, f"(() => {{ const s = window.__bubbels.keuken.state(); return s.i > {i} || s.done; }})()"):
+        raise AssertionError(f"keuken: question {i + 1} did not move on ({ke_state(page)})")
+
+
+def ke_tap(page, oid):
+    """A real tap on an option, which must be on screen and enabled."""
+    loc = page.locator(f"#ke-options .ke-opt[data-id='{oid}']")
+    if loc.is_disabled():
+        raise AssertionError(f"keuken: option {oid} is disabled")
+    if page.evaluate("navigator.maxTouchPoints > 0"):
+        loc.tap()
+    else:
+        loc.click()  # desktop: the mouse
+
+
+def ke_todo(st):
+    q = st["q"]
+    if q["kind"] == "fill":
+        return [i for i in q["need"] if i not in st["placed"]]
+    if q["kind"] == "steps":
+        return [s for s in q["steps"] if s not in st["placed"]]
+    return [q["answer"]] if not st["placed"] else []
+
+
+def ke_wrong_of(q):
+    """An option that does not fit (for steps: a later step)."""
+    if q["kind"] == "fill":
+        return next(o for o in q["options"] if o not in q["need"])
+    if q["kind"] == "steps":
+        return q["steps"][-1]
+    return next(o for o in q["options"] if o != q["answer"])
+
+
+def ke_play_right(page, real=True):
+    st = ke_state(page)
+    for oid in ke_todo(st):
+        if real:
+            ke_tap(page, oid)
+        else:
+            page.evaluate(f"window.__bubbels.keuken.tap('{oid}')")
+
+
+def ke_context(browser, base, w=390, h=844, lang="nl", owned=False, csp=False):
+    mobile = w < 1000
+    args = dict(locale="nl-NL" if lang == "nl" else "en-GB", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
+    if not csp:
+        args["bypass_csp"] = True
+    ctx = browser.new_context(**args)
+    if owned:
+        ctx.add_init_script(OWNED_APP)
+    if csp:
+        ctx.add_init_script("document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))")
+    page = ctx.new_page()
+    errors, foreign = [], []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    if owned:
+        page.wait_for_function("window.__bubbels.full()", timeout=8000)
+    return ctx, page, errors, foreign
+
+
+def ke_skip_how(page):
+    page.wait_for_timeout(150)
+    if where(page)[1]:
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+
+
+def keuken_flow(browser, base, problems):
+    """Keukentje at 390x844 with real taps: the tile in Leren opens the menu, a locked tier offers only
+    OK on the web; round t1-1 (after the how-to card) played to the end: one wrong ingredient first (it
+    bounces back with "Dat hoort bij ...", counted once, greyed), the dish fills up bowl by bowl and is
+    ready; 2 stars saved; the next round with two wrong taps (the help glows on what is left), the
+    Android back button and "keep playing" with the bowls kept; the end of the free part offers only OK
+    and lands on the menu with the save kept; no voice, nothing from outside. Then the full version: a
+    6-7 "which dish?" round and an 8-10 round (steps in order, where from, the odd one out) by real taps,
+    each with one tap that does not fit first."""
+    ctx, page, errors, foreign = ke_context(browser, base)
+    name = page.inner_text("#tile-keuken .tile-name").replace("­", "").strip()
+    if name != "Keukentje":
+        problems.append(f"keuken: the tile says {name!r}")
+    if page.evaluate("document.querySelector('#tile-keuken').closest('.tile-group').querySelector('.group-name').textContent") != "Leren":
+        problems.append("keuken: the tile is not in the Leren section")
+    page.locator("#tile-keuken").scroll_into_view_if_needed()
+    page.screenshot(path=str(SHOTS / "keuken-home-390x844.png"))
+    page.locator("#tile-keuken").tap()
+    page.wait_for_timeout(200)
+    if where(page) != ["keuken-menu", False]:
+        problems.append(f"keuken: the tile opened {where(page)}")
+    locked = page.locator("#keuken-menu .level-cell.locked:not(.random-btn)").count()
+    if locked != 6:
+        problems.append(f"keuken: {locked} rounds locked on the web, expected 6 (6-7 and 8-10)")
+    if page.locator("#keuken-menu details.full-fold").count() != 1:
+        problems.append("keuken: the locked rounds are not in the Volledige versie fold")
+    page.screenshot(path=str(SHOTS / "keuken-menu-390x844.png"), full_page=True)
+    choose(page, "#keuken-menu .level-cell[data-round='t2-1']", tap=True)
+    page.wait_for_timeout(150)
+    if card_buttons(page) != ["Oké"]:
+        problems.append(f"keuken: a locked round offers {card_buttons(page)}, not the web's OK")
+    page.click("#ov-buttons button")
+    page.wait_for_timeout(150)
+    if where(page) != ["keuken-menu", False] or ke_state(page):
+        problems.append(f"keuken: after OK on a locked round: {where(page)}")
+
+    # round t1-1 by real taps
+    choose(page, "#keuken-menu .level-cell[data-round='t1-1']", tap=True)
+    page.wait_for_timeout(200)
+    if not page.is_visible("#overlay"):
+        problems.append("keuken: no how-to card on the first round")
+    else:
+        page.screenshot(path=str(SHOTS / "keuken-how-390x844.png"))
+        page.click("#ov-buttons button")
+        page.wait_for_timeout(150)
+    for i in range(6):
+        st = ke_state(page)
+        q = st["q"]
+        label = f"keuken t1-1 q{i + 1} {q['dish']}"
+        if q["kind"] != "fill" or len(q["options"]) != 6 or not 2 <= len(q["need"]) <= 3:
+            problems.append(f"{label}: a 3-5 question {q['kind']} with {len(q['options'])} pictures and {len(q['need'])} bowls")
+        bowls = page.locator("#ke-bowls .ke-bowl").count()
+        if bowls != len(q["need"]) or page.locator("#ke-bowls .ke-bowl.full").count():
+            problems.append(f"{label}: {bowls} bowls at the start")
+        if i == 0:
+            wrong = ke_wrong_of(q)
+            ke_tap(page, wrong)
+            page.wait_for_timeout(120)
+            st = ke_state(page)
+            status = page.inner_text("#ke-status")
+            if st["mistakes"] != 1 or st["placed"] or wrong not in st["tried"] or "Dat hoort bij" not in status:
+                problems.append(f"{label}: after a wrong ingredient mistakes={st['mistakes']} placed={st['placed']} status={status!r}")
+            if not page.locator(f"#ke-options .ke-opt[data-id='{wrong}']").is_disabled():
+                problems.append(f"{label}: the wrong ingredient can be tapped again")
+            if "bounce" not in (page.get_attribute(f"#ke-options .ke-opt[data-id='{wrong}']", "class") or ""):
+                problems.append(f"{label}: the wrong ingredient does not bounce back")
+            page.screenshot(path=str(SHOTS / "keuken-wrong-390x844.png"))
+        for k, oid in enumerate(ke_todo(ke_state(page))):
+            ke_tap(page, oid)
+            page.wait_for_timeout(60)
+            full = page.locator("#ke-bowls .ke-bowl.full").count()
+            if full != k + 1:
+                problems.append(f"{label}: {full} bowls full after {k + 1} right taps")
+        page.wait_for_timeout(120)
+        if "ready" not in (page.get_attribute("#ke-show", "class") or "") or "Klaar" not in page.inner_text("#ke-status"):
+            problems.append(f"{label}: the dish is not ready: {page.get_attribute('#ke-show', 'class')} {page.inner_text('#ke-status')!r}")
+        if i == 0:
+            page.wait_for_timeout(500)
+            page.screenshot(path=str(SHOTS / "keuken-ready-390x844.png"))
+        ke_next(page, i)
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+    page.screenshot(path=str(SHOTS / "keuken-win-390x844.png"))
+    got = page.evaluate("window.__bubbels.keuken.stars()")
+    if page.inner_text("#ov-title").strip() != "Goed gedaan!" or got.get("t1-1") != 2:
+        problems.append(f"keuken: t1-1 with one mistake ended {page.inner_text('#ov-title')!r}, stars {got}")
+    if card_buttons(page) != ["Volgende ronde", "Nog een keer", "Rondes"]:
+        problems.append(f"keuken: the end card offers {card_buttons(page)}")
+
+    # the next round: two wrong taps make the help glow; one right; back (Android) and keep playing
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(200)
+    st = ke_state(page)
+    if st["roundId"] != "t1-2" or st["i"] != 0:
+        problems.append(f"keuken: Volgende ronde started {st['roundId']}")
+    q = st["q"]
+    wrongs = [o for o in q["options"] if o not in q["need"]][:2]
+    for w in wrongs:
+        ke_tap(page, w)
+        page.wait_for_timeout(80)
+    st = ke_state(page)
+    glow = sorted(page.eval_on_selector_all("#ke-options .ke-opt.help", "els => els.map(e => e.dataset.id)"))
+    if not st["help"] or glow != sorted(q["need"]) or st["mistakes"] != 1:
+        problems.append(f"keuken t1-2: after two wrong taps help={st['help']} glowing {glow} (want {sorted(q['need'])}), mistakes {st['mistakes']}")
+    page.screenshot(path=str(SHOTS / "keuken-help-390x844.png"))
+    ke_tap(page, q["need"][0])
+    page.wait_for_timeout(80)
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(150)
+    if where(page) != ["keuken-menu", False] or not page.is_visible("#keuken-continue") or page.inner_text("#keuken-continue").strip() != "Verder spelen":
+        problems.append(f"keuken: back from a round went to {where(page)} without Verder spelen")
+    page.locator("#keuken-continue").tap()
+    page.wait_for_timeout(150)
+    st2 = ke_state(page)
+    if where(page) != ["keuken", False] or st2["i"] != 0 or st2["placed"] != [q["need"][0]] or page.locator("#ke-bowls .ke-bowl.full").count() != 1:
+        problems.append(f"keuken: Verder spelen opened {where(page)} with {st2['placed']}")
+    page.evaluate("window.__bubbels.back()")
+    page.wait_for_timeout(100)
+    page.evaluate("window.__bubbels.back()")  # the menu goes home
+    page.wait_for_timeout(100)
+    if where(page) != ["home", False]:
+        problems.append(f"keuken: back from the menu went to {where(page)}")
+
+    # the end of the free part: "Meer rondes" offers only OK on the web, and lands on the menu
+    page.locator("#tile-keuken").click()
+    page.evaluate("window.__bubbels.keuken.start('t1-3')")
+    page.wait_for_timeout(150)
+    for i in range(6):
+        ke_play_right(page, real=False)
+        ke_next(page, i)
+    if "laatste gratis" not in page.inner_text("#ov-text"):
+        problems.append(f"keuken: the end of t1-3 says {page.inner_text('#ov-text')!r}")
+    if web_offer_ok(page, "keuken t1-3", "keuken-menu", problems):
+        if page.evaluate("window.__bubbels.keuken.stars()").get("t1-3") != 3:
+            problems.append(f"keuken: t1-3 not saved ({page.evaluate('window.__bubbels.keuken.stars()')})")
+    if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
+        problems.append("keuken: something speaks")
+    if errors:
+        problems.append(f"keuken: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"keuken: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+    # the full version: a 6-7 round with "which dish?" and an 8-10 round, by real taps
+    ctx, page, errors, foreign = ke_context(browser, base, owned=True)
+    page.locator("#tile-keuken").tap()
+    page.wait_for_timeout(200)
+    if page.locator("#keuken-menu .locked").count():
+        problems.append("keuken: something is locked in the full version")
+    seen = set()
+    for rid in ("t2-1", "t3-1"):
+        page.locator(f"#keuken-menu .level-cell[data-round='{rid}']").tap()
+        ke_skip_how(page)
+        for i in range(6):
+            st = ke_state(page)
+            q = st["q"]
+            kind = q["kind"]
+            label = f"keuken {rid} q{i + 1} {kind}"
+            if kind not in seen and kind != "fill":
+                wrong = ke_wrong_of(q)
+                ke_tap(page, wrong)
+                page.wait_for_timeout(120)
+                st = ke_state(page)
+                status = page.inner_text("#ke-status")
+                want = {"which": "Geen ", "steps": "Dat komt later", "from": "", "odd": "ook"}[kind]
+                if st["mistakes"] < 1 or st["placed"] or want not in status or not status.strip():
+                    problems.append(f"{label}: after a tap that does not fit: mistakes={st['mistakes']} placed={st['placed']} status={status!r}")
+                page.screenshot(path=str(SHOTS / f"keuken-{kind}-wrong-390x844.png"))
+            elif kind == "fill" and kind not in seen:
+                if len(q["options"]) != 8 or len(q["need"]) < 4:
+                    problems.append(f"{label}: {len(q['options'])} pictures, {len(q['need'])} bowls")
+            for k, oid in enumerate(ke_todo(ke_state(page))):
+                ke_tap(page, oid)
+                page.wait_for_timeout(60)
+                if kind == "steps" and page.locator("#ke-bowls .ke-slot.full").count() != k + 1:
+                    problems.append(f"{label}: {page.locator('#ke-bowls .ke-slot.full').count()} steps placed after {k + 1} taps")
+            page.wait_for_timeout(150)
+            if kind not in seen:
+                page.screenshot(path=str(SHOTS / f"keuken-{kind}-done-390x844.png"))
+            if not ke_state(page)["waiting"]:
+                problems.append(f"{label}: the right answers did not end the question ({ke_state(page)})")
+            seen.add(kind)
+            ke_next(page, i)
+        page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=4000)
+        page.click("#ov-buttons button >> text=Rondes")
+        page.wait_for_timeout(150)
+    if seen != {"fill", "which", "from", "steps", "odd"}:
+        problems.append(f"keuken: the full rounds showed only {sorted(seen)}")
+    got = page.evaluate("window.__bubbels.keuken.stars()")
+    if not got.get("t2-1") or not got.get("t3-1"):
+        problems.append(f"keuken: t2-1 and t3-1 not saved ({got})")
+    # a random round, counted per tier
+    page.evaluate("window.__bubbels.keuken.random('t3', 7)")
+    ke_skip_how(page)
+    for i in range(6):
+        ke_play_right(page, real=False)
+        ke_next(page, i)
+    done = page.evaluate("window.__bubbels.keuken.saved()")
+    if (done.get("random") or {}).get("t3") != 1 or done.get("lastTier") != "t3" or not (done.get("howSeen") or {}).get("t3"):
+        problems.append(f"keuken: the save after a random round is {done}")
+    if errors:
+        problems.append(f"keuken full: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"keuken full: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+# a seed per tier and kind whose first question is that kind (a random round starts with it)
+KE_SEED_JS = """async ([tier, kind]) => {
+  const R = await import('./games/keuken/rules.js');
+  for (let seed = 1; seed < 500; seed++) { const q = R.makeRound({ tier, seed })[0]; if (q.kind === kind && (kind !== 'fill' || tier !== 't2' || q.need.length === 5) && (kind !== 'steps' || q.steps.length === 4)) return seed; }
+  return 1;
+}"""
+
+
+def keuken_layouts(browser, base, problems):
+    """Every kind of question (the full version) at 320x568, 390x844 in English, 568x320, 844x390 and
+    desktop: every target (the back button, every picture) 48 px or more, on screen and not
+    overlapping, the bowls or slots and the dish on screen, no sideways scroll, no label spilling out;
+    the English names (Little Kitchen)."""
+    cases = (("t1", "fill"), ("t2", "fill"), ("t2", "which"), ("t3", "from"), ("t3", "steps"), ("t3", "odd"))
+    for w, h, lang in ((320, 568, "nl"), (390, 844, "en"), (568, 320, "nl"), (844, 390, "nl"), (1280, 800, "nl")):
+        label0 = f"keuken {w}x{h} {lang}"
+        ctx, page, errors, _ = ke_context(browser, base, w, h, lang, owned=True)
+        if lang == "en":
+            name = page.inner_text("#tile-keuken .tile-name").strip()
+            if name != "Little Kitchen":
+                problems.append(f"{label0}: the tile says {name!r}")
+        page.click("#tile-keuken")
+        page.wait_for_timeout(200)
+        if lang == "en" and page.inner_text("#screen-keuken-menu .bar h2").strip() != "Little Kitchen":
+            problems.append(f"{label0}: the menu says {page.inner_text('#screen-keuken-menu .bar h2')!r}")
+        page.screenshot(path=str(SHOTS / f"keuken-menu-{w}x{h}-{lang}.png"))
+        for tier, kind in cases:
+            label = f"{label0} {tier} {kind}"
+            seed = page.evaluate(KE_SEED_JS, [tier, kind])
+            page.evaluate(f"window.__bubbels.keuken.random('{tier}', {seed})")
+            ke_skip_how(page)
+            st = ke_state(page)
+            if st["q"]["kind"] != kind:
+                problems.append(f"{label}: the round starts with {st['q']['kind']}")
+            # one right tap first, so a bowl or slot is full in the picture
+            if kind in ("fill", "steps"):
+                ke_tap(page, ke_todo(st)[0])
+                page.wait_for_timeout(450)
+            targets = ["#keuken-back"] + [f"#ke-options .ke-opt >> nth={k}" for k in range(page.locator("#ke-options .ke-opt").count())]
+            boxes = []
+            for sel in targets:
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"{label}: {sel} not on screen ({r})")
+                elif r["width"] < 47.5 or r["height"] < 47.5:
+                    problems.append(f"{label}: {sel} only {r['width']:.0f}x{r['height']:.0f} px")
+                if r and sel != "#keuken-back":
+                    boxes.append((sel, r))
+            for a in range(len(boxes)):
+                for b in range(a + 1, len(boxes)):
+                    ra, rb = boxes[a][1], boxes[b][1]
+                    if ra["x"] < rb["x"] + rb["width"] - 0.5 and rb["x"] < ra["x"] + ra["width"] - 0.5 and ra["y"] < rb["y"] + rb["height"] - 0.5 and rb["y"] < ra["y"] + ra["height"] - 0.5:
+                        problems.append(f"{label}: {boxes[a][0]} and {boxes[b][0]} overlap")
+            show = ["#ke-lead", "#ke-status"]
+            if kind != "odd":
+                show += ["#ke-show .ke-dish", "#ke-show .ke-name"]
+            if kind in ("fill", "which", "steps"):
+                show += [f"#ke-bowls > div >> nth={k}" for k in range(page.locator("#ke-bowls > div").count())]
+            top = page.locator("#ke-top").bounding_box()
+            for sel in show:
+                r = page.locator(sel).bounding_box()
+                if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5:
+                    problems.append(f"{label}: {sel} not on screen ({r})")
+                elif sel != "#ke-status" and (r["x"] < top["x"] - 0.5 or r["x"] + r["width"] > top["x"] + top["width"] + 0.5 or r["y"] + r["height"] > top["y"] + top["height"] + 0.5):
+                    problems.append(f"{label}: {sel} is cut off by the kitchen ({r} in {top})")
+                elif sel == "#ke-show .ke-dish" and r["height"] < 48:
+                    problems.append(f"{label}: the dish is only {r['height']:.0f} px")
+            spill = page.eval_on_selector_all("#ke-options .ke-opt", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map(e => e.dataset.id)")
+            if spill:
+                problems.append(f"{label}: the labels of {spill} spill out of their buttons")
+            if page.evaluate("document.documentElement.scrollWidth") > w:
+                problems.append(f"{label}: the page scrolls sideways")
+            if lang == "en" and page.inner_text("#ke-sub") != "Little Kitchen":
+                problems.append(f"{label}: English title {page.inner_text('#ke-sub')!r}")
+            page.screenshot(path=str(SHOTS / f"keuken-{tier}-{kind}-{w}x{h}-{lang}.png"))
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(100)
+        if errors:
+            problems.append(f"{label0}: page errors {errors[:3]}")
+        ctx.close()
+
+
+def keuken_csp(browser, base, problems):
+    """Keukentje under the real CSP (no bypass): round t1-1 played to the end by real taps (one
+    wrong ingredient first) without a single violation; a screenshot of a dish being made."""
+    ctx, page, errors, foreign = ke_context(browser, base, csp=True)
+    page.locator("#tile-keuken").tap()
+    page.wait_for_timeout(150)
+    page.locator("#keuken-menu .level-cell[data-round='t1-1']").tap()
+    ke_skip_how(page)
+    for i in range(6):
+        st = ke_state(page)
+        if i == 0:
+            ke_tap(page, ke_wrong_of(st["q"]))
+            page.wait_for_timeout(100)
+        todo = ke_todo(ke_state(page))
+        for k, oid in enumerate(todo):
+            ke_tap(page, oid)
+            page.wait_for_timeout(60)
+            if i == 0 and k == 0:
+                page.wait_for_timeout(400)
+                page.screenshot(path=str(SHOTS / "keuken-csp-390x844.png"))
+        ke_next(page, i)
+    if not ke_wait(page, "!document.querySelector('#overlay').hidden"):
+        problems.append("keuken csp: no end card")
+    if page.evaluate("window.__bubbels.keuken.stars()").get("t1-1") != 2:
+        problems.append(f"keuken csp: t1-1 saved {page.evaluate('window.__bubbels.keuken.stars()')}")
+    csp = page.evaluate("window.__csp || []")
+    if csp:
+        problems.append(f"keuken csp: the CSP blocked {csp[:3]}")
+    if errors:
+        problems.append(f"keuken csp: page errors {errors[:3]}")
+    if foreign:
+        problems.append(f"keuken csp: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -9655,6 +10064,9 @@ def main():
             treintje_csp(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
+            keuken_flow(browser, base, problems)
+            keuken_layouts(browser, base, problems)
+            keuken_csp(browser, base, problems)
             kaart_flow(browser, base, problems)
             kaart_layouts(browser, base, problems)
             papegaai_flow(browser, base, problems)
@@ -9684,6 +10096,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
+         "keuken": (keuken_flow, keuken_layouts, keuken_csp),
          "treintje": (treintje_flow, treintje_layouts, treintje_csp),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
          "verstop-pixels": (verstop_hint_pixels,),

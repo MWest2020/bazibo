@@ -1,0 +1,241 @@
+/* Keukentje (Little Kitchen): home tile, the menu picture and the question screen (the kitchen with
+   the dish and its bowls, the pictures to tap, the line and the dots). The menu reuses Klok kijken's
+   round grid and dots (klok.css); shared look lives in css/style.css. */
+
+/* ---------- home tile and menu ---------- */
+#tile-keuken .tile-art { display: flex; align-items: center; justify-content: center; }
+.ke-tile-svg { width: 100%; height: 100%; max-width: 108px; display: block; overflow: visible; }
+.ke-menu-art { display: flex; justify-content: center; margin: 0 0 8px; }
+.ke-menu-art svg { width: 190px; height: auto; display: block; }
+.ke-ov { display: inline-flex; width: 170px; height: 119px; }
+.ke-ov svg { width: 100%; height: 100%; }
+
+/* ---------- the question screen ---------- */
+.ke-hud { gap: 10px; }
+#ke-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 10px;
+}
+
+/* the little kitchen: a tiled wall and the counter the dish stands on */
+.ke-top {
+  position: relative;
+  width: min(100%, 560px);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 14px;
+  border-radius: 22px;
+  background:
+    linear-gradient(to bottom, transparent calc(100% - 16px), #d9a86b calc(100% - 16px), #c4935a),
+    repeating-linear-gradient(0deg, rgba(185, 127, 10, 0.12) 0 2px, transparent 2px 30px),
+    repeating-linear-gradient(90deg, rgba(185, 127, 10, 0.12) 0 2px, transparent 2px 30px),
+    #fffaf0;
+  box-shadow: 0 4px 0 #e6d3b3;
+  overflow: hidden;
+}
+.ke-lead { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--bz-group-ink, var(--ink)); line-height: 1.2; text-align: center; text-wrap: balance; flex: none; }
+
+.ke-wall { display: none; }
+.ke-wall svg { display: block; width: 100%; height: 100%; }
+@media (min-height: 720px) and (orientation: portrait), (min-height: 720px) and (min-width: 1000px) {
+  .ke-wall { display: block; flex: none; width: 100%; height: 64px; margin-top: 2px; }
+}
+.ke-show { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 100%; }
+.ke-show[hidden], .ke-bowls[hidden] { display: none; }
+.ke-dish { position: relative; flex: 1 1 0; min-height: 52px; max-height: 270px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
+.ke-dish svg { width: 100%; height: 100%; display: block; overflow: visible; opacity: calc(0.28 + 0.72 * var(--fill, 1)); filter: grayscale(calc(1 - var(--fill, 1))); transition: opacity 0.35s, filter 0.35s; }
+.ke-name { margin: 0; font-size: 0.95rem; font-weight: 900; color: var(--ink); flex: none; text-align: center; line-height: 1.15; }
+.ke-show.ready .ke-dish svg { animation: ke-bake 1s ease-out; }
+@keyframes ke-bake {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255, 160, 40, 0)); }
+  45% { transform: scale(1.1); filter: drop-shadow(0 0 10px rgba(255, 160, 40, 0.9)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255, 160, 40, 0)); }
+}
+
+/* steam over a hot dish once it is ready, sparkles over a cold one */
+.ke-steam { position: absolute; left: 50%; top: -8%; width: 60px; height: 40px; transform: translateX(-50%); pointer-events: none; display: none; }
+.ke-show.ready .ke-steam { display: block; }
+.ke-steam i { position: absolute; bottom: 0; width: 8px; height: 22px; border-radius: 8px; border: 3px solid #c8c1d8; border-left-color: transparent; border-bottom-color: transparent; opacity: 0; animation: ke-steam 1.8s ease-out infinite; }
+.ke-steam i:nth-child(1) { left: 10px; }
+.ke-steam i:nth-child(2) { left: 26px; animation-delay: 0.4s; }
+.ke-steam i:nth-child(3) { left: 42px; animation-delay: 0.8s; }
+.ke-show:not(.hot) .ke-steam i { width: 10px; height: 10px; border: 0; border-radius: 50%; background: #ffd84a; box-shadow: 0 0 0 2px #fff; animation-name: ke-sparkle; }
+@keyframes ke-steam {
+  0% { opacity: 0; transform: translateY(8px); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+@keyframes ke-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* the bowls (and the steps' numbered slots) on the counter */
+.ke-bowls { flex: none; display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap; }
+.ke-bowl { position: relative; width: 52px; height: 52px; flex: none; }
+.ke-bowl-dish { position: absolute; left: 2px; right: 2px; bottom: 2px; height: 44%; background: #7fb7e8; border: 2px solid #4a3426; border-radius: 4px 4px 26px 26px / 4px 4px 22px 22px; }
+.ke-bowl::before { content: ''; position: absolute; left: 0; right: 0; bottom: calc(44% - 4px); height: 8px; border-radius: 50%; background: #5a8fc4; border: 2px solid #4a3426; }
+.ke-bowl .ke-pic { position: absolute; left: 50%; bottom: 26%; width: 78%; height: 78%; transform: translateX(-50%); z-index: 1; }
+.ke-bowl .ke-pic + .ke-bowl-dish { z-index: 2; }
+.ke-bowl.pop .ke-pic { animation: ke-pop 0.35s ease-out; }
+@keyframes ke-pop {
+  0% { transform: translate(-50%, -60%) scale(0.6); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+.ke-bowls[data-n='5'] { gap: 5px; }
+.ke-slot { width: 54px; height: 54px; flex: none; border-radius: 14px; border: 3px dashed var(--bz-group-acc, #b97f0a); background: rgba(255, 255, 255, 0.85); display: flex; align-items: center; justify-content: center; }
+.ke-slot .ke-num { font: 900 1.4rem/1 var(--font); color: var(--bz-group-ink, var(--ink)); }
+.ke-slot.full { border-style: solid; background: #fff; }
+.ke-slot .ke-pic { width: 44px; height: 44px; }
+
+/* the pictures to tap */
+.ke-side { width: min(100%, 560px); flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ke-options { width: 100%; display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ke-options.n8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ke-options.odd { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ke-options.steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ke-opt {
+  position: relative;
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px 5px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  font: 800 0.8rem/1.1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 0 #e6d3b3;
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+.ke-opt .ke-pic { width: clamp(38px, 11vw, 60px); height: clamp(38px, 11vw, 60px); flex: none; display: block; }
+.ke-label { display: block; max-width: 100%; text-align: center; }
+.ke-options.which .ke-pic, .ke-options.from .ke-pic { width: clamp(46px, 14vw, 72px); height: clamp(46px, 14vw, 72px); }
+.ke-options.odd .ke-opt { min-height: 96px; font-size: 0.95rem; }
+.ke-options.odd .ke-pic { width: clamp(52px, 16vw, 76px); height: clamp(52px, 16vw, 76px); }
+.ke-options.steps .ke-opt { flex-direction: row; justify-content: flex-start; text-align: left; gap: 6px; padding: 6px 8px; font-size: 0.85rem; }
+.ke-options.steps .ke-pic { width: 44px; height: 44px; }
+.ke-options.steps .ke-label { text-align: left; }
+.ke-opt:active { transform: translateY(3px); box-shadow: 0 1px 0 #e6d3b3; }
+.ke-opt:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
+.ke-opt:disabled { cursor: default; transform: none; }
+.ke-opt.placed { opacity: 0.35; box-shadow: 0 2px 0 #e6d3b3; }
+.ke-opt.tried { opacity: 0.45; filter: grayscale(0.8); }
+.ke-opt.right { background: #dcf7d4; box-shadow: 0 4px 0 #7cc46f; color: #1f6a2f; }
+.ke-opt.help { background: var(--bz-group-tint, #f7edd4); box-shadow: 0 0 0 3px var(--bz-group-acc, #b97f0a), 0 4px 0 #e6d3b3; animation: ke-glow 1.4s ease-in-out infinite alternate; }
+.ke-opt.bounce { animation: ke-bounce 0.45s ease-out; }
+@keyframes ke-glow {
+  from { box-shadow: 0 0 0 3px var(--bz-group-acc, #b97f0a), 0 4px 0 #e6d3b3; }
+  to { box-shadow: 0 0 0 6px var(--bz-group-acc, #b97f0a), 0 4px 0 #e6d3b3; }
+}
+@keyframes ke-bounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
+  55% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+.ke-status { min-height: 2.4em; }
+
+/* the odd one out has no dish: the kitchen keeps only its wall, the four pictures get the room */
+#screen-keuken[data-kind='odd'] .ke-top { flex: 0 0 auto; }
+#screen-keuken[data-kind='odd'] .ke-side { flex: 1 1 auto; justify-content: center; }
+#screen-keuken[data-kind='odd'] .ke-options { max-width: 420px; }
+
+/* tall phones: bigger bowls and pictures */
+@media (min-height: 740px) {
+  .ke-bowl, .ke-slot { width: 60px; height: 60px; }
+  .ke-slot .ke-pic { width: 50px; height: 50px; }
+  .ke-opt { min-height: 76px; }
+  .ke-opt .ke-pic { width: 54px; height: 54px; }
+  .ke-options.n8 .ke-pic { width: 46px; height: 46px; }
+  .ke-options.odd .ke-opt { min-height: 150px; font-size: 1.05rem; }
+  .ke-options.odd .ke-pic { width: 92px; height: 92px; }
+}
+
+/* wider screens: the six or eight pictures in one or two calm rows */
+@media (min-width: 700px) and (min-height: 700px) {
+  .ke-options.n6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .ke-options.odd { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ke-opt .ke-pic { width: 60px; height: 60px; }
+}
+
+/* short phones: a smaller kitchen, so the pictures keep their size */
+@media (max-height: 640px) {
+  #ke-stage { gap: 6px; padding-bottom: 6px; }
+  .ke-top { padding: 6px 10px 12px; }
+  .ke-lead { font-size: 0.95rem; }
+  .ke-bowl, .ke-slot { width: 48px; height: 48px; }
+  .ke-slot .ke-pic { width: 38px; height: 38px; }
+  .ke-opt { min-height: 58px; padding: 4px 3px; font-size: 0.74rem; }
+  .ke-opt .ke-pic { width: 36px; height: 36px; }
+  .ke-options.which .ke-pic, .ke-options.from .ke-pic { width: 48px; height: 48px; }
+  .ke-options.odd .ke-opt { min-height: 80px; }
+  .ke-options.odd .ke-pic { width: 52px; height: 52px; }
+  .ke-options.steps .ke-pic { width: 38px; height: 38px; }
+  .ke-options.steps .ke-opt { font-size: 0.78rem; min-height: 52px; }
+  .ke-status { min-height: 2.2em; font-size: 0.9rem; }
+}
+
+/* sideways phones: the bar on the left (like Klok kijken), the kitchen beside the pictures */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-keuken { flex-direction: row; }
+  .ke-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; max-width: 120px; }
+  .ke-hud .hud-mid { flex: 0; }
+  .ke-hud .hud-level { white-space: normal; font-size: 0.92rem; }
+  .ke-hud .btn.icon { width: 54px; height: 54px; }
+  #ke-stage { flex-direction: row; align-items: stretch; gap: 10px; padding: 8px 12px 8px 4px; }
+  .ke-top { width: auto; flex: 1.15 1 0; max-width: none; padding: 6px 8px 12px; }
+  .ke-side { width: auto; flex: 1 1 0; max-width: none; justify-content: center; gap: 4px; }
+  .ke-bowls { gap: 4px; }
+  .ke-bowls .ke-bowl { width: 42px; height: 42px; }
+  .ke-bowls .ke-slot { width: 44px; height: 44px; }
+  .ke-slot .ke-pic { width: 34px; height: 34px; }
+  /* the odd one out: the line on top, the four pictures in one row under it */
+  #screen-keuken[data-kind='odd'] #ke-stage { flex-direction: column; }
+  #screen-keuken[data-kind='odd'] .ke-top { flex: none; width: 100%; padding: 6px 10px 14px; }
+  #screen-keuken[data-kind='odd'] .ke-options { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 640px; }
+  .ke-lead { font-size: 0.92rem; }
+  .ke-name { font-size: 0.85rem; }
+  .ke-dish { max-height: 120px; }
+  .ke-opt { min-height: 54px; padding: 3px 2px; font-size: 0.72rem; gap: 1px; }
+  .ke-opt .ke-pic { width: 34px; height: 34px; }
+  .ke-options { gap: 6px; }
+  .ke-options.n6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ke-options.which .ke-pic, .ke-options.from .ke-pic { width: 50px; height: 50px; }
+  .ke-options.odd .ke-opt { min-height: 72px; }
+  .ke-options.odd .ke-pic { width: 46px; height: 46px; }
+  .ke-options.steps { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .ke-options.steps .ke-opt { min-height: 48px; font-size: 0.8rem; }
+  .ke-options.which .ke-opt, .ke-options.from .ke-opt { min-height: 84px; }
+  .ke-options.steps .ke-pic { width: 34px; height: 34px; }
+  .ke-status { min-height: 2.2em; font-size: 0.85rem; }
+}
+
+/* small sideways phones: eight pictures in three columns, so each keeps 48 px */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+  .ke-options.n8 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ke-show.ready .ke-dish svg, .ke-bowl.pop .ke-pic, .ke-opt.bounce { animation: none; }
+  .ke-opt.help { animation: none; box-shadow: 0 0 0 5px var(--bz-group-acc, #b97f0a), 0 4px 0 #e6d3b3; }
+  .ke-steam i { animation: none; opacity: 0.8; }
+  .ke-dish svg { transition: none; }
+}
