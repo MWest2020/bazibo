@@ -36,6 +36,9 @@ import { TIER_IDS as WINKEL_TIERS, ITEM_IDS as WINKEL_ITEMS } from '../web/games
 import '../web/games/kaart/strings.js';
 import { PACK_IDS as KAART_PACKS } from '../web/games/kaart/packs.js';
 import '../web/games/doolhof/strings.js';
+import '../web/games/keuken/strings.js';
+import { TIER_IDS as KEUKEN_TIERS } from '../web/games/keuken/rules.js';
+import { INGREDIENT_IDS as KEUKEN_INGS, DISH_IDS as KEUKEN_DISHES, SOURCE_IDS as KEUKEN_SOURCES, ORIGIN_IDS as KEUKEN_ORIGINS, GROUP_IDS as KEUKEN_GROUPS, RECIPES as KEUKEN_RECIPES } from '../web/games/keuken/dishes.js';
 import '../web/games/treintje/strings.js';
 import { AGE_IDS as TREINTJE_AGES } from '../web/games/treintje/generate.js';
 import '../web/games/piano/strings.js';
@@ -160,6 +163,16 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KANGOEROE_TIERS) used.add(`kangoeroe.tier.${id}`).add(`kangoeroe.short.${id}`).add(`kangoeroe.how.${id}`);
   for (const k of ['count', 'add', 'land', 'missing', 'skipOn', 'skipBack']) used.add(`kangoeroe.lead.${k}`);
   for (const n of [1, 2, 3]) used.add(`kangoeroe.win${n}`);
+  // Keukentje: built as t(`keuken.<kind>.${id}`)
+  for (const id of KEUKEN_TIERS) used.add(`keuken.tier.${id}`).add(`keuken.short.${id}`).add(`keuken.how.${id}`);
+  for (const k of ['fill', 'fillAll', 'which', 'from', 'steps', 'odd']) used.add(`keuken.lead.${k}`);
+  for (const n of [1, 2, 3]) used.add(`keuken.win${n}`);
+  for (const id of KEUKEN_INGS) used.add(`keuken.ing.${id}`);
+  for (const id of KEUKEN_DISHES) used.add(`keuken.dish.${id}`).add(`keuken.the.${id}`);
+  for (const id of KEUKEN_SOURCES) used.add(`keuken.src.${id}`).add(`keuken.gives.${id}`);
+  for (const id of KEUKEN_ORIGINS) used.add(`keuken.fact.${id}`);
+  for (const id of KEUKEN_GROUPS) used.add(`keuken.group.${id}`).add(`keuken.also.${id}`);
+  for (const [r, steps] of Object.entries(KEUKEN_RECIPES)) steps.forEach((_, k) => used.add(`keuken.step.${r}.${k + 1}`));
   for (const id of WINKEL_TIERS) used.add(`winkel.tier.${id}`).add(`winkel.short.${id}`).add(`winkel.how.${id}`);
   for (const k of ['exact', 'fewest', 'two']) used.add(`winkel.lead.${k}`); // built as t(`winkel.lead.${kind}`)
   for (const id of WINKEL_ITEMS) used.add(`winkel.item.${id}`);

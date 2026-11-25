@@ -15,7 +15,8 @@ kijken ("Telling Time", read and set an analogue clock), Letters (learn the lett
 match a letter, the first or a middle letter of a word, build a word), Egeltje ("Little
 Hedgehog", walk a hedgehog through a garden maze and pick up the alphabet, a word or numbers in
 order), Kangoeroe op de getallenlijn ("Kangaroo Hops", adding and taking away by hops
-on a number line), Winkeltje ("Little Shop", pay with euro coins and notes in a little shop, later
+on a number line), Keukentje ("Little Kitchen", what goes into bread and other dishes, where it
+comes from and the steps of a recipe), Winkeltje ("Little Shop", pay with euro coins and notes in a little shop, later
 with cents and change), Kaartpuzzel ("Map Puzzle", topography: the continents, Europe and your own
 country as a puzzle and as "where is...?") and Papegaai ("Parrot", record your voice and the parrot
 says it back, in funny voices too); more
@@ -601,6 +602,29 @@ hops the way itself. Nothing is spoken.
 - Saved under `games.kangoeroe`: stars per round, random rounds per tier, the how-to cards seen
   and the last tier.
 
+### Keukentje (Little Kitchen)
+
+What goes into bread and other dishes, so children learn it (Mark, 25 Nov 2026), in
+`web/games/keuken/` (ages 3-10; the dishes in `dishes.js`, the rounds and what a tap means in
+`rules.js`, both pure and tested; every picture drawn in code in `art.js`; the screens in
+`keuken.js`). The child cooks in a little kitchen: a dish with empty bowls, and the ingredients to
+tap; when every bowl is full the dish is ready. Sixteen dishes Dutch children know and others know
+too (bread, pancakes, a toastie, pizza, vegetable soup, apple pie, salad, yoghurt with fruit, bread
+with sprinkles, poffertjes, roti, rice with vegetables, pasta with tomato sauce, stamppot, a
+smoothie, a peanut butter sandwich), with the ingredients kept correct and simple: no amounts, no
+brands, nothing about allergies and never "good" or "bad" food. Nothing is ever wrong: a tap that
+does not fit bounces back with a short line ("Dat hoort bij de pizza!"), and after two the answer
+glows. No timers, nothing spoken.
+
+- 3-5 "Wat hoort erbij?": two or three bowls, six pictures; the others plainly from other dishes.
+- 6-7: every ingredient of a bigger dish from eight pictures with look-alikes (sugar next to salt,
+  yoghurt next to milk), and "which dish can you make with these?" (the dish under a cover).
+- 8-10: where an ingredient comes from (milk from the cow, cheese from milk, yeast is a tiny fungus), the
+  steps of a simple recipe in order, and the odd one out.
+- Rounds of 6 with stars by mistakes. Free: 3-5; 6-7, 8-10 and random rounds in the full version.
+- Saved under `games.keuken`: stars per round, random rounds per tier, the how-to cards seen and
+  the last tier.
+
 ### Winkeltje (Little Shop)
 
 Counting money in a little shop drawn in code, in `web/games/winkel/` (id `winkel`, ages 3-10; the
@@ -767,7 +791,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `winkel`, `papegaai` (with Chromium's fake microphone),
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `winkel`, `papegaai` (with Chromium's fake microphone),
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
@@ -794,6 +818,7 @@ an artifact when it fails).
 | `web/games/papegaai/` | Papegaai (Parrot): `meta.js` (free part), `effects.js` (pure), `sound.js` (microphone and voices), `capture-worklet.js`, `art.js` (the parrot), `papegaai.js` (the screen) |
 | `web/games/doolhof/` | Egeltje (garden maze): `meta.js` (free part), `maze.js` and `rules.js` (pure), `art.js` (garden, hedgehog, crows), `doolhof.js` (the screens) |
 | `web/games/treintje/` | Treintje (Train Tracks): `meta.js` (free part), `generate.js` (the puzzles, pure and seeded), `rules.js` (pure: steps, drags, the track's shape), `art.js` (grass, railway, stations, fences, the train, the tile), `treintje.js` (the screens) |
+| `web/games/keuken/` | Keukentje (Little Kitchen): `meta.js` (free part), `dishes.js` (the dishes, ingredients, sources, groups and recipes), `rules.js` (pure: rounds, taps, stars), `art.js` (every picture and the kitchen), `keuken.js` (the screens) |
 | `web/games/winkel/` | Winkeltje (Little Shop): `meta.js` (free part), `rules.js` (pure: the rounds, `fewest`, what is missing or over, in cents), `art.js` (coins, notes, the things, the tile), `winkel.js` (the screens) |
 | `web/games/verstop/` | Verstoppertje (Hide and Seek): `meta.js` (free part), `rules.js` (pure: rounds, looks, stars, where the spots stand), `art.js` (animals, creatures, spots, scenes), `verstop.js` (the screens) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |

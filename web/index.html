@@ -79,6 +79,7 @@
   <link rel="stylesheet" href="games/klok/klok.css">
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
+  <link rel="stylesheet" href="games/keuken/keuken.css">
   <link rel="stylesheet" href="games/winkel/winkel.css">
   <link rel="stylesheet" href="games/verstop/verstop.css">
   <link rel="stylesheet" href="games/kaart/kaart.css">
@@ -858,6 +859,45 @@
           <div id="vz-spots" class="vz-spots"></div>
         </div>
         <p id="vz-status" class="klok-status vz-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Keukentje: choose a round (three tiers by age: 3-5, 6-7, 8-10) -->
+    <section id="screen-keuken-menu" class="screen" data-i18n-aria="games.keuken" aria-label="Keukentje">
+      <header class="bar">
+        <button id="keuken-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="keuken.menu">Keukentje</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="keuken-menu" class="menu"></div></div>
+    </section>
+
+    <!-- Keukentje: a dish and its bowls in a little kitchen, the pictures to tap (no voice, no timer) -->
+    <section id="screen-keuken" class="screen" data-i18n-aria="games.keuken" aria-label="Keukentje">
+      <header class="bar dogu-hud klok-hud ke-hud">
+        <button id="keuken-back" class="btn icon" type="button" data-i18n-aria="keuken.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="ke-sub" class="hud-level"></div>
+          <div id="ke-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="ke-stage">
+        <div id="ke-top" class="ke-top">
+          <p id="ke-lead" class="ke-lead"></p>
+          <div id="ke-wall" class="ke-wall" aria-hidden="true"></div>
+          <div id="ke-show" class="ke-show" role="img"></div>
+          <div id="ke-bowls" class="ke-bowls" role="img"></div>
+        </div>
+        <div class="ke-side">
+          <div id="ke-options" class="ke-options" role="group"></div>
+          <p id="ke-status" class="klok-status ke-status" aria-live="polite"></p>
+          <div id="ke-dots" class="klok-dots" role="img"></div>
+        </div>
       </div>
     </section>
 
