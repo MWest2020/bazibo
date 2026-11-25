@@ -143,9 +143,16 @@ export function createTreintje(shell) {
     want(age);
   }
 
+  function clearHint() {
+    clearTimeout(hintTimer);
+    hintTimer = null;
+    $('#tj-status').classList.remove('why');
+  }
+
   function begin(age, p) {
     plays++;
     stopRide();
+    clearHint(); // a hint from the puzzle before never stays on a new one
     if (store.loadGameOption(meta.id, 'lastAge', null) !== age) store.saveGameOption(meta.id, 'lastAge', age);
     game = { age, p, path: startPath(p), done: false, n: (solved()[age] || 0) + 1 };
     drag = null;
@@ -241,7 +248,7 @@ export function createTreintje(shell) {
 
   /** A short line about why a step did not happen, then back to what to do. */
   function hint(why) {
-    if (!why || why === 'far' || why === 'done') return;
+    if (!why || why === 'far' || why === 'done' || !game || game.done) return;
     const text = why === 'order' ? t('treintje.why.order', { n: nextStation(game.p, game.path) }) : t(`treintje.why.${why}`);
     setStatus(text);
     $('#tj-status').classList.add('why');
@@ -301,8 +308,8 @@ export function createTreintje(shell) {
     const j = x >= 0 && y >= 0 && x < p.w && y < p.h ? Math.floor(y) * p.w + Math.floor(x) : -1;
     const r = pressAt(p, game.path, j);
     drag = { id: e.pointerId, grabbed: r.grabbed, x, y };
-    hint(r.why);
     setPath(r.path);
+    hint(r.why);
   });
   board.addEventListener('pointermove', (e) => {
     if (!drag || drag.id !== e.pointerId || !playing()) return;
@@ -319,8 +326,9 @@ export function createTreintje(shell) {
       cells = cells.slice(k + 1);
     }
     const r = dragAlong(game.p, game.path, cells);
-    hint(r.why);
+    // the path first: a hint names the next station after the squares this move did lay
     setPath(r.path);
+    hint(r.why);
   });
   const lift = (e) => {
     if (drag && drag.id === e.pointerId) drag = null;
@@ -338,8 +346,9 @@ export function createTreintje(shell) {
       e.preventDefault();
       if (path.length > 1 && go === path[path.length - 2]) setPath(path.slice(0, -1));
       else {
-        hint(whyNot(p, path, go));
+        const why = whyNot(p, path, go);
         setPath(step(p, path, go));
+        hint(why);
       }
     } else if (e.key === 'Backspace' && path.length > 1) {
       e.preventDefault();
@@ -352,9 +361,7 @@ export function createTreintje(shell) {
   function finish() {
     game.done = true;
     drag = null;
-    clearTimeout(hintTimer);
-    hintTimer = null;
-    $('#tj-status').classList.remove('why');
+    clearHint();
     const n = store.recordRandomSolved(meta.id, game.age);
     game.solvedCount = n;
     render();
@@ -465,6 +472,13 @@ export function createTreintje(shell) {
           begin(age, makePuzzle(age, seed >>> 0));
           return true;
         },
+        /** A given puzzle ({ w, h, nums, walls, solution }) as a 3-5 puzzle, for the smoke test. */
+        load: (p) => {
+          plays++;
+          begin('a3', { age: 'a3', seed: 0, walls: [], ...p });
+          return true;
+        },
+        hinting: () => !!hintTimer,
         solved: () => solved(),
       };
     },

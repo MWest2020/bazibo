@@ -18,10 +18,11 @@ import { gridNeighbours, wallKey, isValidPath } from './rules.js';
 
 /**
  * The ages in the menu (tuned for fun, see AGENTS.md): the grid sizes as [columns, rows, fences]
- * (one picked per puzzle) and the fewest stations to keep.
+ * (one picked per puzzle) and the fewest stations to keep. The station counts below are what
+ * the generator gives over 3000 seeds per age.
  *   3-5:  4x4, no fences, at least 4 stations (4 to 6): short, and the stations show the way
- *   6-7:  5x5 or 6x6, no fences, at least 6 stations (6 to 11)
- *   8-10: 6x6 with 3 fences or 7x7 with 5, as few stations as stay unique (about 6 to 12)
+ *   6-7:  5x5 or 6x6, no fences, at least 6 stations (6 to 12)
+ *   8-10: 6x6 with 3 fences or 7x7 with 5, as few stations as stay unique (4 to 13)
  */
 export const AGES = Object.freeze({
   a3: Object.freeze({ age: '3-5', sizes: [[4, 4, 0]], keep: 4 }),

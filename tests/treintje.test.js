@@ -124,6 +124,23 @@ test('a fast finger walks the squares in between, also across a corner', () => {
   assert.deepEqual(dragAlong(p, [0], [2]), { path: [0], why: 'far' });
 });
 
+test('a fast move onto station 2 and on to station 4 lays station 2, and then station 3 is next', () => {
+  // 4 x 3:  1 2 4 .  /  . . . .  /  . 3 . 5   (the way: 0 1 5 4 8 9 10 6 2 3 7 11)
+  const nums = new Array(12).fill(0);
+  nums[0] = 1;
+  nums[1] = 2;
+  nums[9] = 3;
+  nums[2] = 4;
+  nums[11] = 5;
+  const p = { w: 4, h: 3, nums, walls: [] };
+  assert.ok(isValidPath(p, [0, 1, 5, 4, 8, 9, 10, 6, 2, 3, 7, 11]));
+  assert.equal(nextStation(p, [0]), 2);
+  const r = dragAlong(p, [0], cellsOnMove(4, 3, 0.5, 0.5, 2.5, 0.5));
+  assert.deepEqual(r, { path: [0, 1], why: 'order' });
+  // the line under the board is made from the path after the move (treintje.js): station 3
+  assert.equal(nextStation(p, r.path), 3);
+});
+
 test('the finger on the board: squares well inside only, pressing on the track takes it back to there', () => {
   assert.equal(cellAt(3, 3, 1.5, 1.5), 4);
   assert.equal(cellAt(3, 3, 1.05, 1.5, 0.18), -1, 'in the margin');

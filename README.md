@@ -8,7 +8,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Verstoppertje ("Hide and Seek", find the little animal behind a stone, a bush or a little door), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Verstoppertje ("Hide and Seek", find the little animal behind a stone, a bush or a little door), Treintje ("Train Tracks", lay one railway through every square past the stations in order, then the little train rides it), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -560,6 +560,25 @@ the questions aloud; Mark dropped it because children did not like the robot voi
 - Saved under `games.letters`: stars per round, random rounds done, how-to cards seen, the last
   tier per kind and the capitals option.
 
+### Treintje (Train Tracks)
+
+A path puzzle of our own, in `web/games/treintje/` (id `treintje`; ages 3-10). The child drags one
+railway with a finger from station 1 through every square exactly once, past the numbered stations
+in order; the last station is the last square. Then the little train (a locomotive and two wagons,
+drawn in code) rides the track to the last station. Nothing is ever wrong and there are no timers:
+a step that is not allowed simply does not happen, and a short line says why. Nothing is spoken.
+
+- Only random puzzles, per age: the menu is three age cards, each an endless stream. 3-5: 4x4, 4 to
+  6 stations, no fences (free). 6-7: 5x5 or 6x6, 6 to 12 stations. 8-10: 6x6 or 7x7 with a few
+  fences and as few stations as keep it unique (full version).
+- Every puzzle has exactly one solution: `generate.js` (pure, seeded) makes a random path through
+  every square, puts stations (and fences) on it and proves with a budgeted solver that there is
+  only one way, then takes stations away while it stays so. Made in the shell's worker, one ahead.
+- What a finger means is pure in `rules.js`: dragging on lays track, dragging back takes it back, a
+  tap on the track takes it back to there; a fast finger walks the squares in between. Squares are
+  44 px or more on every screen. "Andere puzzel" gives a new puzzle of the same age.
+- Saved under `games.treintje`: puzzles solved per age, the how-to cards seen and the last age.
+
 ### Kangoeroe op de getallenlijn
 
 Adding and taking away on a number line, the way Dutch schools teach it in groep 3-4, in
@@ -723,7 +742,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `papegaai` (with Chromium's fake microphone),
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `papegaai` (with Chromium's fake microphone),
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
@@ -749,6 +768,7 @@ an artifact when it fails).
 | `web/js/bubble-art.js`, `web/js/audio.js` | the bubble look and the synthesised sounds (shared) |
 | `web/games/papegaai/` | Papegaai (Parrot): `meta.js` (free part), `effects.js` (pure), `sound.js` (microphone and voices), `capture-worklet.js`, `art.js` (the parrot), `papegaai.js` (the screen) |
 | `web/games/doolhof/` | Egeltje (garden maze): `meta.js` (free part), `maze.js` and `rules.js` (pure), `art.js` (garden, hedgehog, crows), `doolhof.js` (the screens) |
+| `web/games/treintje/` | Treintje (Train Tracks): `meta.js` (free part), `generate.js` (the puzzles, pure and seeded), `rules.js` (pure: steps, drags, the track's shape), `art.js` (grass, railway, stations, fences, the train, the tile), `treintje.js` (the screens) |
 | `web/games/verstop/` | Verstoppertje (Hide and Seek): `meta.js` (free part), `rules.js` (pure: rounds, looks, stars, where the spots stand), `art.js` (animals, creatures, spots, scenes), `verstop.js` (the screens) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |
 | `web/games/kwartet/` | Kwartet: `meta.js` (free part), `rules.js` (pure), `ai.js` (the computer players), `art.js` (the sets and cards), `kwartet.js` (the screens) |

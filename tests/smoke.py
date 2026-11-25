@@ -9388,9 +9388,16 @@ def treintje_flow(browser, base, problems):
         st = tj_state(page)
         if st["done"] or len(st["path"]) != 1 or st["age"] != "a3":
             problems.append(f"treintje: Nog een started {st}")
-    # back + keep playing, with the track kept; the Android back button
+    # a tap on the track takes it back to there (a real tap), then on; back + keep playing with the
+    # track kept; the Android back button
     sol = tj_state(page)["solution"]
-    tj_drag(page, sol[:3])
+    tj_drag(page, sol[:5])
+    x, y = tj_xy(page, sol[1])
+    page.touchscreen.tap(x, y)
+    page.wait_for_timeout(80)
+    if tj_state(page)["path"] != sol[:2]:
+        problems.append(f"treintje: a tap on the track's second square left {tj_state(page)['path']}, want {sol[:2]}")
+    tj_drag(page, sol[1:3])
     page.locator("#treintje-back").tap()
     page.wait_for_timeout(150)
     if where(page) != ["treintje-menu", False] or not page.is_visible("#treintje-continue") or page.inner_text("#treintje-continue").strip() != "Verder spelen":
@@ -9409,12 +9416,70 @@ def treintje_flow(browser, base, problems):
     page.wait_for_timeout(100)
     if where(page) != ["home", False]:
         problems.append(f"treintje: back from the menu went to {where(page)}")
+    # one fast move from station 1 over station 2 onto station 4: station 2 is laid and the line
+    # names station 3 (the hint is made from the path after the move); a new puzzle clears it
+    page.locator("#tile-treintje").tap()
+    page.wait_for_timeout(150)
+    page.evaluate(f"window.__bubbels.treintje.load({json.dumps(TJ_FAST)})")
+    page.wait_for_timeout(100)
+    (x0, y0), (x2, y2) = tj_xy(page, 0), tj_xy(page, 2)
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    page.mouse.move(x2, y2, steps=1)
+    page.mouse.up()
+    page.wait_for_timeout(60)
+    if tj_state(page)["path"] != [0, 1] or page.inner_text("#tj-status") != "Eerst station 3!":
+        problems.append(f"treintje: a fast move onto station 4 laid {tj_state(page)['path']} and says {page.inner_text('#tj-status')!r}, want [0, 1] and 'Eerst station 3!'")
+    page.evaluate(f"window.__bubbels.treintje.load({json.dumps(TJ_FAST)})")
+    page.wait_for_timeout(60)
+    if page.inner_text("#tj-status") != "Leg spoor naar station 2" or page.evaluate("document.querySelector('#tj-status').classList.contains('why') || window.__bubbels.treintje.hinting()"):
+        problems.append(f"treintje: a new puzzle keeps the old hint: {page.inner_text('#tj-status')!r}")
     if page.locator("audio").count() or page.evaluate("typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking"):
         problems.append("treintje: something speaks")
     if errors:
         problems.append(f"treintje: page errors {errors[:3]}")
     if foreign:
         problems.append(f"treintje: requests outside the app {foreign[:3]}")
+    ctx.close()
+
+
+# 4 x 3 with stations 1 2 4 in the top row (the way: 0 1 5 4 8 9 10 6 2 3 7 11)
+TJ_FAST = {"w": 4, "h": 3, "nums": [1, 2, 4, 0, 0, 0, 0, 0, 0, 3, 0, 5], "solution": [0, 1, 5, 4, 8, 9, 10, 6, 2, 3, 7, 11]}
+
+
+def treintje_csp(browser, base, problems):
+    """Treintje under the real CSP (no bypass): a 3-5 puzzle laid by real drags and the train's
+    ride drawn without a single violation; a screenshot of the finished board."""
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script("document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.locator("#tile-treintje").tap()
+    page.wait_for_timeout(150)
+    page.locator("#treintje-menu .tj-age[data-age='a3']").tap()
+    page.wait_for_selector("#overlay:not([hidden]) #ov-buttons button", timeout=8000)
+    page.click("#ov-buttons button")  # the how-to card
+    page.wait_for_timeout(150)
+    sol = tj_state(page)["solution"]
+    tj_drag(page, sol[:6])
+    page.screenshot(path=str(SHOTS / "treintje-csp-half-390x844.png"))
+    tj_drag(page, sol[5:])
+    # polled from here: wait_for_function evaluates a string in the page, which the real CSP blocks
+    for _ in range(80):
+        if tj_state(page)["arrived"]:
+            break
+        page.wait_for_timeout(100)
+    else:
+        problems.append(f"treintje csp: the train did not arrive ({tj_state(page)})")
+    page.locator("#tj-board").screenshot(path=str(SHOTS / "treintje-csp-board-390x844.png"))
+    csp = page.evaluate("window.__csp || []")
+    if csp:
+        problems.append(f"treintje csp: the CSP blocked {csp[:3]}")
+    if errors:
+        problems.append(f"treintje csp: page errors {errors[:3]}")
     ctx.close()
 
 
@@ -9587,6 +9652,7 @@ def main():
             verstop_hint_pixels(browser, base, problems)
             treintje_flow(browser, base, problems)
             treintje_layouts(browser, base, problems)
+            treintje_csp(browser, base, problems)
             kangoeroe_flow(browser, base, problems)
             kangoeroe_layouts(browser, base, problems)
             kaart_flow(browser, base, problems)
@@ -9618,7 +9684,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "drums": (drums_flow, drums_layouts, drums_bars),
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
-         "treintje": (treintje_flow, treintje_layouts),
+         "treintje": (treintje_flow, treintje_layouts, treintje_csp),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
          "verstop-pixels": (verstop_hint_pixels,),
          "kaart": (kaart_flow, kaart_layouts),
