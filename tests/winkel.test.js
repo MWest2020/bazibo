@@ -185,6 +185,7 @@ test('never wrong: too little says what is missing (with coins that make it), to
   assert.equal(over.why, 'over');
   assert.equal(over.over, 50);
   assert.equal(over.extra, null, 'no 50 cent on the counter to point at');
+  assert.deepEqual([over.back, over.ghosts], [[2], [50]], 'the € 1 back, a 50 cent on');
   const over2 = judge(q, [500, 200, 50, 100]);
   assert.deepEqual(over2.extra, [3], 'the euro that is too much');
   assert.deepEqual(judge(q, [200, 500, 50]), { ok: true });
@@ -242,6 +243,36 @@ test('too little that the purse cannot make: take the fewest pieces back and sho
     }
   }
   assert.deepEqual(swapFor(twos(300), [100, 100]), { back: [0], ghosts: [200] });
+});
+
+test("too much that nothing on the counter makes: the help takes pieces back and lays others, and adds up", () => {
+  // the youngest: € 3 paid 2 + 2, € 5 paid 2 + 2 + 2
+  const twos = (target) => ({ kind: 'twos', ask: 'pay', goal: 'exact', items: [{ id: 'ball', price: target }], target, wallet: WALLETS.twos, solution: fewest(target, WALLETS.twos) });
+  assert.deepEqual(judge(twos(300), [200, 200]), { ok: false, why: 'over', over: 100, extra: null, back: [0], ghosts: [100] });
+  assert.deepEqual(judge(twos(500), [200, 200, 200]), { ok: false, why: 'over', over: 100, extra: null, back: [0], ghosts: [100] });
+  // every too-much counter of every pay question (the solution with one piece swapped up): marked pieces or a swap that adds up
+  for (const tier of TIER_IDS) {
+    const all = [...fixed(tier).flat()];
+    for (let s = 0; s < SEEDS; s++) all.push(...makeRound({ tier, seed: seedOf(s) }));
+    for (const q of all) {
+      if (q.ask === 'basket') continue;
+      for (let k = 0; k < q.solution.length; k++) {
+        const rest = left(q.wallet, q.solution);
+        for (const d of Object.keys(q.wallet).map(Number).filter((x) => x > q.solution[k] && rest[x] > 0)) {
+          const laid = q.solution.map((x, i) => (i === k ? d : x));
+          const res = judge(q, laid);
+          assert.equal(res.why, 'over');
+          if (res.extra) assert.equal(res.extra.reduce((n, i) => n + laid[i], 0), res.over);
+          else {
+            const after = [...laid.filter((_, i) => !res.back.includes(i)), ...res.ghosts];
+            assert.equal(total(after), q.target, `${q.kind} ${q.target} from ${laid}: ${JSON.stringify(res)}`);
+            for (const n of Object.values(left(q.wallet, after))) assert.ok(n >= 0);
+            assert.ok(res.back.length && res.ghosts.length);
+          }
+        }
+      }
+    }
+  }
 });
 
 test('a budget: two things that together cost no more than you have; over says by how much', () => {
@@ -615,10 +646,11 @@ test('the lines: a greeting with the price, too little, too much, thanks, change
   const short = judge(kite, [500]);
   assert.equal(say('nl', shopLine(kite, { say: 'try', res: short, laid: [500] })), 'Nog € 1, alsjeblieft.');
   assert.equal(say('en', shopLine(kite, { say: 'try', res: short, laid: [500] })), '€ 1 more, please.');
-  // too much without a piece that makes it: you would get it back; with one: take that back (it is marked)
+  // too much without a piece that makes it: pay it exactly (the € 2 marked, a € 1 ghost); with one: take that back (it is marked)
   const over = judge(kite, [500, 200]);
-  assert.equal(over.extra, null);
-  assert.equal(say('nl', shopLine(kite, { say: 'try', res: over, laid: [500, 200] })), 'Dat is te veel, je krijgt € 1 terug.');
+  assert.deepEqual(over, { ok: false, why: 'over', over: 100, extra: null, back: [1], ghosts: [100] });
+  assert.equal(say('nl', shopLine(kite, { say: 'try', res: over, laid: [500, 200] })), 'Dat is € 1 te veel. Kun je het precies betalen?');
+  assert.equal(say('en', shopLine(kite, { say: 'try', res: over, laid: [500, 200] })), 'That is € 1 too much. Can you pay it exactly?');
   const over2 = judge(kite, [500, 100, 100]);
   assert.deepEqual(over2.extra, [1]);
   assert.equal(say('nl', shopLine(kite, { say: 'try', res: over2, laid: [500, 100, 100] })), 'Dat is € 1 te veel. Pak die maar terug.');
@@ -635,11 +667,12 @@ test('the lines: a greeting with the price, too little, too much, thanks, change
   assert.equal(say('nl', shopLine(twos, { say: 'hello', i: 0 })), 'Goedemorgen! Een bal, dat is € 3. Een munt van 2 telt voor twee!');
   // as few as possible: asked plainly up front, and the right amount with more pieces asks for fewer
   const few = { ...kite, kind: 'fewest', goal: 'fewest', wallet: WALLETS.half, solution: fewest(600, WALLETS.half) };
-  assert.equal(say('nl', shopLine(few, { say: 'hello', i: 0 })), 'Een vlieger, dat is € 6. Kun je betalen met zo min mogelijk munten?');
+  assert.equal(say('nl', shopLine(few, { say: 'hello', i: 0 })), 'Een vlieger, dat is € 6. Kun je betalen met zo min mogelijk munten en briefjes?');
+  assert.equal(say('en', shopLine(few, { say: 'hello', i: 0 })), 'A kite, that is € 6. Can you pay with as few coins and notes as possible?');
   const more = judge(few, [200, 200, 200]);
   assert.equal(more.why, 'more');
-  assert.equal(say('nl', shopLine(few, { say: 'try', res: more })), 'Het klopt! Kan het ook met minder munten?');
-  assert.equal(say('en', shopLine(few, { say: 'try', res: more })), 'That is right! Can you do it with fewer coins?');
+  assert.equal(say('nl', shopLine(few, { say: 'try', res: more })), 'Het klopt! Kan het ook met minder munten en briefjes?');
+  assert.equal(say('en', shopLine(few, { say: 'try', res: more })), 'That is right! Can you do it with fewer coins and notes?');
   // change: counted by the child from the till, "this is what you get back"
   const change = { kind: 'change', ask: 'change', goal: 'exact', items: [{ id: 'balloon', price: 340 }], price: 340, paid: 500, target: 160, wallet: WALLETS.till, solution: fewest(160, WALLETS.till) };
   assert.equal(say('nl', shopLine(change, { say: 'hello', i: 0 }), { cents: true }), 'Een ballon, dat is € 3,40. Je geeft me € 5,00. Tel jij wat je terugkrijgt?');

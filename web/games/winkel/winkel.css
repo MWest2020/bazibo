@@ -234,6 +234,9 @@ button.wk-good:focus-visible { outline: 4px solid var(--bz-focus); outline-offse
   opacity: 0.5;
 }
 .wk-ghost.note { border-radius: 8px; }
+/* 6-7 and 8-10: a small ghost per coin, first on the counter (always in sight) */
+.wk-ghost.wk-pile { order: -1; width: calc(var(--wk-coin) * 0.8); height: calc(var(--wk-coin) * 0.8); align-self: center; }
+.wk-ghost.wk-pile.note { width: calc(var(--wk-coin) * 1.25); }
 .wk-ghost svg { width: 100%; height: 100%; display: block; }
 .wk-piece:focus-visible, .wk-stack:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-radius: 12px; }
 .wk-basket-item { border-radius: 14px; background: #fff; }

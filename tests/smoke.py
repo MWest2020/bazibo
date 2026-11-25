@@ -7988,9 +7988,22 @@ def winkel_flow(browser, base, problems):
     page.locator("#tile-winkel").click()
     page.evaluate("window.__bubbels.winkel.start('t1-3')")
     page.wait_for_timeout(150)
-    swapped = False
+    swapped = overswapped = False
     for i in range(6):
         q = wk_state(page)["q"]
+        if swapped and not overswapped and q["kind"] == "twos" and q["target"] in (300, 500):
+            # too much that no coin on the counter makes (€ 3 paid 2 + 2): pay it exactly, one € 2
+            # marked to take back and a € 1 ghost
+            wk_lay_taps(page, [200] * (q["target"] // 200 + 1))
+            wk_tap(page, "#wk-pay")
+            page.wait_for_timeout(120)
+            st = wk_state(page)
+            if wk_say(page) != "Dat is € 1 te veel. Kun je het precies betalen?" or page.locator("#wk-laid button.wk-piece.over").count() != 1 or page.locator("#wk-laid .wk-ghost").count() != 1 or st["fb"]["ghosts"] != [100]:
+                problems.append(f"winkel t1-3 q{i + 1}: € {q['target'] // 100} paid with € 2 coins only: fb={st['fb']} line={wk_say(page)!r}")
+            page.screenshot(path=str(SHOTS / "winkel-overswap-390x844.png"))
+            while page.locator("#wk-laid button.wk-piece").count():
+                page.locator("#wk-laid button.wk-piece").first.tap()
+            overswapped = True
         if not swapped and q["kind"] == "twos" and q["target"] in (300, 500):
             # too little that the purse cannot make (both 1 euros laid, an odd euro still missing):
             # one 1 euro marked to take back, 2 euro ghosts, and the shopkeeper says so
@@ -8009,8 +8022,8 @@ def winkel_flow(browser, base, problems):
             wk_tap(page, "#wk-laid button.wk-piece.over")
             swapped = True
         wk_pay_hook(page, i, problems, "winkel t1-3")
-    if not swapped:
-        problems.append("winkel t1-3: no twos question of 3 or 5 euro to swap in")
+    if not swapped or not overswapped:
+        problems.append(f"winkel t1-3: no two twos questions of 3 and 5 euro (swap {swapped}, too much {overswapped})")
     if "laatste gratis" not in page.inner_text("#ov-text"):
         problems.append(f"winkel: the end of t1-3 says {page.inner_text('#ov-text')!r}")
     if web_offer_ok(page, "winkel t1-3", "winkel-menu", problems):
@@ -8076,7 +8089,7 @@ def winkel_full(browser, base, problems):
         page.click("#ov-buttons button")
         page.wait_for_timeout(150)
     q = wk_state(page)["q"]
-    if "Kun je betalen met zo min mogelijk munten?" not in wk_say(page) or q["goal"] != "fewest":
+    if "Kun je betalen met zo min mogelijk munten en briefjes?" not in wk_say(page) or q["goal"] != "fewest":
         problems.append(f"winkel t2-3: the shopkeeper asks {wk_say(page)!r} for as few as possible")
     page.screenshot(path=str(SHOTS / "winkel-fewest-ask-390x844.png"))
     sol = list(q["solution"])
@@ -8090,7 +8103,7 @@ def winkel_full(browser, base, problems):
         wk_tap(page, "#wk-pay")
         page.wait_for_timeout(100)
         st = wk_state(page)
-        if not st["fb"] or st["fb"]["why"] != "more" or wk_say(page) != "Het klopt! Kan het ook met minder munten?":
+        if not st["fb"] or st["fb"]["why"] != "more" or wk_say(page) != "Het klopt! Kan het ook met minder munten en briefjes?":
             problems.append(f"winkel t2-3: {more} for {q['target']} said {page.inner_text('#wk-say')!r} ({st['fb']})")
         page.screenshot(path=str(SHOTS / "winkel-fewest-390x844.png"))
     else:
@@ -8180,14 +8193,71 @@ def winkel_full(browser, base, problems):
 WK_LAYOUT = (("t1-1", "count", "all"), ("t1-3", "twos", "all"), ("t2-3", "fewest", "all"), ("t3-2", "cents", "one-each"), ("t3-1", "two", "one-each"), ("t3-2", "change", "solution+1"), ("t3-3", "budget", "two"))
 
 
+def wk_short_ghosts(page, w, h, label, problems):
+    """Pay too little with as many piles as can lie there (one of each coin, small first, up to just
+    under the price) and check every ghost is on screen and in sight inside the counter."""
+    st = wk_state(page)
+    page.evaluate(f"window.__bubbels.winkel.show({st['i']})")
+    q = st["q"]
+    laid, s = [], 0
+    for d in sorted(int(d) for d in q["wallet"]):
+        if s + d < q["target"]:
+            laid.append(d)
+            s += d
+    for d in laid:
+        page.evaluate(f"window.__bubbels.winkel.lay({d})")
+    page.evaluate("window.__bubbels.winkel.pay()")
+    page.wait_for_timeout(80)
+    fb = wk_state(page)["fb"]
+    ghosts = page.locator("#wk-laid .wk-ghost")
+    if not fb or fb["why"] != "short" or not ghosts.count():
+        problems.append(f"{label}: {laid} for {q['target']} showed no ghosts ({fb})")
+        return
+    box = page.locator("#wk-laid").bounding_box()
+    keeper = [page.locator(who).bounding_box() for who in ("#wk-keeper", ".wk-bubble")]
+    for k in range(ghosts.count()):
+        r = ghosts.nth(k).bounding_box()
+        if not r or r["x"] < -0.5 or r["y"] < -0.5 or r["x"] + r["width"] > w + 0.5 or r["y"] + r["height"] > h + 0.5 \
+                or r["y"] < box["y"] - 0.5 or r["y"] + r["height"] > box["y"] + box["height"] + 0.5:
+            problems.append(f"{label}: ghost {k} not in sight ({r}, counter {box})")
+            continue
+        for kb in keeper:
+            if min(kb["x"] + kb["width"], r["x"] + r["width"]) - max(kb["x"], r["x"]) > 0.5 and min(kb["y"] + kb["height"], r["y"] + r["height"]) - max(kb["y"], r["y"]) > 0.5:
+                problems.append(f"{label}: the shopkeeper or bubble covers ghost {k}")
+
+
+def winkel_motion(browser, base, problems):
+    """The shopkeeper bobs slowly when a payment is right, and stands still with reduced motion
+    (the bag lands without moving too)."""
+    for reduce in (False, True):
+        ctx = browser.new_context(bypass_csp=True, locale="nl-NL", viewport={"width": 390, "height": 844}, reduced_motion="reduce" if reduce else "no-preference")
+        page = ctx.new_page()
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.evaluate("window.__bubbels.winkel.start('t1-1')")
+        page.wait_for_timeout(150)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+            page.wait_for_timeout(100)
+        for d in wk_state(page)["q"]["solution"]:
+            page.evaluate(f"window.__bubbels.winkel.lay({d})")
+        page.evaluate("window.__bubbels.winkel.pay()")
+        page.wait_for_timeout(100)
+        bob = page.locator("#wk-keeper svg").evaluate("e => getComputedStyle(e).animationName")
+        bag = page.locator("#wk-goods .wk-bag").evaluate("e => getComputedStyle(e).animationName")
+        happy = "happy" in (page.get_attribute("#wk-keeper", "class") or "")
+        if not happy or (reduce and (bob != "none" or bag != "none")) or (not reduce and (bob != "wk-bob" or bag != "wk-bag")):
+            problems.append(f"winkel motion (reduce={reduce}): happy={happy} bob={bob!r} bag={bag!r}")
+        ctx.close()
+
+
 def winkel_layouts(browser, base, problems):
     """Winkeltje (full version) at 320x568, 390x844 in English, 568x320, 844x390 and desktop for
     every kind of question with the counter as full as it gets (every coin of the youngest's purse,
     a pile of every coin and note at 8-10): every coin, note, pile, thing and button 48 px or more
     and on screen, no sideways scroll."""
-    for w, h in ((320, 568), (390, 844), (568, 320), (844, 390), (1280, 800)):
+    for w, h, english in ((320, 568, False), (320, 568, True), (390, 844, True), (568, 320, False), (844, 390, False), (1280, 800, False)):
         mobile = w < 1000
-        english = (w, h) == (390, 844)
         ctx = browser.new_context(bypass_csp=True, locale="en-GB" if english else "nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=mobile, has_touch=mobile)
         ctx.add_init_script(OWNED_APP)
         page = ctx.new_page()
@@ -8199,7 +8269,7 @@ def winkel_layouts(browser, base, problems):
         if english and page.inner_text("#tile-winkel .tile-name").strip() != "Little Shop":
             problems.append(f"winkel {w}x{h}: the English tile says {page.inner_text('#tile-winkel .tile-name')!r}")
         for rid, kind, fill in WK_LAYOUT:
-            label = f"winkel {w}x{h} {rid} {kind}"
+            label = f"winkel {w}x{h}{' en' if english else ''} {rid} {kind}"
             page.evaluate(f"window.__bubbels.winkel.start('{rid}')")
             page.wait_for_timeout(150)
             if page.is_visible("#overlay"):
@@ -8267,7 +8337,10 @@ def winkel_layouts(browser, base, problems):
                 problems.append(f"{label}: English title {page.inner_text('#wk-sub')!r}")
             if english and kind in ("cents", "change") and "." not in page.inner_text("#wk-goods"):
                 problems.append(f"{label}: English prices {page.inner_text('#wk-goods')!r}")
-            page.screenshot(path=str(SHOTS / f"winkel-layout-{kind}-{w}x{h}.png"))
+            page.screenshot(path=str(SHOTS / f"winkel-layout-{kind}-{w}x{h}{'-en' if english else ''}.png"))
+            if kind != "budget":
+                wk_short_ghosts(page, w, h, f"{label} short", problems)
+                page.screenshot(path=str(SHOTS / f"winkel-layout-{kind}-short-{w}x{h}{'-en' if english else ''}.png"))
             page.evaluate("window.__bubbels.back()")
             page.wait_for_timeout(80)
         if errors:
@@ -10694,6 +10767,7 @@ def main():
             winkel_full(browser, base, problems)
             winkel_layouts(browser, base, problems)
             winkel_csp(browser, base, problems)
+            winkel_motion(browser, base, problems)
             kaart_flow(browser, base, problems)
             kaart_layouts(browser, base, problems)
             papegaai_flow(browser, base, problems)
@@ -10724,7 +10798,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "letters": (letters_play,),
          "kangoeroe": (kangoeroe_flow, kangoeroe_layouts),
          "keuken": (keuken_flow, keuken_layouts, keuken_csp),
-         "winkel": (winkel_flow, winkel_full, winkel_layouts, winkel_csp),
+         "winkel": (winkel_flow, winkel_full, winkel_layouts, winkel_csp, winkel_motion),
          "treintje": (treintje_flow, treintje_layouts, treintje_csp),
          "verstop": (verstop_flow, verstop_layouts, verstop_hints, verstop_hint_pixels),
          "verstop-pixels": (verstop_hint_pixels,),

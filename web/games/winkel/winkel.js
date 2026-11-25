@@ -390,8 +390,9 @@ export function createWinkel(shell) {
     }
     const sum = total(game.laid);
     $('#wk-total').textContent = t(it.ask === 'change' ? 'winkel.back' : 'winkel.onCounter', { amount: fmt(sum) });
-    // too much: the pieces that are over; too little that the purse cannot make: the pieces to swap
-    const extra = new Set(fb && fb.why === 'over' && fb.extra ? fb.extra : fb && fb.why === 'short' ? fb.back : []);
+    // too much: the pieces that are over; a counter the purse cannot put right by adding or taking
+    // back alone (too little, or too much with nothing that makes it): the pieces to swap
+    const extra = new Set(fb && fb.why === 'over' && fb.extra ? fb.extra : fb && fb.back ? fb.back : []);
     const done = game.right || game.shown;
     if (!TIERS[game.tier].piles) {
       // the youngest: every coin on its own, so they can be counted
@@ -413,13 +414,19 @@ export function createWinkel(shell) {
         box.appendChild(b);
       }
     }
-    // too little: the missing coins as dashed ghosts (never buttons)
-    if (fb && fb.why === 'short') {
-      for (const d of fb.ghosts) {
+    // what goes on: the missing coins (or those to swap in) as dashed ghosts, never buttons. The
+    // youngest see each coin; the others a small ghost per coin with its count, first on the
+    // counter, so it stays in sight however many piles lie there
+    if (fb && fb.ghosts && fb.ghosts.length) {
+      const piles = TIERS[game.tier].piles;
+      const kinds = piles ? [...new Set(fb.ghosts)].sort((a, b) => b - a) : fb.ghosts;
+      for (const d of kinds) {
         const g = document.createElement('span');
-        g.className = `wk-piece wk-ghost${isNote(d) ? ' note' : ''}${TIERS[game.tier].piles ? ' wk-pile' : ''}`;
+        g.className = `wk-piece wk-ghost${isNote(d) ? ' note' : ''}${piles ? ' wk-pile' : ''}`;
         g.setAttribute('aria-hidden', 'true');
         g.innerHTML = art(d);
+        const n = piles ? fb.ghosts.filter((x) => x === d).length : 1;
+        if (n > 1) g.insertAdjacentHTML('beforeend', `<span class="wk-count">×${n}</span>`);
         box.appendChild(g);
       }
     }

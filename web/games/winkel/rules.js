@@ -206,48 +206,48 @@ export function subsetFor(laid, amount) {
 }
 
 /**
- * Too little, and the purse cannot make the rest: the fewest pieces of `laid` to take back (their
- * indexes) so that the purse can then make the price, and the pieces that go on instead.
+ * Too little and the purse cannot make the rest, or too much with no pieces that make what is
+ * over: the fewest pieces of `laid` to take back (their indexes) so that the purse can then make
+ * the price, and the pieces that go on instead (€ 3 paid 2 + 2: one € 2 back, a € 1 on).
  */
 export function swapFor(q, laid) {
   const kinds = [...new Set(laid)].sort((a, b) => b - a);
   const have = kinds.map((d) => laid.filter((x) => x === d).length);
   const rest = left(q.wallet, laid);
   const sum = total(laid);
-  // every way to take k pieces back, k = 1, 2, ... (by kind, so the same coin twice is one way)
+  /** Which pieces of `laid` go back for `out` (by value), and what goes on, without a piece taken back and laid again. */
+  const settle = (out, add) => {
+    const back = [];
+    for (const d of out) back.push(laid.findIndex((x, n) => x === d && !back.includes(n)));
+    const ghosts = [...add];
+    for (let n = back.length - 1; n >= 0; n--) {
+      const g = ghosts.indexOf(laid[back[n]]);
+      if (g >= 0) {
+        ghosts.splice(g, 1);
+        back.splice(n, 1);
+      }
+    }
+    return { back: back.sort((a, b) => a - b), ghosts };
+  };
+  // every way to take k pieces back, k = 1, 2, ... (by kind, so the same coin twice is one way);
+  // of the fewest pieces back, the way that lays the fewest pieces on
   for (let k = 1; k <= laid.length; k++) {
-    let found = null;
+    let best = null;
     const walk = (i, need, out) => {
-      if (found) return;
       if (need === 0) {
-        const off = total(out);
         const purse = { ...rest };
         for (const d of out) purse[d] = (purse[d] || 0) + 1;
-        const add = fewest(q.target - (sum - off), purse);
-        if (add) found = { out: [...out], add };
+        const add = fewest(q.target - (sum - total(out)), purse);
+        if (!add) return;
+        const way = settle(out, add);
+        if (!best || way.back.length + way.ghosts.length < best.back.length + best.ghosts.length) best = way;
         return;
       }
       if (i >= kinds.length) return;
       for (let j = Math.min(need, have[i]); j >= 0; j--) walk(i + 1, need - j, [...out, ...Array(j).fill(kinds[i])]);
     };
     walk(0, k, []);
-    if (found) {
-      const back = [];
-      for (const d of found.out) {
-        const i = laid.findIndex((x, n) => x === d && !back.includes(n));
-        back.push(i);
-      }
-      // a piece taken back and laid again is no swap: drop it from both sides
-      const ghosts = [...found.add];
-      for (let n = back.length - 1; n >= 0; n--) {
-        const g = ghosts.indexOf(laid[back[n]]);
-        if (g >= 0) {
-          ghosts.splice(g, 1);
-          back.splice(n, 1);
-        }
-      }
-      return { back: back.sort((a, b) => a - b), ghosts };
-    }
+    if (best) return best;
   }
   return { back: laid.map((_, i) => i), ghosts: [...q.solution] };
 }
@@ -295,7 +295,8 @@ export function toggle(q, picked, i) {
 /**
  * Is what lies on the counter right? { ok: true }, or what to show:
  *   { why: 'short', missing, ghosts }  too little: what is missing (and coins that would make it)
- *   { why: 'over', over, extra }       too much: what is over (and the pieces that make it, if any)
+ *   { why: 'over', over, extra, back, ghosts }  too much: what is over, the pieces that make it
+ *                                      (`extra`), or else what to take back and lay instead
  *   { why: 'more', n }                 the right amount, but it can be done with n pieces
  */
 export function judge(q, laid) {
@@ -311,7 +312,11 @@ export function judge(q, laid) {
   }
   if (sum > q.target) {
     const over = sum - q.target;
-    return { ok: false, why: 'over', over, extra: subsetFor(laid, over) };
+    const extra = subsetFor(laid, over);
+    if (extra) return { ok: false, why: 'over', over, extra, back: [], ghosts: [] };
+    // nothing on the counter makes what is over (€ 3 paid 2 + 2): swap, as for too little
+    const swap = swapFor(q, laid);
+    return { ok: false, why: 'over', over, extra: null, back: swap.back, ghosts: swap.ghosts };
   }
   if (q.goal === 'fewest' && laid.length > q.solution.length) return { ok: false, why: 'more', n: q.solution.length };
   return { ok: true };
