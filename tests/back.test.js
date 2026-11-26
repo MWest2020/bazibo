@@ -44,6 +44,7 @@ test('back: a Picturedoku puzzle goes to its list, the list to home', () => {
   assert.equal(backAction({ screen: 'vier' }), 'vier-menu');
   assert.equal(backAction({ screen: 'vier-menu' }), 'home');
   assert.equal(backAction({ screen: 'vier', overlay: 'card' }), 'close');
+  assert.equal(backAction({ screen: 'vier-coop' }), 'vier-coop-back'); // two phones (spike): closes the connection
   assert.equal(backAction({ screen: 'dammen' }), 'dammen-menu');
   assert.equal(backAction({ screen: 'dammen-menu' }), 'home');
   assert.equal(backAction({ screen: 'dammen', overlay: 'card' }), 'close');

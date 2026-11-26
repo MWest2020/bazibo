@@ -422,6 +422,38 @@
       </div>
     </section>
 
+    <!-- Vier op een rij: together on two phones (spike, only with ?test&coop; games/vier/coop.js) -->
+    <section id="screen-vier-coop" class="screen" data-i18n-aria="vier.coop.title" aria-label="Samen op twee telefoons">
+      <header class="bar">
+        <button id="coop-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="vier.coop.title">Samen op twee telefoons</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="transfer-scroll">
+        <div id="coop-pick" class="transfer-pane">
+          <p class="setting-text" data-i18n="vier.coop.pickHint">Pak allebei een telefoon, op hetzelfde wifi. Eén telefoon laat een code zien, de andere scant hem.</p>
+          <button id="coop-host" class="btn big primary" type="button" data-i18n="vier.coop.host">Ik laat de code zien</button>
+          <button id="coop-guest" class="btn big secondary" type="button" data-i18n="vier.coop.guest">Ik scan de code</button>
+          <p id="coop-pick-msg" class="transfer-msg" aria-live="polite"></p>
+        </div>
+        <div id="coop-show" class="transfer-pane" hidden>
+          <canvas id="coop-qr" class="transfer-qr" width="320" height="320" role="img" data-i18n-aria="vier.coop.qrLabel" aria-label="Code om samen te spelen" hidden></canvas>
+          <p id="coop-show-msg" class="transfer-msg coop-msg" aria-live="polite"></p>
+          <button id="coop-next" class="btn primary" type="button" data-i18n="vier.coop.next" hidden>Scan nu de code van de ander</button>
+        </div>
+        <div id="coop-scan" class="transfer-pane" hidden>
+          <div class="transfer-cam">
+            <video id="coop-video" playsinline muted></video>
+            <span class="transfer-frame" aria-hidden="true"></span>
+          </div>
+          <p id="coop-scan-msg" class="transfer-msg" aria-live="polite"></p>
+        </div>
+        <p id="coop-diag" class="coop-diag" hidden></p>
+      </div>
+    </section>
+
     <!-- Dammen: choose the board, the opponent and the look of the pieces -->
     <section id="screen-dammen-menu" class="screen" data-i18n-aria="games.dammen" aria-label="Dammen">
       <header class="bar">

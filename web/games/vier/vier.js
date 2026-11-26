@@ -17,11 +17,12 @@
 import { meta } from './meta.js';
 import { BOARDS, emptyBoard, drop, winAt, isFull, other, landingRow } from './rules.js';
 import { chooseMove } from './ai.js';
-import { TOKENS, tokenById, nextToken, tokenSvg, robotSvg, duoSvg, boardSvg, TROPHY } from './art.js';
+import { TOKENS, tokenById, nextToken, tokenSvg, robotSvg, duoSvg, phonesSvg, boardSvg, TROPHY } from './art.js';
 import * as store from '../../js/storage.js';
 import * as sfx from '../../js/audio.js';
 import { foldLocked } from '../../js/fold.js';
 import { optionCard, optionBox } from '../../js/menu.js';
+import { parseMessage, judgeMove, judgeAgain, starterFor, moveMessage, againMessage, createGuard } from './coop-proto.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"/>';
@@ -36,6 +37,14 @@ const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 export const winKey = (setup) => `cpu-${setup.board}-${setup.level}`;
 /** Against the computer on the kleuterbord the child always starts (a forced win for the starter). */
 export const childAlwaysStarts = (setup) => setup.mode === 'cpu' && setup.board === 'small';
+/**
+ * The spike "Samen op twee telefoons" (two phones, WebRTC over QR codes; coop.js): only with both
+ * ?test and ?coop in the address, so nothing changes for children yet.
+ */
+export const coopEnabled = (search = globalThis.location?.search || '') => {
+  const q = new URLSearchParams(search);
+  return q.has('test') && q.has('coop');
+};
 
 export function createVier(shell) {
   const { t, tap } = shell;
@@ -62,12 +71,16 @@ export function createVier(shell) {
   let plays = 0; // counts games started, so a falling token never lands on a newer game
   let cells = [];
   let colButtons = [];
+  let coop = null; // the two-phone connection (coop.js), loaded only when coopEnabled()
+  let netQueue = []; // moves from the other phone waiting for a falling token to land
+  let guard = null; // counts what the other phone sends (coop-proto.js createGuard)
 
   const locked = (setup) => meta.isLocked(setup, shell.unlock.owned);
   const onScreen = (name) => $(`#screen-${name}`).classList.contains('active');
   const tokenName = (id) => t(`vier.tok.${id}`);
   const isCpu = () => game?.setup.mode === 'cpu';
-  const humanTurn = () => game && !game.over && (!isCpu() || game.turn === 1);
+  const isNet = () => game?.setup.mode === 'net';
+  const humanTurn = () => game && !game.over && (isNet() ? !game.net.lost && game.turn === game.net.me : !isCpu() || game.turn === 1);
   const busy = () => dropping || !!cpuTimer;
   const duoStarters = () => store.loadGameOption(meta.id, 'duoStarter', {}) || {};
 
@@ -160,6 +173,21 @@ export function createVier(shell) {
         },
       }),
     );
+    if (coopEnabled()) {
+      opp.appendChild(
+        option({
+          art: phonesSvg(),
+          title: t('vier.coop.title'),
+          sub: t('vier.coop.sub'),
+          pressed: choice.mode === 'net',
+          cls: 'mode-net',
+          onPick: () => {
+            choice.mode = 'net';
+            renderMenu();
+          },
+        }),
+      );
+    } else if (choice.mode === 'net') choice.mode = 'duo';
     // its locked levels wait in the fold under its name
     const cpu = optionBox({ art: robotSvg(), title: t('vier.cpu'), on: choice.mode === 'cpu', foldHead: t('vier.cpu') });
     const counts = wins();
@@ -198,7 +226,7 @@ export function createVier(shell) {
     head('vier.tokensHead');
     const toks = document.createElement('div');
     toks.className = 'vier-tokens';
-    const who = choice.mode === 'cpu' ? [t('vier.you'), t('vier.computer')] : [t('vier.player1'), t('vier.player2')];
+    const who = choice.mode === 'cpu' ? [t('vier.you'), t('vier.computer')] : choice.mode === 'net' ? [t('vier.coop.phone1'), t('vier.coop.phone2')] : [t('vier.player1'), t('vier.player2')];
     for (const k of [0, 1]) {
       const id = choice.tokens[k];
       const b = document.createElement('button');
@@ -221,7 +249,7 @@ export function createVier(shell) {
     // play, and keep playing an unfinished game
     const actions = document.createElement('div');
     actions.className = 'menu-actions';
-    if (game && !game.over) {
+    if (game && !game.over && !isNet()) {
       const cont = document.createElement('button');
       cont.type = 'button';
       cont.id = 'vier-continue';
@@ -241,6 +269,10 @@ export function createVier(shell) {
     playBtn.querySelector('span').textContent = t('vier.play');
     playBtn.addEventListener('click', () => {
       tap();
+      if (choice.mode === 'net') {
+        openCoop();
+        return;
+      }
       start(choice.mode === 'duo' ? duoStarters()[choice.board] || 1 : 1);
     });
     actions.appendChild(playBtn);
@@ -331,14 +363,14 @@ export function createVier(shell) {
   function renderHud() {
     const { setup } = game;
     $('#vier-sub').textContent = t(`vier.${setup.board}`);
-    $('#vier-title').textContent = setup.mode === 'cpu' ? t(`vier.level${setup.level}`) : t('vier.duo');
+    $('#vier-title').textContent = setup.mode === 'cpu' ? t(`vier.level${setup.level}`) : setup.mode === 'net' ? t('vier.coop.short') : t('vier.duo');
     $('#vier-undo').classList.toggle('off', setup.mode !== 'cpu');
   }
 
   function renderTurn() {
     const box = $('#vier-turn');
     box.textContent = '';
-    const who = isCpu() ? [t('vier.you'), t('vier.computer')] : [tokenName(game.tokens[0]), tokenName(game.tokens[1])];
+    const who = isCpu() ? [t('vier.you'), t('vier.computer')] : isNet() ? [1, 2].map((p) => (p === game.net.me ? t('vier.you') : t('vier.coop.friend'))) : [tokenName(game.tokens[0]), tokenName(game.tokens[1])];
     for (const p of [1, 2]) {
       const chip = document.createElement('span');
       chip.className = 'vier-chip';
@@ -361,7 +393,8 @@ export function createVier(shell) {
     }
     let text = '';
     if (!game.over) {
-      if (isCpu()) text = game.turn === 1 ? t('vier.yourTurn') : t('vier.thinking');
+      if (isNet()) text = game.net.lost ? t('vier.coop.lostTitle') : game.turn === game.net.me ? t('vier.yourTurn') : t('vier.coop.wait');
+      else if (isCpu()) text = game.turn === 1 ? t('vier.yourTurn') : t('vier.thinking');
       else text = t('vier.turn', { name: tokenName(game.tokens[game.turn - 1]) });
     }
     $('#vier-status').textContent = text;
@@ -387,7 +420,7 @@ export function createVier(shell) {
       const full = landingRow(game.board, game.cfg, c) < 0;
       colButtons[c].setAttribute('aria-label', full ? t('vier.colFull', { c: c + 1 }) : t('vier.col', { c: c + 1 }));
       colButtons[c].classList.toggle('full', full);
-      colButtons[c].disabled = !!game.over;
+      colButtons[c].disabled = !!game.over || !!game.net?.lost;
     }
     $('#vier-board').classList.toggle('won', !!game.over?.winner);
     updateTurn();
@@ -408,6 +441,7 @@ export function createVier(shell) {
       return;
     }
     sfx.unlock();
+    if (isNet() && !coop?.send(moveMessage(game.history.length, c))) return; // the lost card follows
     place(c);
   }
 
@@ -439,6 +473,7 @@ export function createVier(shell) {
         updateBoard();
         if (isCpu() && g.turn === 2 && onScreen('vier')) cpuTurn(); // off the board: resume() asks again
       }
+      if (g.net) pumpNet();
     });
   }
 
@@ -505,12 +540,13 @@ export function createVier(shell) {
     game.over = over;
     cancelCpu();
     const { setup } = game;
+    const mine = setup.mode === 'net' ? game.net.me : 1;
     if (over.winner === 1 && setup.mode === 'cpu') {
       const key = winKey(setup);
       store.recordStars(meta.id, key, (wins()[key] || 0) + 1);
     }
     updateBoard();
-    if (over.winner && (setup.mode === 'duo' || over.winner === 1)) sfx.win();
+    if (over.winner && (setup.mode === 'duo' || over.winner === mine)) sfx.win();
     else if (over.winner) sfx.lose();
     else sfx.lid();
     const done = game;
@@ -531,6 +567,11 @@ export function createVier(shell) {
       title = t('vier.draw');
       text = t('vier.drawText');
       art = `<span class="vier-ov">${tokenSvg(game.tokens[0])}${tokenSvg(game.tokens[1])}</span>`;
+    } else if (setup.mode === 'net') {
+      const me = over.winner === game.net.me;
+      title = me ? t('vier.youWin') : t('vier.coop.friendWins');
+      text = t(`vier.row${cfg.need}`);
+      art = `<span class="vier-ov${me ? ' won' : ''}">${tokenSvg(game.tokens[over.winner - 1])}</span>`;
     } else if (setup.mode === 'cpu' && over.winner === 2) {
       title = t('vier.cpuWins');
       text = t('vier.cpuWinsText');
@@ -540,7 +581,7 @@ export function createVier(shell) {
       text = t(`vier.row${cfg.need}`);
       art = `<span class="vier-ov won">${tokenSvg(game.tokens[over.winner - 1])}</span>`;
     }
-    const buttons = [[t('vier.again'), 'big primary', again]];
+    const buttons = [[t('vier.again'), 'big primary', setup.mode === 'net' ? netAgain : again]];
     if (setup.mode === 'cpu' && over.winner === 2) buttons.push([t('vier.undo'), 'big secondary', () => (shell.hideOverlay(), undoMove())]);
     buttons.push([t('vier.menuBtn'), 'big secondary', () => shell.show('vier-menu')]);
     shell.showOverlay({ art, title, text, buttons });
@@ -573,12 +614,111 @@ export function createVier(shell) {
     leave();
   });
 
-  /** The board -> the menu (the game is kept for this session: "keep playing"). */
+  /** The board -> the menu (the game is kept for this session: "keep playing"; not on two phones). */
   function leave() {
     shell.hideOverlay();
+    if (isNet()) {
+      coop?.close(true); // the other phone gets "bye" and its lost card
+      game = null;
+    }
     cancelCpu(); // the computer moves again when the child comes back ("keep playing")
     cancelCard(); // a pending end card must not pop up over the menu
     shell.show('vier-menu');
+  }
+
+  // ---------- two phones (spike) ----------
+
+  async function openCoop() {
+    if (!coop) {
+      const { createCoop } = await import('./coop.js');
+      coop = createCoop(shell, { onConnected: startNet, onMessage: onNetMessage, onLost: netLost });
+    }
+    coop.open({ board: choice.board, tokens: choice.tokens.slice() });
+  }
+
+  /** The channel is open: game 1, or game `gameNo` after "again". Phone 1 starts the odd games. */
+  function startNet(info, gameNo = 1) {
+    const net = info.role ? { me: info.role, board: info.board, tokens: info.tokens, gameNo, lost: false } : { ...info, gameNo, lost: false };
+    if (gameNo === 1) guard = createGuard();
+    const setup = { board: net.board, mode: 'net', level: 0 };
+    const cfg = BOARDS[net.board];
+    plays++;
+    dropping = false;
+    netQueue = [];
+    cancelCpu();
+    cancelCard();
+    const starter = starterFor(gameNo);
+    game = { setup, cfg, tokens: net.tokens.slice(), board: emptyBoard(cfg), turn: starter, starter, history: [], over: null, net };
+    buildBoard();
+    renderHud();
+    renderTurn();
+    updateBoard();
+    shell.show('vier');
+  }
+
+  function netAgain() {
+    shell.hideOverlay();
+    if (!isNet() || game.net.lost) return;
+    const g = game.net.gameNo + 1;
+    if (!coop.send(againMessage(g))) return;
+    startNet(game.net, g);
+  }
+
+  /** Too much or too many bad messages from the other phone: stop playing with it. */
+  function distrust(verdict) {
+    if (verdict !== 'close') return;
+    coop?.close(false);
+    netLost('guard');
+  }
+
+  /** Raw data from the other phone. Only known shapes, then only allowed moves, change anything. */
+  function onNetMessage(raw) {
+    if (!isNet() || game.net.lost) return;
+    if (guard.take(performance.now()) === 'close') return distrust('close');
+    const msg = parseMessage(raw);
+    if (!msg) return distrust(guard.bad());
+    if (msg.t === 'bye') {
+      coop.close(false);
+      netLost('bye');
+    } else if (msg.t === 'again') {
+      const v = judgeAgain({ game: game.net.gameNo, over: !!game.over }, msg);
+      if (v === 'ok') {
+        shell.hideOverlay();
+        startNet(game.net, msg.g);
+      } else if (v !== 'stale') distrust(guard.bad());
+    } else if (msg.t === 'm') {
+      if (netQueue.length >= 4) return distrust(guard.bad());
+      netQueue.push(msg);
+      pumpNet();
+    }
+  }
+
+  /** Play the other phone's moves, one at a time, once no token is falling. */
+  function pumpNet() {
+    while (isNet() && !dropping && netQueue.length && !game.net.lost) {
+      const msg = netQueue.shift();
+      const view = { cfg: game.cfg, board: game.board, turn: game.turn, over: game.over, moves: game.history.length };
+      if (judgeMove(view, msg, other(game.net.me)) !== 'ok') {
+        distrust(guard.bad());
+        continue;
+      }
+      place(msg.c);
+    }
+  }
+
+  /** The connection is gone (the other phone left, went to the background, or out of reach). */
+  function netLost() {
+    if (!isNet() || game.net.lost) return;
+    game.net.lost = true;
+    netQueue = [];
+    cancelCard();
+    updateBoard();
+    shell.showOverlay({
+      art: `<span class="vier-ov">${phonesSvg()}</span>`,
+      title: t('vier.coop.lostTitle'),
+      text: t('vier.coop.lostText'),
+      buttons: [[t('vier.menuBtn'), 'big primary', () => shell.show('vier-menu')]],
+    });
   }
 
   function fitBoard() {
@@ -601,6 +741,11 @@ export function createVier(shell) {
       shell.show('vier-menu');
     },
     leave,
+    /** The Android back button on the two-phone screen. */
+    coopBack() {
+      if (coop) coop.back();
+      else shell.show('vier-menu');
+    },
     async init() {
       return true;
     },
@@ -618,6 +763,8 @@ export function createVier(shell) {
             : null,
         undo: () => undoMove(),
         wins: () => wins(),
+        coop: () => coop?.testHook() || null,
+        net: () => (game?.net ? { ...game.net, queue: netQueue.length } : null),
       };
     },
   };

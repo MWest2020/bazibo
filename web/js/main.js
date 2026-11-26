@@ -1007,6 +1007,7 @@ function onBack() {
   else if (action === 'memory-menu') games.memory.leave();
   else if (action === 'legpuzzel-menu') games.legpuzzel.leave();
   else if (action === 'vier-menu') games.vier.leave();
+  else if (action === 'vier-coop-back') games.vier.coopBack();
   else if (action === 'dammen-menu') games.dammen.leave();
   else if (action === 'baghchal-menu') games.baghchal.leave();
   else if (action === 'schaak-menu') games.schaak.leave();
