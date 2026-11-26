@@ -24,6 +24,7 @@ import { meta as letters } from '../games/letters/meta.js';
 import { meta as kangoeroe } from '../games/kangoeroe/meta.js';
 import { meta as keuken } from '../games/keuken/meta.js';
 import { meta as winkel } from '../games/winkel/meta.js';
+import { meta as kermis } from '../games/kermis/meta.js';
 import { meta as doolhof } from '../games/doolhof/meta.js';
 import { meta as kaart } from '../games/kaart/meta.js';
 import { meta as piano } from '../games/piano/meta.js';
@@ -71,5 +72,6 @@ export const GAMES = [
   { ...kangoeroe, status: 'ready' },
   { ...keuken, status: 'ready' },
   { ...winkel, status: 'ready' },
+  { ...kermis, status: 'ready' },
   { ...kaart, status: 'ready' },
 ];

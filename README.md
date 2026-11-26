@@ -29,6 +29,7 @@ no age band of its own.
 | [Kangoeroe op de getallenlijn / Kangaroo Hops](docs/games/kangoeroe.md) | Learning | 5-8 | Adding and taking away by hops on a number line. |
 | [Keukentje / Little Kitchen](docs/games/keuken.md) | Learning | 3-10 | What goes into bread and other dishes, where it comes from, the steps of a recipe. |
 | [Winkeltje / Little Shop](docs/games/winkel.md) | Learning | 3-10 | Pay with euro coins and notes, later with cents and change. |
+| [Kleurenkermis / Colour Fair](docs/games/kermis.md) | Learning | 3-10 | Does the colour match? Calm by default, or as a race on one tablet. |
 | [Kaartpuzzel / Map Puzzle](docs/games/kaart.md) | Learning | 6-12 | Topography: continents, Europe and countries as a puzzle and as "where is...?". |
 | [Dogudoku / Dogudoku](docs/games/dogudoku.md) | Puzzles | 3-10 | A Queens / Star Battle logic puzzle with puppies; 60 puzzles. |
 | [Picturedoku / Picturedoku](docs/games/picturedoku.md) | Puzzles | 3-10 | Sudoku with pictures, 4×4 to 9×9; 60 puzzles. |

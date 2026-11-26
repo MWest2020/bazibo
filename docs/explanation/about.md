@@ -17,7 +17,8 @@ Hedgehog", walk a hedgehog through a garden maze and pick up the alphabet, a wor
 order), Kangoeroe op de getallenlijn ("Kangaroo Hops", adding and taking away by hops
 on a number line), Keukentje ("Little Kitchen", what goes into bread and other dishes, where it
 comes from and the steps of a recipe), Winkeltje ("Little Shop", pay with euro coins and notes in a little shop, later
-with cents and change), Kaartpuzzel ("Map Puzzle", topography: the continents, Europe and your own
+with cents and change), Kleurenkermis ("Colour Fair", does the colour match? a thing in a colour, a
+colour word in another ink, then the colour of the letters, calm or as a race on one tablet), Kaartpuzzel ("Map Puzzle", topography: the continents, Europe and your own
 country as a puzzle and as "where is...?") and Papegaai ("Parrot", record your voice and the parrot
 says it back, in funny voices too); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in

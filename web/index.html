@@ -80,6 +80,7 @@
   <link rel="stylesheet" href="games/letters/letters.css">
   <link rel="stylesheet" href="games/kangoeroe/kangoeroe.css">
   <link rel="stylesheet" href="games/keuken/keuken.css">
+  <link rel="stylesheet" href="games/kermis/kermis.css">
   <link rel="stylesheet" href="games/winkel/winkel.css">
   <link rel="stylesheet" href="games/verstop/verstop.css">
   <link rel="stylesheet" href="games/kaart/kaart.css">
@@ -932,6 +933,46 @@
           <div id="ke-options" class="ke-options" role="group"></div>
           <div id="ke-dots" class="klok-dots" role="img"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- Kleurenkermis: choose how (calm or a race), who plays and a round (three tiers by age: 3-5, 6-7, 8-10) -->
+    <section id="screen-kermis-menu" class="screen" data-i18n-aria="games.kermis" aria-label="Kleurenkermis">
+      <header class="bar">
+        <button id="kermis-menu-back" class="btn icon" type="button" data-i18n-aria="common.back" aria-label="Terug">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 data-i18n="kermis.menu">Kleurenkermis</h2>
+        <span class="bar-spacer"></span>
+      </header>
+      <div class="levels-scroll"><div id="kermis-menu" class="menu"></div></div>
+    </section>
+
+    <!-- Kleurenkermis: the stall with the chameleon and its sign, and a corner of answer buttons per child (no voice) -->
+    <section id="screen-kermis" class="screen" data-i18n-aria="games.kermis" aria-label="Kleurenkermis">
+      <header class="bar dogu-hud klok-hud kk-hud">
+        <button id="kermis-back" class="btn icon" type="button" data-i18n-aria="kermis.menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="hud-mid">
+          <div id="kk-sub" class="hud-level"></div>
+          <div id="kk-title" class="dogu-title"></div>
+        </div>
+        <span class="bar-spacer"></span>
+      </header>
+      <div id="kk-stage">
+        <div id="kk-mid" class="kk-mid">
+          <div id="kk-chat" class="kk-chat">
+            <div class="kk-bubble"><p id="kk-say" class="kk-say" aria-live="polite"></p></div>
+            <span id="kk-host" class="kk-host" role="img" data-i18n-aria="kermis.host" aria-label="De kameleon"></span>
+          </div>
+          <div id="kk-sign" class="kk-sign">
+            <div id="kk-flip" class="kk-show flip" aria-hidden="true"></div>
+            <div id="kk-show" class="kk-show" role="img"></div>
+          </div>
+          <div id="kk-dots" class="klok-dots" role="img"></div>
+        </div>
+        <div id="kk-pads" class="kk-pads"></div>
       </div>
     </section>
 

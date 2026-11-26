@@ -35,6 +35,7 @@ row in the README's games table.
 - [Kangoeroe op de getallenlijn / Kangaroo Hops](games/kangoeroe.md) (`kangoeroe`)
 - [Keukentje / Little Kitchen](games/keuken.md) (`keuken`)
 - [Winkeltje / Little Shop](games/winkel.md) (`winkel`)
+- [Kleurenkermis / Colour Fair](games/kermis.md) (`kermis`)
 - [Kaartpuzzel / Map Puzzle](games/kaart.md) (`kaart`)
 
 ## How-to guides
