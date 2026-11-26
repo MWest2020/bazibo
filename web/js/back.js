@@ -9,6 +9,7 @@
 //   a Paartjes (Memory) game           -> its menu (the game is kept: "keep playing")
 //   a jigsaw (Legpuzzel)               -> its menu (the puzzle is kept: "keep puzzling")
 //   a Vier op een rij game             -> its menu (the game is kept: "keep playing")
+//   Vier op een rij on two phones      -> its menu (the connection closes; spike, ?test&coop)
 //   a Dammen game                      -> its menu (the game is kept: "keep playing")
 //   a Tijgers en geitjes game          -> its menu (the game is kept: "keep playing")
 //   a Schaken game                     -> its menu (the game is kept: "keep playing")
@@ -51,6 +52,7 @@ export function backAction({ screen, overlay = 'none' }) {
   if (screen === 'memory') return 'memory-menu';
   if (screen === 'legpuzzel') return 'legpuzzel-menu';
   if (screen === 'vier') return 'vier-menu';
+  if (screen === 'vier-coop') return 'vier-coop-back';
   if (screen === 'dammen') return 'dammen-menu';
   if (screen === 'baghchal') return 'baghchal-menu';
   if (screen === 'schaak') return 'schaak-menu';
