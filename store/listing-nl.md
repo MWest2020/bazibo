@@ -44,7 +44,7 @@ PUZZELS
 • Dogudoku: verstop de hondjes, één per rij en kolom, nooit naast elkaar, ook niet schuin. Van 4 bij 4 tot kleurvakken; 60 puzzels.
 • Picturedoku: sudoku met plaatjes, vanaf 3 jaar zonder cijfers of lezen, tot 9 bij 9. 60 puzzels.
 • Paartjes: alleen, samen of tegen de computer. 6 en 12 kaarten; volledige versie: 16 en 20 kaarten en meer plaatjes.
-• Legpuzzel: 9, 16 en 25 stukjes en een vergrootglas op de telefoon; volledige versie: tot 60 stukjes en meer plaatjes.
+• Legpuzzel: 9, 25 en 36 stukjes en een vergrootglas op de telefoon; volledige versie: tot 100 stukjes en meer plaatjes.
 • Verstoppertje: til een steen op, kijk achter een struik: waar is de egel? Volledige versie: bos, strand, boerderij.
 • Treintje: leg één spoor door elk vakje, langs de stations op volgorde, en het treintje rijdt. 3-5 jaar gratis.
 

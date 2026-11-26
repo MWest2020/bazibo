@@ -2,7 +2,14 @@
 // background (sky, grass, sea, space, a table cloth …) with the app's own drawings on it: the
 // coloured-in Kleurplaten pictures (as Letters uses them), the Picturedoku fruit and the Dogudoku
 // puppies, plus a few shapes drawn here (the sun, clouds, a tree, stars, a moon). A scene fills any
-// shape of board (`pictureSvg(id, w, h)`), from 1:1 for 4 pieces to 5:3 for 60.
+// shape of board (`pictureSvg(id, w, h)`), from 1:1 (9, 25, 36 and 100 pieces) to 5:3 (60).
+//
+// With 80 or 100 pieces a piece is a tenth of the picture across, and a piece of plain sky, sea or
+// grass would show nothing to go on (Mark, 26 Nov 2026: more pieces per age). So a puzzle passes its
+// grid (`{ cols, rows }`) and every piece gets a little detail of its own in the middle of its
+// square, drawn under the scene's drawings and matching where it lies: a cloud puff in the sky, a
+// flower or a tuft on the grass, bubbles in the sea, a star in space, a paw print, pebbles on the
+// road (`details`). Where a drawing covers the square, the drawing is what shows.
 import { wordPictureSvg } from '../letters/art.js';
 import { pictureSvg as fruitSvg } from '../picturedoku/art.js';
 import { dogSvg } from '../dogudoku/art.js';
@@ -48,37 +55,80 @@ const flowers = (w, h, y, k) =>
     return `<circle cx="${n(x)}" cy="${n(yy)}" r="${n(Math.min(w, h) * 0.014)}" fill="${c}" stroke="${INK}" stroke-width="1"/>`;
   }).join('');
 
-/** Each scene: draw(w, h) -> the inside of the picture, w × h units. `free`: in the free version. */
+// a piece's little detail, `s` the side of its square, (x, y) its middle, k a number to vary it
+const DETAIL = {
+  sky: (x, y, s) => cloud(x, y + s * 0.06, s * 0.5),
+  grass: (x, y, s, k) =>
+    k % 2
+      ? `<path d="M${n(x - s * 0.2)} ${n(y + s * 0.14)}l${n(s * 0.06)} ${n(-s * 0.3)} ${n(s * 0.08)} ${n(s * 0.3)}zM${n(x - s * 0.06)} ${n(y + s * 0.14)}l${n(s * 0.06)} ${n(-s * 0.38)} ${n(s * 0.08)} ${n(s * 0.38)}zM${n(x + s * 0.08)} ${n(y + s * 0.14)}l${n(s * 0.06)} ${n(-s * 0.28)} ${n(s * 0.08)} ${n(s * 0.28)}z" fill="#5fae4a"/>`
+      : flower(x, y, s, ['#ff7eb6', '#ffffff', '#b38cff', '#ffd23f'][k % 4]),
+  water: (x, y, s) => `<g fill="#bfe8ff" stroke="#e8f7ff" stroke-width="${n(s * 0.02)}"><circle cx="${n(x - s * 0.06)}" cy="${n(y + s * 0.05)}" r="${n(s * 0.11)}"/><circle cx="${n(x + s * 0.12)}" cy="${n(y - s * 0.1)}" r="${n(s * 0.07)}"/></g>`,
+  space: (x, y, s, k) => star(x, y, s * 0.22, k % 3 ? '#fff3a8' : '#ffd0f0'),
+  wall: (x, y, s, k) => flower(x, y, s, k % 2 ? '#ffc98a' : '#ffb3c7'),
+  cloth: (x, y, s) => `<g fill="#ffd23f" stroke="${INK}" stroke-width="${n(s * 0.015)}"><circle cx="${n(x - s * 0.08)}" cy="${n(y + s * 0.04)}" r="${n(s * 0.09)}"/><circle cx="${n(x + s * 0.11)}" cy="${n(y - s * 0.06)}" r="${n(s * 0.07)}"/></g>`,
+  paw: (x, y, s) => `<g fill="#ffb3cf"><ellipse cx="${n(x)}" cy="${n(y + s * 0.07)}" rx="${n(s * 0.12)}" ry="${n(s * 0.1)}"/>${[-1, 0, 1].map((d) => `<circle cx="${n(x + d * s * 0.12)}" cy="${n(y - s * 0.1 + Math.abs(d) * s * 0.04)}" r="${n(s * 0.055)}"/>`).join('')}</g>`,
+  road: (x, y, s) => `<g fill="#b9b7d0" stroke="#6f6d8c" stroke-width="${n(s * 0.015)}"><ellipse cx="${n(x - s * 0.08)}" cy="${n(y + s * 0.04)}" rx="${n(s * 0.12)}" ry="${n(s * 0.08)}"/><ellipse cx="${n(x + s * 0.12)}" cy="${n(y - s * 0.07)}" rx="${n(s * 0.08)}" ry="${n(s * 0.06)}"/></g>`,
+};
+function flower(x, y, s, petal) {
+  const r = s * 0.065;
+  const leaves = [0, 1, 2, 3].map((k) => `<circle cx="${n(x + Math.cos((k * Math.PI) / 2 + 0.4) * r * 1.2)}" cy="${n(y + Math.sin((k * Math.PI) / 2 + 0.4) * r * 1.2)}" r="${n(r)}" fill="${petal}"/>`);
+  return `<g stroke="${INK}" stroke-width="${n(s * 0.012)}">${leaves.join('')}<circle cx="${n(x)}" cy="${n(y)}" r="${n(r * 0.75)}" fill="#ffd23f"/></g>`;
+}
+
+/**
+ * The details for the pieces whose middle lies between y0 and y1 (parts of the height) on a board
+ * of w × h cut into `grid` ({ cols, rows }); nothing without a grid (the menu's pictures).
+ */
+function details(grid, w, h, kind, y0 = 0, y1 = 1) {
+  if (!grid) return '';
+  const s = Math.min(w / grid.cols, h / grid.rows);
+  let out = '';
+  for (let r = 0; r < grid.rows; r++)
+    for (let c = 0; c < grid.cols; c++) {
+      const k = r * grid.cols + c;
+      // a little off the middle, never the same twice in a row, always well inside the square
+      const x = (c + 0.5) * (w / grid.cols) + (((k * 37) % 9) - 4) * s * 0.02;
+      const y = (r + 0.5) * (h / grid.rows) + (((k * 53) % 7) - 3) * s * 0.025;
+      if (y >= h * y0 && y < h * y1) out += DETAIL[kind](x, y, s, k);
+    }
+  return out;
+}
+
+/**
+ * Each scene: draw(w, h, m, d) -> the inside of the picture, w × h units; d(kind, y0, y1) gives the
+ * pieces' details for that part of the height (see `details`). `free`: in the free version.
+ */
 const SCENES = [
   {
     id: 'garden',
     free: true,
-    draw: (w, h, m = Math.min(w, h)) =>
-      sky(w, h) + sun(w * 0.14, h * 0.16, m * 0.08) + cloud(w * 0.62, h * 0.14, m * 0.3) + cloud(w * 0.9, h * 0.26, m * 0.2) +
-      hill(w, h, 0.62, '#9ad66f') + flowers(w, h, 0.8, 9) +
+    draw: (w, h, m, d) =>
+      sky(w, h) + d('sky', 0, 0.62) + sun(w * 0.14, h * 0.16, m * 0.08) + cloud(w * 0.62, h * 0.14, m * 0.3) + cloud(w * 0.9, h * 0.26, m * 0.2) +
+      hill(w, h, 0.62, '#9ad66f') + d('grass', 0.62) + flowers(w, h, 0.8, 9) +
       pic('house', w * 0.4, h * 0.5, m * 0.72) + pic('dog', w * 0.8, h * 0.7, m * 0.42) + pic('flower', w * 0.1, h * 0.76, m * 0.3),
   },
   {
     id: 'sea',
     free: true,
-    draw: (w, h, m = Math.min(w, h)) =>
-      sky(w, h, '#cdeeff') + cloud(w * 0.3, h * 0.12, m * 0.28) + cloud(w * 0.85, h * 0.2, m * 0.22) + // the boat brings its own sun
+    draw: (w, h, m, d) =>
+      sky(w, h, '#cdeeff') + d('sky', 0, 0.5) + cloud(w * 0.3, h * 0.12, m * 0.28) + cloud(w * 0.85, h * 0.2, m * 0.22) + // the boat brings its own sun
 
-      `<rect y="${n(h * 0.5)}" width="${n(w)}" height="${n(h * 0.5)}" fill="#4aa8e8"/>` +
+      `<rect y="${n(h * 0.5)}" width="${n(w)}" height="${n(h * 0.5)}" fill="#4aa8e8"/>` + d('water', 0.5) +
       Array.from({ length: 5 }, (_, k) => `<path d="M0 ${n(h * (0.56 + k * 0.09))}q${n(w / 16)} ${n(-h * 0.025)} ${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0t${n(w / 8)} 0" fill="none" stroke="#9ad7ff" stroke-width="${n(m * 0.012)}"/>`).join('') +
       pic('boat', w * 0.45, h * 0.42, m * 0.62) + pic('fish', w * 0.2, h * 0.8, m * 0.3) + pic('fish', w * 0.78, h * 0.86, m * 0.24) + pic('bird', w * 0.16, h * 0.3, m * 0.22),
   },
   {
     id: 'fruit',
     free: true,
-    draw: (w, h, m = Math.min(w, h)) => {
+    draw: (w, h, m, d) => {
       const sq = m / 7;
       let cloth = '';
       for (let y = h * 0.45, r = 0; y < h; y += sq, r++) for (let x = 0, c = 0; x < w; x += sq, c++) if ((r + c) % 2 === 0) cloth += `<rect x="${n(x)}" y="${n(y)}" width="${n(sq)}" height="${n(sq)}" fill="#ff8f8f"/>`;
       return (
-        `<rect width="${n(w)}" height="${n(h)}" fill="#fff4cf"/>` +
-        `<rect y="${n(h * 0.45)}" width="${n(w)}" height="${n(h * 0.55)}" fill="#fff"/>${cloth}` +
+        `<rect width="${n(w)}" height="${n(h)}" fill="#fff4cf"/>` + d('wall', 0, 0.45) +
+        `<rect y="${n(h * 0.45)}" width="${n(w)}" height="${n(h * 0.55)}" fill="#fff"/>${cloth}` + d('cloth', 0.45) +
         `<rect x="${n(w * 0.08)}" y="${n(h * 0.08)}" width="${n(w * 0.22)}" height="${n(h * 0.26)}" rx="6" fill="#bfe6ff" stroke="#c48a4a" stroke-width="${n(m * 0.02)}"/>` +
+        `<path d="M${n(w * 0.19)} ${n(h * 0.08)}V${n(h * 0.34)}M${n(w * 0.08)} ${n(h * 0.21)}H${n(w * 0.3)}" stroke="#c48a4a" stroke-width="${n(m * 0.014)}"/>` +
         `<ellipse cx="${n(w * 0.5)}" cy="${n(h * 0.72)}" rx="${n(m * 0.42)}" ry="${n(m * 0.16)}" fill="#7cc6fe" stroke="${INK}" stroke-width="${n(m * 0.012)}"/>` +
         fruit(3, w * 0.38, h * 0.52, m * 0.32) + fruit(2, w * 0.6, h * 0.5, m * 0.34) + fruit(1, w * 0.3, h * 0.66, m * 0.3) + fruit(5, w * 0.7, h * 0.64, m * 0.3) +
         fruit(4, w * 0.86, h * 0.88, m * 0.26) + fruit(6, w * 0.12, h * 0.88, m * 0.24) + fruit(7, w * 0.8, h * 0.2, m * 0.2)
@@ -88,8 +138,8 @@ const SCENES = [
   {
     id: 'space',
     free: false,
-    draw: (w, h, m = Math.min(w, h)) =>
-      `<rect width="${n(w)}" height="${n(h)}" fill="#22205a"/>` +
+    draw: (w, h, m, d) =>
+      `<rect width="${n(w)}" height="${n(h)}" fill="#22205a"/>` + d('space') +
       Array.from({ length: 24 }, (_, k) => star(((k * 97) % 100) / 100 * w, ((k * 61 + 13) % 100) / 100 * h, m * (0.015 + (k % 3) * 0.01))).join('') +
       `<circle cx="${n(w * 0.2)}" cy="${n(h * 0.24)}" r="${n(m * 0.13)}" fill="#f2eedc"/><circle cx="${n(w * 0.17)}" cy="${n(h * 0.21)}" r="${n(m * 0.03)}" fill="#d8d2b8"/><circle cx="${n(w * 0.24)}" cy="${n(h * 0.29)}" r="${n(m * 0.02)}" fill="#d8d2b8"/>` +
       `<ellipse cx="${n(w * 0.8)}" cy="${n(h * 0.74)}" rx="${n(m * 0.24)}" ry="${n(m * 0.06)}" fill="none" stroke="#ffb35c" stroke-width="${n(m * 0.02)}"/><circle cx="${n(w * 0.8)}" cy="${n(h * 0.74)}" r="${n(m * 0.13)}" fill="#ff7eb6"/>` +
@@ -98,40 +148,40 @@ const SCENES = [
   {
     id: 'zoo',
     free: false,
-    draw: (w, h, m = Math.min(w, h)) =>
-      sky(w, h, '#d7f0ff') + sun(w * 0.86, h * 0.14, m * 0.07) + cloud(w * 0.35, h * 0.12, m * 0.26) +
-      hill(w, h, 0.6, '#b6e07c') + tree(w * 0.1, h * 0.5, m * 0.45) + flowers(w, h, 0.84, 7) +
+    draw: (w, h, m, d) =>
+      sky(w, h, '#d7f0ff') + d('sky', 0, 0.6) + sun(w * 0.86, h * 0.14, m * 0.07) + cloud(w * 0.35, h * 0.12, m * 0.26) +
+      hill(w, h, 0.6, '#b6e07c') + d('grass', 0.6) + tree(w * 0.1, h * 0.5, m * 0.45) + flowers(w, h, 0.84, 7) +
       pic('elephant', w * 0.48, h * 0.55, m * 0.7) + pic('turtle', w * 0.84, h * 0.78, m * 0.34) + pic('bird', w * 0.82, h * 0.36, m * 0.24),
   },
   {
     id: 'puppies',
     free: false,
-    draw: (w, h, m = Math.min(w, h)) => {
+    draw: (w, h, m, d) => {
       let dots = '';
       for (let y = 0, r = 0; y < h + 20; y += m / 6, r++) for (let x = (r % 2) * (m / 12); x < w + 20; x += m / 6) dots += `<circle cx="${n(x)}" cy="${n(y)}" r="${n(m * 0.02)}" fill="#ffd8e8"/>`;
       const cols = w >= h * 1.2 ? 3 : 2;
       const rows = 6 / cols;
       let dogs = '';
       for (let k = 0; k < 6; k++) dogs += dog(k, ((k % cols) + 0.5) * (w / cols), (Math.floor(k / cols) + 0.5) * (h / rows), Math.min(w / cols, h / rows) * 0.9);
-      return `<rect width="${n(w)}" height="${n(h)}" fill="#fff0f6"/>${dots}${dogs}`;
+      return `<rect width="${n(w)}" height="${n(h)}" fill="#fff0f6"/>${dots}${d('paw')}${dogs}`;
     },
   },
   {
     id: 'street',
     free: false,
-    draw: (w, h, m = Math.min(w, h)) =>
-      sky(w, h, '#c9ecff') + cloud(w * 0.2, h * 0.14, m * 0.28) + sun(w * 0.86, h * 0.14, m * 0.07) +
+    draw: (w, h, m, d) =>
+      sky(w, h, '#c9ecff') + d('sky', 0, 0.62) + cloud(w * 0.2, h * 0.14, m * 0.28) + sun(w * 0.86, h * 0.14, m * 0.07) +
       pic('house', w * 0.22, h * 0.4, m * 0.5) + pic('house', w * 0.78, h * 0.38, m * 0.44) +
-      `<rect y="${n(h * 0.62)}" width="${n(w)}" height="${n(h * 0.38)}" fill="#8c8aa8"/>` +
+      `<rect y="${n(h * 0.62)}" width="${n(w)}" height="${n(h * 0.38)}" fill="#8c8aa8"/>` + d('road', 0.62) +
       `<path d="M0 ${n(h * 0.8)}H${n(w)}" stroke="#fff" stroke-width="${n(m * 0.02)}" stroke-dasharray="${n(m * 0.08)} ${n(m * 0.06)}"/>` +
       pic('car', w * 0.55, h * 0.74, m * 0.5) + pic('cat', w * 0.5, h * 0.42, m * 0.3),
   },
   {
     id: 'meadow',
     free: false,
-    draw: (w, h, m = Math.min(w, h)) =>
-      sky(w, h, '#e1f4ff') + cloud(w * 0.75, h * 0.12, m * 0.3) + sun(w * 0.12, h * 0.14, m * 0.07) +
-      hill(w, h, 0.45, '#a3dc78', 0.08) + tree(w * 0.86, h * 0.4, m * 0.42) + flowers(w, h, 0.62, 10) +
+    draw: (w, h, m, d) =>
+      sky(w, h, '#e1f4ff') + d('sky', 0, 0.45) + cloud(w * 0.75, h * 0.12, m * 0.3) + sun(w * 0.12, h * 0.14, m * 0.07) +
+      hill(w, h, 0.45, '#a3dc78', 0.08) + d('grass', 0.45) + tree(w * 0.86, h * 0.4, m * 0.42) + flowers(w, h, 0.62, 10) +
       pic('cat', w * 0.25, h * 0.58, m * 0.4) + pic('dog', w * 0.6, h * 0.62, m * 0.42) + pic('turtle', w * 0.84, h * 0.86, m * 0.28) +
       fruit(6, w * 0.1, h * 0.88, m * 0.2) + pic('bird', w * 0.45, h * 0.24, m * 0.22) + fruit(7, w * 0.38, h * 0.88, m * 0.18),
   },
@@ -140,8 +190,13 @@ const SCENES = [
 export const PICTURES = Object.freeze(SCENES.map(({ id, free }) => Object.freeze({ id, free })));
 export const PICTURE_IDS = Object.freeze(PICTURES.map((p) => p.id));
 
-/** A scene as a whole SVG document, w × h units (also a data: URL for a canvas). */
-export function pictureSvg(id, w, h, { cls = '' } = {}) {
+/**
+ * A scene as a whole SVG document, w × h units (also a data: URL for a canvas). With `cols` and
+ * `rows` (a puzzle cut into that grid) every piece gets its own little detail.
+ */
+export function pictureSvg(id, w, h, { cls = '', cols = 0, rows = 0 } = {}) {
   const scene = SCENES.find((s) => s.id === id) || SCENES[0];
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 ${n(w)} ${n(h)}" width="${n(w)}" height="${n(h)}" aria-hidden="true">${scene.draw(w, h)}</svg>`;
+  const grid = cols > 0 && rows > 0 ? { cols, rows } : null;
+  const d = (kind, y0, y1) => details(grid, w, h, kind, y0, y1);
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 ${n(w)} ${n(h)}" width="${n(w)}" height="${n(h)}" aria-hidden="true">${scene.draw(w, h, Math.min(w, h), d)}</svg>`;
 }
