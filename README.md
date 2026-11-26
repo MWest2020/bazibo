@@ -8,7 +8,7 @@ An app of play-and-learn games for children of 3 to 10. No ads, no trackers, no 
 €1 purchase that opens every game. It is a plain web app (HTML, CSS and JavaScript on a canvas),
 wrapped with Capacitor as an Android and an iOS app. The games: the bubble shooter
 ("Bubbels schieten" / "Bubble Shooter"), Dogudoku (a logic puzzle with puppies), Picturedoku (a
-sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 60 pieces), Verstoppertje ("Hide and Seek", find the little animal behind a stone, a bush or a little door), Treintje ("Train Tracks", lay one railway through every square past the stations in order, then the little train rides it), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
+sudoku with pictures), Paartjes ("Pairs", turn over two cards and find the pairs), Legpuzzel ("Jigsaw", 9 to 100 pieces), Verstoppertje ("Hide and Seek", find the little animal behind a stone, a bush or a little door), Treintje ("Train Tracks", lay one railway through every square past the stations in order, then the little train rides it), Vier op een rij ("Four in a Row", together or against the computer), Dammen ("Checkers"), Tijgers en geitjes ("Tigers and Goats", Bagh-Chal from Nepal), Schaken ("Chess"), Ganzenbord ("Game of the Goose"), Ludo (the race game with one die, with Pachisi, the original from India, as a second mode), Kwartet ("Quartets", the Dutch card game of asking for cards),
 Slangetje ("Snake", a snake that eats numbers in order, the letters of a word or one colour) and
 Kleurplaten ("Colouring", pictures for the youngest and mandalas for older children), Klok
 kijken ("Telling Time", read and set an analogue clock), Letters (learn the letters by sight:
@@ -109,25 +109,31 @@ Ravensburger trademark, as "Connect Four" is for Vier op een rij).
 
 A jigsaw puzzle, in `web/games/legpuzzel/` (rules and geometry in `rules.js`, the pictures in
 `pictures.js`, the screens in `legpuzzel.js`). Chosen over a sliding puzzle because it works from
-age 3 (9 big pieces) up to 10 (60 pieces). A sliding puzzle is hard below about 7.
+age 3 (9 big pieces) up to 10 (100 pieces). A sliding puzzle is hard below about 7.
 
-- Six sizes: 9 pieces (3×3, age 3+), 16 (4×4, 4+), 25 (5×5, 5+), 30 (6×5, 6+), 48 (8×6, 7+), 60
-  (10×6, 9+). The ages moved down in issue #45: Mark's four-year-old laid the 30 pieces, then
-  marked 9+, with ease. The same day Mark dropped the sizes for two-year-olds (17 Nov 2026: 9
-  pieces from 3, 16 from 4, 25 from 5); 4, 6, 12 and 20 pieces left the menu. Their ticks stay in
-  the save, unseen, and a saved last size that is gone opens on 9 (`knownSize`). Square pieces with round tabs (`piecePath`). A tab on one piece is a hole in its neighbour; the border is
+- Seven sizes: 9 pieces (3×3, age 3+), 25 (5×5, 4+), 36 (6×6, 5+), 48 (8×6, 6+), 60 (10×6, 7+),
+  80 (10×8, 8+), 100 (10×10, 9+). The ages moved down in issue #45: Mark's four-year-old laid the
+  30 pieces, then marked 9+, with ease. The same day Mark dropped the sizes for two-year-olds (17
+  Nov 2026); 4, 6, 12 and 20 pieces left the menu. On 26 Nov 2026 Mark asked for more pieces per
+  age ("9 for 3 is fine, but 4 can be 25 already"), so 16 and 30 left too and 36, 80 and 100 came
+  in. Their ticks stay in the save, unseen, and a saved last size that is gone opens on the size
+  that took its place: 16 on 25, 30 on 36, the older ones on 9 (`knownSize`). Square pieces with round tabs (`piecePath`). A tab on one piece is a hole in its neighbour; the border is
   straight. No turning.
 - Eight pictures, whole scenes drawn in code, so every piece shows something: the house in the
   garden, the boat at sea, the fruit bowl (free), the rocket, the elephant, six puppies, the street
   and the meadow (full version). They are made from the app's own drawings (Kleurplaten pictures,
   Picturedoku fruit, Dogudoku puppies) on a sky, grass, sea, space or table-cloth background. A
-  scene fills any board shape, from 1:1 to 5:3.
+  scene fills any board shape, from 1:1 to 5:3. Cut into a puzzle, every piece gets a little detail
+  in the middle of its square, under the drawings and fitting where it lies (a cloud
+  puff in the sky, a flower or a tuft of grass, bubbles in the sea, a star in space, a paw print,
+  pebbles on the road), so with 80 or 100 pieces no piece is plain sky or grass. The menu's
+  pictures have none.
 - The loose pieces lie scattered on a tray under the board (beside it on a sideways screen;
   `layout`, `scatter`). Drag a piece; dropped within 0.4 of a piece of its own place it snaps in
   with a soft note (one higher for each piece) and stays. It never snaps into another piece's
   place, and a drop anywhere else leaves it there. A touch on the see-through corner of a piece's
   drawing goes to the piece underneath.
-- The magnifier (48 and 60 pieces on a phone, 25 and 30 on a small one of 320-360 wide): when a piece's square is under
+- The magnifier (48 to 100 pieces on a phone, 25 and 36 on a small one of 320-360 wide): when a piece's square is under
   56 px the HUD shows a magnifier button. It scales the board and the tray together to about 66 px
   a piece (`zoomFor`); a finger on an empty spot moves the view, and a piece held near the edge of
   the view moves it along, so a piece from the tray reaches a place out of view in one drag. It is
@@ -140,8 +146,8 @@ age 3 (9 big pieces) up to 10 (60 pieces). A sliding puzzle is hard below about 
   menu.
 - The picture is drawn once into an image the size of the board. Every piece is its own small
   canvas cut out with a `Path2D`, moved with a CSS transform, so dragging redraws nothing.
-- Free: 9, 16 and 25 pieces with the first three pictures. The full version adds 30, 48 and 60
-  pieces and five more pictures (`meta.js`). The end card of a 25-piece puzzle offers "More
+- Free: 9, 25 and 36 pieces with the first three pictures. The full version adds 48, 60, 80 and
+  100 pieces and five more pictures (`meta.js`). The end card of a 36-piece puzzle offers "More
   puzzles".
 - Saved under `games.legpuzzel`: every picture and size laid at least once (a tick in the menu),
   the last size, the example picture on or off and the magnifier on or off. A puzzle in progress is kept while the app

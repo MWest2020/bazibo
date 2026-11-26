@@ -8,29 +8,37 @@
 // (`margin`) on every side for the tabs that stick out.
 
 // `age`: from what age a size is about right. Mark (17 Nov 2026, issue #45): his four-year-old laid
-// the 30 pieces then marked 9+ with ease, so the scale moved down and 48 and 60 pieces came in.
-// Later that day: nothing for two-year-olds; 9 pieces from 3, 16 from 4, 25 from 5, the rest as it
-// was. The 4, 6, 12 and 20 pieces are gone from the menu; their stars stay in the save (never drop
-// a field), they are just not shown, and a saved last size that is gone falls back to 9.
+// the 30 pieces then marked 9+ with ease, so the scale moved down and 48 and 60 pieces came in;
+// later that day nothing for two-year-olds. Mark (26 Nov 2026): more pieces per age, 9 pieces stay
+// at 3, but a four-year-old can do 25 already: 9 (3+), 25 (4+), 36 (5+), 48 (6+), 60 (7+), 80 (8+),
+// 100 (9+). Sizes that left the menu (4, 6, 12, 20, and since 26 Nov 16 and 30) keep their stars in
+// the save (never drop a field); they are just not shown.
 export const SIZES = Object.freeze({
   p9: Object.freeze({ cols: 3, rows: 3, age: 3 }),
-  p16: Object.freeze({ cols: 4, rows: 4, age: 4 }),
-  p25: Object.freeze({ cols: 5, rows: 5, age: 5 }),
-  p30: Object.freeze({ cols: 6, rows: 5, age: 6 }),
-  p48: Object.freeze({ cols: 8, rows: 6, age: 7 }),
-  p60: Object.freeze({ cols: 10, rows: 6, age: 9 }),
+  p25: Object.freeze({ cols: 5, rows: 5, age: 4 }),
+  p36: Object.freeze({ cols: 6, rows: 6, age: 5 }),
+  p48: Object.freeze({ cols: 8, rows: 6, age: 6 }),
+  p60: Object.freeze({ cols: 10, rows: 6, age: 7 }),
+  p80: Object.freeze({ cols: 10, rows: 8, age: 8 }),
+  p100: Object.freeze({ cols: 10, rows: 10, age: 9 }),
 });
 /** Sizes that were in the menu before and are not any more (their saved stars are kept). */
-export const RETIRED_SIZES = Object.freeze(['p4', 'p6', 'p12', 'p20']);
+export const RETIRED_SIZES = Object.freeze(['p4', 'p6', 'p12', 'p20', 'p16', 'p30']);
 export const SIZE_IDS = Object.freeze(Object.keys(SIZES));
 export const piecesOf = (size) => SIZES[size].cols * SIZES[size].rows;
 export const DEFAULT_SIZE = 'p9';
-/** The saved last size as the menu can use it: a size that is not in the menu (any more) is 9. */
-export const knownSize = (id) => (SIZE_IDS.includes(id) ? id : DEFAULT_SIZE);
+// A saved last size that left the menu on 26 Nov 2026 opens on the size that took its place for the
+// same child: 16 (the four-year-olds' size) on 25, now the 4+ size; 30 on 36, the next step up
+// rather than the jump to 48. The sizes for two-year-olds (17 Nov) open on 9, as before.
+const SUCCESSOR = Object.freeze({ p16: 'p25', p30: 'p36' });
+/** The saved last size as the menu can use it: a size that is not in the menu (any more) becomes
+ *  the size that took its place, else 9. */
+export const knownSize = (id) => (SIZE_IDS.includes(id) ? id : Object.hasOwn(SUCCESSOR, id) ? SUCCESSOR[id] : DEFAULT_SIZE);
 
 export const TAB = 0.3; // how far a tab sticks out, in pieces
 export const margin = (s) => Math.ceil(s * (TAB + 0.02));
 export const SNAP = 0.4; // how near (in pieces) a drop must be to its place to snap in
+export const GRAB = 44; // a piece with its tabs is at least this big (px) wherever the screen allows it
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -112,12 +120,15 @@ export function piecePath(sides, s, m = margin(s)) {
 /**
  * Where the board and the tray go on a stage of w × h px, and how big a piece is. Upright the tray
  * is under the board, sideways beside it. The tray must hold the pieces with at most a little
- * overlap; the board takes what is left. Returns { s, m, board: {x, y, w, h}, tray: {x, y, w, h}, side }.
+ * overlap; the board takes what is left. When that would make a piece with its tabs smaller than
+ * GRAB (100 pieces at 320x568, upright and sideways), the pieces stay GRAB and overlap more on the tray, as
+ * long as at least half of them fit side by side. Returns { s, m, board: {x, y, w, h}, tray: {x, y, w, h}, side }.
  */
 export function layout(w, h, cols, rows, { gap = 12, maxPiece = 150 } = {}) {
   const side = w > h * 1.15;
   const n = cols * rows;
   let best = null;
+  let grab = null; // the smallest layout whose pieces are still GRAB with their tabs
   for (let s = Math.min(maxPiece, Math.floor(side ? h / rows : w / cols)); s >= 16; s--) {
     const m = margin(s);
     const bw = cols * s;
@@ -127,9 +138,11 @@ export function layout(w, h, cols, rows, { gap = 12, maxPiece = 150 } = {}) {
     // how many pieces fit side by side on the tray, a piece's square apart (tabs may overlap)
     const fit = Math.floor((tray.w - 2 * m) / s) * Math.floor((tray.h - 2 * m) / s);
     best = { s, m, side, board: { x: 0, y: 0, w: bw, h: bh }, tray };
+    if (s + 2 * m >= GRAB && fit >= n * 0.5) grab = best;
     if (fit >= n * 0.75) break;
   }
   if (!best) return null;
+  if (best.s + 2 * best.m < GRAB && grab) best = grab;
   // centre the board and tray together on the stage
   const { s, board, tray } = best;
   if (side) {
@@ -197,8 +210,8 @@ export function rearrange({ pos, placed, cols, board, s, m, w, h, resized, sprea
   });
 }
 
-// The magnifier (issue #45). With 48 or 60 pieces the board on a phone gets pieces of 30-45 px, with
-// 25 and 30 pieces about 45-50 px on a small phone (320-360 wide); a child can drag them, but sees
+// The magnifier (issue #45). With 48 to 100 pieces the board on a phone gets pieces of 26-45 px, with
+// 25 and 36 pieces about 38-53 px on a small phone (320-360 wide); a child can drag them, but sees
 // little of the picture on them. Then the HUD shows a magnifier: the whole stage (board and tray
 // together) is drawn ZOOM_TARGET px a piece and the child moves the view with a finger on an empty
 // spot, or by holding a piece near the edge. The geometry stays the same: the zoom is only a view.

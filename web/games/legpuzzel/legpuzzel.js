@@ -1,4 +1,4 @@
-// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 9 to 60 pieces with round tabs,
+// Legpuzzel (jigsaw): drag the pieces of a picture to their places. 9 to 100 pieces with round tabs,
 // no turning; a piece dropped near its own place snaps in with a soft plink and stays. A faint
 // example picture on the board helps (the eye button turns it off). The geometry and the rules
 // live in rules.js, the pictures in pictures.js; the shell (web/js/main.js) owns the overlay card,
@@ -8,7 +8,7 @@
 // piece is its own small canvas, cut out with its outline (a Path2D from rules.piecePath) and moved
 // with a CSS transform, so dragging never redraws anything.
 //
-// The magnifier (48 and 60 pieces on a phone, 25 and 30 on a small one; see rules.zoomFor): the board and the pieces live in
+// The magnifier (48 to 100 pieces on a phone, 25 and 36 on a small one; see rules.zoomFor): the board and the pieces live in
 // one layer (`#legpuzzel-world`, the stage at its own size) that is scaled and moved as a whole.
 // All positions stay in stage units; only the pointer is turned into them (`toWorld`). A finger on
 // an empty spot moves the view, a piece held near the edge of the view moves it too. The canvases
@@ -16,7 +16,7 @@
 //
 // Saved (games.legpuzzel): in `stars`, 1 for every picture and size laid at least once
 // ('<picture>-<size>', also for the sizes no longer in the menu: kept, not shown); the last size
-// ('size', back to 9 when it is a size that is gone), the example picture on or off ('ghost') and the
+// ('size'; a size that is gone opens on the one that took its place, see rules.knownSize), the example picture on or off ('ghost') and the
 // magnifier on or off ('zoom'). A puzzle
 // in progress is kept while the app stays open ("keep puzzling").
 import { meta } from './meta.js';
@@ -41,7 +41,7 @@ export function sizeSvg(cols, rows) {
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
       const lifted = (r === rows - 1 && c === cols - 1) || (rows > 2 && r === 0 && c === 1);
-      out += `<rect x="${(c * s + (lifted ? 3 : 0)).toFixed(1)}" y="${(r * s - (lifted ? 4 : 0)).toFixed(1)}" width="${(s - 1.5).toFixed(1)}" height="${(s - 1.5).toFixed(1)}" rx="2" fill="${lifted ? '#ffd23f' : (r + c) % 2 ? '#8fd0ff' : '#b9e1ff'}" stroke="#3a2f6b" stroke-width="1.4"/>`;
+      out += `<rect x="${(c * s + (lifted ? 3 : 0)).toFixed(1)}" y="${(r * s - (lifted ? 4 : 0)).toFixed(1)}" width="${(s - 1.5).toFixed(1)}" height="${(s - 1.5).toFixed(1)}" rx="2" fill="${lifted ? '#ffd23f' : (r + c) % 2 ? '#8fd0ff' : '#b9e1ff'}" stroke="#3a2f6b" stroke-width="${Math.min(1.4, s * 0.14).toFixed(2)}"/>`;
     }
   return `<svg class="psize" viewBox="-2 -6 ${(cols * s + 6).toFixed(1)} ${(rows * s + 8).toFixed(1)}" aria-hidden="true">${out}</svg>`;
 }
@@ -235,7 +235,7 @@ export function createLegpuzzel(shell) {
     // drawn sharp enough for the magnifier from the start: turning it on never redraws
     const dpr = Math.min(Math.min(window.devicePixelRatio || 1, 2) * zoomFor(s), 4);
     const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pictureSvg(game.picture, board.w, board.h))}`;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pictureSvg(game.picture, board.w, board.h, { cols: game.cols, rows: game.rows }))}`;
     try {
       await img.decode();
     } catch {

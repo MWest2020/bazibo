@@ -42,7 +42,7 @@ PUZZLES
 • Dogudoku: hide the puppies, one per row and column, never side by side. From 4 by 4 to coloured beds; 60 puzzles.
 • Picturedoku: sudoku with pictures, from age 3 without numbers or reading, up to 9 by 9. 60 puzzles.
 • Pairs: on your own, together or against the computer. 6 and 12 cards; full version: 16 and 20 cards and more pictures.
-• Jigsaw: 9, 16 and 25 pieces and a magnifier on phones; full version: up to 60 pieces and more pictures.
+• Jigsaw: 9, 25 and 36 pieces and a magnifier on phones; full version: up to 100 pieces and more pictures.
 • Hide and Seek: lift a stone or look behind a bush: where is the hedgehog? Full version: forest, beach and farm.
 • Train Tracks: lay one railway through every square, past the stations in order, and the little train rides. Ages 3-5 free.
 
