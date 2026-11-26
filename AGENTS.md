@@ -69,7 +69,9 @@ only that one. After either, `npm run stamp`; never edit `share.png` by hand. Th
 screenshots (`store/screenshots/<nl|en>/<size>/`, the same 8 per size) are the real app, shot by
 `tools/store_shots.py` on a real device's shape (360x640, 430x932, 768x1024) scaled into the frame's screen area and set in the brand's screenshot
 frame of that language (`design/brand/store/screenshot-frame-{nl,en}.svg`: the mark and the caption
-on top, the trust row below, on paper); for the App Store sizes the frame's top and trust row are
+on top, the trust row below, on paper); every shot after the first has its own caption naming the game as the app does
+(`tools/store_captions.py` sets them in Fredoka as outlines into `design/brand/store/captions.json`; run it before
+`store_shots.py` when a caption or a scene changes); for the App Store sizes the frame's top and trust row are
 scaled as one and the screen takes the rest. Never put a locked choice in a shot. Each section is a CSS grid with `auto-fill`/`minmax`: 3 tiles a row on most
 phones, 2 at 320 px, the sections side by side on wider screens; a section wider than the screen wraps its tiles (`.home-inner` keeps `max-width: 100%`), so there is never sideways scroll from 320 to 1400 px.
 

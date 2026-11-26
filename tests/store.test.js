@@ -27,8 +27,8 @@ test('store: iPhone and iPad screenshots both survive in the App Store folder', 
     }
     for (const loc of ['nl-NL', 'en-US']) {
       const files = readdirSync(join(out, 'ios-screenshots', loc));
-      // 8 per device: the home screen, Bubbels' levels and a shot, Dogudoku, Picturedoku, Klok
-      // kijken, Letters and a mandala (Google Play takes at most 8; the App Store up to 10)
+      // 8 per device: the home screen, Winkeltje, a Bubbels shot, Treintje, Klok kijken, Keukentje,
+      // Picturedoku and a mandala (Google Play takes at most 8; the App Store up to 10)
       assert.equal(files.filter((f) => f.startsWith('iphone-')).length, 8);
       assert.equal(files.filter((f) => f.startsWith('ipad-')).length, 8);
       assert.equal(readdirSync(join(out, 'android', loc, 'images', 'phoneScreenshots')).length, 8);
