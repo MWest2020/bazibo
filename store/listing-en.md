@@ -15,11 +15,11 @@ No ads. Ever.
 
 ## Short description, Play only (80)
 
-Kids' games with no ads: puzzles, letters, maths, telling time. Works offline.
+Kids games with no ads: puzzles, letters, maths, telling time. Works offline.
 
 ## Promotional text, App Store only (170)
 
-24 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
+27 games, like Bubble Shooter, Pairs, Jigsaw, Quartets, Checkers, Game of the Goose, Piano, Drums and Telling Time: play and learn, ages 3 to 10, no ads.
 
 ## Keywords, App Store only (100, commas without spaces)
 
@@ -34,8 +34,8 @@ LEARNING GAMES
 • Letters: find the same letter among look-alikes, the first or a middle letter of a pictured word, and build a word.
 • Little Hedgehog: a hedgehog in a garden maze picks up the alphabet, a word or numbers in order.
 • Kangaroo Hops: adding and taking away by hops on a number line, as taught at school. Up to 10 free; up to 20 and 100 in the full version.
-• Little Shop: pay the mouse behind the counter with euro coins, later with notes, cents and change too. Whole euros are free.
-• Little Kitchen: the cook, a little bear in a chef's hat, asks what goes into bread, pancakes or pizza; later also where milk comes from. Ages 3-5 free.
+• Little Shop: pay the mouse behind the counter with euro coins, later with notes, cents and change too. Ages 3-5 free.
+• Little Kitchen: the cook, a bear cub in a chef's hat, asks what goes into bread, pancakes or pizza; later also where milk comes from. Ages 3-5 free.
 • Map Puzzle: piece together the continents, Europe, the Netherlands, the US or the UK, and find places. Free: the continents, and every puzzle with borders.
 
 PUZZLES
@@ -58,7 +58,7 @@ BOARD GAMES: TOGETHER OR AGAINST THE COMPUTER
 CREATIVE
 • Colouring: pick a colour, tap a part. 13 pictures from age 3, mandalas from age 7.
 • Drawing: with a finger, every colour and an eraser. Full version: mirror mode, stamps and up to 100 drawings.
-• Piano: play along, the next coloured key lights up. Frère Jacques, and two octaves for ages 7-10.
+• Piano: play along, the next coloured key lights up. Frère Jacques; ages 7-10: two octaves.
 • Drums: eight drums and cymbals. Play along at your own pace or on the beat.
 • Parrot: say something and the parrot says it back, as a mouse or a bear too. Your voice stays on the device.
 

@@ -21,7 +21,7 @@ Kinderspelletjes zonder reclame: puzzels, letters, rekenen, klok kijken. Offline
 
 ## Promotietekst, alleen App Store (170)
 
-24 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
+27 spellen, zoals Bubbels schieten, Paartjes, Legpuzzel, Kwartet, Dammen, Ganzenbord, Piano, Drumstel en Klok kijken: spelen en leren, 3-10 jaar. Geen reclame.
 
 ## Trefwoorden, alleen App Store (100, komma's zonder spaties)
 
@@ -36,7 +36,7 @@ LEERSPELLETJES
 • Letters: zoek dezelfde letter, vind de begin- of middenletter bij een plaatje en maak een woordje.
 • Egeltje: een egel raapt in een tuindoolhof het alfabet, een woordje of getallen op volgorde op.
 • Kangoeroe op de getallenlijn: plussen en minnen met sprongen, zoals op school. Tot 10 gratis; tot 20 en 100 in de volledige versie.
-• Winkeltje: betaal bij het muisje achter de toonbank met euromunten, later ook met briefjes, centen en wisselgeld. Hele euro's gratis.
+• Winkeltje: betaal bij het muisje achter de toonbank met euromunten, later ook met briefjes, centen en wisselgeld. 3-5 jaar gratis.
 • Keukentje: de kok, een beertje met koksmuts, vraagt wat er in brood, pannenkoeken of pizza hoort; later ook waar melk vandaan komt. 3-5 jaar gratis.
 • Kaartpuzzel: leg de werelddelen, Europa, Nederland, de VS of het VK en zoek plaatsen op. Gratis: werelddelen, en leggen met lijnen.
 
@@ -60,7 +60,7 @@ BORDSPELLEN: SAMEN OF TEGEN DE COMPUTER
 CREATIEF
 • Kleurplaten: kies een kleur, tik op een vlak. 13 kleurplaten vanaf 3 jaar, mandala's vanaf 7.
 • Tekenen: met je vinger, alle kleuren en een gum. Volledige versie: spiegelen, stempels en tot 100 tekeningen.
-• Piano: speel mee, de volgende gekleurde toets licht op. Vader Jacob, en voor 7-10 twee octaven.
+• Piano: speel mee, de volgende gekleurde toets licht op. Vader Jacob; 7-10 jaar: twee octaven.
 • Drumstel: acht trommels en bekkens. Speel mee in eigen tempo of op de maat.
 • Papegaai: zeg iets, de papegaai zegt het na, ook als muis of beer. Je stem blijft op het toestel.
 
