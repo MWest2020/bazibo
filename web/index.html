@@ -432,18 +432,18 @@
         <span class="bar-spacer"></span>
       </header>
       <div class="transfer-scroll">
-        <div id="coop-pick" class="transfer-pane">
+        <div id="coop-pick" class="coop-pane">
           <p class="setting-text" data-i18n="vier.coop.pickHint">Pak allebei een telefoon, op hetzelfde wifi. Eén telefoon laat een code zien, de andere scant hem.</p>
           <button id="coop-host" class="btn big primary" type="button" data-i18n="vier.coop.host">Ik laat de code zien</button>
           <button id="coop-guest" class="btn big secondary" type="button" data-i18n="vier.coop.guest">Ik scan de code</button>
           <p id="coop-pick-msg" class="transfer-msg" aria-live="polite"></p>
         </div>
-        <div id="coop-show" class="transfer-pane" hidden>
+        <div id="coop-show" class="coop-pane" hidden>
           <canvas id="coop-qr" class="transfer-qr" width="320" height="320" role="img" data-i18n-aria="vier.coop.qrLabel" aria-label="Code om samen te spelen" hidden></canvas>
           <p id="coop-show-msg" class="transfer-msg coop-msg" aria-live="polite"></p>
           <button id="coop-next" class="btn primary" type="button" data-i18n="vier.coop.next" hidden>Scan nu de code van de ander</button>
         </div>
-        <div id="coop-scan" class="transfer-pane" hidden>
+        <div id="coop-scan" class="coop-pane" hidden>
           <div class="transfer-cam">
             <video id="coop-video" playsinline muted></video>
             <span class="transfer-frame" aria-hidden="true"></span>
