@@ -37,6 +37,8 @@ import '../web/games/kaart/strings.js';
 import { PACK_IDS as KAART_PACKS } from '../web/games/kaart/packs.js';
 import '../web/games/doolhof/strings.js';
 import '../web/games/keuken/strings.js';
+import '../web/games/kermis/strings.js';
+import { TIER_IDS as KERMIS_TIERS, LINE_KEYS as KERMIS_LINES, PLAYER_COUNTS as KERMIS_COUNTS, MODES as KERMIS_MODES } from '../web/games/kermis/rules.js';
 import { TIER_IDS as KEUKEN_TIERS, LINE_KEYS as KEUKEN_LINES } from '../web/games/keuken/rules.js';
 import { INGREDIENT_IDS as KEUKEN_INGS, DISH_IDS as KEUKEN_DISHES, SOURCE_IDS as KEUKEN_SOURCES, ORIGIN_IDS as KEUKEN_ORIGINS, GROUP_IDS as KEUKEN_GROUPS, RECIPES as KEUKEN_RECIPES } from '../web/games/keuken/dishes.js';
 import '../web/games/treintje/strings.js';
@@ -173,6 +175,15 @@ test('every key used in index.html and in the code exists', () => {
   for (const id of KEUKEN_ORIGINS) used.add(`keuken.fact.${id}`);
   for (const id of KEUKEN_GROUPS) used.add(`keuken.group.${id}`);
   for (const [r, steps] of Object.entries(KEUKEN_RECIPES)) steps.forEach((_, k) => used.add(`keuken.step.${r}.${k + 1}`));
+  // Kleurenkermis: built as t(`kermis.<kind>.${id}`)
+  for (const id of KERMIS_TIERS) used.add(`kermis.tier.${id}`).add(`kermis.short.${id}`).add(`kermis.how.${id}`);
+  for (const k of KERMIS_LINES) used.add(k); // the chameleon's lines, built by hostLine
+  for (const n of KERMIS_COUNTS) used.add(`kermis.players.${n}`);
+  for (const m of KERMIS_MODES) used.add(`kermis.mode.${m}`).add(`kermis.mode.${m}Sub`);
+  for (const k of ['alone', 'turtle', 'calm', 'race']) used.add(`kermis.who.${k}`);
+  for (const k of ['race', 'raceTurtle']) used.add(`kermis.how.${k}`);
+  for (const n of [1, 2, 3]) used.add(`kermis.win${n}`);
+  for (const k of ['winText', 'winTogether', 'raceWon', 'raceTie', 'raceYouWon', 'raceTurtleWon']) used.add(`kermis.${k}`);
   for (const id of WINKEL_TIERS) used.add(`winkel.tier.${id}`).add(`winkel.short.${id}`).add(`winkel.how.${id}`);
   for (const k of WINKEL_LINES) used.add(k); // the shopkeeper's lines, built by shopLine
   for (const id of WINKEL_ITEMS) used.add(`winkel.item.${id}`);

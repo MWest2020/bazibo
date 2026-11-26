@@ -17,7 +17,8 @@ Hedgehog", walk a hedgehog through a garden maze and pick up the alphabet, a wor
 order), Kangoeroe op de getallenlijn ("Kangaroo Hops", adding and taking away by hops
 on a number line), Keukentje ("Little Kitchen", what goes into bread and other dishes, where it
 comes from and the steps of a recipe), Winkeltje ("Little Shop", pay with euro coins and notes in a little shop, later
-with cents and change), Kaartpuzzel ("Map Puzzle", topography: the continents, Europe and your own
+with cents and change), Kleurenkermis ("Colour Fair", does the colour match? a thing in a colour, a
+colour word in another ink, then the colour of the letters, calm or as a race on one tablet), Kaartpuzzel ("Map Puzzle", topography: the continents, Europe and your own
 country as a puzzle and as "where is...?") and Papegaai ("Parrot", record your voice and the parrot
 says it back, in funny voices too); more
 learning games follow (`docs/reference/roadmap.yml`). The brand name lives in
@@ -649,6 +650,32 @@ designs.
 - Saved under `games.winkel`: stars per round, random rounds per tier, the how-to cards seen and
   the last tier.
 
+### Kleurenkermis (Colour Fair)
+
+A colour game about the Stroop effect (a colour word in another ink), our own and calm (Mark, 26 Nov
+2026), in `web/games/kermis/` (id `kermis`, ages 3-10; the colours and things in `colours.js`, the
+rounds, taps and race in `rules.js`, both pure and tested; every drawing in code in `art.js`; the
+screens in `kermis.js`). A chameleon at a little fair stall shows the question on its sign and says
+every line in a speech bubble. Harder by what must be told apart, never by speed:
+
+- 3-5: a thing in a colour (a banana in blue): "Klopt deze kleur?", Ja or Nee with big buttons.
+  Nineteen things with one clear colour; a "Nee" shows a colour that is plainly wrong for it.
+- 6-7: rood, blauw, geel or groen in its own or another ink: does the word match the colour?
+- 8-10: the real Stroop task: tap the colour of the letters, not the word, from four colours.
+- Rustig (the default): no time; a tap that does not fit is greyed with "kijk nog eens", stars by
+  mistakes only. Together (2-4 children on one tablet) each child has a corner and they take turns;
+  the far corners face the other way and the sign shows the question twice.
+- Race (full version, the only Bazibo game with one): every child at once in their own corner, by
+  multi-touch; the first right tap wins the star, a wrong tap only pauses that child for a moment
+  (never minus points); alone, a race against a little turtle; a cheerful end with everyone placed.
+- Colour-blind safe: the colours that can meet in a question are far apart also for colour-blind
+  eyes (tested by simulation), red and green differ in lightness, every colour button has its own
+  shape and name, and Ja/Nee are a tick and a cross, never green and red.
+- Rounds of 8. Free: 3-5 in Rustig, alone or together; 6-7, 8-10, random rounds and the race in the
+  full version.
+- Saved under `games.kermis`: stars per round, random rounds per tier, the how-to cards seen, the
+  last tier, mode and number of players.
+
 ### Kaartpuzzel (Map Puzzle)
 
 Topography with map packs, in `web/games/kaart/` (id `kaart`, ages 6-12). The maps come from
@@ -791,7 +818,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web build sells nothing, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `winkel`, `papegaai` (with Chromium's fake microphone),
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `kermis`, `winkel`, `papegaai` (with Chromium's fake microphone),
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
@@ -819,6 +846,7 @@ an artifact when it fails).
 | `web/games/doolhof/` | Egeltje (garden maze): `meta.js` (free part), `maze.js` and `rules.js` (pure), `art.js` (garden, hedgehog, crows), `doolhof.js` (the screens) |
 | `web/games/treintje/` | Treintje (Train Tracks): `meta.js` (free part), `generate.js` (the puzzles, pure and seeded), `rules.js` (pure: steps, drags, the track's shape), `art.js` (grass, railway, stations, fences, the train, the tile), `treintje.js` (the screens) |
 | `web/games/keuken/` | Keukentje (Little Kitchen): `meta.js` (free part), `dishes.js` (the dishes, ingredients, sources, groups and recipes), `rules.js` (pure: rounds, taps, stars), `art.js` (every picture and the kitchen), `keuken.js` (the screens) |
+| `web/games/kermis/` | Kleurenkermis (Colour Fair): `meta.js` (free part), `colours.js` (the inks, the things of 3-5 and the button shapes), `rules.js` (pure: rounds, taps, stars, the race and the turtle), `art.js` (every drawing, the chameleon and the stall), `kermis.js` (the screens) |
 | `web/games/winkel/` | Winkeltje (Little Shop): `meta.js` (free part), `rules.js` (pure: the rounds, `fewest`, what is missing or over, in cents), `art.js` (coins, notes, the things, the tile), `winkel.js` (the screens) |
 | `web/games/verstop/` | Verstoppertje (Hide and Seek): `meta.js` (free part), `rules.js` (pure: rounds, looks, stars, where the spots stand), `art.js` (animals, creatures, spots, scenes), `verstop.js` (the screens) |
 | `web/games/memory/` | Paartjes (Memory): `meta.js` (free part), `rules.js` (pure), `ai.js` (the gentle computer), `art.js` (the cards), `memory.js` (the screens) |

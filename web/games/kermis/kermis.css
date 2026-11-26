@@ -1,0 +1,299 @@
+/* Kleurenkermis (Colour Fair): home tile, the menu picture and the play screen (the stall with the
+   chameleon, its speech bubble and the sign; the answer buttons alone at the bottom, or a corner per
+   child, the top corners turned to face the far side). The menu reuses Klok kijken's round grid and
+   dots (klok.css); shared look lives in css/style.css. Nothing here brings in a colour that could
+   be mistaken for an answer: the corners and buttons are ink on white, the stall cream and wood. */
+
+/* ---------- home tile and menu ---------- */
+#tile-kermis .tile-art { display: flex; align-items: center; justify-content: center; }
+.kk-tile-svg { width: 100%; height: 100%; max-width: 112px; display: block; overflow: visible; }
+.kk-menu-art { display: flex; justify-content: center; margin: 0 0 8px; }
+.kk-menu-art svg { width: 200px; height: auto; display: block; }
+.kk-ov { display: inline-flex; width: 170px; height: 119px; }
+.kk-ov svg { width: 100%; height: 100%; }
+.kk-modes .option-art svg { width: 100%; height: 100%; }
+
+/* ---------- the play screen ---------- */
+.kk-hud { gap: 10px; }
+#kk-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "mid" "solo";
+  gap: 8px;
+  padding: 2px 12px 10px;
+}
+.kk-pads { display: contents; }
+.kk-pad.slot-solo { grid-area: solo; }
+.kk-pad.slot-bl { grid-area: bl; }
+.kk-pad.slot-br { grid-area: br; }
+.kk-pad.slot-tl { grid-area: tl; }
+.kk-pad.slot-tr { grid-area: tr; }
+
+/* the stall: a calm striped awning over a cream board; the chameleon, its bubble and the sign */
+.kk-mid {
+  grid-area: mid;
+  position: relative;
+  min-height: 0;
+  width: min(100%, 560px);
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 12px 10px;
+  border-radius: 22px;
+  background: repeating-linear-gradient(90deg, #ffffff 0 22px, #f1e2c4 22px 44px) top / 100% 18px no-repeat, #fffaf0;
+  box-shadow: 0 4px 0 #e6d3b3;
+  overflow: hidden;
+}
+.kk-mid::before { content: ""; position: absolute; left: 0; right: 0; top: 18px; height: 3px; background: #d9b88a; }
+
+.kk-chat { flex: none; width: 100%; display: flex; align-items: flex-end; justify-content: flex-end; gap: 12px; }
+.kk-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: center;
+  padding: 5px 10px;
+  border: 3px solid #e0c79f;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: left;
+}
+.kk-bubble::before, .kk-bubble::after { content: ""; position: absolute; top: 50%; width: 0; height: 0; border: 9px solid transparent; }
+.kk-bubble::before { right: -21px; margin-top: -9px; border-left: 12px solid #e0c79f; }
+.kk-bubble::after { right: -16px; margin-top: -7px; border-width: 7px; border-left: 10px solid #ffffff; }
+.kk-chat.happy .kk-bubble { border-color: var(--bz-group-acc); }
+.kk-chat.happy .kk-bubble::before { border-left-color: var(--bz-group-acc); }
+.kk-say { margin: 0; min-height: 2.4em; display: flex; align-items: center; font-size: 1rem; font-weight: 800; color: var(--bz-ink); line-height: 1.2; text-wrap: pretty; overflow-wrap: anywhere; }
+.kk-host { flex: none; display: block; width: 72px; height: 60px; }
+.kk-host svg { width: 100%; height: 100%; display: block; overflow: visible; }
+/* a slow, small bob and a curl of the tail on a right answer */
+.kk-host.happy svg { transform-origin: 50% 100%; animation: kk-bob 1.5s ease-in-out infinite alternate; }
+.kk-host.happy .kk-host-tail { transform-box: fill-box; transform-origin: 0% 60%; animation: kk-tail 1.1s ease-in-out infinite alternate; }
+@keyframes kk-bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+@keyframes kk-tail { from { transform: rotate(-6deg); } to { transform: rotate(8deg); } }
+
+/* the sign with the question; together a second copy upside down for the far side */
+.kk-sign { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.kk-show {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: #ffffff;
+  border: 3px solid #d9b88a;
+  border-radius: 18px;
+  container-type: size; /* the word sizes itself to its sign (cqi, cqb) */
+}
+.kk-show.flip { display: none; transform: rotate(180deg); }
+#screen-kermis.kk-faces .kk-show.flip { display: flex; }
+.kk-pic { height: 100%; max-height: 260px; min-height: 56px; aspect-ratio: 1 / 1; display: flex; }
+.kk-pic svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.kk-body { fill: var(--kk-ink, #b8b0a4); transition: fill 0.9s ease; }
+.kk-line { stroke: var(--kk-ink, #b8b0a4); transition: stroke 0.9s ease; }
+.kk-word {
+  margin: 0;
+  font: 900 clamp(2.6rem, 15vw, 5rem)/1 var(--font);
+  font-size: clamp(1.5rem, min(20cqi, 62cqb), 5.5rem);
+  letter-spacing: 0.02em;
+  /* a dark outline, so every ink (yellow too) stands out on the white sign */
+  text-shadow: -2px -2px 0 #2b2422, 2px -2px 0 #2b2422, -2px 2px 0 #2b2422, 2px 2px 0 #2b2422, 0 2.5px 0 #2b2422, 2.5px 0 0 #2b2422, 0 -2.5px 0 #2b2422, -2.5px 0 0 #2b2422;
+}
+
+/* the dots: every question done looks the same (no green for right, no red for a mistake: nothing
+   on this screen is coloured but the question) */
+#kk-dots .klok-dot.good, #kk-dots .klok-dot.bad { background: var(--bz-group-acc); }
+
+/* ---------- the answer buttons, in a corner per child (or big at the bottom when alone) ---------- */
+.kk-pad {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: var(--bz-surface);
+  box-shadow: 0 3px 0 var(--bz-brand-edge);
+}
+.kk-pad.slot-solo { width: min(100%, 560px); justify-self: center; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.kk-pad.turn { border-color: var(--bz-group-acc); background: var(--bz-group-tint); }
+.kk-pad.off:not(.cpu) .kk-answers { opacity: 0.4; }
+.kk-pad-head { display: flex; align-items: center; gap: 6px; min-height: 26px; font-weight: 900; font-size: 0.95rem; color: var(--bz-ink); }
+.kk-pad.turn .kk-pad-head { color: var(--bz-group-ink); }
+.kk-who { flex: none; width: 26px; height: 26px; display: block; }
+.kk-turtle { flex: none; display: inline-flex; width: 40px; height: 30px; }
+.kk-turtle svg { width: 100%; height: 100%; display: block; }
+.kk-pad-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kk-score { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; font-size: 1.1rem; }
+.kk-score svg { width: 22px; height: 22px; fill: var(--bz-star); stroke: var(--bz-star-edge); stroke-width: 1.2; }
+.kk-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.kk-ans {
+  position: relative;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 4px;
+  border: 3px solid #e3d6bf;
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--bz-ink);
+  font: 900 1rem/1.1 var(--font);
+  box-shadow: 0 4px 0 #d9cdb8;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.kk-ans .kk-yn { width: 34px; height: 34px; display: block; flex: none; }
+.kk-ans .kk-swatch { width: 32px; height: 32px; display: block; flex: none; }
+.kk-ans-label { display: block; max-width: 100%; text-align: center; overflow-wrap: anywhere; }
+.kk-ans:active { transform: translateY(3px); box-shadow: 0 1px 0 #d9cdb8; }
+.kk-ans:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 3px; }
+.kk-ans:disabled { cursor: default; transform: none; }
+.kk-ans.tried { opacity: 0.4; filter: grayscale(0.7); }
+.kk-ans.right { border-color: var(--bz-group-acc); background: var(--bz-group-tint); color: var(--bz-group-ink); box-shadow: 0 4px 0 var(--bz-group-acc); }
+.kk-ans.help { border-color: var(--bz-group-acc); background: var(--bz-group-tint); animation: kk-glow 1.4s ease-in-out infinite alternate; }
+.kk-ans.bounce { animation: kk-bounce 0.45s ease-out; }
+.kk-ans.chip { cursor: default; box-shadow: none; }
+@keyframes kk-glow { from { box-shadow: 0 0 0 3px var(--bz-group-acc); } to { box-shadow: 0 0 0 7px var(--bz-group-acc); } }
+@keyframes kk-bounce { 0% { transform: translateY(0); } 30% { transform: translateY(-8px); } 55% { transform: translateY(0); } 75% { transform: translateY(-3px); } 100% { transform: translateY(0); } }
+
+/* alone: Ja and Nee big at the bottom (the youngest), the four colours in a 2 x 2 */
+.slot-solo .kk-answers.yesno .kk-ans { min-height: 104px; font-size: 1.35rem; gap: 6px; }
+.slot-solo .kk-answers.yesno .kk-yn { width: 54px; height: 54px; }
+.slot-solo .kk-answers.colours .kk-ans { min-height: 72px; font-size: 1.05rem; }
+.slot-solo .kk-answers.colours .kk-swatch { width: 40px; height: 40px; }
+
+/* the race: answered on touch at once; a wrong tap pauses only that corner for a moment (a quiet ring,
+   no red, no flash); the corner that was first glows softly */
+#screen-kermis[data-mode='race'] .kk-ans { touch-action: none; }
+.kk-wait { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; pointer-events: none; }
+.kk-pad.paused .kk-wait { display: flex; }
+.kk-pad.paused .kk-answers { opacity: 0.35; }
+.kk-wait i { width: 46px; height: 46px; border-radius: 50%; border: 5px solid var(--bz-ink-quiet); border-top-color: transparent; animation: kk-wait 1.5s linear; }
+@keyframes kk-wait { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.kk-pad.won { border-color: var(--bz-group-acc); background: var(--bz-group-tint); animation: kk-won 0.6s ease-out; }
+@keyframes kk-won { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.kk-pad.slot-tl.won, .kk-pad.slot-tr.won:not(.cpu) { animation-name: kk-won-flip; }
+@keyframes kk-won-flip { 0% { transform: rotate(180deg) scale(1); } 40% { transform: rotate(180deg) scale(1.04); } 100% { transform: rotate(180deg) scale(1); } }
+
+/* together: a corner each; portrait two over the stall and two under it, the top ones turned round */
+#screen-kermis.kk-together #kk-stage {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "tl tr" "mid mid" "bl br";
+}
+#screen-kermis.kk-together .kk-pad { width: 100%; max-width: 320px; }
+#screen-kermis.kk-together .slot-bl, #screen-kermis.kk-together .slot-tl { justify-self: start; }
+#screen-kermis.kk-together .slot-br, #screen-kermis.kk-together .slot-tr { justify-self: end; }
+.kk-pad.slot-tl, .kk-pad.slot-tr:not(.cpu) { transform: rotate(180deg); }
+.kk-pad.cpu { align-self: start; }
+.kk-pad.cpu .kk-answers { min-height: 56px; grid-template-columns: minmax(0, 1fr); }
+#screen-kermis.kk-together .kk-mid { width: 100%; max-width: 640px; padding-top: 24px; }
+#screen-kermis.kk-together .kk-pic { max-height: 200px; min-height: 44px; }
+
+/* alone in a race: the turtle's little strip over the stall, the child's buttons big at the bottom */
+#screen-kermis.kk-vs #kk-stage { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "cpu" "mid" "solo"; }
+.kk-pad.slot-cpu { grid-area: cpu; width: min(100%, 560px); justify-self: center; flex-direction: row; align-items: center; gap: 10px; padding: 4px 10px; }
+.kk-pad.slot-cpu .kk-pad-head { flex: 1 1 auto; min-width: 0; }
+.kk-pad.slot-cpu .kk-answers { flex: none; min-height: 0; display: flex; }
+.kk-pad.slot-cpu .kk-ans.chip { min-height: 40px; min-width: 64px; flex-direction: row; gap: 4px; padding: 2px 8px; font-size: 0.9rem; }
+.kk-pad.slot-cpu .kk-ans.chip svg { width: 24px; height: 24px; }
+.kk-pad.slot-solo .kk-pad-head { padding: 0 4px; }
+
+/* tall phones and tablets: bigger corners */
+@media (min-height: 760px) {
+  #screen-kermis.kk-together .kk-ans { min-height: 64px; }
+  .kk-host { width: 84px; height: 70px; }
+  .kk-say { font-size: 1.05rem; }
+}
+
+/* short phones: a smaller stall, so the buttons keep their size */
+@media (max-height: 700px) {
+  #kk-stage { gap: 6px; padding-bottom: 6px; }
+  .kk-mid { padding: 22px 10px 8px; gap: 4px; }
+  .kk-host { width: 58px; height: 48px; }
+  .kk-say { font-size: 0.9rem; }
+  .kk-bubble { padding: 3px 8px; }
+  .slot-solo .kk-answers.yesno .kk-ans { min-height: 84px; }
+  .slot-solo .kk-answers.yesno .kk-yn { width: 44px; height: 44px; }
+  .slot-solo .kk-answers.colours .kk-ans { min-height: 60px; }
+  .slot-solo .kk-answers.colours .kk-swatch { width: 32px; height: 32px; }
+  /* together the corners need the room: the chameleon keeps quiet, the corner lights up */
+  #screen-kermis.kk-together .kk-chat { display: none; }
+  #screen-kermis.kk-together .kk-pad { padding: 6px; gap: 4px; }
+  #screen-kermis.kk-together .kk-answers { gap: 6px; }
+  #screen-kermis.kk-together .kk-ans { min-height: 50px; padding: 3px 2px; font-size: 0.82rem; }
+  #screen-kermis.kk-together .kk-ans .kk-yn { width: 26px; height: 26px; }
+  #screen-kermis.kk-together .kk-ans .kk-swatch { width: 24px; height: 24px; }
+  #screen-kermis.kk-together .kk-pad-head { min-height: 22px; font-size: 0.85rem; }
+  #screen-kermis.kk-together .kk-who { width: 22px; height: 22px; }
+  #screen-kermis.kk-together .kk-mid { padding-top: 22px; }
+  #screen-kermis.kk-together #kk-dots { display: none; }
+}
+
+/* sideways (phones and tablets): together the corners left and right of the stall */
+@media (orientation: landscape) {
+  #screen-kermis.kk-together #kk-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "tl mid tr" "bl mid br";
+  }
+  #screen-kermis.kk-together .slot-tl, #screen-kermis.kk-together .slot-tr { align-self: start; }
+  #screen-kermis.kk-together .slot-bl, #screen-kermis.kk-together .slot-br { align-self: end; }
+  #screen-kermis.kk-together .kk-mid { height: 100%; }
+}
+
+/* sideways phones: the bar on the left (like Klok kijken); alone the stall beside the buttons */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-kermis { flex-direction: row; }
+  .kk-hud { flex-direction: column; justify-content: space-between; padding: 10px 6px 10px 12px; max-width: 120px; }
+  .kk-hud .dogu-title { font-size: 1.05rem; overflow-wrap: anywhere; }
+  .kk-hud .hud-mid { flex: 0; }
+  .kk-hud .hud-level { white-space: normal; font-size: 0.92rem; }
+  .kk-hud .btn.icon { width: 54px; height: 54px; }
+  #kk-stage { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "mid solo"; padding: 8px 12px 8px 4px; gap: 10px; }
+  .kk-pad.slot-solo { align-self: center; }
+  .kk-mid { padding: 22px 8px 8px; }
+  .kk-say { min-height: 0; font-size: 0.85rem; }
+  .kk-host { width: 54px; height: 45px; }
+  .slot-solo .kk-answers.yesno .kk-ans { min-height: 120px; }
+  #screen-kermis.kk-vs #kk-stage { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "mid cpu" "mid solo"; }
+  #screen-kermis.kk-vs .slot-solo .kk-answers.yesno .kk-ans { min-height: 96px; }
+  #screen-kermis.kk-together .kk-hud { padding: 8px 4px 8px 8px; max-width: 76px; }
+  #screen-kermis.kk-together .kk-hud .hud-mid { display: none; }
+  #screen-kermis.kk-together #kk-stage { padding: 6px 8px 6px 2px; gap: 6px; }
+  #screen-kermis.kk-together .kk-chat { display: none; }
+  #screen-kermis.kk-together .kk-mid { padding: 20px 6px 6px; }
+  #screen-kermis.kk-together #kk-dots { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-host.happy svg, .kk-host.happy .kk-host-tail, .kk-ans.bounce, .kk-pad.won, .kk-wait i { animation: none; }
+  .kk-ans.help { animation: none; box-shadow: 0 0 0 5px var(--bz-group-acc); }
+  .kk-body, .kk-line { transition: none; }
+}
+
+/* the end of a race: everyone placed, the same points sharing a place */
+.kk-places { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; width: min(260px, 100%); }
+.kk-place { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 14px; background: var(--bz-surface); box-shadow: 0 2px 0 var(--bz-brand-edge); font-weight: 900; color: var(--bz-ink); }
+.kk-place .kk-who { width: 28px; height: 28px; }
+.kk-medal { flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bz-group-acc); background: var(--bz-group-tint); color: var(--bz-group-ink); }
+.kk-place.place-1 .kk-medal { border-color: var(--bz-star-edge); background: var(--bz-star); color: var(--bz-ink); }
+.kk-place-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kk-place-pts { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; font-size: 1.05rem; white-space: nowrap; }
+.kk-place-pts svg { width: 22px; height: 22px; fill: var(--bz-star); stroke: var(--bz-star-edge); stroke-width: 1.2; }
