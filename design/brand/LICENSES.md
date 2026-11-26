@@ -16,7 +16,7 @@ Only SIL Open Font License 1.1 fonts are used, and only as outlines: every piece
 logo and the store art is converted to paths (`design-kit text2path`), so nothing here loads a
 font and nothing here needs a webfont or a CDN. The captions of the store screenshots
 (`captions.json`) are set the same way by `tools/store_captions.py` (fontTools, Fredoka SemiBold,
-no kerning; it checks that the Dutch frame's caption comes out identical).
+no kerning; with `--check`, as its docstring runs it, it proves the Dutch frame's caption comes out identical).
 
 | Family | Used for | Licence | Licence file |
 |---|---|---|---|

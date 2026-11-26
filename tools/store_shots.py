@@ -1,6 +1,7 @@
 """Store screenshots and the Play feature graphic, rendered from the real game in headless
-Chromium. Writes store/screenshots/<lang>/<device>/*.png (Dutch and English) and
-store/feature-graphic{,-en}-1024x500.png.
+Chromium. Writes store/screenshots/<lang>/<device>/*.png (Dutch and English),
+store/feature-graphic{,-en}-1024x500.png and store/review-iap-en.png (not a store shot: the App
+Store review's picture of Bubble Shooter's level list with the full-version fold, store/forms.md).
 
 Every screenshot sits in the brand's screenshot frame (design/brand/store/screenshot-frame-<lang>.svg:
 the mark and the caption on top, the real screen in the middle, the trust row at the bottom, on
@@ -227,9 +228,25 @@ def shoot(browser, base, name, size, viewport, lang):
         shots.append(out / file)
         page.screenshot(path=str(shots[-1]))
 
-    # 1. the home screen, every section in sight
+    # 1. the home screen, scrolled the least that cuts no tile, heading or logo at either edge
     home()
     page.wait_for_timeout(900)
+    top = page.evaluate("""(() => {
+      const sc = document.querySelector('#screen-home'), view = sc.getBoundingClientRect();
+      const atoms = [...sc.querySelectorAll('#btn-settings, .brand, .tagline, .tile, .group-head, .promise, .lore')]
+        .filter((el) => el.getBoundingClientRect().height > 0).map((el) => {
+          const r = el.getBoundingClientRect(), pad = el.id === 'btn-settings' ? 14 : 0;  // the button's shadow
+          return [r.top - view.top + sc.scrollTop - pad, r.bottom - view.top + sc.scrollTop + pad];
+        });
+      const cut = (y) => atoms.some(([a, b]) => a < y && b > y);
+      for (let s = 0; s <= sc.scrollHeight - sc.clientHeight; s++) {
+        if (!cut(s) && !cut(s + sc.clientHeight)) { sc.scrollTop = s; return s; }
+      }
+      return -1;
+    })()""")
+    if top < 0:
+        print(f"[{name}] the home screen cuts something at every scroll; 1-start.png shows the top")
+    page.wait_for_timeout(200)
     snap("1-start.png")
 
     # 2. Winkeltje (3-5): the shopkeeper mouse asks € 3 for a toy car, three euros on the counter
@@ -330,6 +347,8 @@ def shoot(browser, base, name, size, viewport, lang):
     if not st["riding"] or page.is_visible("#overlay"):
         sys.exit(f"[{name}] Treintje: the train is not riding ({st['path']} of {sol})")
     snap("4-treintje.png")
+    if not page.evaluate("window.__bubbels.treintje.state().riding"):
+        sys.exit(f"[{name}] Treintje: the train arrived before the shot")
 
     # 5. Klok kijken (6-7): "set the clock" with half hours, the hand to look at glowing
     home()
@@ -355,6 +374,9 @@ def shoot(browser, base, name, size, viewport, lang):
     if (st["line"] or {}).get("key") != "keuken.ready" or page.is_visible("#overlay"):
         sys.exit(f"[{name}] Keukentje: the dish is not ready ({st['line']})")
     snap("6-keuken.png")
+    st = page.evaluate("window.__bubbels.keuken.state()")  # the game moves on 1.9 s after the dish
+    if (st["line"] or {}).get("key") != "keuken.ready" or st["i"] != 0:
+        sys.exit(f"[{name}] Keukentje: the next question came before the shot ({st['line']})")
 
     # 7. Picturedoku (8-10): a 9×9 with pictures and pencil notes
     home()
@@ -396,14 +418,17 @@ def shoot(browser, base, name, size, viewport, lang):
     snap("8-kleurplaat.png")
     ctx.close()
     caps = captions(frame, lang)
-    for old in final.glob("*.png"):  # a scene that made way for another leaves no file behind
-        old.unlink()
     framer = browser.new_page()
     framed = []
     for raw in shots:
+        scene = raw.stem.split("-", 1)[1]
+        if scene != "start" and scene not in caps:
+            sys.exit(f"no caption for {scene} in design/brand/store/captions.json: run tools/store_captions.py")
         framed.append(final / raw.name)
-        frame_shot(framer, frame, size, scale, screen, raw, framed[-1], caps.get(raw.stem.split("-", 1)[1]))
+        frame_shot(framer, frame, size, scale, screen, raw, framed[-1], caps.get(scene))
     framer.close()
+    for old in set(final.glob("*.png")) - set(framed):  # a scene that made way for another leaves no file behind
+        old.unlink()
     tmp_dir.cleanup()
     return framed
 

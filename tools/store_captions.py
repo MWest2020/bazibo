@@ -7,9 +7,9 @@ the baseline at 0), the same shape as the caption in the brand's screenshot fram
 Run by hand when a caption changes, then tools/store_shots.py:
 
   curl -L -o /tmp/Fredoka.ttf "https://github.com/google/fonts/raw/main/ofl/fredoka/Fredoka%5Bwdth,wght%5D.ttf"
-  uv run --with fonttools==4.68.0 python tools/store_captions.py /tmp/Fredoka.ttf
+  uv run --with fonttools==4.68.0 python tools/store_captions.py --check /tmp/Fredoka.ttf
 
-`--check` also sets the Dutch frame's caption and fails unless it comes out exactly as in
+`--check` (always use it) also sets the Dutch frame's caption and fails unless it comes out exactly as in
 design/brand/store/screenshot-frame-nl.svg (the same font, weight and setting as the brand).
 """
 import json
