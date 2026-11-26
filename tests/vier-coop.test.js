@@ -19,7 +19,7 @@ import {
   MAX_CANDIDATES,
   PREFIX,
 } from '../web/games/vier/coop-codec.js';
-import { parseMessage, judgeMove, judgeAgain, starterFor, createGuard, moveMessage, againMessage, BYE, RATE_LIMIT, RATE_WINDOW, BAD_LIMIT } from '../web/games/vier/coop-proto.js';
+import { parseMessage, judgeMove, judgeAgain, starterFor, createGuard, moveMessage, againMessage, BYE, RATE_LIMIT, RATE_WINDOW, BAD_LIMIT, routeNet, createInbox, INBOX_MAX } from '../web/games/vier/coop-proto.js';
 import { BOARDS, emptyBoard, drop, winAt, isFull, other, validCols } from '../web/games/vier/rules.js';
 import { TOKENS } from '../web/games/vier/art.js';
 import { coopEnabled } from '../web/games/vier/vier.js';
@@ -451,4 +451,72 @@ test('no STUN, no TURN, no other ICE server anywhere in the app; one RTCPeerConn
   // the CSP stays as strict as it was: nothing was added for WebRTC
   const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
   assert.match(html, /content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"/);
+});
+
+test('proto: "again" right after the winning move waits for the falling token, and the next game\'s first move is kept', () => {
+  const cfg = BOARDS.small;
+  // phone 2's view: phone 1 has just played its winning move (the token is still falling)
+  let v = newView(cfg);
+  for (const c of [0, 1, 0, 1]) v = play(v, c);
+  const falling = { ...v, dropping: true };
+  const queue = [{ t: 'again', g: 2 }]; // phone 1 tapped "again" on its end card
+  assert.equal(routeNet(falling, queue[0], 2), 'wait'); // before: refused as 'early'
+  assert.equal(routeNet(falling, { t: 'm', n: 4, c: 0 }, 2), 'wait');
+  v = play(v, 0); // the token landed: phone 1 won
+  assert.equal(v.over.winner, 1);
+  assert.equal(routeNet({ ...v, dropping: false }, queue[0], 2), 'again');
+  // game 2: phone 2 starts; phone 1's move would be out of turn, phone 2's own never comes from outside
+  const g2 = newView(cfg, 2);
+  assert.equal(g2.turn, 2);
+  assert.equal(routeNet({ ...g2, dropping: false }, { t: 'm', n: 0, c: 3 }, 2), 'bad');
+  // seen from phone 1 in game 2: phone 2's first move arrives while phone 1's "again" is fresh
+  assert.equal(routeNet({ ...g2, dropping: false }, { t: 'm', n: 0, c: 3 }, 1), 'move');
+  assert.equal(routeNet({ ...g2, dropping: false }, { t: 'again', g: 2 }, 1), 'ignore'); // both tapped
+  assert.equal(routeNet({ ...g2, dropping: false }, { t: 'again', g: 3 }, 1), 'bad'); // game 2 is not over
+  assert.equal(routeNet({ ...g2, dropping: false }, { t: 'bye' }, 1), 'bad');
+});
+
+test('inbox: what arrives before the game is held, in order, then handed over; later messages go straight through', () => {
+  const box = createInbox();
+  box.push('a');
+  box.push('b');
+  assert.equal(box.held, 2);
+  const got = [];
+  box.open((raw) => got.push(raw));
+  assert.deepEqual(got, ['a', 'b']);
+  assert.equal(box.held, 0);
+  box.push('c');
+  assert.deepEqual(got, ['a', 'b', 'c']);
+  const full = createInbox();
+  for (let i = 0; i < INBOX_MAX + 10; i++) full.push(String(i));
+  assert.equal(full.held, INBOX_MAX); // a flood before the game is dropped, not kept
+});
+
+test('tokens fit the offer (3 bits each)', () => {
+  assert.ok(TOKENS.length <= 8);
+  assert.match(readFileSync(new URL('../web/games/vier/coop-codec.js', import.meta.url), 'utf8'), /if \(TOKENS\.length > 8\) throw/);
+});
+
+test('coop.js is reached only through import(): children never load it', () => {
+  const files = [];
+  const walk = (d) => {
+    for (const n of readdirSync(d)) {
+      const p = join(d, n);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(js|html)$/.test(n)) files.push(p);
+    }
+  };
+  walk(new URL('../web', import.meta.url).pathname);
+  const dynamic = [];
+  for (const f of files) {
+    const s = readFileSync(f, 'utf8');
+    if (f.endsWith('sw.js')) continue; // the offline cache lists every file
+    assert.ok(!/(from\s*['"][^'"]*coop\.js['"]|import\s*['"][^'"]*coop\.js['"]|<script[^>]*coop\.js)/.test(s), `${f} loads coop.js statically`);
+    for (const m of s.matchAll(/import\(\s*['"]([^'"]*coop\.js)['"]\s*\)/g)) dynamic.push([f, m[1]]);
+  }
+  assert.equal(dynamic.length, 1);
+  assert.ok(dynamic[0][0].endsWith('games/vier/vier.js'));
+  // and only once: a second tap on Play waits for the same import
+  const vier = readFileSync(new URL('../web/games/vier/vier.js', import.meta.url), 'utf8');
+  assert.match(vier, /if \(!coopLoading\) \{\s*coopLoading = import\('\.\/coop\.js'\)/);
 });

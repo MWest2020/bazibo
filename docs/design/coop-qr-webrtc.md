@@ -13,7 +13,10 @@ No server, no internet, no STUN or TURN, no new native code.
    (`id: 0`), waits for its host candidates, and shows the offer as a QR code.
 2. Phone 2 scans it with the camera (the reader of Voortgang overzetten: `BarcodeDetector`, or the
    vendored jsQR), answers, and shows the answer as a QR code. Phone 1 scans that.
-3. The data channel opens over the Wi-Fi (DTLS, as always in WebRTC). Only moves travel.
+3. The data channel opens over the Wi-Fi (DTLS, as always in WebRTC). The board shows at once
+   on both phones, its status line saying "Verbonden!" until the first move (so a move made the
+   moment the channel opens always finds a game; what arrives earlier is held and handed over).
+   Only moves travel.
 
 Not the SDP travels but the five things that cannot be guessed: ICE ufrag and password, the
 DTLS fingerprint (sha-256), the role (fixed: offer `actpass`, answer `active`) and up to four
@@ -28,7 +31,7 @@ Chrome for Testing 159.0.8154.6) on one Linux host, no phones.
 
 | Claim | How | Result |
 | --- | --- | --- |
-| It connects with host candidates only, no STUN/TURN | `tests/coop.py`: real app, real CSP, two browsers | connected 3 times out of 3, about 0.2 s after the answer is scanned |
+| It connects with host candidates only, no STUN/TURN | `tests/coop.py`: real app, real CSP, two browsers | connected 4 times out of 4, about 0.2 s after the answer is scanned |
 | It needs no internet | the test runs in its own network namespace: one private LAN (10.77.0.0/24), a default route to a gateway that does not exist; a packet sniffer on the LAN | 0 packets for outside the LAN; 16 mDNS packets (the names were resolved over the LAN) |
 | mDNS names (`<uuid>.local`) resolve between two Chrome instances | default Chrome settings: both codes carried only an mDNS candidate | resolved, connected |
 | The QR codes really scan | phone 1's QR pixels became phone 2's camera (Chromium's fake camera reads a Y4M file) and back; the app's own reader (jsQR in headless Chrome) decoded them | scanned every time, offer to answer in 0.1-0.3 s |
@@ -37,7 +40,8 @@ Chrome for Testing 159.0.8154.6) on one Linux host, no phones.
 | No request leaves the origin | Playwright request listener on both pages | 0 requests outside the origin |
 | A cheating or garbled phone cannot break the game | the test sends moves out of turn, unknown columns, wrong move numbers, unknown messages, garbage and a 500-character text; unit test: 200 seeded games with junk | the other board never changes; the game goes on |
 | A flood closes the connection cleanly | 40 messages at once | the receiver closes; both get "De verbinding is weg" |
-| Leaving, the background and the back arrow close the connection | background (visibilitychange), the back arrow, the lost card | both phones show the card; no RTCPeerConnection, channel or camera left open |
+| No message is lost around the start and "again" | a move made the moment phone 1's board exists; "again" sent while the winning token still falls on the other phone; a double tap on Spelen | the move shows on both; the next game starts on both; one peer connection per code |
+| Leaving, the background and the back arrow close the connection | background (visibilitychange), the back arrow, the end card's Menu, the lost card | both phones show the card; no RTCPeerConnection, channel or camera left open |
 
 Extra measurements with a bare probe (same browsers, same namespace):
 
@@ -103,6 +107,12 @@ the biggest code `decodeSignal` accepts is still under version 10); the multi-pa
   a link-local or unique-local IPv6 address; never a public address, a DNS name, loopback or the
   100.64/10 range (Tailscale, mobile CGNAT). So a code can never make a phone send a packet to the
   internet, and the code never carries a phone's public IPv6 address.
+- **What an attacker on the same Wi-Fi could still do** (true of any WebRTC page, not of this
+  code): an mDNS name resolves to whatever a device on the LAN answers, so someone on the same
+  network who answers for it, or who shows a crafted QR code, can make the phone send ICE
+  connectivity checks (STUN binding requests only, no data) to a private-LAN host of their choice.
+  It needs an active attacker in the room's network, and the DTLS fingerprint still stops a
+  channel to anyone but the phone whose code was scanned.
 - **No STUN, no TURN, no server**; a unit test fails if `stun:`/`turn:` appears in `web/` or if
   any other `RTCPeerConnection` than the one with `{ iceServers: [] }` is added.
 - **The CSP is unchanged.** WebRTC is not governed by `connect-src` in Chromium (there is no
@@ -113,7 +123,9 @@ the biggest code `decodeSignal` accepts is still under version 10); the multi-pa
 - **Only moves travel.** Each phone plays every move through `rules.js` itself. A message is
   parsed with exact shapes (`parseMessage`: at most 64 characters, JSON, exactly the known keys),
   a move is judged against the turn, the move number, the column and the board (`judgeMove`),
-  "again" only for the next game once this one is over (`judgeAgain`). Bad messages are ignored;
+  "again" only for the next game once this one is over (`judgeAgain`). Moves and "again" wait in
+  order while a token is still falling (`routeNet`), so an "again" right after the winning move is
+  not refused and the next game's first move is not lost. Bad messages are ignored;
   10 bad ones or more than 20 in a second close the connection (`createGuard`). A phone can
   only ever make its own legal moves on the other board.
 - **Closed when leaving.** The back arrow, the Android back button, leaving the screen any other

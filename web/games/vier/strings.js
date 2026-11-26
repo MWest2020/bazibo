@@ -87,6 +87,7 @@ addStrings({
     'vier.coop.otherGame': 'Deze code hoort bij een ander spel. Scan de code van jouw vriendje.',
     'vier.coop.restart': 'De app was even weg. Begin opnieuw.',
     'vier.coop.diag': 'Code: {chars} tekens, QR {n}×{n}, adres: {kinds}',
+    'vier.coop.loadFailed': 'Dit lukt nu niet. Probeer het straks nog eens.',
   },
   en: {
     'games.vier': 'Four in a Row',
@@ -173,5 +174,6 @@ addStrings({
     'vier.coop.otherGame': 'This code belongs to another game. Scan your friend’s code.',
     'vier.coop.restart': 'The app was away for a moment. Start again.',
     'vier.coop.diag': 'Code: {chars} characters, QR {n}×{n}, address: {kinds}',
+    'vier.coop.loadFailed': 'This does not work right now. Try again later.',
   },
 });

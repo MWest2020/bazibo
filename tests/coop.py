@@ -201,6 +201,8 @@ class Run:
         browser = p.chromium.launch(executable_path=CHROME, args=args)
         ctx = browser.new_context(viewport=PHONE, device_scale_factor=2, locale="nl-NL", has_touch=True)  # no bypass_csp: the real CSP
         ctx.add_init_script("document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI}`))")
+        # count the peer connections the page makes (a double tap on Play must not make two)
+        ctx.add_init_script("window.__pcs = 0; { const O = window.RTCPeerConnection; window.RTCPeerConnection = class extends O { constructor(...a) { super(...a); window.__pcs++; } }; }")
         page = ctx.new_page()
         page.on("pageerror", lambda e: self.errors.append(f"{name}: {e}"))
         page.on("console", lambda m: m.type == "error" and self.errors.append(f"{name}: {m.text}"))
@@ -216,7 +218,7 @@ class Run:
         return browser, page
 
 
-def to_coop_screen(page, board):
+def to_coop_screen(page, board, double=False):
     try:
         if not page.locator("#screen-vier-menu.active").count():
             page.click("#tile-vier", timeout=8000)
@@ -229,14 +231,20 @@ def to_coop_screen(page, board):
     page.click("#vier-menu .mode-net")
     page.locator("#vier-menu .mode-net").scroll_into_view_if_needed()
     page.screenshot(path=str(SHOTS / f"coop-menu-{page.name}.png"))
-    page.click("#vier-play")
+    if double:  # two taps before coop.js has loaded
+        page.evaluate("() => { const b = document.querySelector('#vier-play'); b.click(); b.click(); }")
+    else:
+        page.click("#vier-play")
     page.wait_for_selector("#screen-vier-coop.active")
 
 
-def connect(run, a, b, cam_a, cam_b, board, tag):
-    """Phone a shows the offer, b scans it and shows the answer, a scans that. Returns timings."""
-    to_coop_screen(a, board)
-    to_coop_screen(b, "big")  # phone 2's own menu choice does not matter: the offer brings the board
+def connect(run, a, b, cam_a, cam_b, board, tag, double=False, quick_col=None):
+    """Phone a shows the offer, b scans it and shows the answer, a scans that. Returns timings.
+    `double`: tap Play twice quickly on both phones. `quick_col`: phone 1 drops a token in that
+    column the moment its board exists (before phone 2 may have its board)."""
+    to_coop_screen(a, board, double)
+    to_coop_screen(b, "big", double)  # phone 2's own menu choice does not matter: the offer brings the board
+    pcs_a, pcs_b = a.evaluate("window.__pcs"), b.evaluate("window.__pcs")
     a.click("#coop-host")
     a.wait_for_selector("#coop-qr:not([hidden])", timeout=10000)
     offer = coop_state(a)
@@ -249,8 +257,15 @@ def connect(run, a, b, cam_a, cam_b, board, tag):
     answer = coop_state(b)
     b.screenshot(path=str(SHOTS / f"coop-{tag}-2-answer.png"))
     write_y4m(cam_a, b.evaluate(QR_PIXELS_JS))
+    run.check(a.evaluate("window.__pcs") == pcs_a + 1, f"{tag}: phone 1 made {a.evaluate('window.__pcs') - pcs_a} peer connections for one offer")
+    run.check(b.evaluate("window.__pcs") == pcs_b + 1, f"{tag}: phone 2 made {b.evaluate('window.__pcs') - pcs_b} peer connections for one answer")
     a.click("#coop-next")
     t1 = time.time()
+    if quick_col is not None:
+        end = time.time() + 25
+        while time.time() < end and not a.evaluate("!!window.__bubbels.vier.net()"):
+            time.sleep(0.01)
+        a.evaluate("(c) => window.__bubbels.vier.tap(c)", quick_col)
     poll(a, "() => window.__bubbels.vier.coop().state().state === 'open'", 25, what="phone 1 open")
     connect_s = time.time() - t1
     poll(b, "() => window.__bubbels.vier.coop().state().state === 'open'", 10, what="phone 2 open")
@@ -341,13 +356,13 @@ def main():
         plain.close()
 
         # ---- 1: connect on the kleuterbord and play to a win ----
-        report["connect1"] = connect(run, a, b, cam_a, cam_b, "small", "c1")
+        report["connect1"] = connect(run, a, b, cam_a, cam_b, "small", "c1", double=True)
         report["connect1"].pop("_codes")
         sa, sb = state(a), state(b)
         run.check(sa["setup"]["board"] == "small" and sb["setup"]["board"] == "small", f"the board did not travel: {sa['setup']} {sb['setup']}")
         run.check(sa["tokens"] == sb["tokens"], f"the tokens differ: {sa['tokens']} {sb['tokens']}")
-        run.check(status(a) == "Jij bent aan de beurt", f"phone 1 status: {status(a)!r}")
-        run.check(status(b) == "Je vriendje is aan de beurt…", f"phone 2 status: {status(b)!r}")
+        run.check(status(a) == "Verbonden! Jij bent aan de beurt", f"phone 1 status: {status(a)!r}")
+        run.check(status(b) == "Verbonden! Je vriendje is aan de beurt…", f"phone 2 status: {status(b)!r}")
         run.check(a.locator("#vier-turn .vier-chip.on .name").inner_text() == "Jij", "phone 1's own chip is not lit")
         run.check(b.locator("#vier-turn .vier-chip.on .name").inner_text() == "Vriendje", "phone 2 does not show the friend's turn")
         a.screenshot(path=str(SHOTS / "coop-c1-4-phone1-board.png"))
@@ -387,9 +402,20 @@ def main():
         run.check(not any(board_of(b)), f"a cheat changed phone 2's board: {board_of(b)}")
         run.check(coop_state(b)["state"] == "open", "phone 2 closed after a few bad messages (should only after BAD_LIMIT)")
         run.check(state(b)["turn"] == 2 and state(b)["history"] == 0, f"a cheat changed phone 2's game: {state(b)}")
-        tap(run, b, 2, a)
-        tap(run, a, 3, b)
         report["cheats_ignored"] = len(cheats)
+        for col, ph, oth in ((2, b, a), (3, a, b), (2, b, a), (3, a, b)):
+            tap(run, ph, col, oth)
+        # phone 2 wins, and "again" comes at once, while the winning token still falls on phone 1
+        b.tap("#vier-board .vcol[data-col='2']")
+        b.evaluate("() => window.__bubbels.vier.coop().sendRaw('{\"t\":\"again\",\"g\":3}')")
+        run.check(a.evaluate("window.__bubbels.vier.state().busy"), "the winning token was not falling on phone 1 when 'again' came (the race was not tested)")
+        poll(a, "() => { const n = window.__bubbels.vier.net(); return n && n.gameNo === 3 && !n.lost; }", 6, what="phone 1 starts game 3 after 'again' during the falling token")
+        run.check(state(a)["turn"] == 1 and state(a)["history"] == 0, f"phone 1's game 3: {state(a)}")
+        poll(b, "() => !document.querySelector('#overlay').hidden && document.querySelector('#ov-title').textContent === 'Jij wint!'", 6, what="phone 2 end card")
+        b.click("#ov-buttons button:has-text('Nog een keer')")  # its own "again" (3) is 'stale' on phone 1
+        poll(b, "() => { const n = window.__bubbels.vier.net(); return n && n.gameNo === 3; }", 6, what="phone 2 in game 3")
+        run.check(coop_state(a)["state"] == "open" and coop_state(b)["state"] == "open", "the connection closed over the 'again' race")
+        tap(run, a, 1, b)
 
         # ---- phone 2 goes to the background: both get the card ----
         b.evaluate("""() => {
@@ -420,19 +446,37 @@ def main():
         for ph in (a, b):
             ph.click("#ov-buttons button:has-text('Menu')")
 
-        # ---- 3: connect once more; phone 1 leaves with its back arrow ----
-        report["connect3"] = connect(run, a, b, cam_a, cam_b, "small", "c3")
+        # ---- 3: phone 1 taps the moment its board is there; a game to a win; "Menu" on the end card ----
+        report["connect3"] = connect(run, a, b, cam_a, cam_b, "small", "c3", quick_col=2)
+        report["connect3"].pop("_codes")
+        for ph in (a, b):
+            poll(ph, "() => { const s = window.__bubbels.vier.state(); return s.history === 1 && !s.busy; }", 6, what=f"{ph.name} has the quick first move")
+        run.check(board_of(a) == board_of(b), f"the quick first move differs: {board_of(a)} vs {board_of(b)}")
+        for col, ph, oth in ((0, b, a), (2, a, b), (0, b, a), (2, a, b)):
+            tap(run, ph, col, oth)
+        poll(a, "() => !document.querySelector('#overlay').hidden && document.querySelector('#ov-title').textContent === 'Jij wint!'", 6, what="phone 1 end card")
+        a.click("#ov-buttons button:has-text('Menu')")
+        a.wait_for_selector("#screen-vier-menu.active")
+        run.check(a.evaluate("window.__bubbels.vier.net()") is None, "the end card's Menu kept a stale two-phone game")
+        run.check(a.locator("#vier-continue").count() == 0, "the menu offers to keep playing a two-phone game")
+        run.check(coop_state(a)["pc"] is None, "phone 1 kept its connection after the end card's Menu")
+        lost_card(run, b, "c3-menu")
+        b.click("#ov-buttons button:has-text('Menu')")
+
+        # ---- 4: connect once more; phone 1 leaves with its back arrow ----
+        report["connect4"] = connect(run, a, b, cam_a, cam_b, "small", "c4")
         a.click("#vier-back")
         a.wait_for_selector("#screen-vier-menu.active")
         run.check(coop_state(a)["pc"] is None, "phone 1 kept its connection after leaving")
-        lost_card(run, b, "c3-left")
+        run.check(a.evaluate("window.__bubbels.vier.net()") is None, "the back arrow kept a stale two-phone game")
+        lost_card(run, b, "c4-left")
 
         # ---- a code that is not ours, or the wrong kind, never gets in ----
         b.click("#ov-buttons button:has-text('Menu')")
         to_coop_screen(b, "big")
         b.click("#coop-guest")
         b.wait_for_selector("#coop-scan:not([hidden])")
-        offer3, answer3 = report["connect3"].pop("_codes")
+        offer3, answer3 = report["connect4"].pop("_codes")
         tampered = offer3[:20] + ("A" if offer3[20] != "A" else "B") + offer3[21:]
         for text, msg in (("hello", None), ("BZ1ABCD0101:ABC", None), (answer3, "Dit is de tweede code"), (tampered, "Deze code klopt niet")):
             b.evaluate("(t) => window.__bubbels.vier.coop().take(t)", text)

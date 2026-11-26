@@ -147,6 +147,7 @@ export function fieldsFromSdp(sdp) {
  * fingerprint (32 bytes), candidates, board?, tokens? } (board and tokens for an offer).
  */
 export function encodeSignal(msg) {
+  if (TOKENS.length > 8) throw new Error('tokens'); // a token is 3 bits in the offer
   const k = KIND[msg.kind];
   if (!k) throw new Error('kind');
   const out = [(SIGNAL_VERSION << 4) | k];

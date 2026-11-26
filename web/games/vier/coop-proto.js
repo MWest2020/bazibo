@@ -9,7 +9,7 @@
 //   { t: 'm', n, c }   a move: the n-th move of this game (0 = the first), dropped in column c
 //   { t: 'again', g }  start game number g (the next one); either phone may ask
 //   { t: 'bye' }       the other phone leaves (the connection closes right after)
-import { landingRow } from './rules.js';
+import { landingRow, other } from './rules.js';
 
 export const MAX_MESSAGE = 64; // characters; a move is about 20
 export const BAD_LIMIT = 10; // bad messages before the connection is closed
@@ -68,6 +68,50 @@ export function judgeAgain(view, msg) {
   if (msg.g !== view.game + 1) return 'skip';
   if (!view.over) return 'early';
   return 'ok';
+}
+
+/**
+ * What to do with the next message from the other phone (moves and "again", in the order they
+ * came). `view`: { cfg, board, turn, over, moves, game, dropping }; `me`: this phone (1 or 2).
+ * 'wait' while a token is falling (the game is not settled yet: "again" right after the winning
+ * move must not be refused, nor the next game's first move lost), 'move', 'again', 'ignore' (both
+ * phones tapped "again") or 'bad'.
+ */
+export function routeNet(view, msg, me) {
+  if (view.dropping) return 'wait';
+  if (msg.t === 'm') return judgeMove(view, msg, other(me)) === 'ok' ? 'move' : 'bad';
+  if (msg.t === 'again') {
+    const v = judgeAgain(view, msg);
+    return v === 'ok' ? 'again' : v === 'stale' ? 'ignore' : 'bad';
+  }
+  return 'bad';
+}
+
+export const INBOX_MAX = 16;
+
+/**
+ * Holds what arrives before there is someone to give it to: push(raw) keeps it (at most
+ * INBOX_MAX; more is dropped), open(fn) hands everything kept to fn in order and every later push
+ * straight away.
+ */
+export function createInbox(max = INBOX_MAX) {
+  let held = [];
+  let to = null;
+  return {
+    push(raw) {
+      if (to) to(raw);
+      else if (held.length < max) held.push(raw);
+    },
+    open(fn) {
+      to = fn;
+      const all = held;
+      held = [];
+      for (const raw of all) fn(raw);
+    },
+    get held() {
+      return held.length;
+    },
+  };
 }
 
 /** Who starts game number g: the phone that showed the first code (1) the odd games, the other the even. */

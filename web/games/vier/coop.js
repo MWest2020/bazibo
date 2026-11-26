@@ -10,14 +10,13 @@
 // game, and when the app goes to the background.
 import { drawQr, makeReader } from '../../js/transfer-ui.js';
 import { fieldsFromSdp, encodeSignal, decodeSignal, buildSdp, newSession } from './coop-codec.js';
-import { BYE } from './coop-proto.js';
+import { BYE, createInbox } from './coop-proto.js';
 
 const $ = (sel) => document.querySelector(sel);
 const GATHER_MS = 4000; // host candidates come within milliseconds; never wait longer than this
 const CONNECT_MS = 20000; // after phone 1 scanned the answer: then "it does not work"
 const DISCONNECT_GRACE_MS = 4000; // 'disconnected' may come back by itself (a Wi-Fi hiccup)
 const SCAN_MS = 180;
-const CONNECTED_MS = 900; // "Verbonden!" stays a moment before the board
 
 /**
  * `hooks`: onConnected({ role, board, tokens }) when the channel opens; onMessage(raw) for every
@@ -42,6 +41,7 @@ export function createCoop(shell, hooks) {
   let lastCode = '';
   let lastQr = 0;
   let kinds = '';
+  let inbox = createInbox(); // what arrives before the game is there (handed over by opened())
 
   const onScreen = () => $('#screen-vier-coop').classList.contains('active');
   const panes = ['pick', 'show', 'scan'];
@@ -66,7 +66,7 @@ export function createCoop(shell, hooks) {
     p.ondatachannel = (e) => e.channel.close();
     c.onopen = () => p === pc && opened();
     c.onclose = () => p === pc && lost('closed');
-    c.onmessage = (e) => p === pc && state === 'open' && hooks.onMessage(e.data);
+    c.onmessage = (e) => p === pc && inbox.push(e.data);
     p.onconnectionstatechange = () => {
       if (p !== pc) return;
       const s = p.connectionState;
@@ -101,20 +101,17 @@ export function createCoop(shell, hooks) {
     return f;
   }
 
+  /**
+   * The channel is open: the board comes at once (it says "Verbonden!" itself), so a move the other
+   * phone makes straight away always finds a game. Anything that came in before is handed over.
+   */
   function opened() {
     if (state === 'open' || state === 'closed') return;
     clearTimeout(connectTimer);
     stopCamera();
     state = 'open';
-    pane('show');
-    $('#coop-qr').hidden = true;
-    $('#coop-next').hidden = true;
-    say('#coop-show-msg', t('vier.coop.connected'));
-    $('#coop-show-msg').classList.add('ok');
-    const info = { role, board: setup.board, tokens: setup.tokens.slice() };
-    setTimeout(() => {
-      if (state === 'open') hooks.onConnected(info);
-    }, CONNECTED_MS);
+    hooks.onConnected({ role, board: setup.board, tokens: setup.tokens.slice() });
+    if (state === 'open') inbox.open(hooks.onMessage);
   }
 
   /** The connection went away by itself (or could not be made). */
@@ -139,6 +136,7 @@ export function createCoop(shell, hooks) {
       }
     }
     const p = pc;
+    inbox = createInbox(); // nothing of the old connection reaches a new game
     pc = null; // the handlers of the old connection see it is gone
     ch = null;
     if (p) {
