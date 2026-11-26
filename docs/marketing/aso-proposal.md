@@ -1,8 +1,10 @@
 # ASO proposal: the Google Play listing (NL and EN)
 
-Status: **proposal, not applied.** A listing change is a store submission and Mark decides those.
-Nothing in `store/` changed. To apply: edit `store/listing-nl.md` and `store/listing-en.md` as below,
-`npm test` (it checks Play's limits), then `fastlane android metadata` (docs/release.md, section 6).
+Status: **approved and applied** (Mark, 26 Nov 2026: "Ja, optimaliseer ASO-teksten", issue #101).
+`store/listing-nl.md` and `store/listing-en.md` carry the texts below, with the game list brought up
+to the 27 games of 1.15.0 (Treintje, Winkeltje and Keukentje added; a few lines shortened to stay
+under 4000) and "PEGI 3" beside "no data collected". They reach Play in the same edit as the 1.15.0
+upload, so Google reviews once. The numbers below are the proposal's, from before the new games.
 
 The words parents type, in order of how much they matter here: *kinderspelletjes*, *spelletjes
 voor kinderen*, *peuter* / *kleuter*, *leerspelletjes* / *educatieve spelletjes*, *zonder
