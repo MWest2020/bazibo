@@ -129,8 +129,8 @@ https://bazibo.nl/en/terms/ (Dutch: https://bazibo.nl/nl/voorwaarden/)
 - Type: **Non-Consumable**. Product ID: `unlock_all`. Price tier: € 1 (Tier 1 in the EU
   storefronts; check the current tier table).
 - One purchase opens every game in the app. Each game has a free part (Bubbels: levels 1-10; Dogudoku: 10 of its 60 puzzles; Picturedoku: 10 of its 60 puzzles; Vier op een rij: playing together and the easy and medium computer, the hard computer is in the full version; Slangetje: 10 of its 30 levels; Kleurplaten (Colouring): 6 of its 13 pictures and 3 mandalas; Klok kijken (Telling Time): every round of whole hours, half hours and the daily rhythm, the quarter, minute and 24-hour rounds are in the full version; Letters: every round of the first tier in all four kinds, the other tiers in the full version). The full version also adds random play: a "Random" card per difficulty in each game's level list (Bubbels, Dogudoku, Picturedoku, Slangetje, Klok kijken, Letters) makes a new board, puzzle or round on the device each time, and Kleurplaten makes endless new mandalas ("New (7+)" and "New (9+)"); locked without the purchase.
-- The review screenshot for the purchase: `store/screenshots/en/appstore-iphone-6.9-1290x2796/2-levels.png`
-  shows where the full version sits. Review notes: "Open Bubble Shooter, tap a locked level (11+),
+- The review screenshot for the purchase: `store/review-iap-en.png` (Bubble Shooter's level list on
+  the iPhone, made by `tools/store_shots.py`) shows where the full version sits. Review notes: "Open Bubble Shooter, tap a locked level (11+),
   then 'For parents: buy'. The parental gate asks a multiplication written in words, for example
   'seven times eight' = 56 (in Dutch: 'zeven keer acht'). The same offer is in Settings, 'More about
   the full version'. The app follows the device language (Dutch or English); Settings switches it."

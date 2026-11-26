@@ -46,7 +46,9 @@ Android Studio brings the JDK and the SDK.
 
 Store texts, form answers and screenshots are in `store/` (screenshots per language in
 `store/screenshots/nl/` and `store/screenshots/en/`, each in the brand's screenshot frame from
-`design/brand/store/`). To regenerate the screenshots and the
+`design/brand/store/`, each shot after the first with its own caption from
+`design/brand/store/captions.json`; after changing a caption in `tools/store_captions.py`, rerun it
+as its docstring says). To regenerate the screenshots and the
 feature graphics, run `timeout -s KILL 900 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 uv run -q --with playwright==1.65.2 --with pillow python tools/store_shots.py`, then
 `node tools/store-to-fastlane.mjs` and `npm test` (the store limits). To
 regenerate the app icons and launch screens, run

@@ -23,6 +23,7 @@ import http.server
 import json
 import math
 import os
+import re
 import base64
 import socket
 import sys
@@ -90,7 +91,7 @@ def flatten(path):
 
 def load_frame(lang):
     """The brand's screenshot frame for `lang`, in parts: its size, the paper colour, the defs,
-    the top (the mark and the caption), the trust row and the screen area (x, y, w, h, rx)."""
+    the mark, the caption (and where it sits), the trust row and the screen area (x, y, w, h, rx)."""
     root = ET.parse(ROOT / "design" / "brand" / "store" / f"screenshot-frame-{lang}.svg").getroot()
     q = lambda tag: f"{{{SVG_NS}}}{tag}"
     kids = list(root)
@@ -99,15 +100,35 @@ def load_frame(lang):
     paper = rects[0].get("fill")
     area = next(r for r in rects if r.get("x"))
     text = lambda el: ET.tostring(el, encoding="unicode")
+    # the caption: translate(x baseline) scale(s), centred on the frame
+    cx, cy, cs = map(float, re.match(r"translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)", groups[0].get("transform")).groups())
     return {
         "size": (float(root.get("width")), float(root.get("height"))),
         "paper": paper,
         "defs": "".join(text(k) for k in kids if k.tag == q("defs")),
-        "top": "".join(text(k) for k in kids if k.tag == q("use")) + text(groups[0]),
+        "mark": "".join(text(k) for k in kids if k.tag == q("use")),
+        "caption": text(groups[0]),
+        "caption_at": (cx, cy, cs, groups[0].get("fill")),
         "trust": text(groups[1]),
         "area": tuple(float(area.get(a)) for a in ("x", "y", "width", "height", "rx")),
         "edge": area.get("stroke"),
     }
+
+
+def captions(frame, lang):
+    """The caption of every scene in `lang` (design/brand/store/captions.json, made by
+    tools/store_captions.py), as SVG on the frame: one size for the whole set, at most the frame's
+    own and no wider than its line; shot 1 keeps the frame's own caption."""
+    sets = json.loads((ROOT / "design" / "brand" / "store" / "captions.json").read_text())[lang]
+    fw = frame["size"][0]
+    _, cy, cs, fill = frame["caption_at"]
+    widest = 858  # the Dutch frame's line (111 to each side of 1080)
+    s = min([cs] + [widest / c["advance"] for c in sets.values()])
+    out = {}
+    for scene, c in sets.items():
+        x = (fw - c["advance"] * s) / 2
+        out[scene] = f'<g transform="translate({x:.1f} {cy}) scale({s:.5f})" fill="{fill}"><path d="{c["d"]}"/></g>'
+    return out
 
 
 def frame_layout(frame, size, viewport):
@@ -127,8 +148,9 @@ def frame_layout(frame, size, viewport):
     return k, dpr, box
 
 
-def frame_shot(page, frame, size, k, box, raw, out):
-    """Put the raw screenshot `raw` into the frame and write the store image `out`."""
+def frame_shot(page, frame, size, k, box, raw, out, caption=None):
+    """Put the raw screenshot `raw` into the frame, with `caption` (SVG on the frame) in place of
+    the frame's own, and write the store image `out`."""
     fw, fh = frame["size"]
     w, h = size
     x, y, sw, sh = box
@@ -137,7 +159,7 @@ def frame_shot(page, frame, size, k, box, raw, out):
     ox = (w - fw * k) / 2
     svg = f"""<svg xmlns="{SVG_NS}" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{frame['defs']}
   <rect width="{w}" height="{h}" fill="{frame['paper']}"/>
-  <g transform="translate({ox} 0) scale({k})">{frame['top']}</g>
+  <g transform="translate({ox} 0) scale({k})">{frame['mark']}{caption or frame['caption']}</g>
   <g transform="translate({ox} {h - fh * k}) scale({k})">{frame['trust']}</g>
   <clipPath id="screen"><rect x="{x}" y="{y}" width="{sw}" height="{sh}" rx="{rx}"/></clipPath>
   <image href="data:image/png;base64,{data}" x="{x}" y="{y}" width="{sw}" height="{sh}" clip-path="url(#screen)" preserveAspectRatio="none"/>
@@ -151,6 +173,7 @@ def frame_shot(page, frame, size, k, box, raw, out):
 
 
 SHARE = ROOT / "web" / "img" / "share.png"
+REVIEW_IAP = OUT / "review-iap-en.png"
 
 
 def make_share(src=OUT / "feature-graphic-1024x500.png", dst=SHARE):
@@ -182,20 +205,59 @@ def shoot(browser, base, name, size, viewport, lang):
     ctx.add_init_script(f"localStorage.setItem('bubbels.settings.v1', {json.dumps(json.dumps(settings))})")
     ctx.add_init_script(SEEDED_RANDOM)
     page = ctx.new_page()
-    page.goto(base + "/index.html?test=1")
-    page.wait_for_selector("html[data-ready='1']")
-    # as in the app: the store links are for parents on bazibo.nl only (web/js/store-links.js), and
-    # a store screenshot must never show a link to a store (the iPad's home screen reaches them)
-    page.add_style_tag(content="[data-store-links] { display: none !important; }")
-    page.wait_for_timeout(900)
-    shots = [out / "1-start.png"]
-    page.screenshot(path=str(shots[-1]))
 
+    def home():
+        """A fresh start on the home screen (every scene starts from there)."""
+        page.goto(base + "/index.html?test=1")
+        page.wait_for_selector("html[data-ready='1']")
+        # as in the app: the store links are for parents on bazibo.nl only (web/js/store-links.js), and
+        # a store screenshot must never show a link to a store (the iPad's home screen reaches them)
+        page.add_style_tag(content="[data-store-links] { display: none !important; }")
+
+    def how_to():
+        """Close the how-to card a game shows on its first round."""
+        page.wait_for_timeout(300)
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button")
+            page.wait_for_timeout(200)
+
+    shots = []
+
+    def snap(file):
+        shots.append(out / file)
+        page.screenshot(path=str(shots[-1]))
+
+    # 1. the home screen, every section in sight
+    home()
+    page.wait_for_timeout(900)
+    snap("1-start.png")
+
+    # 2. Winkeltje (3-5): the shopkeeper mouse asks € 3 for a toy car, three euros on the counter
+    home()
+    page.click("#tile-winkel")
+    page.wait_for_timeout(300)
+    page.evaluate("window.__bubbels.winkel.start('t1-1')")
+    how_to()
+    page.evaluate("window.__bubbels.winkel.show(4)")
+    page.wait_for_timeout(200)
+    q = page.evaluate("window.__bubbels.winkel.state()")["q"]
+    for _ in range(q["target"] // 100):
+        page.evaluate("window.__bubbels.winkel.lay(100)")
+    page.wait_for_timeout(400)
+    st = page.evaluate("window.__bubbels.winkel.state()")
+    if sum(st["laid"]) != q["target"] or not page.is_visible(".wk-bubble"):
+        sys.exit(f"[{name}] Winkeltje: {st['laid']} on the counter for {q['target']}, or no bubble")
+    snap("2-winkel.png")
+
+    # 3. Bubbels schieten: level 7, caught the moment a shot pops bubbles
+    home()
     page.click("#tile-bubbels")
     page.wait_for_timeout(400)
-    shots.append(out / "2-levels.png")
-    page.screenshot(path=str(shots[-1]))
-
+    if lang == "en" and name.startswith("appstore-iphone"):
+        # not a store shot: the App Store review's picture of where the full version sits (the
+        # level list with its "Full version" fold; store/forms.md, In-app purchase)
+        page.screenshot(path=str(REVIEW_IAP))
+        flatten(REVIEW_IAP)
     tmp = out / "3-pop.png"
     caught = False
     for seed in range(1, 9):
@@ -239,91 +301,85 @@ def shoot(browser, base, name, size, viewport, lang):
         print(f"[{name}] no popping shot caught; 3-pop.png shows the board")
     shots.append(tmp)
 
-    # Dogudoku: a 4×4 garden for the youngest (the stores take 8 shots; the 6×6 made way for Slangetje)
-    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('[data-go=home]').click()")
-    page.click("#tile-dogudoku")
+    # 4. Treintje (3-5): the track laid past every station, the little train riding along it
+    home()
+    page.click("#tile-treintje")
     page.wait_for_timeout(300)
-    for pid, file, place, auto in ((1, "4-dogudoku-4x4.png", 2, False),):
-        page.evaluate(f"window.__bubbels.dogu.play({pid})")
-        page.wait_for_timeout(300)
-        if page.is_visible("#overlay"):
-            page.click("#ov-buttons button")
-        if auto:
-            page.click("#dogu-auto")
-        pz = page.evaluate("window.__bubbels.dogu.puzzle()")
-        taps = 1 if pz["tier"] == "tiny" else 2
-        for r in range(place):
-            for _ in range(taps):
-                page.evaluate(f"window.__bubbels.dogu.tapCell({r}, {pz['solution'][r]})")
-        if pz["tier"] != "tiny":  # one cross the child set by hand
-            r = pz["n"] - 1
-            page.evaluate(f"window.__bubbels.dogu.tapCell({r}, {(pz['solution'][r] + 2) % pz['n']})")
-        page.wait_for_timeout(500)
-        shots.append(out / file)
-        page.screenshot(path=str(shots[-1]))
+    page.evaluate("window.__bubbels.treintje.start('a3', 11)")
+    how_to()
+    sol = page.evaluate("window.__bubbels.treintje.state()")["solution"]
+    at = lambda i: page.evaluate(f"window.__bubbels.treintje.at({i})")
+    x, y = at(sol[0])
+    page.mouse.move(x, y)
+    page.mouse.down()
+    for c in sol[1:]:
+        x1, y1 = at(c)
+        for step in range(1, 6):
+            page.mouse.move(x + (x1 - x) * step / 5, y + (y1 - y) * step / 5)
+        x, y = x1, y1
+    page.mouse.up()
+    # the whole train on the bottom row, past station 1 and before it turns up the right side
+    page.wait_for_function("""(() => {
+      const b = document.querySelector('#tj-board').getBoundingClientRect();
+      const st = window.__bubbels.treintje.state(), cw = b.width / st.w, ch = b.height / st.h;
+      const cars = [...document.querySelectorAll('#tj-train .tj-car')].map((c) => c.getBoundingClientRect());
+      return cars.length > 0 && cars.every((r) => r.top + r.height / 2 > b.top + (st.h - 1) * ch + ch * 0.2
+        && r.left + r.width / 2 > b.left + cw * 0.5 && r.left + r.width / 2 < b.left + (st.w - 1) * cw);
+    })()""", polling=20, timeout=10000)
+    st = page.evaluate("window.__bubbels.treintje.state()")
+    if not st["riding"] or page.is_visible("#overlay"):
+        sys.exit(f"[{name}] Treintje: the train is not riding ({st['path']} of {sol})")
+    snap("4-treintje.png")
 
-    # Picturedoku: a 9×9 with pictures and pencil notes (the stores take 8 shots; the 4×4 made way for Vier op een rij)
-    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-dogudoku-levels [data-go=home]').click()")
-    page.click("#tile-picturedoku")
-    page.wait_for_timeout(300)
-    for pid, file, fill in ((43, "5-picturedoku-9x9.png", 14),):
-        page.evaluate(f"window.__bubbels.pdoku.play({pid})")
-        page.wait_for_timeout(300)
-        if page.is_visible("#overlay"):
-            page.click("#ov-buttons button")
-        pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
-        empties = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
-        for i in empties[:fill]:
-            page.evaluate(f"window.__bubbels.pdoku.tapCell({i}); window.__bubbels.pdoku.tapPalette({pz['solution'][i]})")
-        if pz["n"] > 4:  # a few pencil notes, then a chosen square
-            page.click("#pdoku-pencil")
-            for i in empties[fill:fill + 3]:
-                page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
-                for v in page.evaluate(f"window.__bubbels.pdoku.candidates({i})")[:3]:
-                    page.evaluate(f"window.__bubbels.pdoku.tapPalette({v})")
-                page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
-            page.click("#pdoku-pencil")
-        page.evaluate(f"window.__bubbels.pdoku.tapCell({empties[-1]})")
-        page.wait_for_timeout(500)
-        shots.append(out / file)
-        page.screenshot(path=str(shots[-1]))
-
-    # Klok kijken: "set the clock" with half hours (Vier op een rij made way for it; the stores take 8 shots)
-    page.evaluate("document.querySelector('#overlay').hidden = true; document.querySelector('#screen-picturedoku-levels [data-go=home]').click()")
+    # 5. Klok kijken (6-7): "set the clock" with half hours, the hand to look at glowing
+    home()
     page.click("#tile-klok")
     page.wait_for_timeout(300)
     page.evaluate("window.__bubbels.klok.start('set-t2-1')")
-    page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
-    page.click("#klok-hint")  # the hand to look at glows
+    how_to()
+    page.click("#klok-hint")
     page.wait_for_timeout(500)
-    shots.append(out / "6-klok.png")
-    page.screenshot(path=str(shots[-1]))
-    page.click("#klok-back")
-    page.wait_for_timeout(200)
-    page.click("#klok-menu-back")
-    page.wait_for_timeout(150)
-    page.click("#klok-menu-back")
-    page.wait_for_timeout(200)
+    snap("5-klok.png")
 
-    # Letters: "first letter" with a picture, one right answer showing (Slangetje made way for it; the stores take 8 shots)
-    page.click("#tile-letters")
+    # 6. Keukentje (3-5): every ingredient in its bowl, the cook bear with the dish ready
+    home()
+    page.click("#tile-keuken")
     page.wait_for_timeout(300)
-    page.evaluate("window.__bubbels.letters.start('first-t1-1')")
+    page.evaluate("window.__bubbels.keuken.start('t1-1')")
+    how_to()
+    for ingredient in page.evaluate("window.__bubbels.keuken.state()")["todo"]:
+        page.evaluate(f"window.__bubbels.keuken.tap({json.dumps(ingredient)})")
+        page.wait_for_timeout(250)
+    page.wait_for_timeout(500)
+    st = page.evaluate("window.__bubbels.keuken.state()")
+    if (st["line"] or {}).get("key") != "keuken.ready" or page.is_visible("#overlay"):
+        sys.exit(f"[{name}] Keukentje: the dish is not ready ({st['line']})")
+    snap("6-keuken.png")
+
+    # 7. Picturedoku (8-10): a 9×9 with pictures and pencil notes
+    home()
+    page.click("#tile-picturedoku")
     page.wait_for_timeout(300)
-    if page.is_visible("#overlay"):
-        page.click("#ov-buttons button")
-    page.wait_for_timeout(300)
-    shots.append(out / "7-letters.png")
-    page.screenshot(path=str(shots[-1]))
-    page.click("#letters-back")
-    page.wait_for_timeout(200)
-    page.click("#letters-menu-back")
-    page.wait_for_timeout(150)
-    page.click("#letters-menu-back")
-    page.wait_for_timeout(200)
-    # Kleurplaten: a free mandala, coloured ring by ring with the mirror on
+    fill = 14
+    page.evaluate("window.__bubbels.pdoku.play(43)")
+    how_to()
+    pz = page.evaluate("window.__bubbels.pdoku.puzzle()")
+    empties = [i for i, ch in enumerate(pz["givens"]) if ch == "."]
+    for i in empties[:fill]:
+        page.evaluate(f"window.__bubbels.pdoku.tapCell({i}); window.__bubbels.pdoku.tapPalette({pz['solution'][i]})")
+    page.click("#pdoku-pencil")  # a few pencil notes, then a chosen square
+    for i in empties[fill:fill + 3]:
+        page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
+        for v in page.evaluate(f"window.__bubbels.pdoku.candidates({i})")[:3]:
+            page.evaluate(f"window.__bubbels.pdoku.tapPalette({v})")
+        page.evaluate(f"window.__bubbels.pdoku.tapCell({i})")
+    page.click("#pdoku-pencil")
+    page.evaluate(f"window.__bubbels.pdoku.tapCell({empties[-1]})")
+    page.wait_for_timeout(500)
+    snap("7-picturedoku-9x9.png")
+
+    # 8. Kleurplaten: a free mandala, coloured ring by ring with the mirror on
+    home()
     page.click("#tile-kleuren")
     page.wait_for_timeout(300)
     page.evaluate("""(() => {
@@ -337,14 +393,16 @@ def shoot(browser, base, name, size, viewport, lang):
       k.pick(9);
     })()""")
     page.wait_for_timeout(400)
-    shots.append(out / "8-kleurplaat.png")
-    page.screenshot(path=str(shots[-1]))
+    snap("8-kleurplaat.png")
     ctx.close()
+    caps = captions(frame, lang)
+    for old in final.glob("*.png"):  # a scene that made way for another leaves no file behind
+        old.unlink()
     framer = browser.new_page()
     framed = []
     for raw in shots:
         framed.append(final / raw.name)
-        frame_shot(framer, frame, size, scale, screen, raw, framed[-1])
+        frame_shot(framer, frame, size, scale, screen, raw, framed[-1], caps.get(raw.stem.split("-", 1)[1]))
     framer.close()
     tmp_dir.cleanup()
     return framed
