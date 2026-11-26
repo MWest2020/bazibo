@@ -121,7 +121,7 @@ export function piecePath(sides, s, m = margin(s)) {
  * Where the board and the tray go on a stage of w × h px, and how big a piece is. Upright the tray
  * is under the board, sideways beside it. The tray must hold the pieces with at most a little
  * overlap; the board takes what is left. When that would make a piece with its tabs smaller than
- * GRAB (80 and 100 pieces on a small phone), the pieces stay GRAB and overlap more on the tray, as
+ * GRAB (100 pieces at 320x568, upright and sideways), the pieces stay GRAB and overlap more on the tray, as
  * long as at least half of them fit side by side. Returns { s, m, board: {x, y, w, h}, tray: {x, y, w, h}, side }.
  */
 export function layout(w, h, cols, rows, { gap = 12, maxPiece = 150 } = {}) {

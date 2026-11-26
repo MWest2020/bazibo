@@ -6101,7 +6101,8 @@ def legpuzzel_flow(browser, base, problems):
     page.wait_for_timeout(200)
     st = pz_state(page)
     small = min(page.evaluate("[...document.querySelectorAll('.ppiece')].map((c) => c.getBoundingClientRect().width)"))
-    if len(st["placed"]) != 36 or small < 44:
+    # 36 pieces at 390x844 (a stage of 366x724) are just big enough for no magnifier (56 px)
+    if len(st["placed"]) != 36 or small < 44 or st["zoomMax"] != 1:
         problems.append(f"legpuzzel: 36 pieces at 390x844: {len(st['placed'])} pieces, {small:.0f} px, magnifier {st['zoomMax']}")
     print(f"[legpuzzel 390x844 p36] piece {st['s']} px ({small:.0f} with tabs), magnifier {st['zoomMax']:.2f}")
     page.screenshot(path=str(SHOTS / "legpuzzel-36-start.png"))
@@ -6544,7 +6545,9 @@ def legpuzzel_perf(browser, base, problems):
             continue
         if m["redraws"]:
             problems.append(f"legpuzzel perf: {name} drew on a canvas {m['redraws']} times")
-        if m["frames"] < 20 or m["p95"] > 50:
+        # the frame time is recorded (legpuzzel-perf.json); only a gross stall fails, so a busy CI
+        # runner does not: here 95% of the frames come within 34 ms, at 4x slower CPU
+        if m["frames"] < 20 or m["p95"] > 150:
             problems.append(f"legpuzzel perf: {name}: {m['frames']} frames, 95% within {m['p95']} ms (4x slower CPU)")
     if mem["pieces_mb"] + mem["board_mb"] > 64:
         problems.append(f"legpuzzel perf: the canvases take {mem['pieces_mb'] + mem['board_mb']} MB")

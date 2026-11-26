@@ -41,7 +41,7 @@ export function sizeSvg(cols, rows) {
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
       const lifted = (r === rows - 1 && c === cols - 1) || (rows > 2 && r === 0 && c === 1);
-      out += `<rect x="${(c * s + (lifted ? 3 : 0)).toFixed(1)}" y="${(r * s - (lifted ? 4 : 0)).toFixed(1)}" width="${(s - 1.5).toFixed(1)}" height="${(s - 1.5).toFixed(1)}" rx="2" fill="${lifted ? '#ffd23f' : (r + c) % 2 ? '#8fd0ff' : '#b9e1ff'}" stroke="#3a2f6b" stroke-width="1.4"/>`;
+      out += `<rect x="${(c * s + (lifted ? 3 : 0)).toFixed(1)}" y="${(r * s - (lifted ? 4 : 0)).toFixed(1)}" width="${(s - 1.5).toFixed(1)}" height="${(s - 1.5).toFixed(1)}" rx="2" fill="${lifted ? '#ffd23f' : (r + c) % 2 ? '#8fd0ff' : '#b9e1ff'}" stroke="#3a2f6b" stroke-width="${Math.min(1.4, s * 0.14).toFixed(2)}"/>`;
     }
   return `<svg class="psize" viewBox="-2 -6 ${(cols * s + 6).toFixed(1)} ${(rows * s + 8).toFixed(1)}" aria-hidden="true">${out}</svg>`;
 }

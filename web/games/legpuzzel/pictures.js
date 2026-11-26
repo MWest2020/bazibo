@@ -6,8 +6,8 @@
 //
 // With 80 or 100 pieces a piece is a tenth of the picture across, and a piece of plain sky, sea or
 // grass would show nothing to go on (Mark, 26 Nov 2026: more pieces per age). So a puzzle passes its
-// grid (`{ cols, rows }`) and every piece gets a little detail of its own in the middle of its
-// square, drawn under the scene's drawings and matching where it lies: a cloud puff in the sky, a
+// grid (`{ cols, rows }`) and every piece gets a little detail in the middle of its square (the
+// same kind across the sky or the sea: it shows something, it does not tell pieces apart), drawn under the scene's drawings and matching where it lies: a cloud puff in the sky, a
 // flower or a tuft on the grass, bubbles in the sea, a star in space, a paw print, pebbles on the
 // road (`details`). Where a drawing covers the square, the drawing is what shows.
 import { wordPictureSvg } from '../letters/art.js';

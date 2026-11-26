@@ -90,9 +90,9 @@ test('Legpuzzel travels whole: the puzzles laid (also 48 and 60 pieces), the siz
   assert.deepEqual(back.games.legpuzzel, typical().games.legpuzzel);
 });
 
-test('Legpuzzel: puzzles laid in sizes that left the menu (4, 6, 12, 20 pieces) and such a last size still travel and merge', async () => {
+test('Legpuzzel: puzzles laid in sizes that left the menu (4, 6, 12, 20, and since 26 Nov 2026 16 and 30 pieces) and such a last size still travel and merge', async () => {
   const save = typical();
-  save.games.legpuzzel = { stars: { 'garden-p4': 1, 'sea-p6': 1, 'fruit-p12': 1, 'garden-p20': 1, 'garden-p16': 1 }, size: 'p12', ghost: true, zoom: false };
+  save.games.legpuzzel = { stars: { 'garden-p4': 1, 'sea-p6': 1, 'fruit-p12': 1, 'garden-p20': 1, 'garden-p16': 1, 'fruit-p30': 1 }, size: 'p16', ghost: true, zoom: false };
   const back = await decodeText(await encodeSave(save));
   assert.deepEqual(back.games.legpuzzel, save.games.legpuzzel);
   const mine = typical();

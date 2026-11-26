@@ -124,7 +124,7 @@ age 3 (9 big pieces) up to 10 (100 pieces). A sliding puzzle is hard below about
   and the meadow (full version). They are made from the app's own drawings (Kleurplaten pictures,
   Picturedoku fruit, Dogudoku puppies) on a sky, grass, sea, space or table-cloth background. A
   scene fills any board shape, from 1:1 to 5:3. Cut into a puzzle, every piece gets a little detail
-  of its own in the middle of its square, under the drawings and fitting where it lies (a cloud
+  in the middle of its square, under the drawings and fitting where it lies (a cloud
   puff in the sky, a flower or a tuft of grass, bubbles in the sea, a star in space, a paw print,
   pebbles on the road), so with 80 or 100 pieces no piece is plain sky or grass. The menu's
   pictures have none.
