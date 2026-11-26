@@ -47,11 +47,6 @@ const THING_ART = {
     <path d="M32 57C18 49 10 37 12 25c2-8 10-10 20-6 10-4 18-2 20 6 2 12-6 24-20 32z" ${B} ${line()}/>
     <g ${SHINE}><ellipse cx="24" cy="30" rx="1.3" ry="2"/><ellipse cx="33" cy="28" rx="1.3" ry="2"/><ellipse cx="41" cy="31" rx="1.3" ry="2"/><ellipse cx="28" cy="39" rx="1.3" ry="2"/><ellipse cx="37" cy="40" rx="1.3" ry="2"/><ellipse cx="32" cy="48" rx="1.3" ry="2"/></g>
     <path d="M32 20l-9-5 6-1-2-6 5 4 5-4-2 6 6 1z" fill="${LEAF}" ${line(2)}/>`,
-  tomaat: (B) => `
-    <path d="M32 17c14 0 24 9 24 21s-10 19-24 19S8 50 8 38s10-21 24-21z" ${B} ${line()}/>
-    <ellipse cx="21" cy="31" rx="4" ry="6" transform="rotate(30 21 31)" ${SHINE}/>
-    <path d="M32 21l-8-3 5-2-3-5 6 3 6-3-3 5 5 2z" fill="${LEAF}" ${line(2)}/>
-    <path d="M32 15v-5" stroke="${LEAF}" stroke-width="3" stroke-linecap="round"/>`,
   lieveheersbeestje: (B) => `
     <path d="M24 13l-5-6M40 13l5-6" fill="none" ${line(2)}/>
     <path d="M20 22a12 9 0 0 1 24 0z" fill="#2b2422" ${line()}/>
@@ -106,20 +101,12 @@ const THING_ART = {
     <path d="M31 13l-6 3 2 4 4-3z" fill="#2b2422" ${line(1.6)}/>
     <circle cx="36" cy="11" r="1.5" fill="${OUT}"/>
     <path d="M22 34c4 2 10 2 14 0" fill="none" stroke="#000000" stroke-opacity="0.18" stroke-width="2.4" stroke-linecap="round"/>`,
-  aubergine: (B) => `
-    <path d="M42 16c7 5 9 14 5 24-5 13-14 20-24 18-9-2-12-11-8-19 4-8 12-10 16-16 3-5 5-8 11-7z" ${B} ${line()}/>
-    <ellipse cx="28" cy="44" rx="3" ry="7" transform="rotate(40 28 44)" ${SHINE}/>
-    <path d="M36 18c2-4 6-6 10-5 2 3 1 7-2 9-3-1-6-2-8-4z" fill="${LEAF}" ${line(2)}/>
-    <path d="M45 13l4-6" stroke="${LEAF}" stroke-width="3.2" stroke-linecap="round"/>`,
   bosbes: (B) => `
     <circle cx="22" cy="40" r="13" ${B} ${line()}/>
     <circle cx="42" cy="42" r="12" ${B} ${line()}/>
     <circle cx="32" cy="23" r="12" ${B} ${line()}/>
     <g ${SHADE}><path d="M32 14l2 3h3l-2 2 1 3-4-2-4 2 1-3-2-2h3z"/><path d="M22 31l2 3h3l-2 2 1 3-4-2-4 2 1-3-2-2h3z"/><path d="M42 33l2 3h3l-2 2 1 3-4-2-4 2 1-3-2-2h3z"/></g>
     <circle cx="18" cy="44" r="2.6" ${SHINE}/><circle cx="38" cy="46" r="2.4" ${SHINE}/><circle cx="27" cy="27" r="2.4" ${SHINE}/>`,
-  druppel: (B) => `
-    <path d="M32 6C24 21 13 31 13 42a19 19 0 0 0 38 0C51 31 40 21 32 6z" ${B} ${line()}/>
-    <path d="M22 42c0 6 4 10 9 11" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="3.4" stroke-linecap="round"/>`,
   kastanje: (B) => `
     <path d="M32 11c3 4 7 5 11 7 7 4 11 11 11 19 0 12-10 20-22 20S10 49 10 37c0-8 4-15 11-19 4-2 8-3 11-7z" ${B} ${line()}/>
     <path d="M14 46c4 6 10 9 18 9s14-3 18-9c-6 2-12 3-18 3s-12-1-18-3z" fill="#eadbb8" ${line(2)}/>

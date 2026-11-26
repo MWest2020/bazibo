@@ -183,7 +183,8 @@
 #screen-kermis[data-mode='race'] .kk-ans { touch-action: none; }
 .kk-wait { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; pointer-events: none; }
 .kk-pad.paused .kk-wait { display: flex; }
-.kk-pad.paused .kk-answers { opacity: 0.35; }
+.kk-pad.paused .kk-answers, .kk-pad.out .kk-answers { opacity: 0.35; }
+.kk-pad.out .kk-wait { display: none; }
 .kk-wait i { width: 46px; height: 46px; border-radius: 50%; border: 5px solid var(--bz-ink-quiet); border-top-color: transparent; animation: kk-wait 1.5s linear; }
 @keyframes kk-wait { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 .kk-pad.won { border-color: var(--bz-group-acc); background: var(--bz-group-tint); animation: kk-won 0.6s ease-out; }
@@ -198,6 +199,10 @@
   grid-template-areas: "tl tr" "mid mid" "bl br";
 }
 #screen-kermis.kk-together .kk-pad { width: 100%; max-width: 320px; }
+/* three or four together on an upright screen: the bottom (and top) corners apart, not side by side */
+@media (orientation: portrait) {
+  #screen-kermis.kk-together[data-n='3'] #kk-stage, #screen-kermis.kk-together[data-n='4'] #kk-stage { column-gap: 28px; }
+}
 #screen-kermis.kk-together .slot-bl, #screen-kermis.kk-together .slot-tl { justify-self: start; }
 #screen-kermis.kk-together .slot-br, #screen-kermis.kk-together .slot-tr { justify-self: end; }
 .kk-pad.slot-tl, .kk-pad.slot-tr:not(.cpu) { transform: rotate(180deg); }

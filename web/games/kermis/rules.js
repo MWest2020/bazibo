@@ -11,7 +11,9 @@
 // MAX_TRIES the answer glows; stars by mistakes only. Race (the full version; Mark, 26 Nov 2026: the
 // only Bazibo game with a race): 1 to 4 children on one tablet, each with their own corner, all at
 // once; the first right tap wins the question's point; a wrong tap gives only that child a short
-// pause (PAUSE_MS), never minus points. Alone, a child races the little turtle (turtlePlan).
+// pause (PAUSE_MS), never minus points. Guessing never wins by elimination: after `triesFor` wrong
+// taps (one on Ja/Nee, two of four colours) that child is out of the question; when everyone is out
+// the answer is shown and nobody gets the point. Alone, a child races the little turtle (turtlePlan).
 import { INKS, WORD_COLOURS, STROOP_COLOURS, THINGS, THING_IDS } from './colours.js';
 
 export const TIER_IDS = Object.freeze(['t1', 't2', 't3']);
@@ -157,6 +159,16 @@ export const answerOf = (q) => q.answer;
 
 // ---------- Race ----------
 
+/**
+ * Wrong taps a child may make on a question before they are out of it: one on Ja/Nee, two of four
+ * colours. So guessing never wins by elimination (tapping everything leaves only the answer).
+ */
+export const triesFor = (q) => Math.max(1, q.options.length - 2);
+/** Is player `p` out of this question (as many wrong taps as triesFor)? */
+export const isOut = (st, p, q) => st.tried[p].length >= triesFor(q);
+/** Is every player out (then nobody gets this question's point)? */
+export const allOut = (st, q) => st.tried.every((_, p) => isOut(st, p, q));
+
 /** A race of `n` players at the start of a question: points, pauses (until when) and what each tried. */
 export function raceStart(n) {
   return { scores: Array(n).fill(0), paused: Array(n).fill(0), tried: Array.from({ length: n }, () => []), winner: null };
@@ -172,12 +184,15 @@ export function raceNext(st) {
  *   'closed'  the question was won already (nothing changes)
  *   'paused'  this player is still in their pause after a wrong tap (nothing changes)
  *   'same'    an answer this player tried already (nothing changes)
+ *   'out'     this player is out of the question (triesFor wrong taps; nothing changes)
  *   'right'   first right tap: the point, and the question is over
- *   'wrong'   a pause for this player only, until now + PAUSE_MS; nobody loses a point
+ *   'wrong'   a pause for this player only, until now + PAUSE_MS; nobody loses a point (and after
+ *             triesFor of them the player is out of the question: isOut)
  */
 export function raceTap(st, p, a, q, now) {
   if (st.winner !== null) return { st, res: 'closed' };
   if (p < 0 || p >= st.scores.length || !q.options.includes(a)) return { st, res: 'closed' };
+  if (isOut(st, p, q)) return { st, res: 'out' };
   if (now < st.paused[p]) return { st, res: 'paused' };
   if (st.tried[p].includes(a)) return { st, res: 'same' };
   if (a === q.answer) {
@@ -201,7 +216,8 @@ export function places(scores) {
 
 /**
  * The turtle's taps on a question (a child alone races it): when (ms after the question is shown)
- * and what, seeded. Mostly right; when not, it tries the right one after its pause.
+ * and what, seeded. Mostly right; when not, on four colours it tries the right one after its pause,
+ * on Ja/Nee it is out of the question like a child.
  */
 export function turtlePlan(q, tier, seed) {
   const cfg = TURTLE[tier];
@@ -209,10 +225,10 @@ export function turtlePlan(q, tier, seed) {
   const at = Math.round(cfg.from + rand() * cfg.spread);
   if (rand() < cfg.right) return [{ at, a: q.answer }];
   const wrong = q.options.filter((o) => o !== q.answer);
-  return [
-    { at, a: pick(wrong, rand) },
-    { at: at + PAUSE_MS + Math.round(500 + rand() * 900), a: q.answer },
-  ];
+  const first = { at, a: pick(wrong, rand) };
+  // on Ja/Nee one wrong tap puts it out of the question, like a child
+  if (triesFor(q) <= 1) return [first];
+  return [first, { at: at + PAUSE_MS + Math.round(500 + rand() * 900), a: q.answer }];
 }
 
 // ---------- what the chameleon says ----------
@@ -223,7 +239,8 @@ export function turtlePlan(q, tier, seed) {
  *   say 'hello'  at the start of question `i`; `who` the player whose turn it is (calm together), or
  *                `race` true
  *   say 'try'    after a tap on `a`: `res` is what tapAnswer said
- *   say 'won'    in a race, player `who` was first
+ *   say 'won'    in a race, player `who` was first ('turtle', 'you' for a child alone, or a player id)
+ *   say 'nobody' in a race, everyone was out of the question
  */
 export function hostLine(q, { say, i = 0, who = null, race = false, res = null, a = null, help = false } = {}) {
   const col = (c) => `kermis.col.${c}`;
@@ -231,7 +248,8 @@ export function hostLine(q, { say, i = 0, who = null, race = false, res = null, 
     const hi = race ? (i <= 0 ? 'kermis.raceHi' : null) : who ? `kermis.turn.${who}` : i <= 0 ? 'kermis.hi' : null;
     return { key: `kermis.say.${q.kind}`, vars: { hi } };
   }
-  if (say === 'won') return { key: 'kermis.won', vars: { who: `kermis.p.${who}` } };
+  if (say === 'won') return who === 'turtle' ? { key: 'kermis.wonTurtle', vars: {} } : who === 'you' ? { key: 'kermis.wonYou', vars: {} } : { key: 'kermis.won', vars: { who: `kermis.p.${who}` } };
+  if (say === 'nobody') return q.kind === 'pic' ? { key: 'kermis.nobodyPic', vars: { an: `kermis.an.${q.thing}`, col: col(q.own) } } : { key: 'kermis.nobodyInk', vars: { col: col(q.ink) } };
   if (say !== 'try' || !res || res.ok === null) throw new Error(`unknown line ${say}`);
   let line;
   if (q.kind === 'pic') {
@@ -255,6 +273,10 @@ export const LINE_KEYS = Object.freeze([
   'kermis.raceHi',
   'kermis.help',
   'kermis.won',
+  'kermis.wonTurtle',
+  'kermis.wonYou',
+  'kermis.nobodyPic',
+  'kermis.nobodyInk',
   ...['pic', 'word', 'stroop'].map((k) => `kermis.say.${k}`),
   ...['picYes', 'picNo', 'picLookYes', 'picLookNo', 'wordYes', 'wordNo', 'wordLookYes', 'wordLookNo', 'stroopYes', 'stroopWord', 'stroopLook'].map((k) => `kermis.${k}`),
   ...PLAYER_IDS.flatMap((p) => [`kermis.turn.${p}`, `kermis.p.${p}`]),

@@ -22,7 +22,7 @@
 // and number of players (`lastPlayers`). An unfinished game is kept while the app stays open
 // ("keep playing").
 import { meta } from './meta.js';
-import { TIERS, TIER_IDS, MODES, PLAYER_COUNTS, PLAYER_IDS, SLOTS, ROUNDS_PER_TIER, ROUND_LEN, MAX_TRIES, PAUSE_MS, NEXT_MS, makeRound, starsFor, hashSeed, startState, tapAnswer, raceStart, raceNext, raceTap, places, turtlePlan, hostLine, lineText } from './rules.js';
+import { TIERS, TIER_IDS, MODES, PLAYER_COUNTS, PLAYER_IDS, SLOTS, ROUNDS_PER_TIER, ROUND_LEN, MAX_TRIES, PAUSE_MS, NEXT_MS, makeRound, starsFor, hashSeed, startState, tapAnswer, raceStart, raceNext, raceTap, isOut, allOut, places, turtlePlan, hostLine, lineText } from './rules.js';
 import { INKS } from './colours.js';
 import { thingSvg, hostSvg, turtleSvg, playerSvg, swatchSvg, YES_SVG, NO_SVG, flagSvg, playersSvg, stallSvg } from './art.js';
 import * as store from '../../js/storage.js';
@@ -406,6 +406,10 @@ export function createKermis(shell) {
         sc.querySelector('b').textContent = String(game.race.scores[k]);
         sc.setAttribute('aria-label', t('kermis.points', { n: game.race.scores[k] }));
       }
+      const name = pad.querySelector('.kk-pad-name');
+      if (name) name.textContent = whoName(p); // also after a language switch
+      const out = !!game.race && game.race.winner === null && !game.waiting && isOut(game.race, k, it);
+      pad.classList.toggle('out', out);
       const myTurn = game.mode === 'race' || turn === k;
       pad.classList.toggle('turn', game.mode === 'calm' && game.players.length > 1 && myTurn);
       pad.classList.toggle('off', !myTurn);
@@ -434,10 +438,10 @@ export function createKermis(shell) {
         const b = answerButton(it, a, k);
         const isTried = tried.includes(a);
         if (isTried) b.classList.add('tried');
-        const solved = game.waiting && a === it.answer && (game.mode === 'calm' ? myTurn : won);
+        const solved = game.waiting && a === it.answer && (game.mode === 'calm' ? myTurn : won || game.nobody);
         if (solved) b.classList.add('right');
         if (game.mode === 'calm' && myTurn && !game.waiting && (game.help || left.length === 1) && a === it.answer) b.classList.add('help');
-        b.disabled = !myTurn || isTried || game.waiting || game.done || (game.race && game.race.winner !== null) || !game.started;
+        b.disabled = !myTurn || isTried || out || game.waiting || game.done || (game.race && game.race.winner !== null) || !game.started;
         ans.appendChild(b);
       }
     }
@@ -491,7 +495,7 @@ export function createKermis(shell) {
     for (let k = 0; k < ROUND_LEN; k++) {
       const d = document.createElement('span');
       const r = game.results[k];
-      d.className = `klok-dot${r === true || typeof r === 'number' ? ' good' : r === false ? ' bad' : ''}${k === game.i && !game.done ? ' now' : ''}`;
+      d.className = `klok-dot${r === true || typeof r === 'number' || r === 'none' ? ' good' : r === false ? ' bad' : ''}${k === game.i && !game.done ? ' now' : ''}`;
       box.appendChild(d);
     }
     box.setAttribute('aria-label', t('kermis.progress', { done: Math.min(game.i, ROUND_LEN), total: ROUND_LEN }));
@@ -568,10 +572,20 @@ export function createKermis(shell) {
       game.results[game.i] = p;
       game.waiting = true;
       sfx.plink(Math.min(9, st.scores[p] + 2));
-      say(hostLine(it, { say: 'won', who: game.players[p].id }), 'happy');
+      const who = game.players[p];
+      say(hostLine(it, { say: 'won', who: who.cpu ? 'turtle' : who.slot === 'solo' ? 'you' : who.id }), 'happy');
       renderPads();
       renderDots();
       after(NEXT_MS, nextQuestion);
+    } else if (res === 'wrong' && allOut(st, it)) {
+      // everyone guessed and is out: the answer is shown, nobody gets the point
+      game.results[game.i] = 'none';
+      game.waiting = true;
+      game.nobody = true;
+      say(hostLine(it, { say: 'nobody' }));
+      renderPads();
+      renderDots();
+      after(NEXT_MS + 800, nextQuestion);
     } else if (res === 'wrong') {
       // only this child waits a moment; nobody loses a point; no sound, no flash
       renderPads();
@@ -586,11 +600,20 @@ export function createKermis(shell) {
     plays++;
     clearTimers();
     if (game.mode === 'race') {
-      if (!fresh) game.race = raceNext({ ...game.race });
+      // on "keep playing" the question goes on as it was (what each child tried, who is out); the
+      // turtle plans only the taps it has not made yet, from now
+      if (fresh) game.turtleStep = 0;
       const k = game.players.findIndex((p) => p.cpu);
       if (k >= 0) {
         const plan = turtlePlan(q(), game.tier, (game.seed ^ hashSeed(`turtle:${game.i}`)) >>> 0);
-        for (const step of plan) after(step.at, () => racePick(k, step.a, performance.now()));
+        const done = game.turtleStep || 0;
+        const start = done ? plan[done - 1].at : 0;
+        plan.slice(done).forEach((step, n) =>
+          after(fresh ? step.at : step.at - start + 600, () => {
+            game.turtleStep = done + n + 1;
+            racePick(k, step.a, performance.now());
+          }),
+        );
       }
     }
     render();
@@ -604,6 +627,7 @@ export function createKermis(shell) {
     game.line = null;
     game.mood = '';
     game.st = startState();
+    game.nobody = false;
     game.i++;
     if (game.i >= ROUND_LEN) {
       finish();
@@ -693,6 +717,12 @@ export function createKermis(shell) {
     return k >= 0 && k + 1 < TIER_IDS.length ? `${TIER_IDS[k + 1]}-1` : null;
   }
 
+  // a race stops when the app goes to the background (the turtle would race on): back to the menu,
+  // the race kept for "Verder spelen"
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && game && !game.done && game.mode === 'race' && onScreen('kermis')) leave();
+  });
+
   // the bounce is a CSS animation; take the class off when it ends so it can run again
   $('#kk-pads').addEventListener('animationend', (e) => e.target.closest?.('.kk-ans')?.classList.remove('bounce'));
 
@@ -723,7 +753,8 @@ export function createKermis(shell) {
             done: game.done,
             waiting: game.waiting,
             started: game.started,
-            race: game.race && { scores: [...game.race.scores], winner: game.race.winner, paused: game.race.paused.map((x) => Math.max(0, x - performance.now())), tried: game.race.tried.map((x) => [...x]) },
+            nobody: !!game.nobody,
+            race: game.race && { scores: [...game.race.scores], winner: game.race.winner, out: game.race.tried.map((_, k) => isOut(game.race, k, game.qs[Math.min(game.i, ROUND_LEN - 1)])), paused: game.race.paused.map((x) => Math.max(0, x - performance.now())), tried: game.race.tried.map((x) => [...x]) },
             line: game.line && { key: game.line.key, text: $('#kk-say').textContent },
             mood: game.mood,
           },

@@ -41,28 +41,28 @@ export const SHAPES = Object.freeze({
 /**
  * Tier 1: things whose colour a child of 3-5 knows, each with its one own colour (`ink`) and the
  * colours it may be shown in for a "Nee" (`not`): only colours that are plainly wrong for it. Never
- * a colour the thing really comes in (green bananas and tomatoes, purple carrots, yellow ladybirds,
- * red unripe blueberries, autumn leaves...): when in doubt, leave the colour out. Mark checks these.
+ * a colour the thing really comes in (green or red bananas, purple carrots, yellow ladybirds, red
+ * unripe blueberries, autumn leaves, a copper beech's purple leaves...): when in doubt, leave the
+ * colour out. Things with many real colours stay out altogether (tomatoes come pink, purple and
+ * brown, aubergines yellow and white; water has no colour, and a red drop reads as blood). Mark
+ * checks these.
  */
 export const THINGS = Object.freeze({
-  banaan: Object.freeze({ ink: 'geel', not: Object.freeze(['blauw', 'paars', 'roze']) }),
+  banaan: Object.freeze({ ink: 'geel', not: Object.freeze(['blauw', 'roze']) }),
   citroen: Object.freeze({ ink: 'geel', not: Object.freeze(['blauw', 'paars', 'roze']) }),
   kuiken: Object.freeze({ ink: 'geel', not: Object.freeze(['blauw', 'groen', 'paars']) }),
   zon: Object.freeze({ ink: 'geel', not: Object.freeze(['blauw', 'groen', 'paars']) }),
   aardbei: Object.freeze({ ink: 'rood', not: Object.freeze(['blauw', 'paars']) }),
-  tomaat: Object.freeze({ ink: 'rood', not: Object.freeze(['blauw', 'paars', 'roze']) }),
   lieveheersbeestje: Object.freeze({ ink: 'rood', not: Object.freeze(['blauw', 'groen', 'paars']) }),
   wortel: Object.freeze({ ink: 'oranje', not: Object.freeze(['blauw', 'roze', 'groen']) }),
   sinaasappel: Object.freeze({ ink: 'oranje', not: Object.freeze(['blauw', 'paars', 'roze']) }),
   kikker: Object.freeze({ ink: 'groen', not: Object.freeze(['roze', 'paars']) }),
-  blad: Object.freeze({ ink: 'groen', not: Object.freeze(['blauw', 'roze', 'paars']) }),
+  blad: Object.freeze({ ink: 'groen', not: Object.freeze(['blauw']) }),
   komkommer: Object.freeze({ ink: 'groen', not: Object.freeze(['blauw', 'roze', 'paars']) }),
   broccoli: Object.freeze({ ink: 'groen', not: Object.freeze(['blauw', 'roze', 'oranje']) }),
   varken: Object.freeze({ ink: 'roze', not: Object.freeze(['blauw', 'groen', 'geel']) }),
   flamingo: Object.freeze({ ink: 'roze', not: Object.freeze(['blauw', 'groen']) }),
-  aubergine: Object.freeze({ ink: 'paars', not: Object.freeze(['oranje', 'geel']) }),
   bosbes: Object.freeze({ ink: 'blauw', not: Object.freeze(['oranje', 'geel']) }),
-  druppel: Object.freeze({ ink: 'blauw', not: Object.freeze(['rood', 'geel', 'oranje']) }),
   kastanje: Object.freeze({ ink: 'bruin', not: Object.freeze(['blauw', 'roze', 'paars']) }),
 });
 export const THING_IDS = Object.freeze(Object.keys(THINGS));

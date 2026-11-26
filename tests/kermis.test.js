@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { allStrings, LANGS, setLang, t as tr } from '../web/js/i18n.js';
 import '../web/games/kermis/strings.js';
 import { INKS, INK_IDS, WORD_COLOURS, STROOP_COLOURS, SHAPES, THINGS, THING_IDS } from '../web/games/kermis/colours.js';
-import { TIERS, TIER_IDS, MODES, PLAYER_IDS, SLOTS, ROUND_LEN, ROUNDS_PER_TIER, CONGRUENT, STROOP_OPTIONS, MAX_TRIES, PAUSE_MS, NEXT_MS, TURTLE, makeRound, starsFor, hashSeed, startState, tapAnswer, raceStart, raceNext, raceTap, isPaused, places, turtlePlan, hostLine, lineText, LINE_KEYS } from '../web/games/kermis/rules.js';
+import { TIERS, TIER_IDS, MODES, PLAYER_IDS, SLOTS, ROUND_LEN, ROUNDS_PER_TIER, CONGRUENT, STROOP_OPTIONS, MAX_TRIES, PAUSE_MS, NEXT_MS, TURTLE, makeRound, starsFor, hashSeed, rng, startState, tapAnswer, raceStart, raceNext, raceTap, isPaused, isOut, allOut, triesFor, places, turtlePlan, hostLine, lineText, LINE_KEYS } from '../web/games/kermis/rules.js';
 import { thingSvg, ART_IDS, hostSvg, HOST, turtleSvg, playerSvg, PLAYER_ART_IDS, swatchSvg, SHAPE_IDS, YES_SVG, NO_SVG, flagSvg, playersSvg, stallSvg, tileSvg } from '../web/games/kermis/art.js';
 import { meta } from '../web/games/kermis/meta.js';
 import { sanitizePayload, mergeTransfer, replaceTransfer } from '../web/js/transfer.js';
@@ -65,19 +65,20 @@ test('colour-blind safe: every pair a question can show side by side is far apar
   assert.ok(L('groen') - L('rood') >= 20, `red and green differ in lightness by only ${(L('groen') - L('rood')).toFixed(1)}`);
 });
 
-test('19 things whose colour a child of 3-5 knows: each with its own colour, plainly wrong colours to show it in, a drawing and names', () => {
+test('things whose colour a child of 3-5 knows: each with its own colour, plainly wrong colours to show it in, a drawing and names', () => {
   assert.ok(THING_IDS.length >= ROUND_LEN * 2, 'enough things for varied rounds');
   assert.deepEqual([...ART_IDS].sort(), [...THING_IDS].sort());
   for (const id of THING_IDS) {
     const { ink, not } = THINGS[id];
     assert.ok(INKS[ink], `${id}: ${ink}`);
-    assert.ok(not.length >= 2, `${id}: only ${not.length} wrong colours`);
+    assert.ok(not.length >= 1, `${id}: no wrong colour`);
     for (const c of not) assert.ok(INKS[c] && c !== ink, `${id}: wrong colour ${c}`);
     assert.equal(new Set(not).size, not.length, `${id}: a wrong colour twice`);
     assert.ok(has(`kermis.thing.${id}`) && has(`kermis.an.${id}`), `${id}: no name in both languages`);
   }
   // the colours things really come in are never "wrong" (Mark checks these lists)
-  const never = { banaan: ['groen', 'bruin', 'rood'], tomaat: ['groen', 'geel', 'oranje'], wortel: ['paars', 'geel'], lieveheersbeestje: ['geel', 'oranje'], bosbes: ['rood', 'groen', 'paars'], blad: ['geel', 'oranje', 'rood', 'bruin'], aardbei: ['groen', 'geel'], kikker: ['blauw', 'geel', 'bruin', 'rood', 'oranje'] };
+  for (const gone of ['tomaat', 'aubergine', 'druppel']) assert.ok(!THINGS[gone], `${gone} has many real colours (or none): not in the game`);
+  const never = { banaan: ['groen', 'bruin', 'rood', 'paars'], wortel: ['paars', 'geel'], lieveheersbeestje: ['geel', 'oranje'], bosbes: ['rood', 'groen', 'paars'], blad: ['geel', 'oranje', 'rood', 'bruin', 'paars', 'roze'], aardbei: ['groen', 'geel'], kikker: ['blauw', 'geel', 'bruin', 'rood', 'oranje'] };
   for (const [id, cs] of Object.entries(never)) for (const c of cs) assert.ok(!THINGS[id].not.includes(c), `${id} really can be ${c}`);
 });
 
@@ -203,25 +204,63 @@ test('race: the first right tap wins the point and closes the question; a wrong 
   assert.deepEqual(st.tried, [[], [], []]);
 });
 
-test('race: no tap-spam (a pause after a wrong tap, an answer tried is not tried again), and at most one point per question', () => {
+test('race: no tap-spam: a pause after a wrong tap, and out of the question after one wrong Ja/Nee or two wrong colours', () => {
   let st = raceStart(2);
   let wrongs = 0;
-  // child 0 hammers the buttons every 40 ms for 5 seconds; child 1 taps the right one once at 4 s
+  // child 0 hammers every wrong button every 40 ms; child 1 taps the right one once at 4 s
   for (let now = 0; now <= 5000; now += 40) {
-    const a = raceQ.options[(now / 40) % 3 === 0 ? 0 : (now / 40) % 3 === 1 ? 2 : 3];
+    const a = raceQ.options[[0, 2, 3][(now / 40) % 3]];
     const r = raceTap(st, 0, a, raceQ, now);
     if (r.res === 'wrong') wrongs++;
     st = r.st;
     if (now === 4000) st = raceTap(st, 1, 'blauw', raceQ, now).st;
   }
-  assert.ok(wrongs <= Math.ceil(5000 / PAUSE_MS), `${wrongs} wrong taps counted in 5 s`);
-  assert.ok(wrongs <= 3, 'each wrong answer is tried once');
+  assert.equal(triesFor(raceQ), 2);
+  assert.equal(wrongs, 2, 'two wrong colours, then out');
+  assert.ok(isOut(st, 0, raceQ));
+  assert.equal(raceTap(st, 0, 'blauw', raceQ, 4000).res, 'closed');
   assert.deepEqual(st.scores, [0, 1]);
+  // out means out: after two wrong colours the right one does nothing (no winning by elimination)
+  let s3 = raceStart(2);
+  s3 = raceTap(s3, 0, 'rood', raceQ, 0).st;
+  s3 = raceTap(s3, 0, 'geel', raceQ, PAUSE_MS).st;
+  assert.equal(raceTap(s3, 0, 'blauw', raceQ, 2 * PAUSE_MS).res, 'out');
+  assert.ok(!allOut(s3, raceQ));
+  s3 = raceTap(s3, 1, 'groen', raceQ, 10).st;
+  s3 = raceTap(s3, 1, 'rood', raceQ, 10 + PAUSE_MS).st;
+  assert.ok(allOut(s3, raceQ), 'everyone out: nobody gets the point');
+  assert.deepEqual(s3.scores, [0, 0]);
   // two children at the same moment: the one handled first wins, the other is closed
   let s2 = raceStart(2);
   s2 = raceTap(s2, 1, 'blauw', raceQ, 500).st;
   assert.equal(raceTap(s2, 0, 'blauw', raceQ, 500).res, 'closed');
   assert.deepEqual(s2.scores, [0, 1]);
+});
+
+test('race: guessing does not beat reading: a child who taps at once against one who answers right after 2 s', () => {
+  for (const tier of TIER_IDS) {
+    let masher = 0;
+    let reader = 0;
+    let n = 0;
+    for (let seed = 1; seed <= SEEDS; seed++) {
+      const rand = rng(seed * 7 + 1);
+      for (const q of makeRound({ tier, seed })) {
+        n++;
+        let st = raceStart(2);
+        // the masher taps a random answer it has not tried, as soon as its pause allows
+        for (let now = 0; now < 2000 && st.winner === null; now += 50) {
+          const left = q.options.filter((o) => !st.tried[0].includes(o));
+          st = raceTap(st, 0, left[Math.floor(rand() * left.length)], q, now).st;
+        }
+        if (st.winner === null) st = raceTap(st, 1, q.answer, q, 2000).st;
+        if (st.winner === 0) masher++;
+        else if (st.winner === 1) reader++;
+      }
+    }
+    // Ja/Nee: a guess is a coin flip that puts the masher out half the time; four colours: two guesses
+    assert.ok(masher / n < 0.56, `${tier}: the masher won ${masher} of ${n}`);
+    assert.ok(reader >= masher * 0.85, `${tier}: the reader won ${reader}, the masher ${masher}`);
+  }
 });
 
 test('race: everyone is placed, the same points share a place', () => {
@@ -239,9 +278,10 @@ test('race: the turtle taps late and mostly right, a wrong tap waits out its pau
       const plan = turtlePlan(q, tier, seed);
       assert.deepEqual(plan, turtlePlan(q, tier, seed), 'seeded');
       assert.ok(plan[0].at >= TURTLE[tier].from && plan[0].at <= TURTLE[tier].from + TURTLE[tier].spread);
-      assert.equal(plan[plan.length - 1].a, q.answer);
+      if (plan[0].a !== q.answer) wrong++;
+      if (triesFor(q) === 1) assert.equal(plan.length, 1, 'on Ja/Nee one tap, like a child');
+      else assert.equal(plan[plan.length - 1].a, q.answer);
       if (plan.length === 2) {
-        wrong++;
         assert.notEqual(plan[0].a, q.answer);
         assert.ok(plan[1].at >= plan[0].at + PAUSE_MS, 'the turtle waits out its pause too');
         let st = raceStart(2);
@@ -267,7 +307,7 @@ test('the chameleon\'s lines, in both languages', () => {
   assert.equal(say('nl', hostLine(pic, { say: 'hello', i: 0 })), 'Hoi! Klopt deze kleur?');
   assert.equal(say('nl', hostLine(pic, { say: 'hello', i: 3 })), 'Klopt deze kleur?');
   assert.equal(say('en', hostLine(pic, { say: 'hello', i: 0 })), 'Hi! Is this the right colour?');
-  assert.equal(say('nl', hostLine(pic, { say: 'hello', i: 2, who: 'maan' })), 'Maan, jij bent! Klopt deze kleur?');
+  assert.equal(say('nl', hostLine(pic, { say: 'hello', i: 2, who: 'maan' })), 'Maan, jouw beurt! Klopt deze kleur?');
   assert.equal(say('nl', hostLine(pic, { say: 'hello', i: 0, race: true })), 'Wie is het eerst? Klopt deze kleur?');
   assert.equal(say('nl', hostLine(pic, { say: 'try', res: { ok: true } })), 'Goed gezien! Een banaan is geel, niet blauw.');
   assert.equal(say('en', hostLine(pic, { say: 'try', res: { ok: true } })), 'Well spotted! A banana is yellow, not blue.');
@@ -285,6 +325,11 @@ test('the chameleon\'s lines, in both languages', () => {
   assert.equal(say('nl', hostLine(st, { say: 'try', res: { ok: false, why: 'look' }, help: true })), 'Kijk nog eens naar de letters. Kijk, het lichtje helpt je.');
   assert.equal(say('nl', hostLine(st, { say: 'won', who: 'wolk' })), 'Wolk was het eerst!');
   assert.equal(say('en', hostLine(st, { say: 'won', who: 'bloem' })), 'Flower was first!');
+  assert.equal(say('nl', hostLine(st, { say: 'won', who: 'turtle' })), 'Het schildpadje was het eerst!');
+  assert.equal(say('nl', hostLine(st, { say: 'won', who: 'you' })), 'Jij was het eerst!');
+  assert.equal(say('en', hostLine(st, { say: 'won', who: 'turtle' })), 'The turtle was first!');
+  assert.equal(say('nl', hostLine(st, { say: 'nobody' })), 'Niemand dit keer: de letters waren blauw. Op naar de volgende!');
+  assert.equal(say('nl', hostLine(pic, { say: 'nobody' })), 'Niemand dit keer: een banaan is geel. Op naar de volgende!');
 });
 
 test('every line of 200 rounds per tier, every answer tapped, reads well in both languages and never says "fout" or "wrong"', () => {
@@ -293,7 +338,8 @@ test('every line of 200 rounds per tier, every answer tapped, reads well in both
     for (const tier of TIER_IDS) {
       for (let seed = 1; seed <= SEEDS; seed++) {
         makeRound({ tier, seed }).forEach((q, i) => {
-          const lines = [hostLine(q, { say: 'hello', i }), hostLine(q, { say: 'hello', i, who: PLAYER_IDS[i % 4] }), hostLine(q, { say: 'hello', i, race: true })];
+          const lines = [hostLine(q, { say: 'hello', i }), hostLine(q, { say: 'hello', i, who: PLAYER_IDS[i % 4] }), hostLine(q, { say: 'hello', i, race: true }), hostLine(q, { say: 'nobody' })];
+          for (const who of [...PLAYER_IDS, 'turtle', 'you']) lines.push(hostLine(q, { say: 'won', who }));
           for (const a of q.options) lines.push(hostLine(q, { say: 'try', res: tapAnswer(q, startState(), a), a, help: true }));
           for (const line of lines) {
             const s = say(lang, line);

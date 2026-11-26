@@ -11029,7 +11029,7 @@ def kermis_flow(browser, base, problems):
             page.screenshot(path=str(SHOTS / "kermis-together-390x844.png"))
         kk_tap(page, me, st["q"]["answer"])
         kk_next(page, i)
-    if not kk_say(page).startswith("Zon, jij bent!"):
+    if not kk_say(page).startswith("Zon, jouw beurt!"):
         problems.append(f"kermis together: the third question says {kk_say(page)!r}")
     page.evaluate("window.__bubbels.back()")
     page.wait_for_timeout(100)
@@ -11046,7 +11046,8 @@ def kermis_full(browser, base, problems):
     """The full version at 390x844 by real taps: a round of each tier alone in Rustig (t1-1, t2-1 with
     one wrong answer, t3-1 with the word's colour tapped first: "Dat is wat er staat"), their stars
     saved; a random round counted per tier with the last tier; nothing locked; the turtle racing a
-    child alone taps by itself and wins a question nobody else answers."""
+    child alone taps by itself ("Het schildpadje was het eerst!"), the child is "Jij" ("Jij was het
+    eerst!"), and the app going to the background stops the race (kept, the turtle does not race on)."""
     ctx, page, errors, foreign = ke_context(browser, base, owned=True)
     page.locator("#tile-kermis").tap()
     page.wait_for_timeout(200)
@@ -11106,9 +11107,30 @@ def kermis_full(browser, base, problems):
     who = page.eval_on_selector_all("#kk-pads .kk-pad", "els => els.map(e => e.dataset.who)")
     if who != ["zon", "turtle"]:
         problems.append(f"kermis race alone: the corners are {who}")
-    if not ke_wait(page, "window.__bubbels.kermis.state().race.scores[1] === 1", 12000):
-        problems.append(f"kermis race alone: the turtle did not win a question nobody answered ({kk_state(page)['race']})")
+    if not ke_wait(page, "(() => { const s = window.__bubbels.kermis.state(); return s.race.scores[1] === 1 || s.race.tried[1].length > 0; })()", 12000):
+        problems.append(f"kermis race alone: the turtle did not tap by itself ({kk_state(page)['race']})")
+    elif kk_state(page)["race"]["scores"][1] == 0 and not (kk_state(page)["race"]["out"][1] and page.locator("#kk-pads .kk-pad[data-p='1'] .kk-ans.chip.tried").count()):
+        problems.append(f"kermis race alone: the turtle's wrong Ja/Nee does not show or does not put it out ({kk_state(page)['race']})")
+    elif kk_state(page)["race"]["scores"][1] == 1 and kk_say(page) != "Het schildpadje was het eerst!":
+        problems.append(f"kermis race alone: the chameleon says {kk_say(page)!r} when the turtle wins")
     page.screenshot(path=str(SHOTS / "kermis-race-turtle-390x844.png"))
+    # the child alone is "Jij" in its corner and in the bubble
+    if not ke_wait(page, "!window.__bubbels.kermis.state().waiting", 4000):
+        problems.append("kermis race alone: the next question does not come")
+    page.evaluate("window.__bubbels.kermis.tap(0, window.__bubbels.kermis.state().q.answer)")
+    page.wait_for_timeout(100)
+    if kk_say(page) != "Jij was het eerst!" or page.inner_text("#kk-pads .kk-pad[data-p='0'] .kk-pad-name").strip() != "Jij":
+        problems.append(f"kermis race alone: the child's win says {kk_say(page)!r}")
+    # the app to the background: the race stops (the turtle would race on) and is kept
+    scores = kk_state(page)["race"]["scores"]
+    page.evaluate("Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange'))")
+    page.wait_for_timeout(150)
+    if where(page) != ["kermis-menu", False]:
+        problems.append(f"kermis race alone: the background left the race on {where(page)}")
+    page.wait_for_timeout(5000)
+    page.evaluate("Object.defineProperty(document, 'hidden', { value: false, configurable: true })")
+    if kk_state(page)["race"]["scores"] != scores:
+        problems.append(f"kermis race alone: the turtle raced on in the background ({scores} -> {kk_state(page)['race']['scores']})")
     page.evaluate("window.__bubbels.back()")
     if errors:
         problems.append(f"kermis full: page errors {errors[:3]}")
@@ -11120,9 +11142,11 @@ def kermis_full(browser, base, problems):
 def kermis_race(browser, base, problems):
     """A race of two children at 390x844 by real multi-touch (Chromium's touch events, two fingers in
     one touchStart): the race and Met 2 picked by real taps, the race card with Start!; both fingers at
-    once, one right and one wrong: the right one wins the star, the other corner pauses (quietly, no
-    point lost); a wrong tap alone pauses that corner and its right tap in the pause does nothing, after
-    the pause it counts; the whole race to the end, a cheerful card with both placed."""
+    once, one right and one wrong: the right one wins the star ("Maan was het eerst!"), the other corner
+    pauses (quietly, no point lost); a wrong Ja/Nee alone pauses that corner and puts it out of the
+    question, so its right tap does nothing; back + Verder spelen in the middle keeps the question as it
+    was; both wrong at once: nobody gets the star and the answer is shown; the whole race to the end, a
+    cheerful card with both placed."""
     ctx, page, errors, foreign = ke_context(browser, base, owned=True)
     cdp = ctx.new_cdp_session(page)
     page.locator("#tile-kermis").tap()
@@ -11146,47 +11170,71 @@ def kermis_race(browser, base, problems):
     if st["mode"] != "race" or len(st["players"]) != 2 or not st["started"]:
         problems.append(f"kermis race: started {st['mode']} with {st['players']}")
     want = [0, 0]
+    pad_cls = lambda k: page.get_attribute(f"#kk-pads .kk-pad[data-p='{k}']", "class") or ""
     for i in range(8):
         st = kk_state(page)
         q = st["q"]
         right, wrong = q["answer"], kk_wrong(q)
         label = f"kermis race q{i + 1}"
+        winner = None
         if i == 1:
-            # a wrong tap alone: only that corner pauses; its right tap in the pause does nothing
+            # a wrong tap alone: only that corner pauses and, on Ja/Nee, is out of the question, so
+            # its right tap does nothing (no winning by elimination)
             kk_fingers(cdp, [kk_xy(page, 0, wrong)])
             page.wait_for_timeout(120)
             st = kk_state(page)
-            if "paused" not in (page.get_attribute("#kk-pads .kk-pad[data-p='0']", "class") or "") or st["race"]["paused"][0] <= 0 or st["race"]["scores"] != want:
-                problems.append(f"{label}: after a wrong tap: {st['race']}")
-            if "paused" in (page.get_attribute("#kk-pads .kk-pad[data-p='1']", "class") or ""):
+            if "out" not in pad_cls(0) or not st["race"]["out"][0] or st["race"]["paused"][0] <= 0 or st["race"]["scores"] != want:
+                problems.append(f"{label}: after a wrong tap: {st['race']} class {pad_cls(0)!r}")
+            if "paused" in pad_cls(1) or "out" in pad_cls(1):
                 problems.append(f"{label}: the other corner pauses too")
             page.screenshot(path=str(SHOTS / "kermis-race-pause-390x844.png"))
             kk_fingers(cdp, [kk_xy(page, 0, right)])
             page.wait_for_timeout(80)
             if kk_state(page)["race"]["winner"] is not None:
-                problems.append(f"{label}: a right tap in the pause counted")
-            page.wait_for_timeout(1600)
-            if "paused" in (page.get_attribute("#kk-pads .kk-pad[data-p='0']", "class") or ""):
-                problems.append(f"{label}: the pause does not end")
-            kk_fingers(cdp, [kk_xy(page, 0, right)])
-            winner = 0
+                problems.append(f"{label}: a right tap after a wrong Ja/Nee counted")
+            # back in the middle of the race, then keep playing: the question goes on as it was
+            page.evaluate("window.__bubbels.back()")
+            page.wait_for_timeout(150)
+            if where(page) != ["kermis-menu", False] or not page.is_visible("#kermis-continue"):
+                problems.append(f"{label}: back in a race went to {where(page)}")
+            page.locator("#kermis-continue").tap()
+            page.wait_for_timeout(200)
+            st = kk_state(page)
+            if where(page) != ["kermis", False] or st["i"] != 1 or not st["race"]["out"][0] or st["race"]["scores"] != want or st["race"]["tried"][0] != [wrong]:
+                problems.append(f"{label}: Verder spelen in a race: {where(page)} {st['race']}")
+            page.wait_for_timeout(1500)
+            kk_fingers(cdp, [kk_xy(page, 0, right), kk_xy(page, 1, right)])
+            winner = 1
+        elif i == 2:
+            # both fingers wrong at once: everyone is out, the answer is shown, nobody gets the star
+            kk_fingers(cdp, [kk_xy(page, 0, wrong), kk_xy(page, 1, wrong)])
+            page.wait_for_timeout(150)
+            st = kk_state(page)
+            rights = page.locator(f"#kk-pads .kk-ans.right[data-a='{right}']").count()
+            if not st["nobody"] or st["race"]["scores"] != want or not kk_say(page).startswith("Niemand dit keer") or rights != 2:
+                problems.append(f"{label}: everyone out: nobody={st['nobody']} {st['race']['scores']} {kk_say(page)!r}, the answer shown in {rights} corners")
+            page.screenshot(path=str(SHOTS / "kermis-race-nobody-390x844.png"))
         else:
             winner = 1 if i % 2 == 0 else 0
             loser = 1 - winner
             # two fingers at the same moment, the winner's right and the other's wrong
             kk_fingers(cdp, [kk_xy(page, loser, wrong), kk_xy(page, winner, right)])
         page.wait_for_timeout(120)
-        want[winner] += 1
-        st = kk_state(page)
-        if st["race"]["winner"] != winner or st["race"]["scores"] != want:
-            problems.append(f"{label}: winner {st['race']['winner']} scores {st['race']['scores']}, want {winner} {want}")
-        if i != 1 and "paused" not in (page.get_attribute(f"#kk-pads .kk-pad[data-p='{1 - winner}']", "class") or ""):
-            problems.append(f"{label}: the corner that tapped wrong does not pause")
-        if "won" not in (page.get_attribute(f"#kk-pads .kk-pad[data-p='{winner}']", "class") or ""):
-            problems.append(f"{label}: the winning corner does not glow")
-        score = page.inner_text(f"#kk-pads .kk-pad[data-p='{winner}'] .kk-score").strip()
-        if score != str(want[winner]):
-            problems.append(f"{label}: the corner shows {score!r}")
+        if winner is not None:
+            want[winner] += 1
+            st = kk_state(page)
+            if st["race"]["winner"] != winner or st["race"]["scores"] != want:
+                problems.append(f"{label}: winner {st['race']['winner']} scores {st['race']['scores']}, want {winner} {want}")
+            if i != 1 and "paused" not in pad_cls(1 - winner):
+                problems.append(f"{label}: the corner that tapped wrong does not pause")
+            if "won" not in pad_cls(winner):
+                problems.append(f"{label}: the winning corner does not glow")
+            score = page.inner_text(f"#kk-pads .kk-pad[data-p='{winner}'] .kk-score").strip()
+            if score != str(want[winner]):
+                problems.append(f"{label}: the corner shows {score!r}")
+            name = "Zon" if winner == 0 else "Maan"
+            if kk_say(page) != f"{name} was het eerst!":
+                problems.append(f"{label}: the chameleon says {kk_say(page)!r}")
         if i == 0:
             page.wait_for_timeout(200)
             page.screenshot(path=str(SHOTS / "kermis-race-390x844.png"))
