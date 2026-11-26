@@ -9,7 +9,7 @@ JavaScript on a canvas), wrapped with Capacitor as an Android and an iOS app. Ev
 part; one €1 purchase opens every game. More in [About Bazibo](docs/explanation/about.md).
 
 - **No ads, no tracking:** no adverts, no trackers, no accounts; the games make no network requests
-  outside its own origin (a Content Security Policy enforces it).
+  outside the app's own origin (a Content Security Policy enforces it).
 - **Offline:** everything works without internet (service worker).
 - **PEGI 3.**
 - **Dutch and English:** it follows the device; Dutch is the fallback.
@@ -38,9 +38,9 @@ no age band of its own.
 | [Treintje / Train Tracks](docs/games/treintje.md) | Puzzles | 3-10 | Lay one railway through every square past the stations in order. |
 | [Vier op een rij / Four in a Row](docs/games/vier.md) | Board games | 3+ | Together or against the computer; a small board where three in a row wins. |
 | [Dammen / Checkers](docs/games/dammen.md) | Board games | - | Checkers on 8×8 and 10×10, together or against the computer. |
-| [Tijgers en geitjes / Tigers and Goats](docs/games/baghchal.md) | Board games | - | Bagh-Chal from Nepal: goats hem the tigers in, tigers jump goats. |
+| [Tijgers en geitjes (Bagh-Chal) / Tigers and Goats (Bagh-Chal)](docs/games/baghchal.md) | Board games | - | Bagh-Chal from Nepal: goats hem the tigers in, tigers jump goats. |
 | [Schaken / Chess](docs/games/schaak.md) | Board games | - | Chess with every rule; tap a piece to see where it may go. |
-| [Ganzenbord / Game of the Goose](docs/games/ganzen.md) | Board games | - | Our own goose board; the child counts every square. |
+| [Ganzenbord / Game of the Goose](docs/games/ganzen.md) | Board games | - | Our own goose board with two dice; the child can count every square. |
 | [Ludo / Ludo](docs/games/pachisi.md) | Board games | - | The race game with one die, with Pachisi from India as a second mode. |
 | [Kwartet / Quartets](docs/games/kwartet.md) | Board games | - | The Dutch card game of asking for the cards you miss. |
 | [Kleurplaten / Colouring](docs/games/kleuren.md) | Creative | 3-10 | Tap to colour: pictures for the youngest, mandalas for older children. |

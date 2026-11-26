@@ -58,7 +58,7 @@ part), `docs/reference/` (`layout.md`, `full-version.md`, `save-data.md`, `apps.
 `docs/explanation/about.md`, `docs/release.md`. A new game adds `docs/games/<id>.md` and a row in
 the README games table (and a line in `docs/README.md`); a change to a game updates its page, not
 the README. `tests/docs.test.js` checks that every game in `GAMES` has both, that `docs/README.md`
-lists every page, and that every relative link in the markdown files resolves. `docs/` is never
+lists every page, and that every relative link (and #heading) in README, AGENTS, CREDITS, `store/` and `docs/` resolves. `docs/` is never
 served or bundled: GitHub Pages, Plesk and Capacitor (`webDir`) all take `web/` only.
 
 **The brand** (round 3, `design/brand/`, CC0; Mark 24 Nov 2026): the cut-paper b on five coloured

@@ -6,7 +6,7 @@ A colourful drum kit, in `web/games/drums/` (id `drums`; the kit, the rhythms an
 no recordings.
 
 - 8 pads (kick, snare, hi-hat, three toms, crash and ride), standing like a real kit, laid out for
-  a sideways or an upright screen (`kitLayout`), every pad 80 px or more.
+  a sideways or an upright screen (`kitLayout`), every pad 80 px or more at every tested screen size (`MIN_PAD`).
 - **Vrij spelen / Free play:** every pad sounds; two fingers hit two pads at once. The tile opens
   free play straight away.
 - **Ritmes / Rhythms:** play along: after a count-in ("1 2 3 4") the next pad glows on its beat. For
