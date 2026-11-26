@@ -209,6 +209,13 @@ Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pu
 tests: hard and medium never miss a win or a block, easy loses often to a simple strategy, every
 level plays only legal moves). Never call it "Connect Four" and never use its blue frame with red
 and yellow discs. Win counters go through `recordStars` (they only go up).
+Spike "Samen op twee telefoons" (Mark, 26 Nov 2026; `docs/design/coop-qr-webrtc.md`): two phones in
+one room over WebRTC, signalled by two QR codes, only with `?test&coop` in the address. No server,
+no STUN or TURN (`iceServers: []`; `tests/vier-coop.test.js` fails on any other), nothing saved.
+The code is untrusted (`coop-codec.js` `decodeSignal`: only local host candidates, every field
+checked); only moves travel, judged by both phones (`coop-proto.js`); everything closes on leaving
+and in the background (`coop.js`). Two browsers play it in `tests/coop.py` (own network namespace,
+no internet; not in CI yet).
 Paartjes (Memory, id `memory`): never call it "Memory" on screen (a Ravensburger trademark). Rules in
 `web/games/memory/rules.js` (pure, tested: a deal has every picture exactly twice, a pair keeps the
 turn, a miss waits for `hide` and passes the turn, most pairs wins, `starsFor` counts turns and

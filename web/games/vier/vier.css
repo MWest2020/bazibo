@@ -199,3 +199,29 @@
 @media (prefers-reduced-motion: reduce) {
   .vier-board.won .vhole.win > svg.token, .vhole.win::after, .ov-art .vier-ov.won svg, .vier-chip.on .arrow, .vier-chip.thinking .token, .vcol.wiggle { animation: none !important; }
 }
+
+/* Samen op twee telefoons (spike, only with ?test&coop): the panes of Voortgang overzetten, under
+   their own name (its smoke test looks for its own .transfer-pane) */
+.coop-pane { width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.coop-pane[hidden] { display: none; }
+.coop-pane .btn { min-height: 56px; padding: 0 20px; font-size: 1.05rem; font-weight: 800; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .coop-pane:not([hidden]) {
+    max-width: 760px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    align-content: start;
+    column-gap: 18px;
+    row-gap: 6px;
+    text-align: left;
+  }
+  .coop-pane > .transfer-qr, .coop-pane > .transfer-cam { grid-row: 1 / span 6; align-self: start; }
+  .coop-pane > :not(.transfer-qr):not(.transfer-cam) { grid-column: 2; }
+  .coop-pane .btn { min-height: 46px; }
+}
+.transfer-qr[hidden] { display: none; }
+.coop-msg.ok { color: var(--bz-ink); font-size: 1.4rem; font-weight: 900; }
+.coop-diag { margin: 4px 0 0; font: 600 0.8rem/1.3 ui-monospace, monospace; color: var(--bz-ink-quiet); text-align: center; }
+.coop-diag[hidden] { display: none; }
+#coop-pick .btn.big { width: min(100%, 360px); }

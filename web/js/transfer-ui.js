@@ -33,7 +33,7 @@ export function drawQr(canvas, text) {
 /** A frame (video or image) -> the QR text in it, or null. BarcodeDetector first, else jsQR. */
 let detector;
 let jsQR = null;
-async function makeReader() {
+export async function makeReader() {
   if (detector === undefined) {
     detector = null;
     try {

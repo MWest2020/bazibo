@@ -82,6 +82,18 @@ export function duoSvg({ cls = '' } = {}) {
   return `<svg class="duo ${cls}" viewBox="0 0 48 48" aria-hidden="true">${kid(14, '#7a4a26', '#ff8a3d')}${kid(34, '#2b2370', '#4cc38a')}</svg>`;
 }
 
+/** Two phones with a dotted line between them: playing together on two phones (spike). */
+export function phonesSvg({ cls = '' } = {}) {
+  const phone = (x, screen) =>
+    `<rect x="${x}" y="9" width="15" height="28" rx="3.5" fill="#fff" stroke="${INK}" stroke-width="2"/>` +
+    `<rect x="${x + 2.5}" y="13" width="10" height="17" rx="1.5" fill="${screen}"/>` +
+    `<circle cx="${x + 7.5}" cy="33.3" r="1.3" fill="${INK}"/>`;
+  return (
+    `<svg class="phones ${cls}" viewBox="0 0 48 48" aria-hidden="true">${phone(3, '#ffe2ad')}${phone(30, '#d4e8ff')}` +
+    `<path d="M20 22h8" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 3.4"/></svg>`
+  );
+}
+
 /** A small board picture for the menu: `cols`×`rows` holes with a few tokens. */
 export function boardSvg(cols, rows, { cls = '' } = {}) {
   const cell = 10;
