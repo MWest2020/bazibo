@@ -50,6 +50,17 @@ audience: Leren first for teachers, then Puzzels, Bordspellen, Creatief, Actie; 
 one); each section sits on its group's tint with its name in the group's ink; an optional `subKey`
 puts a small second line under the name (Ludo); a section's name stands beside its group mark.
 
+**Docs** (Mark, 26 Nov 2026: the README was 917 lines): `README.md` stays short (what Bazibo is,
+the games table, run and test, links, licence; `npm test` fails above 120 lines). Everything else
+lives in `docs/`, indexed in `docs/README.md`: one page per game in `docs/games/<id>.md` (the id is
+the folder under `web/games/`), `docs/how-to/run-and-test.md` (the commands and every `smoke.py`
+part), `docs/reference/` (`layout.md`, `full-version.md`, `save-data.md`, `apps.md`, `roadmap.yml`),
+`docs/explanation/about.md`, `docs/release.md`. A new game adds `docs/games/<id>.md` and a row in
+the README games table (and a line in `docs/README.md`); a change to a game updates its page, not
+the README. `tests/docs.test.js` checks that every game in `GAMES` has both, that `docs/README.md`
+lists every page, and that every relative link in the markdown files resolves. `docs/` is never
+served or bundled: GitHub Pages, Plesk and Capacitor (`webDir`) all take `web/` only.
+
 **The brand** (round 3, `design/brand/`, CC0; Mark 24 Nov 2026): the cut-paper b on five coloured
 scraps and the drawn name "bazibo". `web/js/logo.js` draws them inline from the same paths as
 `design/brand/logo/` (`markSvg(group)`, the b on that group's scrap; `wordmarkSvg()`, the letters in
