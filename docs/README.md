@@ -63,6 +63,8 @@ row in the README's games table.
 - [Brand brief](design/brand-brief.md): the brand for an outside designer (Dutch and English).
 - [Style audit](design/style-audit.md): what the app looked like in November 2026, measured.
 - [Bazibo 2.0 proposal](design/v2-proposal.md): the design proposal that followed from the audit.
+- [Vier op een rij on two phones](design/coop-qr-webrtc.md): the co-op spike, WebRTC over QR codes
+  (hidden behind `?test&coop`).
 - [Token sketch](design/tokens-sketch.css), the logo sketches
   ([a](design/logo-a-refine.svg), [b](design/logo-b-symbol.svg), [c](design/logo-c-wordmark.svg)),
   the [trust row](design/trust-row.svg), the [store mock-up](design/store-v2-mockup.png) and the
