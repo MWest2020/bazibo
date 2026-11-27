@@ -29,11 +29,15 @@ so in the app none of it exists. `tests/unlock-code.test.js` and the smoke part 
 (`web_unlock_native`: a stand-in app) check that.
 
 **The flow.** The child's offer card on the website still says only OK; under it a small
-"Voor ouders: volledige versie (€1)" opens the parental gate, then a card with "Koop de volledige
-versie (€1)" (Buy Me a Coffee's Extra, `BMC_URL` in `unlock-code.js`, opened in a new tab with
-`opener` cut, never fetched), "Ik heb een code" (paste the code, or "Scan de QR-code", which opens
-the transfer screen's scanner; it hands a code to the unlock instead of reading it as progress) and
-"Later". Settings has a lasting way in too: "Voor ouders: ik heb een code" (`#btn-code`, built by
+"Voor ouders: volledige versie (€1)" opens the parental gate, then a card that first says how it
+works in four numbered steps ("Zo werkt het: 1) Tik op 'Naar betalen': je gaat naar Stripe.
+2) Betaal €1 via Stripe (iDEAL of kaart) en vul je e-mailadres in. 3) Binnen een paar minuten krijg
+je een mail met je code, een link en een QR-code. 4) Tik op de link, of kies hier 'Ik heb al een
+code'. Je kunt de code op al je apparaten invullen (tot 10)."; Mark: "als de flow maar duidelijk
+is"), then "Naar betalen (€1)" (`PAY_URL` in `unlock-code.js`, opened in a new tab with `opener`
+cut, never fetched), "Ik heb al een code" (paste the code, or "Scan de QR-code", which opens the
+transfer screen's scanner; it hands a code to the unlock instead of reading it as progress) and
+"Later". The price shown is `WEB_PRICE` (one constant, passed to every string as `{price}`). Settings has a lasting way in too: "Voor ouders: ik heb een code" (`#btn-code`, built by
 `main.js` for the code adapter only, hidden once the full version is open), through the gate to the
 same code card, so a parent with a code from the mail needs no locked item first. After buying, the issuer (internetnl-cli, its own repo) mails the code and a link
 `https://bazibo.nl/#unlock=<code>`. The link needs no gate (the parent opened it from their mail):
@@ -42,8 +46,16 @@ and the address cleaned with `history.replaceState` before anything else reads i
 too, but the fragment is preferred because it never reaches a web server's access log. The code is
 never logged.
 
-The Buy Me a Coffee Extra is "Bazibo full version unlock!", id 603413 (Mark, 27 Nov 2026):
-`BMC_URL` is `https://buymeacoffee.com/mark.westerweel/e/603413`. The issuer matches purchases on that id.
+**Paying: a Stripe Payment Link** (Mark, 27 Nov 2026). The first build linked to a Buy Me a Coffee
+Extra, but BMC sent the issuer no webhook for real purchases, and BMC's coffee price can only be 3,
+5 or 10, so a €1 donation was no way out either. `PAY_URL` is the live Stripe Payment Link (€1,
+iDEAL or card); the issuer's `POST /webhooks/stripe` mints and mails the code for every paid
+session of that link. `PAY_URL` is `https://buy.stripe.com/7sY9AT9N0cZ26zn5Rv48000` (live since 27
+Nov 2026, after a test-mode run end to end). An empty `PAY_URL` means "binnenkort": the parents'
+card then says "Betalen in de browser kan binnenkort" and offers only "Ik heb al een code" (smoke
+part `web_unlock_soon`, which forces that state). A test-mode link never goes into `PAY_URL`, not even behind `?test`: the site is
+public and a test payment would mint a real code. The smoke test uses a stand-in through the
+`?test`-only hook `window.__baziboPayUrl`. Another link is one line: `PAY_URL`, then `npm run stamp`.
 
 **A new version reaches returning visitors at once** (27 Nov 2026: Mark scanned the mail's QR on
 one device, then found no code entry in a browser that had visited bazibo.nl before: it was still

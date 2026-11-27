@@ -1,5 +1,6 @@
-// The full version on the website: a signed code bought through Buy Me a Coffee (Mark, 27 Nov 2026:
-// "dat via een code doen en buy me a coffee? … ook 1 euro"). WEB ONLY: inside the Android or iOS
+// The full version on the website: a signed code bought through a Stripe Payment Link (Mark, 27 Nov
+// 2026: first "dat via een code doen en buy me a coffee? … ook 1 euro", then Stripe at €1, because
+// Buy Me a Coffee sent no webhook for its Extra and its coffee price cannot be €1). WEB ONLY: inside the Android or iOS
 // app none of this is shown or run (Google Play's payments policy: no external payment for digital
 // goods in the app). main.js only builds the code adapter when `webCodeAllowed(window)` is true.
 //
@@ -33,8 +34,13 @@ const CONTEXT = 'bazibo-unlock-v1';
 
 /** The issuer's public key (raw 32 bytes, base64url). The private key never comes near this repo. */
 export const UNLOCK_PUBLIC_KEY = 'Dpnm6nFTwx1A-kFUf7IMoz4SVUF-O_biI-edjvzpP_4';
-/** Where a parent buys the code (a Buy Me a Coffee "Extra"); opened in a new tab, never fetched. */
-export const BMC_URL = 'https://buymeacoffee.com/mark.westerweel/e/603413';
+/** Where a parent pays for the code: the live Stripe Payment Link (€1, iDEAL or card; Mark, 27 Nov
+ *  2026). Empty would mean "binnenkort": the parents' card then offers only "Ik heb al een code".
+ *  Never a test-mode link here: a test payment would mint a real code. Opened in a new tab, never
+ *  fetched. */
+export const PAY_URL = 'https://buy.stripe.com/7sY9AT9N0cZ26zn5Rv48000';
+/** The price shown to parents, in one place (the issuer's Stripe price is EUR 1.00). */
+export const WEB_PRICE = '€1';
 /** The one request outside the origin, web only: counts devices per code. */
 export const ACTIVATE_URL = 'https://api.westerweel.work/bazibo/activate';
 export const ACTIVATE_TIMEOUT_MS = 5000;
@@ -336,7 +342,7 @@ export function createCodeBilling({ load, keep, verify, activate: act, online = 
       return this.start();
     },
     async buy() {
-      return { ok: false, reason: 'external' }; // bought on Buy Me a Coffee, in a new tab
+      return { ok: false, reason: 'external' }; // paid on Stripe, in a new tab
     },
     /** A code a parent entered, scanned or opened from the mail. */
     async redeem(input) {
@@ -353,7 +359,7 @@ export function createCodeBilling({ load, keep, verify, activate: act, online = 
       return { ok: true, owned: true, activated: a === 'ok' };
     },
     price() {
-      return '€ 1';
+      return WEB_PRICE;
     },
     onOwnedChange(fn) {
       listeners.push(fn);

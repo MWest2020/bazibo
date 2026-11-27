@@ -3,7 +3,7 @@
 // One non-consumable in-app product (PRODUCT_ID), bought once through Google Play or the App
 // Store, opens every game. Each game declares its own free tier in its meta.js (Bubbels: levels
 // 1-10). The store talks through a billing adapter (billing-native.js in the Android/iOS app). On
-// the website the adapter is the signed code bought through Buy Me a Coffee (unlock-code.js,
+// the website the adapter is the signed code bought through a Stripe Payment Link (unlock-code.js,
 // `kind: 'code'`, Mark 27 Nov 2026); never inside the app. Nothing is ever faked: "owned" only
 // comes from the store's answer or from a code whose signature checks out.
 //

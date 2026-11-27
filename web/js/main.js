@@ -14,7 +14,7 @@ import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
 import { createTransfer } from './transfer-ui.js';
 import { PLAY_URL } from './store-links.js'; // shows the store links on the website, never in the app
-import { webCodeAllowed, createCodeBilling, verifyCode, takeUnlockParam, activate, deviceId, BMC_URL, UNLOCK_PUBLIC_KEY, MAX_INPUT } from './unlock-code.js';
+import { webCodeAllowed, createCodeBilling, verifyCode, takeUnlockParam, activate, deviceId, PAY_URL, WEB_PRICE, UNLOCK_PUBLIC_KEY, MAX_INPUT } from './unlock-code.js';
 import { REVOKED } from './revoked.js';
 import { urlLang, setCanonical } from './seo.js';
 import '../games/bubbels/strings.js';
@@ -122,6 +122,8 @@ const deepCode = takeUnlockParam(window);
 // and puts its public key (and test revocations) here with an init script. A link cannot set these.
 const TESTING = new URLSearchParams(location.search).has('test');
 const unlockKey = () => (TESTING && typeof window.__baziboUnlockTestKey === 'string' ? window.__baziboUnlockTestKey : UNLOCK_PUBLIC_KEY);
+// The payment link, or (only with ?test, from the smoke test's init script) a stand-in.
+const payUrl = () => (TESTING && typeof window.__baziboPayUrl === 'string' ? window.__baziboPayUrl : PAY_URL);
 const unlockRevoked = () => (TESTING && Array.isArray(window.__baziboUnlockTestRevoked) ? [...REVOKED, ...window.__baziboUnlockTestRevoked] : REVOKED);
 const NO_CACHE = { get: () => false, set() {} }; // the website trusts only a code that checks out, never a cached flag
 // The link opened in a tab that already shows Bazibo only changes the #fragment (no reload). Listened
@@ -563,13 +565,13 @@ function offerUnlock(lead = '') {
   }
   if (unlock.kind === 'code') {
     // the website: the child's card says OK, as before; under it a small way in for a parent,
-    // behind the parental gate (buying on Buy Me a Coffee, or a code)
+    // behind the parental gate (the payment page, or a code)
     showOverlay({
       art,
       title: t('offer.title'),
-      text: join(lead, t('offer.webCode')),
+      text: join(lead, t('offer.webCode', { price: WEB_PRICE })),
       buttons: [[t('common.ok'), 'big primary', hideOverlay]],
-      parents: [t('offer.parents'), () => askParent(showWebFull)],
+      parents: [t('offer.parents', { price: WEB_PRICE }), () => askParent(showWebFull)],
     });
     return;
   }
@@ -594,24 +596,30 @@ function offerUnlock(lead = '') {
 
 const LOCK_ART = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
 
-/** For a parent, after the gate: buy on Buy Me a Coffee (a new tab), or enter the code. */
+/** For a parent, after the gate: how it works in four steps, then the payment page (a new tab), or
+ *  enter the code (Mark, 27 Nov 2026: "als de flow maar duidelijk is"). Without a payment link yet:
+ *  "binnenkort", and only the code. */
 function showWebFull() {
+  const later = [t('common.later'), 'big secondary', hideOverlay];
+  if (!payUrl()) {
+    showOverlay({ art: LOCK_ART, title: t('offer.title'), text: t('code.soon'), buttons: [[t('code.have'), 'big primary', () => askCode()], later] });
+    return;
+  }
+  const price = { price: WEB_PRICE };
   showOverlay({
     art: LOCK_ART,
     title: t('offer.title'),
     text: t('code.buyText'),
-    buttons: [
-      [t('code.buy'), 'big primary', openBuyMeACoffee],
-      [t('code.have'), 'big secondary', () => askCode()],
-      [t('common.later'), 'big secondary', hideOverlay],
-    ],
+    steps: [t('code.step1'), t('code.step2', price), t('code.step3'), t('code.step4')],
+    buttons: [[t('code.buy', price), 'big primary', openPayPage], [t('code.have'), 'big secondary', () => askCode()], later],
   });
 }
 
-function openBuyMeACoffee() {
-  const w = window.open(BMC_URL, '_blank');
+function openPayPage() {
+  const url = payUrl();
+  const w = window.open(url, '_blank');
   if (w) w.opener = null;
-  else location.href = BMC_URL; // a blocked new tab: go there in this one
+  else location.href = url; // a blocked new tab: go there in this one
 }
 
 /** The code card: paste the code, or scan its QR code (the transfer screen's scanner). */
@@ -729,10 +737,18 @@ function askParent(onPass) {
 
 // ---------- overlay ----------
 
-function showOverlay({ art = '', title = '', text = '', buttons = [], field = null, parents = null }) {
+function showOverlay({ art = '', title = '', text = '', steps = null, buttons = [], field = null, parents = null }) {
   $('#ov-art').innerHTML = art;
   $('#ov-title').textContent = title;
   $('#ov-text').textContent = text;
+  const list = $('#ov-steps');
+  list.textContent = '';
+  list.hidden = !steps;
+  for (const step of steps || []) {
+    const li = document.createElement('li');
+    li.textContent = step;
+    list.appendChild(li);
+  }
   const box = $('#ov-buttons');
   box.textContent = '';
   // a small way in for parents under the child's buttons (the website's offer only)
@@ -770,7 +786,11 @@ function showOverlay({ art = '', title = '', text = '', buttons = [], field = nu
     }
     input.setAttribute('aria-label', field.label);
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') field.onEnter();
+      if (e.key !== 'Enter') return;
+      // the next card focuses its first button; without this the same Enter would press it (after the
+      // gate: straight to the payment page, or into the code card)
+      e.preventDefault();
+      field.onEnter();
     });
     box.appendChild(input);
   }

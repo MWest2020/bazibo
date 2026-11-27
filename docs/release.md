@@ -174,7 +174,7 @@ feature graphics alone (the brand's own SVGs in `design/brand/store/`):
   - a "not owned" answer from the store (a refund, or a restore that finds nothing) clears the
     cache.
 
-  On the website there is no store; there a signed code bought through Buy Me a Coffee opens the
+  On the website there is no store; there a signed code bought through a Stripe Payment Link opens the
   same `owned` flag (`web/js/unlock-code.js`, never in the app; see
   [Full version](reference/full-version.md#the-web-code-website-only)).
 - `web/js/billing-native.js` is the adapter on `cordova-plugin-purchase`. After a purchase it
