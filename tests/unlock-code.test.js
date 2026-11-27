@@ -379,7 +379,7 @@ test('activation: one POST with the code and the device id; 200, 409, 403 revoke
   const t0 = Date.now();
   assert.equal(await activate(VALID, 'x', { fetchFn: fakeFetch('hang'), timeoutMs: 60 }), 'offline');
   assert.ok(Date.now() - t0 < 1000);
-  assert.equal(await activate(VALID, 'x', { fetchFn: null }), 'offline'); // no fetch at all (never the real network in a test)
+  assert.equal(await activate(VALID, 'x', { fetchFn: null }), 'offline'); // null, not undefined: undefined takes the default, the real fetch to our live server
 });
 
 test('the device id is random, 128 bits, made once and kept; never derived from the device', () => {
