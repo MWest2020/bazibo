@@ -68,7 +68,7 @@ Everything else lives in [`docs/`](docs/README.md):
 
 - [About Bazibo](docs/explanation/about.md): what the app is, the brand, how the site is published.
 - [Layout](docs/reference/layout.md): where everything is in the repository.
-- [Full version](docs/reference/full-version.md): the free parts, the one purchase, random play.
+- [Full version](docs/reference/full-version.md): the free parts, the one purchase (the store in the app, a signed code on the website), random play.
 - [Save data](docs/reference/save-data.md): the save document and moving progress to another device.
 - [Apps](docs/reference/apps.md) and [Release](docs/release.md): building and releasing the Android and iOS apps.
 - [Roadmap](docs/reference/roadmap.yml): phases and what "done" means, for westerweel.work/nu/.

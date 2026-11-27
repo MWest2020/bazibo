@@ -88,7 +88,13 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 
 **Hard rules**
 - No ads, no trackers, no analytics, no accounts, no third-party SDKs. Ever. Zero network
-  requests outside the game's own origin; the CSP in `web/index.html` stays strict. The only
+  requests outside the game's own origin; the CSP in `web/index.html` stays strict. One documented
+  exception, web only: when a parent enters a code, one POST to api.westerweel.work/bazibo/activate
+  with the code and a random device id (Mark, 27 Nov 2026); if that could not reach the server, it
+  is tried once more on a later start, and a code that came in through Voortgang overzetten is
+  activated once at the next start of the receiving device (one more device). Never in the app
+  (`web/js/app-csp.js` adds `connect-src 'self'` there, and the app keeps no code from a transfer),
+  never at any other moment. The CSP names that one address, not the whole host. The only
   native additions are Capacitor, `@capacitor/preferences`, `@capacitor/app` (back button) and
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.
@@ -100,17 +106,26 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 - Relative URLs only. Every visible string goes through `t()` (`web/js/i18n.js`, a game's own in
   `web/games/<id>/strings.js`) in Dutch and English; `npm test` fails on a missing key. Short and
   friendly. Big touch targets. Brand name and tagline only in `web/js/brand.js`.
-- One purchase (`unlock_all`) opens every game; each game declares its free part in its
-  `meta.js` (Bubbels: levels 1-10) and offers the full version at the end of it through the
-  shell's `offerUnlock`. Never fake a purchase: "owned" only comes from the
-  store (`web/js/billing-native.js`), and the web build can never unlock.
+- One purchase opens every game; each game declares its free part in its `meta.js` (Bubbels:
+  levels 1-10) and offers the full version at the end of it through the shell's `offerUnlock`.
+  Never fake a purchase. The full version is owned through a store purchase in the app
+  (`unlock_all`, `web/js/billing-native.js`); on the web also a signed code bought via Buy Me a
+  Coffee (Mark, 27 Nov 2026; `web/js/unlock-code.js`, checked offline with WebCrypto Ed25519,
+  activated once, revocable in `web/js/revoked.js`); never a code or external payment link inside
+  the app. Both go through `createUnlock` (`web/js/unlock.js`), one `owned` flag; main.js builds
+  the code adapter only when `webCodeAllowed(window)`, and all of its UI hangs on
+  `unlock.kind === 'code'` (`tests/unlock-code.test.js`, smoke part `unlock`). Details and how to
+  revoke a code: `docs/reference/full-version.md`.
 - Buying, restoring and any link that leaves the app go through the parental gate
   (`askParent` in `main.js`, logic in `web/js/parental-gate.js`). Store rules for kids' apps
-  require it. The privacy page shows the email address as plain text, not as a link.
+  require it. On the website that includes the Buy Me a Coffee link and entering a code (the
+  child's offer card keeps only OK; the parents' way in is the small button under it); only the
+  mail's `#unlock=` link needs no gate. The privacy page shows the email address as plain text, not as a link.
 - The store links on bazibo.nl ("Download in Google Play", "App Store: binnenkort"; on the home
   screen under the tiles and on Plannen / Roadmap) are for parents on the website only: they ship
   `hidden` inside a `data-store-links` block and `web/js/store-links.js` shows them only when it is
-  not the app (`inApp`: the Capacitor bridge, https://localhost or capacitor://localhost). The
+  not the app (`inApp`: the Capacitor bridge, https://localhost or capacitor://localhost). The same
+  goes for `data-web-only` blocks (the web code on the privacy and terms pages). The
   home screen's link goes through the parental gate too. `tests/store-links.test.js` checks that
   every Play link in `web/` ships hidden; an App Store link waits until the app is live there.
 - Calm: no timers, nothing harder by speed, never "wrong" (every game; stars count mistakes or
@@ -126,7 +141,8 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
   version may have written them), never delete the old keys.
 - Voortgang overzetten (`web/js/transfer.js`): anything that comes in through a QR code or pasted
   text is untrusted. It is checked (size, checksum, the shape of every value; `sanitizePayload`)
-  before it reaches the save, and the purchase never travels. A new game section with new kinds
+  before it reaches the save, and the store purchase never travels (the website's unlock code
+  does, as `unlockCode`, checked for its exact shape and verified again on the other device). A new game section with new kinds
   of values needs a rule in `sanitizePayload`, or that part is dropped on transfer.
 - Papegaai's recording never leaves the device and is never saved (Mark, 20 Nov 2026). It lives in
   memory only (`web/games/papegaai/sound.js`) and is dropped when the child leaves the game or the
@@ -156,7 +172,7 @@ Search Console is verified by a DNS record, never a script (`docs/marketing/sear
 **Run:** `python3 -m http.server 8080 --directory web`, open http://127.0.0.1:8080/
 
 **Test:** `npm test` (grid, shots, levels, service-worker cache, gate, purchase, i18n, save data,
-native config, Papegaai's privacy rule, the brand's paths and colours, Treintje's rules and 200 puzzles per age, Keukentje's dishes, 200 rounds per tier and the cook's lines, Winkeltje's money maths, every way of paying exactly and the shopkeeper's lines, 200 rounds per tier; Kleurenkermis's 200 rounds per tier, its colour-blind distances and the race's scoring and pauses with time passed in) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
+native config, Papegaai's privacy rule, the brand's paths and colours, Treintje's rules and 200 puzzles per age, Keukentje's dishes, 200 rounds per tier and the cook's lines, Winkeltje's money maths, every way of paying exactly and the shopkeeper's lines, 200 rounds per tier; Kleurenkermis's 200 rounds per tier, its colour-blind distances and the race's scoring and pauses with time passed in; the website's unlock code: parser, signature, revocation, activation, deep link, transfer and native hidden) and `uv run --with playwright python tests/smoke.py` (home → Dogudoku: a wrong puppy lights up, puzzle 1 solved by tapping, 3 stars saved;
 home → Picturedoku: a wrong picture lights up, puzzle 1 solved square-first and picture-first, 3 stars saved;
 home → Paartjes: the bigger boards and the other cards offer only OK on the web, a game alone on 2×3 with one miss (a third tap does nothing) won with 3 stars saved, a game together on 3×4 won by player 1 with back + keep playing during a miss and "More cards" at the end of the free part, a game against the computer whose turn is slow and visible, won and counted; the layout at 320x568, sideways and on desktop with 12 and 20 cards (`tests/smoke.py memory`);
 home → Legpuzzel: the sizes as level cells, 9, 16 and 25 pieces free with their age and 30, 48 and 60 locked in the fold (no 4, 6, 12 or 20), a save from before with the last size on 12 opening on 9 and keeping its old ticks, 30, 48, 60 pieces and the other pictures offer only OK on the web, the 9-piece garden laid by real drags (a drop on another piece's place does not snap, a drop near its own does), saved and ticked off, the 16-piece sea with the example picture off and back + keep puzzling halfway, the 16 and the 25 pieces finished by the test hook and a last real drag, "More puzzles" at the end of the free part; the layout at 320x568, sideways and on desktop with 9 to 60 pieces, every piece on screen and 44 px or more with its tabs, the magnifier only for small pieces; 48 and 60 pieces at 390x844 and 844x390 in Dutch and English: a real drag without and through the magnifier (the view moving along to a place out of view), a finger on an empty spot moving the view, the rest by the test hook and the last by a real drag, saved and ticked off (`tests/smoke.py legpuzzel`);
@@ -188,10 +204,13 @@ home → Bubbels, 5 shots on
 desktop and 390x844 in Dutch and in English, settings and the language switch, the free-tier
 offer, a returning player, a sideways 844x390 check, screenshots in `shots/`;
 the offers: Bubbels level 10 ended for real on the game screen (`window.__bubbels.clear()`), then every way out of the offer (the web's OK; in a stand-in app Later, the gate cancelled or failed, the store cancelled, an error, pending, a restore that finds nothing, a purchase) lands on the level list with level 10 saved and 11 locked or, once bought, open; the pause button on a finished board without its card leads there too; the same OK at the end of the free part of Dogudoku, Picturedoku, Slangetje, Klok kijken and Letters lands on their list with the save kept, and a locked part in Vier, Dammen, Tijgers en geitjes, Ganzenbord, Ludo, Kleurplaten and Tekenen leaves the player where they were (`tests/smoke.py offers`, Bubbels alone with `tests/smoke.py bubbels`);
-the store links, the home layout and the menus (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall; the home sections in the order Leren, Puzzels, Bordspellen, Creatief, Actie, every game screen in its tile's group, the chosen option and the next level bordered in the group's accent, and every menu button (the fold opened too) 48 px or more, all under the real CSP (any violation fails); Piano's and Drumstel's bar 100 px or less at 320x568 in Dutch and English with every song and rhythm (`piano_bars`, `drums_bars`); the home screen calm at 390x844 and 844x390 (`home_calm`): no `#home-bg` canvas (the floating bubbles of 1.0 are gone, Mark 23 Nov 2026) and no animation frames while it is shown, after loading and after a game and back.
+the store links, the home layout and the menus (`tests/smoke.py store`): Google Play and "App Store: coming soon" on the home screen, Plannen and Roadmap at 390, 320 (Dutch and English), 568x320, tablets upright (600x960, 768x1024, 820x1180, 900x1200) and sideways (960x600, 1024x768, 1180x820) and desktop, 44 px or more and no sideways scroll (on the home screen every tile in sight), the home link only after the parental gate (cancelled: nothing opens), and none of them in a stand-in app; every game's first screen and the settings at 320x568 (Dutch and English) and 390x844 with the back button 60 px (never squeezed by a long title) and Bubbels' "Willekeurig" 48 px tall; the home sections in the order Leren, Puzzels, Bordspellen, Creatief, Actie, every game screen in its tile's group, the chosen option and the next level bordered in the group's accent, and every menu button (the fold opened too) 48 px or more, all under the real CSP (any violation fails); Piano's and Drumstel's bar 100 px or less at 320x568 in Dutch and English with every song and rhythm (`piano_bars`, `drums_bars`); the home screen calm at 390x844 and 844x390 (`home_calm`): no `#home-bg` canvas (the floating bubbles of 1.0 are gone, Mark 23 Nov 2026) and no animation frames while it is shown, after loading and after a game and back;
+the website's unlock code (`tests/smoke.py unlock`, see `docs/how-to/run-and-test.md`).
 CI runs both on every PR (the `smoke` job). A win card that offers the full version shows the
 offer over the game's list (`shell.show(<list>)`, then the offer), never over the finished board. Look at the screenshots before claiming something looks
-right. The test hook `window.__bubbels` only exists with `?test` in the address.
+right. The test hook `window.__bubbels` only exists with `?test` in the address; so does the web
+code's test key (`window.__baziboUnlockTestKey`, `__baziboUnlockTestRevoked`, set by the smoke
+test's init script, never by a link).
 
 **Apps:** `. ~/.local/opt/android-env.sh`, then `npx cap sync` after every change in `web/`
 (the copies inside `android/` and `ios/` are gitignored). Run `cd android && ./gradlew

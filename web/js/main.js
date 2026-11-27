@@ -13,6 +13,8 @@ import { createGate } from './parental-gate.js';
 import { backAction } from './back.js';
 import { createTransfer } from './transfer-ui.js';
 import { PLAY_URL } from './store-links.js'; // shows the store links on the website, never in the app
+import { webCodeAllowed, createCodeBilling, verifyCode, takeUnlockParam, activate, deviceId, BMC_URL, UNLOCK_PUBLIC_KEY, MAX_INPUT } from './unlock-code.js';
+import { REVOKED } from './revoked.js';
 import { urlLang, setCanonical } from './seo.js';
 import '../games/bubbels/strings.js';
 import { createBubbels } from '../games/bubbels/bubbels.js';
@@ -104,7 +106,19 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 
 // Filled in boot(), after the save data has loaded (storage.js: Preferences in the apps).
 let settings = { muted: false, lang: null };
-let unlock = null; // the full version: bought in the Android/iOS app; on the web nothing can be bought
+let unlock = null; // the full version: bought in the Android/iOS app; on the website with a signed code
+
+// The website's code (unlock-code.js), never in the app: `#unlock=<code>` (or `?unlock=`) from the parent's mail is
+// taken out of the address at once (before anything else reads it) and redeemed once the games are
+// ready. In the app takeUnlockParam does nothing.
+const WEB_CODE = webCodeAllowed(window);
+const deepCode = takeUnlockParam(window);
+// Test hook (only with ?test): the smoke test signs codes with a key of its own, never the real one,
+// and puts its public key (and test revocations) here with an init script. A link cannot set these.
+const TESTING = new URLSearchParams(location.search).has('test');
+const unlockKey = () => (TESTING && typeof window.__baziboUnlockTestKey === 'string' ? window.__baziboUnlockTestKey : UNLOCK_PUBLIC_KEY);
+const unlockRevoked = () => (TESTING && Array.isArray(window.__baziboUnlockTestRevoked) ? [...REVOKED, ...window.__baziboUnlockTestRevoked] : REVOKED);
+const NO_CACHE = { get: () => false, set() {} }; // the website trusts only a code that checks out, never a cached flag
 
 // ---------- screens ----------
 
@@ -192,7 +206,7 @@ document.querySelectorAll('[data-sound]').forEach((b) =>
 function renderSettings() {
   if (!unlock) return; // still loading the save data
   for (const b of document.querySelectorAll('[data-sound]')) b.setAttribute('aria-pressed', String((b.dataset.sound === 'off') === settings.muted));
-  $('#full-status').textContent = unlock.owned ? t('settings.fullOwned') : unlock.available ? t('settings.fullApp') : t('settings.fullWeb');
+  $('#full-status').textContent = unlock.owned ? t('settings.fullOwned') : unlock.available ? t('settings.fullApp') : t('settings.fullWeb'); // the website's code is "available" too
   $('#btn-full').hidden = unlock.owned;
 }
 $('#btn-full').addEventListener('click', () => {
@@ -466,6 +480,18 @@ function offerUnlock(lead = '') {
     showOverlay({ art, title: t('offer.title'), text: t('offer.owned'), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
     return;
   }
+  if (unlock.kind === 'code') {
+    // the website: the child's card says OK, as before; under it a small way in for a parent,
+    // behind the parental gate (buying on Buy Me a Coffee, or a code)
+    showOverlay({
+      art,
+      title: t('offer.title'),
+      text: join(lead, t('offer.webCode')),
+      buttons: [[t('common.ok'), 'big primary', hideOverlay]],
+      parents: [t('offer.parents'), () => askParent(showWebFull)],
+    });
+    return;
+  }
   if (!unlock.available) {
     showOverlay({ art, title: t('offer.title'), text: join(lead, t('offer.web')), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
     return;
@@ -483,16 +509,89 @@ function offerUnlock(lead = '') {
   });
 }
 
+// ---------- the website's code (unlock-code.js; never in the app) ----------
+
+const LOCK_ART = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
+
+/** For a parent, after the gate: buy on Buy Me a Coffee (a new tab), or enter the code. */
+function showWebFull() {
+  showOverlay({
+    art: LOCK_ART,
+    title: t('offer.title'),
+    text: t('code.buyText'),
+    buttons: [
+      [t('code.buy'), 'big primary', openBuyMeACoffee],
+      [t('code.have'), 'big secondary', () => askCode()],
+      [t('common.later'), 'big secondary', hideOverlay],
+    ],
+  });
+}
+
+function openBuyMeACoffee() {
+  const w = window.open(BMC_URL, '_blank');
+  if (w) w.opener = null;
+  else location.href = BMC_URL; // a blocked new tab: go there in this one
+}
+
+/** The code card: paste the code, or scan its QR code (the transfer screen's scanner). */
+function askCode(lead = '') {
+  let input = null;
+  const submit = () => redeemCode(input.value, { again: () => askCode() });
+  input = showOverlay({
+    title: t('code.title'),
+    text: [lead, t('code.text')].filter(Boolean).join(' '),
+    field: { label: t('code.label'), onEnter: submit, kind: 'code' },
+    buttons: [
+      [t('code.ok'), 'big primary', submit],
+      [t('code.scan'), 'big secondary', () => games.transfer.receive()],
+      [t('common.cancel'), 'big secondary', hideOverlay],
+    ],
+  });
+}
+
+const CODE_PROBLEM = { revoked: 'code.revoked', limit: 'code.limit', unsupported: 'code.old', invalid: 'code.retry' };
+
+/**
+ * Check a code (offline, then the one activation call) and open everything like a purchase.
+ * `again`: what "Try again" does on a problem (none for the mail's link: no gate there);
+ * `after`: what happens after the happy card. Never logs the code.
+ */
+async function redeemCode(text, { again = null, after = null } = {}) {
+  showOverlay({ title: t('busy.title'), text: t('code.checking'), buttons: [] });
+  const r = await unlock.redeem(String(text ?? '').slice(0, MAX_INPUT));
+  if (r.already) {
+    showOverlay({ art: LOCK_ART, title: t('offer.title'), text: t('offer.owned'), buttons: [[t('common.ok'), 'big primary', after || hideOverlay]] });
+    return r;
+  }
+  if (r.ok) {
+    showUnlocked(t('unlocked.code'), after);
+    return r;
+  }
+  const buttons = again
+    ? [
+        [t('code.again'), 'big primary', again],
+        [t('common.cancel'), 'big secondary', hideOverlay],
+      ]
+    : [[t('common.ok'), 'big primary', hideOverlay]];
+  showOverlay({ art: LOCK_ART, title: t('code.problem'), text: t(CODE_PROBLEM[r.reason] || 'code.bad'), buttons });
+  return r;
+}
+
+/** A kept code that no longer opens anything (revoked, or over the device limit): say so kindly. */
+function showCodeRefused(reason) {
+  showOverlay({ art: LOCK_ART, title: t('code.problem'), text: t(CODE_PROBLEM[reason] || 'code.bad'), buttons: [[t('common.ok'), 'big primary', hideOverlay]] });
+}
+
 function showBusy() {
   showOverlay({ title: t('busy.title'), text: t('busy.text'), buttons: [] });
 }
 
-function showUnlocked(title) {
+function showUnlocked(title, after = null) {
   showOverlay({
     art: `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${STAR}</svg>`,
     title,
     text: t('unlocked.text'),
-    buttons: [[t('unlocked.go'), 'big primary', hideOverlay]],
+    buttons: [[t('unlocked.go'), 'big primary', after || hideOverlay]],
   });
 }
 
@@ -543,20 +642,45 @@ function askParent(onPass) {
 
 // ---------- overlay ----------
 
-function showOverlay({ art = '', title = '', text = '', buttons = [], field = null }) {
+function showOverlay({ art = '', title = '', text = '', buttons = [], field = null, parents = null }) {
   $('#ov-art').innerHTML = art;
   $('#ov-title').textContent = title;
   $('#ov-text').textContent = text;
   const box = $('#ov-buttons');
   box.textContent = '';
+  // a small way in for parents under the child's buttons (the website's offer only)
+  const extra = $('#ov-parents');
+  extra.textContent = '';
+  extra.hidden = !parents;
+  if (parents) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn link ov-parents-btn';
+    b.textContent = parents[0];
+    b.addEventListener('click', () => {
+      tap();
+      parents[1]();
+    });
+    extra.appendChild(b);
+  }
   let input = null;
   if (field) {
     input = document.createElement('input');
     input.type = 'text';
-    input.inputMode = 'numeric';
     input.autocomplete = 'off';
-    input.maxLength = 3;
-    input.className = 'gate-input';
+    if (field.kind === 'code') {
+      // the website's unlock code: pasted from the mail (a link works too)
+      input.inputMode = 'text';
+      input.maxLength = MAX_INPUT;
+      input.spellcheck = false;
+      input.setAttribute('autocapitalize', 'off');
+      input.setAttribute('autocorrect', 'off');
+      input.className = 'code-input';
+    } else {
+      input.inputMode = 'numeric';
+      input.maxLength = 3;
+      input.className = 'gate-input';
+    }
     input.setAttribute('aria-label', field.label);
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') field.onEnter();
@@ -600,10 +724,25 @@ async function boot() {
   // a saved choice first, then the address (?lang=, for search engines: js/seo.js), then the device
   setLang(pickLang(settings.lang, [urlLang(location.search), ...(navigator.languages || [navigator.language])]));
   sfx.setMuted(settings.muted);
-  unlock = createUnlock({ billing: isNativeApp() ? createNativeBilling() : noBilling, cache: store.fullCache });
+  // the app: the store (never a code); the website: the signed code; anything else: nothing to buy
+  const billing = isNativeApp()
+    ? createNativeBilling()
+    : WEB_CODE
+      ? createCodeBilling({
+          load: () => store.loadWebUnlock(),
+          keep: (entry) => store.saveWebUnlock(entry),
+          verify: (code) => verifyCode(code, { publicKey: unlockKey(), revoked: unlockRevoked() }),
+          activate: (code) => activate(code, deviceId()),
+          online: () => navigator.onLine !== false,
+          onRefused: (reason) => whenReady(() => showCodeRefused(reason)),
+        })
+      : noBilling;
+  unlock = createUnlock({ billing, cache: billing.kind === 'code' ? NO_CACHE : store.fullCache });
   unlock.onChange(() => {
     if ($('#screen-settings').classList.contains('active')) renderSettings();
   });
+  // the website checks its kept code before the games draw their menus (offline, a few ms)
+  const codeStart = unlock.kind === 'code' ? await unlock.start() : null;
   games.bubbels = createBubbels({
     t,
     show,
@@ -928,7 +1067,16 @@ async function boot() {
     onLangChange,
     tap,
   });
-  games.transfer = createTransfer({ t, show, showOverlay, hideOverlay, onShow: (fn) => showHooks.push(fn), tap });
+  games.transfer = createTransfer({
+    t,
+    show,
+    showOverlay,
+    hideOverlay,
+    onShow: (fn) => showHooks.push(fn),
+    tap,
+    // the website only: a scanned or pasted unlock code (behind the same gate as this screen)
+    onCode: unlock.kind === 'code' ? (text) => redeemCode(text, { again: () => games.transfer.resume(), after: () => show('settings') }) : null,
+  });
   renderLanguage();
   drawTileArt();
   drawDoguTile();
@@ -997,13 +1145,31 @@ async function boot() {
       offer: () => offerUnlock(),
       gate: () => askParent(() => (document.documentElement.dataset.gate = 'passed')),
       full: () => unlock.owned,
+      unlockKind: () => unlock.kind,
       lang: () => getLang(),
       save: () => store.snapshot(),
       back: () => onBack(),
     };
   }
   document.documentElement.dataset.ready = '1';
-  unlock.start(); // asks the store in the app; a no-op on the web
+  for (const fn of readyQueue.splice(0)) fn();
+  if (unlock.kind === 'code') {
+    // the mail's link first; otherwise say kindly why a kept code no longer opens anything
+    if (deepCode !== null) redeemCode(deepCode);
+    else if (codeStart?.reason === 'revoked') showCodeRefused('revoked');
+    // the link opened in a tab that already shows Bazibo only changes the #fragment: no reload
+    window.addEventListener('hashchange', () => {
+      const code = takeUnlockParam(window);
+      if (code !== null) redeemCode(code);
+    });
+  } else unlock.start(); // asks the store in the app
+}
+
+// Cards that must wait until the home screen is up (a refused activation retry at startup).
+const readyQueue = [];
+function whenReady(fn) {
+  if (starting()) readyQueue.push(fn);
+  else fn();
 }
 
 // ---------- the Android back button (apps only) ----------

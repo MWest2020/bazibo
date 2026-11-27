@@ -9,8 +9,12 @@ data is migrated once and kept. Details in `docs/release.md`, section 5.
 ## Voortgang overzetten (move progress)
 
 Settings › Voortgang overzetten, behind the parental gate. One device shows its progress (the
-games' sections and the settings, never the purchase) as QR codes; the other scans them with the
-camera or takes the code as pasted text. No server and no internet.
+games' sections, the settings and the website's unlock code, never the store purchase) as QR
+codes; the other scans them with the camera or takes the code as pasted text. No server and no
+internet. The unlock code (`unlockCode`, only its exact shape passes `sanitizePayload`) is kept on
+the receiver as not yet activated and checked again there at the next start
+([Full version](full-version.md#the-web-code-website-only)); on the website the receive tab also
+takes an unlock code's QR or text directly.
 
 - `web/js/transfer.js` (pure, tested in `tests/transfer.test.js`): the save as JSON, deflated
   (`CompressionStream` where there is one; unpacked with `DecompressionStream` or, on iOS before

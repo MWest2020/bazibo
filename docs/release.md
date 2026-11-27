@@ -174,7 +174,9 @@ feature graphics alone (the brand's own SVGs in `design/brand/store/`):
   - a "not owned" answer from the store (a refund, or a restore that finds nothing) clears the
     cache.
 
-  On the web there is no store, so nothing can be bought.
+  On the website there is no store; there a signed code bought through Buy Me a Coffee opens the
+  same `owned` flag (`web/js/unlock-code.js`, never in the app; see
+  [Full version](reference/full-version.md#the-web-code-website-only)).
 - `web/js/billing-native.js` is the adapter on `cordova-plugin-purchase`. After a purchase it
   calls `finish()`, which on Google Play acknowledges the purchase (required within 3 days).
 - `web/js/parental-gate.js` sits in front of buying and restoring. It asks a multiplication

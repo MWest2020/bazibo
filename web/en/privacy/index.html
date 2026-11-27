@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="description" content="Bazibo collects nothing: no ads, no tracking, no account. Save data stays on the device. How the camera, the microphone and the purchase work.">
   <title>Privacy policy – Bazibo, kids' games with no tracking</title>
   <link rel="canonical" href="https://bazibo.nl/en/privacy/">
@@ -11,12 +11,14 @@
   <link rel="alternate" hreflang="en" href="https://bazibo.nl/en/privacy/">
   <link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/privacy/">
   <link rel="stylesheet" href="../../css/legal.css">
+  <!-- shows the data-web-only parts on the website, never in the app (js/store-links.js) -->
+  <script type="module" src="../../js/store-links.js"></script>
 </head>
 <body>
 <main>
   <nav><a href="../../index.html">← Back to Bazibo</a><a href="../../nl/privacy/index.html" lang="nl">Nederlands</a><a href="../terms/index.html">Terms</a><a href="../roadmap/index.html">Roadmap</a></nav>
   <h1>Bazibo privacy policy</h1>
-  <p class="meta">Last updated: 20 November 2026 (Parrot and the microphone; before that: Letters without the read-aloud voice; before that: Letters and the read-aloud voice; before that: Move progress and the camera; before that: Telling Time and the roadmap page; before that: Colouring; the website at bazibo.nl; before that: Snake, save data and backup, the name Bazibo, Dogudoku, Picturedoku and Four in a Row)</p>
+  <p class="meta">Last updated: 27 November 2026 (the website; before that: Parrot and the microphone; before that: Letters without the read-aloud voice; before that: Letters and the read-aloud voice; before that: Move progress and the camera; before that: Telling Time and the roadmap page; before that: Colouring; the website at bazibo.nl; before that: Snake, save data and backup, the name Bazibo, Dogudoku, Picturedoku and Four in a Row)</p>
 
   <p>Bazibo is an app of games for children (Bubble Shooter, Dogudoku, Picturedoku, Four in a Row, Snake, Colouring, Telling Time, Letters, Parrot and more), made by Mark Westerweel (westerweel.work). In short: <strong>Bazibo collects no data about you or your child.</strong></p>
 
@@ -26,6 +28,7 @@
     <li>No account, no sign-in, no name or email address needed.</li>
     <li>No analytics, no trackers, no third-party software watching along.</li>
     <li>The app itself sends nothing over the internet: no data to us and none to anyone else.</li>
+    <li data-web-only hidden>On the website there is one exception, only when a parent enters a code for the full version: then the code and a random device number go to our server, once (see "The full version on the website").</li>
   </ul>
 
   <h2>Save data: what stays on the device</h2>
@@ -42,6 +45,20 @@
 
   <h2>Buying the full version</h2>
   <p>Every game has a free part (in the bubble shooter: levels 1 to 10). The full version, which opens everything in every game, can be bought once in the app. Payment goes entirely through Google Play or the Apple App Store. We see no name, no payment details and no account: the app only asks the store, on the device, whether the purchase exists. For that part, Google's or Apple's privacy policy applies. Buying and restoring sit behind a question for parents, so a child cannot buy anything by accident.</p>
+
+  <section data-web-only hidden>
+  <h2>The full version on the website</h2>
+  <p>On the website (bazibo.nl) you can also unlock the full version with a €1 code. You buy it through Buy Me a Coffee. Buy Me a Coffee processes that payment; Buy Me a Coffee's privacy policy applies to it. Your email address is used once: to send you the code. Bazibo itself keeps only the code on the device, with the save data in your browser. With "Move progress" the code comes along to the other device. Here too, buying and entering the code sit behind a question for parents.</p>
+  <h3>How we keep track of how many devices a code works on</h3>
+  <ul>
+    <li>When you enter a code, Bazibo sends the code and a random device number to our server (api.westerweel.work), once. That number is picked at random and says nothing about your device; it is kept in your browser next to the save data.</li>
+    <li>When the code comes to another device with "Move progress", that device also sends the code and its own random number once, at its next start: it counts as one more device.</li>
+    <li>We count on how many devices a code is used. A code works on at most 10 devices.</li>
+    <li>We store no name, no email address and no IP address with it. Our traffic goes through Cloudflare, which sees your IP address like any website does. Our server stores no IP address with the code.</li>
+    <li>After that, Bazibo works without the internet. If that one message did not get through (no internet, or our server was away for a moment), everything opens anyway and Bazibo tries once more on a later start.</li>
+    <li>A code that is shared on a large scale is blocked.</li>
+  </ul>
+  </section>
 
   <h2>The website</h2>
   <p>The web version of Bazibo is hosted at bazibo.nl by the hosting company Yourhosting, with a copy on GitHub Pages. Like any web server, both keep technical data such as your IP address, the time and the page requested in log files. Those exist for security and troubleshooting; we use them for nothing else. For GitHub, GitHub's privacy statement applies. The app itself uses neither.</p>

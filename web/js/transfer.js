@@ -1,8 +1,9 @@
 // "Voortgang overzetten": the progress of one device, as QR codes, read by another device.
 // No server and no internet: the codes go from one screen to the other camera (or as text).
 //
-// What travels: the games' sections and the settings of the save document (storage.js). Never the
-// purchase: the full version is always restored from the store on the other device.
+// What travels: the games' sections and the settings of the save document (storage.js), and the
+// website's unlock code (unlock-code.js: a signed code, checked again on the other device, which
+// counts as one more device). Never the store purchase: that is restored from the store there.
 //
 // The code (all text in the QR "alphanumeric" alphabet, so the QR codes stay small):
 //   blob  = [format version 1][flags: bit 0 = deflated][CRC-32 of the JSON, 4 bytes][body]
@@ -12,6 +13,7 @@
 // (size, format, checksum, the shape of every value) before it can touch the save.
 import { mergeSaves, mergeDrawings, VERSION, DRAWINGS_KEEP } from './storage.js';
 import { isDrawingText } from '../games/tekenen/drawing.js';
+import { parseCode } from './unlock-code.js';
 
 export const FORMAT = 1;
 // Characters per QR code. A multiple of 3 (a base45 group), so no part ends inside one. With the
@@ -158,6 +160,7 @@ export function payloadOf(save, { withArt = true, withDrawings = true, drawingLi
   }
   const s = isObj(save?.settings) ? save.settings : {};
   const out = { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
+  if (typeof save?.webUnlock?.code === 'string') out.unlockCode = save.webUnlock.code;
   if (!withArt) out.noArt = true;
   if (!withDrawings) out.noDrawings = true;
   return out;
@@ -472,7 +475,20 @@ export function sanitizePayload(doc) {
   }
   const s = isObj(doc.settings) ? doc.settings : {};
   const lang = s.lang === 'nl' || s.lang === 'en' ? s.lang : null;
-  return { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true, noDrawings: doc.noDrawings === true };
+  const out = { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true, noDrawings: doc.noDrawings === true };
+  // the website's code: only its exact shape (prefix, lengths, version, product, base64url); the
+  // signature is checked at the next start, so a forged one never opens anything
+  const code = typeof doc.unlockCode === 'string' && doc.unlockCode.length <= 200 ? parseCode(doc.unlockCode) : null;
+  if (code?.ok && code.code === doc.unlockCode) out.unlockCode = code.code;
+  return out;
+}
+
+/** The code that came in, kept as one that still has to be counted on this device; never over a
+ *  code this device already has, and never in the app (`withCode: false`: transfer-ui.js passes it
+ *  there, so the app neither keeps nor sends on a web code). */
+function withCode(out, stored, payload, keep = true) {
+  if (keep && typeof payload.unlockCode === 'string' && !(typeof stored?.webUnlock?.code === 'string')) out.webUnlock = { code: payload.unlockCode, activated: false, retried: false };
+  return out;
 }
 
 // ---------- what the other device does with it ----------
@@ -498,7 +514,7 @@ const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art', 'drawings']);
  * pages merge per region (newer wins), how-to cards seen in either stay seen; a game option this
  * device already has stays, a missing one is taken. Settings and the purchase stay this device's.
  */
-export function mergeTransfer(stored, payload) {
+export function mergeTransfer(stored, payload, { withCode: keepCode = true } = {}) {
   const incoming = clone(payload.games || {});
   const randoms = {};
   for (const [id, g] of Object.entries(incoming)) {
@@ -515,7 +531,7 @@ export function mergeTransfer(stored, payload) {
     const mine = out.games[id];
     for (const [k, v] of Object.entries(g)) if (!SPECIAL.has(k) && !(k in mine)) mine[k] = clone(v);
   }
-  return out;
+  return withCode(out, stored, payload, keepCode);
 }
 
 /** How many drawings that came in would not fit this device's album when merged (mergeDrawings). */
@@ -530,7 +546,7 @@ export function droppedDrawings(stored, payload) {
  * Replace: the progress and settings that came in; this device keeps its purchase. A code made
  * "without colouring pages" (or "without drawings") leaves this device's own as they are.
  */
-export function replaceTransfer(stored, payload) {
+export function replaceTransfer(stored, payload, { withCode: keepCode = true } = {}) {
   const out = clone(stored);
   out.games = clone(payload.games || {});
   for (const [flag, key] of [['noArt', 'art'], ['noDrawings', 'drawings']]) {
@@ -542,5 +558,5 @@ export function replaceTransfer(stored, payload) {
     }
   }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };
-  return out;
+  return withCode(out, stored, payload, keepCode);
 }

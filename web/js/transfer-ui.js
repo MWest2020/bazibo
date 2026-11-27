@@ -5,6 +5,7 @@ import qrcode from '../vendor/qrcode-generator/qrcode.min.js';
 import * as store from './storage.js';
 import { GAMES } from './games.js';
 import { ART_KEEP } from './storage.js';
+import { looksLikeCode } from './unlock-code.js';
 import { fitParts, hasArt, countDrawings, droppedDrawings, createCollector, partsFromText, decodeText, summarize, mergeTransfer, replaceTransfer } from './transfer.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -67,7 +68,12 @@ export async function makeReader() {
   };
 }
 
-export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap }) {
+/**
+ * `onCode(text)`: the website only (main.js passes it when the code adapter is in use). A scanned
+ * or pasted unlock code goes there instead of being read as progress. In the app it is null, so a
+ * code is just "not ours".
+ */
+export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap, onCode = null }) {
   let tab = 'send';
   let parts = [];
   let partAt = 0;
@@ -244,6 +250,12 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
 
   /** One part from the camera or the paste box. */
   async function take(text) {
+    if (onCode && looksLikeCode(text)) {
+      if (busy) return;
+      stopCamera();
+      onCode(String(text));
+      return;
+    }
     const r = collector.add(text);
     if (r === 'other-set') {
       setStatus(t('transfer.other'));
@@ -297,7 +309,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
       title: t('transfer.got'),
       text: `${summaryText(payload)} ${t('transfer.choose')}${capNote(payload)}`,
       buttons: [
-        [t('transfer.merge'), 'big primary', () => apply(mergeTransfer(store.snapshot(), payload))],
+        [t('transfer.merge'), 'big primary', () => apply(mergeTransfer(store.snapshot(), payload, { withCode: !!onCode }))],
         [t('transfer.replace'), 'big secondary', () => confirmReplace(payload)],
         [t('common.cancel'), 'big secondary', cancelReceive],
       ],
@@ -309,7 +321,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
       title: t('transfer.sure'),
       text: [t('transfer.sureText'), payload.noArt ? t('transfer.sureKeepArt') : '', payload.noDrawings ? t('transfer.sureKeepDrawings') : ''].filter(Boolean).join(' '),
       buttons: [
-        [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload))],
+        [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload, { withCode: !!onCode }))],
         [t('common.cancel'), 'big secondary', () => askWhatToDo(payload)],
       ],
     });
@@ -349,6 +361,11 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
 
   $('#transfer-use').addEventListener('click', async () => {
     tap();
+    if (onCode && looksLikeCode($('#transfer-input').value)) {
+      stopCamera();
+      onCode($('#transfer-input').value);
+      return;
+    }
     const lines = partsFromText($('#transfer-input').value);
     if (!lines.length) return;
     collector.reset();
@@ -413,6 +430,13 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap 
 
   return {
     onBackCard,
+    /** Open this screen on Receive (the website's "scan the code's QR"). */
+    receive() {
+      show('transfer');
+      setTab('receive');
+    },
+    /** Back to scanning after a card about a code. */
+    resume: cancelReceive,
     testHook: () => ({
       parts: () => parts.slice(),
       take: (text) => take(text),

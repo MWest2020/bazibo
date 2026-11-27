@@ -20,13 +20,24 @@ uv run --with playwright python tests/smoke.py offers   # only the end-of-free-p
 
 The smoke test uses the headless Chromium at the path in `CHROME` (default: the Playwright
 cache on the dev machine, else Playwright's own browser) and fails on page errors or on any
-request outside the local server. It also checks that the web build sells nothing, that the end
+request outside the local server. It also checks that the web offer shows only OK to the child, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
 privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `kermis`, `winkel`, `papegaai` (with Chromium's fake microphone),
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
-with the save kept) or `bubbels` (that Bubbels part alone, about 20 s).
+with the save kept), `bubbels` (that Bubbels part alone, about 20 s) or `unlock` (the website's
+unlock code, `web_unlock` and `web_unlock_native`, about a minute: under the real CSP, test codes
+signed in the page with a key made there, the parents' way in under the offer's OK and the gate,
+the Buy Me a Coffee link opened (never fetched), garbled, forged, changed and revoked codes refused
+before any call, the activation mocked by route interception as 400, 409, 200, 503 and a cut
+network, every game's first screen with nothing locked, kept after a reload with no call, a
+tampered and a revoked kept code closed again, the `#unlock=` link (new load and `hashchange`) and
+the older `?unlock=` link removed from the address, one quiet retry on the next start and no call
+after it, a code through the transfer screen's scanner; no request outside the origin but the
+activation; in a stand-in app no parents' link, no code entry, no BMC link, the deep link ignored,
+the scanner ignoring a code and the app's own CSP blocking the activation address; screenshots
+`shots/unlock-*`).
 
 CI runs the whole smoke test on every push and PR (the `smoke` job in `.github/workflows/ci.yml`,
 Playwright 1.65.2 and its headless Chromium installed on the runner; the screenshots are kept as

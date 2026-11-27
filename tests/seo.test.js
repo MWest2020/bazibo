@@ -177,6 +177,9 @@ test('nothing in a head loads from another site; the CSP stays strict', () => {
     }
     const csp = metaContent(read(page), 'http-equiv', 'Content-Security-Policy')[0];
     assert.ok(csp, `${page}: no CSP`);
-    assert.doesNotMatch(csp, /unsafe-|https?:|\*/, `${page}: the CSP was loosened: ${csp}`);
+    // the one exception (Mark, 27 Nov 2026): the home page may connect to the web unlock's
+    // activation endpoint, and to nothing else; js/app-csp.js takes it away again in the app
+    const rest = page === 'index.html' ? csp.replace("connect-src 'self' https://api.westerweel.work/bazibo/activate;", "connect-src 'self';") : csp;
+    assert.doesNotMatch(rest, /unsafe-|https?:|\*/, `${page}: the CSP was loosened: ${csp}`);
   }
 });
