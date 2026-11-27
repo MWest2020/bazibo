@@ -71,7 +71,8 @@ hand-vendored signature check is more code to audit than a one-line message.
 streep").** After a code passes offline, the website sends one `POST
 https://api.westerweel.work/bazibo/activate` with `{"code", "device"}` (`activate`): `device` is a
 random 128-bit id made once and kept in localStorage under `bubbels.device`, next to the save (never
-in it, never transferred, never derived from the device). The server counts devices per code:
+in it, never transferred, never derived from the device). The server (internetnl-cli, behind a
+Cloudflare tunnel) counts devices per code id (payload bytes 6-15), not per code string:
 
 | Answer | Then |
 | --- | --- |

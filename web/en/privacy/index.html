@@ -54,7 +54,7 @@
     <li>When you enter a code, Bazibo sends the code and a random device number to our server (api.westerweel.work), once. That number is picked at random and says nothing about your device; it is kept in your browser next to the save data.</li>
     <li>When the code comes to another device with "Move progress", that device also sends the code and its own random number once, at its next start: it counts as one more device.</li>
     <li>We count on how many devices a code is used. A code works on at most 10 devices.</li>
-    <li>We store no name, no email address and no IP address with it. Our server sees your IP address, like every website does, but does not store it with the code.</li>
+    <li>We store no name, no email address and no IP address with it. Our traffic goes through Cloudflare, which sees your IP address like any website does. Our server stores no IP address with the code.</li>
     <li>After that, Bazibo works without the internet. If that one message did not get through (no internet, or our server was away for a moment), everything opens anyway and Bazibo tries once more on a later start.</li>
     <li>A code that is shared on a large scale is blocked.</li>
   </ul>
