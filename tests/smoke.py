@@ -11711,6 +11711,78 @@ def web_unlock_native(browser, base, problems):
     ctx.close()
 
 
+HOME_GRID_JS = """() => {
+  const groups = [...document.querySelectorAll('#tile-groups .tile-group')].map((g) => {
+    const box = g.getBoundingClientRect();
+    const tiles = [...g.querySelectorAll('.tile')].map((t) => t.getBoundingClientRect());
+    const rows = [];
+    for (const r of tiles) {
+      const row = rows.find((x) => Math.abs(x.top - r.top) < 2);
+      if (row) row.n++; else rows.push({ top: r.top, n: 1 });
+    }
+    return { id: g.dataset.group, width: box.width, left: box.left, right: box.right, rows: rows.map((x) => x.n),
+      small: tiles.filter((r) => r.width < 48 || r.height < 48).length,
+      tw: tiles.map((r) => r.width), out: tiles.filter((r) => r.left < box.left - 0.5 || r.right > box.right + 0.5).length };
+  });
+  const s = getComputedStyle(document.getElementById('tile-groups'));
+  return { groups, min: parseFloat(s.getPropertyValue('--tile-min')), scroll: document.documentElement.scrollWidth, vw: innerWidth };
+}"""
+
+
+def home_grid(browser, base, problems):
+    """Balanced rows on the home screen (Mark, 27 Nov 2026: "Should be 2*4 tiles", Leren was 7 and
+    one alone): at 1920x1080, 1366x768, 1024x768, 820x1180, 390x844 and 844x390 no section ends
+    with one tile alone in a row of its own, every section is as wide as the others, the tiles are
+    --tile-min or wider and 48 px or more, inside their section, and nothing scrolls sideways;
+    also after a resize from wide to narrow. Screenshots `shots/home-grid-<w>x<h>-<n>.png`, one per screenful."""
+    sizes = ((1920, 1080), (1366, 768), (1024, 768), (820, 1180), (390, 844), (844, 390))
+    for w, h in sizes:
+        mobile = w < 1000
+        ctx = browser.new_context(locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
+        page = ctx.new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(base + "/index.html?test")
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_timeout(200)
+        checks = [("", w, h)]
+        if (w, h) == (1920, 1080):
+            checks.append((" after a resize", 700, 900))
+        for when, cw, ch in checks:
+            if when:
+                page.set_viewport_size({"width": cw, "height": ch})
+                page.wait_for_timeout(300)
+            label = f"home grid {cw}x{ch}{when}"
+            got = page.evaluate(HOME_GRID_JS)
+            print(f"[home grid] {cw}x{ch}{when}: " + ", ".join(f"{g['id']} {g['rows']} {g['width']:.0f}px" for g in got["groups"]))
+            widths = [g["width"] for g in got["groups"]]
+            if max(widths) - min(widths) > 1:
+                problems.append(f"{label}: the sections are not equally wide: {[round(x) for x in widths]}")
+            for g in got["groups"]:
+                if len(g["rows"]) > 1 and g["rows"][-1] == 1:
+                    problems.append(f"{label}: {g['id']} ends with one tile alone: rows {g['rows']}")
+                if max(g["rows"]) - min(g["rows"]) > 1:
+                    problems.append(f"{label}: {g['id']} rows are not balanced: {g['rows']}")
+                if g["small"]:
+                    problems.append(f"{label}: {g['id']} has {g['small']} tiles under 48 px")
+                if min(g["tw"]) < got["min"] - 1:
+                    problems.append(f"{label}: {g['id']} tiles {min(g['tw']):.0f} px, under --tile-min {got['min']}")
+                if g["out"] or g["left"] < -0.5 or g["right"] > got["vw"] + 0.5:
+                    problems.append(f"{label}: {g['id']} sticks out ({g['left']:.0f}..{g['right']:.0f}, {g['out']} tiles outside)")
+            if got["scroll"] > got["vw"] + 1:
+                problems.append(f"{label}: the page scrolls sideways ({got['scroll']} > {got['vw']})")
+            # the home scrolls inside #screen-home: one shot per screenful, -1 at the top
+            total = page.evaluate("document.getElementById('screen-home').scrollHeight")
+            for k in range(min(6, -(-total // ch))):
+                page.evaluate(f"document.getElementById('screen-home').scrollTop = {k * ch}")
+                page.wait_for_timeout(80)
+                page.screenshot(path=str(SHOTS / f"home-grid-{cw}x{ch}-{k + 1}.png"))
+            page.evaluate("document.getElementById('screen-home').scrollTop = 0")
+        if errors:
+            problems.append(f"home grid {w}x{h}: page errors {errors[:2]}")
+        ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -11832,6 +11904,7 @@ def main():
             home_calm(browser, base, problems)
             web_unlock(browser, base, problems)
             web_unlock_native(browser, base, problems)
+            home_grid(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -11864,6 +11937,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links, home_targets, home_calm),
          "unlock": (web_unlock, web_unlock_native),
+         "home": (home_grid,),
          "tekenen": (tekenen_play, tekenen_delete, tekenen_fits, tekenen_locked_four),
          "kleuren": (kleuren_play, kleuren_delete, kleuren_fits)}
 

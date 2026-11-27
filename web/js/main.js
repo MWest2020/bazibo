@@ -3,6 +3,7 @@
 import { BRAND } from './brand.js';
 import { markSvg, wordmarkSvg } from './logo.js';
 import { GAMES, GROUPS, OTHER_GROUP } from './games.js';
+import { homeLayout } from './home-grid.js';
 import { t, getLang, setLang, pickLang, onLangChange, translateDom } from './i18n.js';
 import { COLORS, drawBubble } from './bubble-art.js';
 import * as store from './storage.js';
@@ -254,7 +255,6 @@ function buildTiles() {
     const section = document.createElement('section');
     section.className = 'tile-group';
     section.dataset.group = group.id;
-    section.style.setProperty('--n', list.length);
     const head = document.createElement('h2');
     head.className = 'group-name';
     head.id = `group-${group.id}`;
@@ -306,6 +306,42 @@ function buildTiles() {
   }
 }
 buildTiles();
+
+/** Balanced rows in every section (home-grid.js): 8 tiles where 7 fit are 2 rows of 4, never 7 and
+ *  one alone, and every section as wide as the widest. The sizes come from style.css (--tile-min,
+ *  --tile-max, --tile-gap, --group-pad, max-width per screen size); this sets --cols and --tracks
+ *  per section, --tile and --groups-w on the box. Again on every resize (and when the home screen
+ *  shows), because the media queries change those sizes. */
+function layoutTiles() {
+  const box = $('#tile-groups');
+  const screen = $('#screen-home');
+  if (!screen.clientWidth) return; // hidden: the observer calls again when it shows
+  const px = (el, prop) => parseFloat(getComputedStyle(el).getPropertyValue(prop)) || 0;
+  const inner = box.parentElement;
+  const room = screen.clientWidth - px(screen, 'padding-left') - px(screen, 'padding-right') - px(inner, 'padding-left') - px(inner, 'padding-right');
+  const max = px(box, 'max-width') || Infinity;
+  const tileMax = parseFloat(getComputedStyle(box).getPropertyValue('--tile-max')); // "none" on phones: the tiles fill the row
+  const groups = [...box.querySelectorAll('.tile-group .tiles')];
+  const lay = homeLayout(groups.map((g) => g.children.length), {
+    width: Math.min(room, max),
+    tileMin: px(box, '--tile-min'),
+    tileMax: Number.isFinite(tileMax) ? tileMax : Infinity,
+    gap: px(box, '--tile-gap'),
+    pad: px(box, '--group-pad'),
+  });
+  box.style.setProperty('--tile', `${lay.tile}px`);
+  box.style.setProperty('--groups-w', `${lay.groupsWidth}px`);
+  groups.forEach((g, i) => {
+    const { cols, shortStarts } = lay.sections[i];
+    g.style.setProperty('--cols', cols);
+    g.style.setProperty('--tracks', cols * 2);
+    // a row one tile shorter stands centred (half-width tracks, see .tiles.brick in style.css)
+    g.classList.toggle('brick', shortStarts.length > 0);
+    [...g.children].forEach((tile, k) => tile.classList.toggle('row-in', shortStarts.includes(k)));
+  });
+}
+layoutTiles();
+new ResizeObserver(layoutTiles).observe($('#screen-home'));
 
 /** Each game's screens take the colour of its group (data-group; the tokens in style.css): the
  *  selected option and the next level in a menu. A game's screens are `screen-<id>...`; Bubbels,

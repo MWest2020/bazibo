@@ -6,6 +6,7 @@
 | `web/js/main.js` | the shell: screens, tiles, settings, the offer, the parental gate, service worker registration |
 | `web/js/brand.js` | brand name and tagline (the one place to change them) |
 | `web/js/games.js` | the games in the app and their tiles (ready or coming soon) |
+| `web/js/home-grid.js` | the home screen's tile grid (pure): balanced rows per section, every section as wide as the widest |
 | `web/js/i18n.js` | Dutch and English strings, language choice |
 | `web/js/storage.js` | the save document, migration, Preferences in the apps, localStorage on the web |
 | `web/js/unlock.js` | the purchase state (store answer, offline cache) and free tiers |

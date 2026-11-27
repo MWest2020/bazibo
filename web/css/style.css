@@ -246,15 +246,19 @@ html, body {
   z-index: 1;
 }
 /* The tiles sit in sections (a group per kind of game, built by main.js), like the folders on a
-   phone's home screen. Phones: the sections are stacked and each one is a grid that fits as many
-   tiles of at least --tile-min as the width allows (3 on most phones, 2 on 320 px). Wider screens:
-   the sections stand side by side, each as wide as its own tiles (--n, set by main.js). */
+   phone's home screen. The sections are stacked, all as wide as the widest, and each one is a grid
+   of balanced rows (js/home-grid.js; Mark, 27 Nov 2026): with room for c tiles of at least
+   --tile-min, n tiles get ceil(n / ceil(n / c)) columns, so 8 where 7 fit are 2 rows of 4. main.js
+   sets --cols and --tracks per section and --tile and --groups-w here, again on every resize.
+   Phones: 3 tiles a row on most, 2 on 320 px, filling the row (--tile-max none); wider screens:
+   tiles of exactly --tile-min (--tile-max below). */
 .tile-groups {
   --tile-min: 96px;
+  --tile-max: none;
   --tile-gap: 10px;
   --group-pad: 10px;
   --art: 0.66; /* the 92 px drawings on the tiles, scaled */
-  width: 100%;
+  width: var(--groups-w, 100%);
   max-width: 560px;
   display: flex;
   flex-wrap: wrap;
@@ -287,9 +291,16 @@ html, body {
 }
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
+  grid-template-columns: repeat(var(--cols, 3), var(--tile, minmax(0, 1fr)));
+  justify-content: center; /* a section with fewer columns than the widest keeps its tiles together in the middle */
   gap: var(--tile-gap);
 }
+/* when one tile would stand alone in the last row (7 in 3 columns), the last rows take one tile
+   less and stand centred (3, 2, 2): half-width tracks, each tile spans two, a shorter row starts
+   one track in (.row-in, set by main.js) */
+.tiles.brick { grid-template-columns: repeat(var(--tracks), calc((var(--tile) - var(--tile-gap)) / 2)); }
+.tiles.brick > .tile { grid-column: span 2; }
+.tiles.brick > .tile.row-in { grid-column: 2 / span 2; }
 .tile {
   font: inherit;
   position: relative;
@@ -601,13 +612,9 @@ html, body {
   .tile-groups { --art: 0.78; --tile-gap: 10px; }
 }
 
-/* wider screens: the sections side by side, each as wide as its tiles */
+/* wider screens: tiles of exactly --tile-min (as before), the sections as wide as the widest one's tiles */
 @media (min-width: 560px) {
-  .tile-groups { max-width: 1180px; gap: 14px 16px; }
-  .tile-group {
-    flex: 0 1 auto;
-    width: calc(var(--n) * var(--tile-min) + (var(--n) - 1) * var(--tile-gap) + 2 * var(--group-pad));
-  }
+  .tile-groups { --tile-max: var(--tile-min); max-width: 1180px; gap: 16px; }
 }
 /* tablets and desktop (tall enough): bigger tiles */
 @media (min-width: 720px) and (min-height: 521px) {
