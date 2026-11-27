@@ -11354,6 +11354,363 @@ def kermis_csp(browser, base, problems):
     ctx.close()
 
 
+# ---------- the website's unlock code (web/js/unlock-code.js) ----------
+
+ACTIVATE_URL = "https://api.westerweel.work/bazibo/activate"
+BMC_URL = "https://buymeacoffee.com/mark.westerweel/extras"
+CSP_WATCH = "document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))"
+
+# Signs test codes in the page with a key made there (WebCrypto Ed25519): the real private key is
+# never near the tests. Returns the public key and codes by name.
+UNLOCK_KEYGEN_JS = """async () => {
+  const s = crypto.subtle, ED = { name: 'Ed25519' };
+  const enc = (b) => btoa(String.fromCharCode(...b)).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+  const k = await s.generateKey(ED, true, ['sign', 'verify']);
+  const other = await s.generateKey(ED, true, ['sign', 'verify']);
+  const ctx = new TextEncoder().encode('bazibo-unlock-v1');
+  const code = async (n, key = k.privateKey) => {
+    const p = new Uint8Array(16); p[0] = 1; p[1] = 1; p[5] = 7; p.fill(n, 6);
+    const d = new Uint8Array(ctx.length + 16); d.set(ctx); d.set(p, ctx.length);
+    return 'BZB1.' + enc(p) + '.' + enc(new Uint8Array(await s.sign(ED, key, d)));
+  };
+  const hex = (n) => n.toString(16).padStart(2, '0').repeat(10);
+  return { pub: enc(new Uint8Array(await s.exportKey('raw', k.publicKey))),
+    a: await code(1), b: await code(2), c: await code(3), d: await code(4), revoked: await code(9), revokedId: hex(9),
+    forged: await code(5, other.privateKey) };
+}"""
+
+
+def unlock_codes(browser, base):
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    page.goto(base + "/robots.txt")  # any page of ours: WebCrypto needs a secure context
+    codes = page.evaluate(UNLOCK_KEYGEN_JS)
+    ctx.close()
+    return codes
+
+
+def wu_locked_counts(page, base, url):
+    """Per game, how many locked choices (or a "Volledige versie" fold) its first screen shows."""
+    out = {}
+    ids = page.evaluate("[...document.querySelectorAll('#tile-groups .tile[data-game]')].map(t => t.dataset.game)")
+    for gid in ids:
+        page.goto(url)
+        try:
+            page.wait_for_selector("html[data-ready='1']", timeout=30000)
+        except Exception:
+            out[gid] = f"not ready after {gid}: {page.evaluate('document.documentElement.dataset.ready')}"
+            continue
+        page.locator(f"#tile-{gid}").click()
+        page.wait_for_timeout(250)
+        if page.is_visible("#overlay"):  # a how-to card
+            page.click("#ov-buttons button >> nth=0")
+            page.wait_for_timeout(120)
+        out[gid] = page.evaluate("document.querySelectorAll('.screen.active .locked, .screen.active details.full-fold').length")
+    return out
+
+
+def web_unlock(browser, base, problems):
+    """The website's unlock code under the real CSP: the parents' way in under the offer's OK, the
+    gate, the BMC link opened (never fetched), wrong, forged and revoked codes refused before any
+    call, the activation answered 409 (refused), 200 (open), 503 and a network failure (open
+    anyway, retried once on the next start), every game open, kept after a reload, a tampered and a
+    revoked kept code closed again, the deep link (removed from the address), a code read by the
+    transfer screen's scanner; no request outside the origin but the one activation, none on a plain
+    start, no CSP violation. Screenshots `shots/unlock-*`."""
+    codes = unlock_codes(browser, base)
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(CSP_WATCH)
+    ctx.add_init_script(f"window.__baziboUnlockTestKey = {json.dumps(codes['pub'])}; window.__baziboUnlockTestRevoked = [{json.dumps(codes['revokedId'])}];")
+    mode = {"answer": 200}
+    calls, foreign = [], []
+
+    def activation(route):
+        req = route.request
+        cors = {"access-control-allow-origin": base, "access-control-allow-methods": "POST", "access-control-allow-headers": "content-type"}
+        if req.method == "OPTIONS":
+            route.fulfill(status=204, headers=cors)
+            return
+        calls.append(json.loads(req.post_data or "{}"))
+        if mode["answer"] == "abort":
+            route.abort("internetdisconnected")
+        else:
+            # the server's contract (internetnl-cli): 200 ok, 409 limit, 403 revoked, 400 invalid, 503 off
+            body = {200: {"status": "ok"}, 409: {"error": "limit"}, 403: {"error": "revoked"}, 400: {"error": "invalid"}, 503: {"error": "off"}}[mode["answer"]]
+            route.fulfill(status=mode["answer"], headers={**cors, "content-type": "application/json"}, body=json.dumps(body))
+
+    ctx.route(ACTIVATE_URL, activation)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    # the browser itself logs the activation's 409, 503 and the cut network: those are the test
+    page.on("console", lambda m: m.type == "error" and not m.text.startswith("Failed to load resource") and errors.append(m.text))
+    page.on("request", lambda r: not r.url.startswith(base) and not r.url.startswith("data:") and foreign.append(r.url))
+    url = base + "/index.html?test"
+
+    def ready(u=url):
+        if "#" in u:
+            page.goto("about:blank")  # a new load, as from the mail (only a #fragment would not reload)
+        page.goto(u)
+        page.wait_for_selector("html[data-ready='1']")
+        page.wait_for_timeout(200)
+
+    def text():
+        return page.inner_text("#ov-text") if page.is_visible("#overlay") else ""
+
+    def wait_card(want, label):
+        for _ in range(60):
+            if want in text():
+                return True
+            page.wait_for_timeout(100)
+        problems.append(f"unlock {label}: expected a card with {want!r}, got {text()!r}")
+        return False
+
+    def enter(code, label):
+        page.wait_for_selector(".code-input")
+        page.fill(".code-input", code)
+        page.click("#ov-buttons button >> nth=0")
+        page.wait_for_timeout(150)
+
+    def again():
+        page.click("#ov-buttons button >> nth=0")  # Opnieuw proberen
+        page.wait_for_selector(".code-input")
+
+    def save():
+        return page.evaluate("window.__bubbels.save()")
+
+    # a plain start: no call, nothing open, the code adapter in use
+    ready()
+    if page.evaluate("window.__bubbels.unlockKind()") != "code" or page.evaluate("window.__bubbels.full()"):
+        problems.append(f"unlock: plain start: kind {page.evaluate('window.__bubbels.unlockKind()')}, full {page.evaluate('window.__bubbels.full()')}")
+    if page.evaluate("!!document.querySelector('meta[data-app-csp]')"):
+        problems.append("unlock: the app's CSP was added on the website")
+    before = wu_locked_counts(page, base, url)
+    if sum(1 for n in before.values() if n) < 15:
+        problems.append(f"unlock: too few games show something locked before the code: {before}")
+
+    # the offer from Settings: the child's card says only OK; under it the parents' way in
+    ready()
+    page.click("#btn-settings")
+    page.click("#btn-full")
+    page.wait_for_timeout(150)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    parents = page.locator("#ov-parents button")
+    if labels != ["Oké"] or parents.count() != 1 or not parents.is_visible() or parents.inner_text() != "Voor ouders: volledige versie (€1)":
+        problems.append(f"unlock: the web offer shows {labels} and parents {parents.all_inner_texts()}")
+    else:
+        box = parents.bounding_box()
+        if box["height"] < 48:
+            problems.append(f"unlock: the parents' button is {box['height']} px tall")
+    page.screenshot(path=str(SHOTS / "unlock-offer.png"))
+    parents.click()
+    page.wait_for_selector(".gate-input")
+    page.click("#ov-buttons button >> nth=1")  # cancelled: nothing opens
+    page.wait_for_timeout(100)
+    if page.is_visible("#overlay"):
+        problems.append("unlock: cancelling the gate left a card open")
+    page.click("#btn-full")
+    page.locator("#ov-parents button").click()
+    solve_gate(page, "nl")
+    page.wait_for_timeout(150)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Koop de volledige versie (€1)", "Ik heb een code", "Later"]:
+        problems.append(f"unlock: after the gate the card shows {labels}")
+    page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), { opener: 1 }); }")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(100)
+    if page.evaluate("window.__opened") != [[BMC_URL, "_blank"]]:
+        problems.append(f"unlock: the buy button opened {page.evaluate('window.__opened')}")
+    page.click("#ov-buttons button >> nth=1")  # Ik heb een code
+    page.wait_for_selector(".code-input")
+    page.screenshot(path=str(SHOTS / "unlock-code-entry.png"))
+
+    # refused before any call: garbled, forged, revoked
+    for code, want, label in (("BZB1.dit-is-geen-code", "Deze code klopt niet", "garbled"), (codes["forged"], "Deze code klopt niet", "forged"),
+                              (codes["a"][:-3] + "AAA", "Deze code klopt niet", "changed"), (codes["revoked"], "Deze code is ingetrokken", "revoked")):
+        enter(code, label)
+        wait_card(want, label)
+        again()
+    if calls:
+        problems.append(f"unlock: a code that failed offline still called the server: {len(calls)}")
+    # 400: not accepted (cannot happen for a code that passed offline): a kind "try later"
+    mode["answer"] = 400
+    enter(codes["a"], "400")
+    wait_card("niet geaccepteerd", "400")
+    if page.evaluate("window.__bubbels.full()") or "webUnlock" in save():
+        problems.append("unlock: a 400 opened the full version or kept the code")
+    again()
+    # 409: over the device limit
+    mode["answer"] = 409
+    enter(codes["a"], "409")
+    wait_card("al op 10 apparaten gebruikt", "409")
+    if page.evaluate("window.__bubbels.full()") or "webUnlock" in save():
+        problems.append("unlock: a 409 opened the full version or kept the code")
+    again()
+    # 200: open
+    mode["answer"] = 200
+    enter(codes["a"], "200")
+    if wait_card("Alles is open", "200"):
+        page.screenshot(path=str(SHOTS / "unlock-done.png"))
+    if not page.evaluate("window.__bubbels.full()") or save().get("webUnlock") != {"code": codes["a"], "activated": True, "retried": False}:
+        problems.append(f"unlock: after 200 full {page.evaluate('window.__bubbels.full()')}, save {save().get('webUnlock')}")
+    if len(calls) != 3 or calls[-1].get("code") != codes["a"] or not re.fullmatch(r"[0-9a-f]{32}", calls[-1].get("device", "")) or sorted(calls[-1]) != ["code", "device"]:
+        problems.append(f"unlock: the activation calls were {calls}")
+    device = calls[-1].get("device")
+    page.click("#ov-buttons button >> nth=0")
+
+    # every game open; kept after a reload, with no call
+    n = len(calls)
+    after = wu_locked_counts(page, base, url)
+    still = {g: c for g, c in after.items() if c}
+    if still:
+        problems.append(f"unlock: still locked after the code: {still}")
+    ready()
+    if not page.evaluate("window.__bubbels.full()") or len(calls) != n:
+        problems.append(f"unlock: after a reload full {page.evaluate('window.__bubbels.full()')}, calls {len(calls) - n}")
+
+    # a tampered kept code closes again; a revoked kept code says so
+    page.evaluate("""(c) => { const s = JSON.parse(localStorage.getItem('bubbels.save')); s.webUnlock.code = c; localStorage.setItem('bubbels.save', JSON.stringify(s)); }""", codes["a"][:40] + ("B" if codes["a"][40] == "A" else "A") + codes["a"][41:])
+    ready()
+    if page.evaluate("window.__bubbels.full()") or "webUnlock" in save():
+        problems.append("unlock: a tampered kept code still opens (or stays kept)")
+    page.evaluate("""(c) => { const s = JSON.parse(localStorage.getItem('bubbels.save')); s.webUnlock = { code: c, activated: true }; localStorage.setItem('bubbels.save', JSON.stringify(s)); }""", codes["revoked"])
+    ready()
+    wait_card("Deze code is ingetrokken", "revoked kept code")
+    if page.evaluate("window.__bubbels.full()"):
+        problems.append("unlock: a revoked kept code still opens")
+    if len(calls) != n:
+        problems.append(f"unlock: starting with a kept code called the server {len(calls) - n} times")
+
+    # the mail's deep link (#unlock=) with our server switched off (503 off): open anyway, the address
+    # cleaned, one retry on the next start
+    mode["answer"] = 503
+    ready(f"{url}#unlock={codes['b']}")
+    wait_card("Alles is open", "deep link 503")
+    if "unlock" in page.url or not page.url.endswith("?test"):
+        problems.append(f"unlock: the deep link stayed in the address: {page.url}")
+    if not page.evaluate("window.__bubbels.full()") or save().get("webUnlock") != {"code": codes["b"], "activated": False, "retried": False}:
+        problems.append(f"unlock: deep link with 503: full {page.evaluate('window.__bubbels.full()')}, save {save().get('webUnlock')}")
+    if len(calls) != n + 1 or calls[-1].get("device") != device:
+        problems.append(f"unlock: the deep link made {len(calls) - n} calls, device kept: {calls[-1].get('device') == device}")
+    mode["answer"] = 200
+    ready()
+    page.wait_for_timeout(400)
+    if len(calls) != n + 2 or save().get("webUnlock") != {"code": codes["b"], "activated": True, "retried": True} or not page.evaluate("window.__bubbels.full()"):
+        problems.append(f"unlock: the retry: calls {len(calls) - n - 1}, save {save().get('webUnlock')}")
+    ready()
+    page.wait_for_timeout(300)
+    if len(calls) != n + 2:
+        problems.append("unlock: a start after the retry called the server again")
+
+    # a network failure, with the older ?unlock= link: open anyway; a garbled deep link: a kind card with only OK
+    page.evaluate("localStorage.removeItem('bubbels.save')")
+    mode["answer"] = "abort"
+    ready(f"{url}&unlock={codes['c']}")
+    if "unlock" in page.url:
+        problems.append(f"unlock: the ?unlock= link stayed in the address: {page.url}")
+    wait_card("Alles is open", "deep link network failure")
+    if not page.evaluate("window.__bubbels.full()") or save().get("webUnlock", {}).get("activated") is not False:
+        problems.append(f"unlock: a network failure: full {page.evaluate('window.__bubbels.full()')}, save {save().get('webUnlock')}")
+    page.evaluate("localStorage.removeItem('bubbels.save')")
+    mode["answer"] = 200
+    ready()
+    # the mail's link in a tab that already shows Bazibo: only the #fragment changes (hashchange)
+    page.evaluate("location.hash = '#unlock=BZB1.kapot'")
+    wait_card("Deze code klopt niet", "garbled deep link")
+    if "unlock" in page.url:
+        problems.append(f"unlock: the #unlock= of a hashchange stayed in the address: {page.url}")
+    if page.locator("#ov-buttons button").all_inner_texts() != ["Oké"] or page.evaluate("window.__bubbels.full()"):
+        problems.append(f"unlock: a garbled deep link: {page.locator('#ov-buttons button').all_inner_texts()}")
+
+    # the transfer screen's scanner takes a code too (Scan de QR-code)
+    page.click("#ov-buttons button >> nth=0")
+    page.click("#btn-settings")
+    page.click("#btn-full")
+    page.locator("#ov-parents button").click()
+    solve_gate(page, "nl")
+    page.wait_for_timeout(120)
+    page.click("#ov-buttons button >> nth=1")
+    page.wait_for_selector(".code-input")
+    page.click("#ov-buttons button >> nth=1")  # Scan de QR-code
+    page.wait_for_timeout(300)
+    if page.evaluate("window.__bubbels.transfer.tab()") != "receive" or not page.is_visible("#screen-transfer"):
+        problems.append("unlock: 'Scan de QR-code' did not open the scanner")
+    page.evaluate("(c) => window.__bubbels.transfer.take(c)", codes["d"])
+    wait_card("Alles is open", "scanned code")
+    page.click("#ov-buttons button >> nth=0")
+    page.wait_for_timeout(150)
+    if not page.evaluate("window.__bubbels.full()") or not page.is_visible("#screen-settings"):
+        problems.append("unlock: a scanned code did not open everything (or did not land on Settings)")
+
+    bad = [u for u in foreign if u != ACTIVATE_URL]
+    if bad:
+        problems.append(f"unlock: requests outside the origin: {bad[:3]}")
+    csp = page.evaluate("window.__csp || []")
+    if csp:
+        problems.append(f"unlock: the CSP blocked {csp[:3]}")
+    if errors:
+        problems.append(f"unlock: page errors {errors[:3]}")
+    ctx.close()
+
+
+UNOWNED_APP = OWNED_APP.replace("owned: () => true", "owned: () => false")
+
+
+def web_unlock_native(browser, base, problems):
+    """In a stand-in app (the Capacitor bridge) nothing of the web code exists: the deep link is
+    ignored, the offer is the store's with no parents' link, no code entry and no BMC link anywhere,
+    the scanner ignores a code, and the app's own CSP blocks the activation address."""
+    codes = unlock_codes(browser, base)
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script(CSP_WATCH)
+    ctx.add_init_script(UNOWNED_APP)
+    ctx.add_init_script(f"window.__baziboUnlockTestKey = {json.dumps(codes['pub'])};")
+    calls = []
+    ctx.route(ACTIVATE_URL, lambda route: (calls.append(route.request.method), route.abort()))
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(f"{base}/index.html?test#unlock={codes['a']}")
+    page.wait_for_selector("html[data-ready='1']")
+    page.wait_for_timeout(500)
+    kind = page.evaluate("window.__bubbels.unlockKind()")
+    if kind != "store" or page.evaluate("window.__bubbels.full()") or page.is_visible("#overlay"):
+        problems.append(f"unlock native: kind {kind}, full {page.evaluate('window.__bubbels.full()')}, card {page.is_visible('#overlay')}")
+    if "unlock=" not in page.url:
+        problems.append("unlock native: the app touched its address")
+    page.click("#btn-settings")
+    page.click("#btn-full")
+    page.wait_for_timeout(150)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Voor ouders: kopen", "Aankoop herstellen", "Later"] or page.is_visible("#ov-parents") or page.locator("#ov-parents button").count():
+        problems.append(f"unlock native: the offer shows {labels}, parents' link visible {page.is_visible('#ov-parents')}")
+    page.screenshot(path=str(SHOTS / "unlock-native-offer.png"))
+    page.click("#ov-buttons button >> nth=2")
+    dom = page.evaluate("document.documentElement.outerHTML + document.body.innerText")
+    for word in ("buymeacoffee", "Buy Me a Coffee", "Ik heb een code", "code-input", "Voor ouders: volledige versie"):
+        if word in dom:
+            problems.append(f"unlock native: {word!r} is in the app's page")
+    page.click("#btn-transfer")
+    solve_gate(page, "nl")
+    page.wait_for_timeout(200)
+    page.click("[data-transfer='receive']")
+    page.wait_for_timeout(200)
+    page.evaluate("(c) => window.__bubbels.transfer.take(c)", codes["a"])
+    page.wait_for_timeout(300)
+    if page.evaluate("window.__bubbels.full()") or "Alles is open" in (page.inner_text("#ov-text") if page.is_visible("#overlay") else ""):
+        problems.append("unlock native: the app's scanner took a code")
+    if not page.evaluate("!!document.querySelector('meta[data-app-csp]')"):
+        problems.append("unlock native: the app's own CSP is missing")
+    page.evaluate("""() => fetch('https://api.westerweel.work/bazibo/activate', { method: 'POST' }).then(() => 'reached', () => 'blocked')""")
+    page.wait_for_timeout(200)
+    csp = page.evaluate("window.__csp || []")
+    if not any("connect-src" in c and "api.westerweel.work" in c for c in csp) or calls:
+        problems.append(f"unlock native: the activation address was not blocked by the app's CSP: {csp}, calls {calls}")
+    if errors:
+        problems.append(f"unlock native: page errors {errors[:3]}")
+    ctx.close()
+
+
 def main():
     SHOTS.mkdir(exist_ok=True)
     port = free_port()
@@ -11473,6 +11830,8 @@ def main():
             store_links(browser, base, problems)
             home_targets(browser, base, problems)
             home_calm(browser, base, problems)
+            web_unlock(browser, base, problems)
+            web_unlock_native(browser, base, problems)
             browser.close()
     finally:
         httpd.shutdown()
@@ -11504,6 +11863,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links, home_targets, home_calm),
+         "unlock": (web_unlock, web_unlock_native),
          "tekenen": (tekenen_play, tekenen_delete, tekenen_fits, tekenen_locked_four),
          "kleuren": (kleuren_play, kleuren_delete, kleuren_fits)}
 

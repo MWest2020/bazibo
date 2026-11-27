@@ -21,6 +21,9 @@
 //                 micGate: true },        // a grown-up passed the gate for Papegaai's microphone on this
 //                                         // device (never anything recorded; does not travel in a transfer)
 //     purchase: { owned: false },          // last store answer, only a cache (see unlock.js)
+//     webUnlock: { code: 'BZB1.…', activated: true, retried: false },
+//                                          // the website's code (unlock-code.js), checked again at
+//                                          // every start; travels in a transfer (the store purchase never)
 //     migrated: { from, at } }             // set once, when older save data was copied in
 //
 // Where it lives:
@@ -261,6 +264,7 @@ export function mergeSaves(stored, session, sessionSettingsChanged) {
     }
   }
   out.purchase = { ...out.purchase, owned: out.purchase?.owned === true || session.purchase?.owned === true };
+  if (!isWebUnlock(out.webUnlock) && isWebUnlock(session.webUnlock)) out.webUnlock = clone(session.webUnlock); // a code entered meanwhile
   if (sessionSettingsChanged) out.settings = { ...out.settings, muted: !!session.settings.muted, lang: session.settings.lang || null };
   if (session.settings?.micGate === true) out.settings = { ...out.settings, micGate: true }; // a gate passed in either stays passed
   return out;
@@ -667,6 +671,24 @@ export function deleteDrawing(gameId, id, t = Date.now()) {
   const e = save.games[gameId]?.drawings?.[id];
   if (!liveDrawing(e)) return false;
   return saveDrawing(gameId, id, '', Math.max(Number(t) || Date.now(), (Number(e.t) || 0) + 1));
+}
+
+// ---------- the website's code (unlock-code.js; never used in the apps) ----------
+
+const isWebUnlock = (v) => isObj(v) && typeof v.code === 'string' && v.code.length > 0 && v.code.length <= 200;
+
+/** The kept code with its activation state, or null. Only the shape is checked here; unlock-code.js
+ *  verifies the signature at every start. */
+export function loadWebUnlock() {
+  const w = save.webUnlock;
+  return isWebUnlock(w) ? { code: w.code, activated: w.activated === true, retried: w.retried === true } : null;
+}
+
+/** Keep a code that passed (or clear it with null: tampered, revoked, over the device limit). */
+export function saveWebUnlock(entry) {
+  if (isWebUnlock(entry)) save.webUnlock = { code: entry.code, activated: entry.activated === true, retried: entry.retried === true };
+  else delete save.webUnlock;
+  persist();
 }
 
 export const fullCache = {

@@ -71,6 +71,7 @@ export function createNativeBilling() {
 
   return {
     available: true,
+    kind: 'store',
     start,
     async buy() {
       const s = await start();

@@ -4,7 +4,11 @@
 // script runs on the website. In the app (Capacitor's bridge, or the app's own address
 // https://localhost on Android and capacitor://localhost on iOS) it stays hidden, and with
 // scripts off it stays hidden too.
-// Used as a module by the home screen (main.js) and by the parents' pages (Plannen, Roadmap).
+// The same goes for `data-web-only` blocks on the parents' pages (privacy, terms): what they say about
+// the website's unlock code (unlock-code.js) is never shown inside the app (Google Play's payments
+// policy: no pointer to another way to pay for digital goods in the app).
+// Used as a module by the home screen (main.js) and by the parents' pages (Plannen, Roadmap,
+// privacy, terms).
 
 export const PLAY_URL = 'https://play.google.com/store/apps/details?id=work.westerweel.bazibo';
 
@@ -20,7 +24,7 @@ export function inApp(win) {
 /** Shows the store links on the website; leaves them hidden in the app. Returns whether shown. */
 export function showStoreLinks(doc, win) {
   if (!doc || inApp(win)) return false;
-  for (const el of doc.querySelectorAll('[data-store-links]')) el.hidden = false;
+  for (const el of doc.querySelectorAll('[data-store-links], [data-web-only]')) el.hidden = false;
   return true;
 }
 

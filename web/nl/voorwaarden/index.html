@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="description" content="De voorwaarden van Bazibo: kinderspelletjes zonder reclame, een gratis deel en één aankoop van €1 die alles opent, zonder abonnement. Ook: geld terug.">
   <title>Voorwaarden – Bazibo</title>
   <link rel="canonical" href="https://bazibo.nl/nl/voorwaarden/">
@@ -11,6 +11,8 @@
   <link rel="alternate" hreflang="en" href="https://bazibo.nl/en/terms/">
   <link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/terms/">
   <link rel="stylesheet" href="../../css/legal.css">
+  <!-- shows the data-web-only parts on the website, never in the app (js/store-links.js) -->
+  <script type="module" src="../../js/store-links.js"></script>
 </head>
 <body>
 <main>
@@ -28,6 +30,7 @@
   <ul>
     <li>Eén aankoop in de app, "Alles ontgrendelen", opent alles in alle spellen. In Nederland kost die €1; in andere landen zet Google Play of de App Store de prijs.</li>
     <li>Je betaalt één keer. De aankoop geldt op elk apparaat waarop hetzelfde Google- of Apple-account is ingelogd, ook na opnieuw installeren ("Aankoop herstellen").</li>
+    <li data-web-only hidden>Op de website (bazibo.nl) kun je de volledige versie ook ontgrendelen met een code van €1, te koop via Buy Me a Coffee. De code werkt in de browser waarin je hem invult, op hooguit 10 apparaten. Geld terug voor een code: mail naar hallo@bazibo.nl.</li>
     <li>Kopen is bedoeld voor ouders. Daarom staat er eerst een vraag voor volwassenen voor.</li>
   </ul>
 

@@ -532,6 +532,34 @@ html, body {
   background: var(--bz-surface);
 }
 .gate-input:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-color: var(--bz-brand); }
+/* the website's unlock code (unlock-code.js): long, pasted, so small type that wraps nowhere */
+.code-input {
+  width: 100%;
+  max-width: 300px;
+  min-height: 56px;
+  padding: 0 12px;
+  border: 3px solid var(--bz-brand-tint);
+  border-radius: var(--bz-radius-l);
+  font: var(--bz-weight-text) 1rem var(--bz-font);
+  color: var(--bz-ink);
+  background: var(--bz-surface);
+}
+.code-input:focus-visible { outline: 4px solid var(--bz-focus); outline-offset: 2px; border-color: var(--bz-brand); }
+/* under the child's OK: a quiet way in for parents (website only), still a 48 px target */
+.ov-parents { display: flex; justify-content: center; margin-top: 12px; }
+.ov-parents[hidden] { display: none; }
+.btn.link.ov-parents-btn {
+  min-height: 48px;
+  padding: 0 16px;
+  background: none;
+  box-shadow: none;
+  color: var(--bz-ink-soft);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn.link.ov-parents-btn:active { transform: none; box-shadow: none; }
 .small-links { margin: 28px 0 8px; text-align: center; font-size: 0.95rem; font-weight: 700; }
 .small-links a { color: var(--bz-ink-soft); }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="description" content="Bazibo's terms: kids' games with no ads, a free part and one €1 purchase that opens everything, no subscription. Also: refunds.">
   <title>Terms – Bazibo</title>
   <link rel="canonical" href="https://bazibo.nl/en/terms/">
@@ -11,6 +11,8 @@
   <link rel="alternate" hreflang="en" href="https://bazibo.nl/en/terms/">
   <link rel="alternate" hreflang="x-default" href="https://bazibo.nl/en/terms/">
   <link rel="stylesheet" href="../../css/legal.css">
+  <!-- shows the data-web-only parts on the website, never in the app (js/store-links.js) -->
+  <script type="module" src="../../js/store-links.js"></script>
 </head>
 <body>
 <main>
@@ -28,6 +30,7 @@
   <ul>
     <li>One in-app purchase, "Unlock everything", opens everything in every game. In the Netherlands it costs €1; in other countries Google Play or the App Store sets the price.</li>
     <li>You pay once. The purchase works on every device signed in with the same Google or Apple account, also after reinstalling ("Restore purchase").</li>
+    <li data-web-only hidden>On the website (bazibo.nl) you can also unlock the full version with a €1 code, sold through Buy Me a Coffee. The code works in the browser you enter it in, on at most 10 devices. Refunds for a code: email hallo@bazibo.nl.</li>
     <li>Buying is meant for parents, so a question for adults comes first.</li>
   </ul>
 

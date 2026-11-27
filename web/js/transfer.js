@@ -1,8 +1,9 @@
 // "Voortgang overzetten": the progress of one device, as QR codes, read by another device.
 // No server and no internet: the codes go from one screen to the other camera (or as text).
 //
-// What travels: the games' sections and the settings of the save document (storage.js). Never the
-// purchase: the full version is always restored from the store on the other device.
+// What travels: the games' sections and the settings of the save document (storage.js), and the
+// website's unlock code (unlock-code.js: a signed code, checked again on the other device, which
+// counts as one more device). Never the store purchase: that is restored from the store there.
 //
 // The code (all text in the QR "alphanumeric" alphabet, so the QR codes stay small):
 //   blob  = [format version 1][flags: bit 0 = deflated][CRC-32 of the JSON, 4 bytes][body]
@@ -12,6 +13,7 @@
 // (size, format, checksum, the shape of every value) before it can touch the save.
 import { mergeSaves, mergeDrawings, VERSION, DRAWINGS_KEEP } from './storage.js';
 import { isDrawingText } from '../games/tekenen/drawing.js';
+import { parseCode } from './unlock-code.js';
 
 export const FORMAT = 1;
 // Characters per QR code. A multiple of 3 (a base45 group), so no part ends inside one. With the
@@ -158,6 +160,7 @@ export function payloadOf(save, { withArt = true, withDrawings = true, drawingLi
   }
   const s = isObj(save?.settings) ? save.settings : {};
   const out = { v: VERSION, games, settings: { muted: !!s.muted, lang: typeof s.lang === 'string' ? s.lang : null } };
+  if (typeof save?.webUnlock?.code === 'string') out.unlockCode = save.webUnlock.code;
   if (!withArt) out.noArt = true;
   if (!withDrawings) out.noDrawings = true;
   return out;
@@ -472,7 +475,19 @@ export function sanitizePayload(doc) {
   }
   const s = isObj(doc.settings) ? doc.settings : {};
   const lang = s.lang === 'nl' || s.lang === 'en' ? s.lang : null;
-  return { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true, noDrawings: doc.noDrawings === true };
+  const out = { games, settings: { muted: s.muted === true, lang }, noArt: doc.noArt === true, noDrawings: doc.noDrawings === true };
+  // the website's code: only its exact shape (prefix, lengths, version, product, base64url); the
+  // signature is checked at the next start, so a forged one never opens anything
+  const code = typeof doc.unlockCode === 'string' && doc.unlockCode.length <= 200 ? parseCode(doc.unlockCode) : null;
+  if (code?.ok && code.code === doc.unlockCode) out.unlockCode = code.code;
+  return out;
+}
+
+/** The code that came in, kept as one that still has to be counted on this device; never over a
+ *  code this device already has. */
+function withCode(out, stored, payload) {
+  if (typeof payload.unlockCode === 'string' && !(typeof stored?.webUnlock?.code === 'string')) out.webUnlock = { code: payload.unlockCode, activated: false, retried: false };
+  return out;
 }
 
 // ---------- what the other device does with it ----------
@@ -515,7 +530,7 @@ export function mergeTransfer(stored, payload) {
     const mine = out.games[id];
     for (const [k, v] of Object.entries(g)) if (!SPECIAL.has(k) && !(k in mine)) mine[k] = clone(v);
   }
-  return out;
+  return withCode(out, stored, payload);
 }
 
 /** How many drawings that came in would not fit this device's album when merged (mergeDrawings). */
@@ -542,5 +557,5 @@ export function replaceTransfer(stored, payload) {
     }
   }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };
-  return out;
+  return withCode(out, stored, payload);
 }

@@ -26,7 +26,7 @@ test('the app is recognised: the Capacitor bridge or the app\'s own address', ()
 
 test('the store links are shown on the website and stay hidden in the app', () => {
   const els = [{ hidden: true }, { hidden: true }];
-  const doc = { querySelectorAll: (sel) => (sel === '[data-store-links]' ? els : []) };
+  const doc = { querySelectorAll: (sel) => (sel === '[data-store-links], [data-web-only]' ? els : []) };
   assert.equal(showStoreLinks(doc, { location: { protocol: 'https:', hostname: 'localhost' } }), false);
   assert.ok(els.every((e) => e.hidden));
   assert.equal(showStoreLinks(doc, { location: { protocol: 'https:', hostname: 'bazibo.nl' } }), true);
