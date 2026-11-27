@@ -23,7 +23,7 @@ cache on the dev machine, else Playwright's own browser) and fails on page error
 request outside the local server. It also checks that the web offer shows only OK to the child, that the end
 of the free levels leads to the offer, walks through the parental gate in both languages, switches
 the language in settings, checks that a returning player keeps their progress, and opens the
-privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `kermis`, `winkel`, `papegaai` (with Chromium's fake microphone), `home` (the home grid at 1920x1080, 1366x768, 1024x768, 820x1180, 390x844 and 844x390: balanced rows, no tile alone in a last row, every section equally wide, `shots/home-grid-*`),
+privacy and terms pages. A name after `smoke.py` runs only that part: `dammen`, `baghchal`, `schaak`, `ganzen`, `ludo`, `pachisi`, `doolhof`, `verstop`, `treintje`, `keuken`, `kermis`, `winkel`, `papegaai` (with Chromium's fake microphone), `home` (the home grid at 1920x1080, 1366x768, 1024x768, 820x1180, 390x844, 844x390, 360x640 and 320x568: balanced rows, no tile alone in a last row, every section equally wide, `shots/home-grid-*`),
 `offers` (every game's free part ended and its offer closed, and for Bubbels every way out of the
 offer in a stand-in app, from "Later" to a purchase; the player always lands on the game's list
 with the save kept), `bubbels` (that Bubbels part alone, about 20 s) or `unlock` (the website's

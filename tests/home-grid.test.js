@@ -55,8 +55,13 @@ test('every section as wide as the widest, tiles within the minimum and the maxi
   assert.equal(desk.tile, 140);
   assert.equal(desk.groupsWidth, 7 * 140 + 6 * 12 + 24);
   const phone = homeLayout(counts, { width: 358, tileMin: 96, tileMax: Infinity, gap: 10, pad: 10 });
-  assert.deepEqual(phone.sections.map((s) => s.cols), [3, 3, 3, 3, 2]);
+  assert.deepEqual(phone.sections.map((s) => s.cols), [3, 3, 3, 3, 3]); // Actie's 2 stay left in a row of 3, as before
   assert.deepEqual(phone.sections[2].shortStarts, [3, 5]); // Bordspellen: 3, 2, 2
   assert.equal(phone.tile, 106);
   assert.ok(phone.groupsWidth <= 358);
+  // 320 px: 2 columns; an odd count ends in one centred tile (3 columns would be under the minimum)
+  const small = homeLayout(counts, { width: 288, tileMin: 96, tileMax: Infinity, gap: 10, pad: 10 });
+  assert.deepEqual(small.sections.map((s) => s.cols), [2, 2, 2, 2, 2]);
+  assert.deepEqual(small.sections[2].shortStarts, [6]);
+  assert.ok(small.tile >= 96);
 });

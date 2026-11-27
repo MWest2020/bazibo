@@ -31,12 +31,14 @@ export function shortRowStarts(n, cols) {
 /** The whole home: `counts` tiles per section, `width` px for the sections (their padding
  *  included), `tileMin`/`tileMax` px (tileMax Infinity: the tiles fill the row, as on phones),
  *  `gap` between tiles and `pad` inside a section. Every section gets the same width: as wide as
- *  the section with the most columns. */
+ *  the section with the most columns. At 2 columns (320 px) an odd count still ends in one tile,
+ *  centred: 3 columns would be under tileMin. */
 export function homeLayout(counts, { width, tileMin, tileMax, gap, pad }) {
   const inner = width - 2 * pad;
   const most = maxColumns(inner, tileMin, gap);
+  const fill = !Number.isFinite(tileMax); // phones: a short section keeps the full row's columns, left-aligned as before
   const sections = counts.map((n) => {
-    const cols = columnsFor(n, most);
+    const cols = fill && n < most ? most : columnsFor(n, most);
     return { cols, shortStarts: shortRowStarts(n, cols) };
   });
   const widest = Math.max(1, ...sections.map((s) => s.cols));

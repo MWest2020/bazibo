@@ -11731,11 +11731,12 @@ HOME_GRID_JS = """() => {
 
 def home_grid(browser, base, problems):
     """Balanced rows on the home screen (Mark, 27 Nov 2026: "Should be 2*4 tiles", Leren was 7 and
-    one alone): at 1920x1080, 1366x768, 1024x768, 820x1180, 390x844 and 844x390 no section ends
-    with one tile alone in a row of its own, every section is as wide as the others, the tiles are
+    one alone): at 1920x1080, 1366x768, 1024x768, 820x1180, 390x844, 844x390, 360x640 and
+    320x568 no section ends with one tile alone in a row of its own (at 2 columns an odd count
+    ends in one centred tile), every section is as wide as the others, the tiles are
     --tile-min or wider and 48 px or more, inside their section, and nothing scrolls sideways;
     also after a resize from wide to narrow. Screenshots `shots/home-grid-<w>x<h>-<n>.png`, one per screenful."""
-    sizes = ((1920, 1080), (1366, 768), (1024, 768), (820, 1180), (390, 844), (844, 390))
+    sizes = ((1920, 1080), (1366, 768), (1024, 768), (820, 1180), (390, 844), (844, 390), (360, 640), (320, 568))
     for w, h in sizes:
         mobile = w < 1000
         ctx = browser.new_context(locale="nl-NL", viewport={"width": w, "height": h}, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
@@ -11759,7 +11760,8 @@ def home_grid(browser, base, problems):
             if max(widths) - min(widths) > 1:
                 problems.append(f"{label}: the sections are not equally wide: {[round(x) for x in widths]}")
             for g in got["groups"]:
-                if len(g["rows"]) > 1 and g["rows"][-1] == 1:
+                # at 2 columns (320 px) an odd count ends in one centred tile: 3 would be under --tile-min
+                if len(g["rows"]) > 1 and g["rows"][-1] == 1 and max(g["rows"]) > 2:
                     problems.append(f"{label}: {g['id']} ends with one tile alone: rows {g['rows']}")
                 if max(g["rows"]) - min(g["rows"]) > 1:
                     problems.append(f"{label}: {g['id']} rows are not balanced: {g['rows']}")

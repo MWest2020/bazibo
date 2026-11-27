@@ -318,7 +318,8 @@ function layoutTiles() {
   if (!screen.clientWidth) return; // hidden: the observer calls again when it shows
   const px = (el, prop) => parseFloat(getComputedStyle(el).getPropertyValue(prop)) || 0;
   const inner = box.parentElement;
-  const room = screen.clientWidth - px(screen, 'padding-left') - px(screen, 'padding-right') - px(inner, 'padding-left') - px(inner, 'padding-right');
+  // the real width, not clientWidth's rounded one: a phone 392.73 px wide must not get half a pixel too much
+  const room = Math.floor(screen.getBoundingClientRect().width - (screen.offsetWidth - screen.clientWidth)) - px(screen, 'padding-left') - px(screen, 'padding-right') - px(inner, 'padding-left') - px(inner, 'padding-right');
   const max = px(box, 'max-width') || Infinity;
   const tileMax = parseFloat(getComputedStyle(box).getPropertyValue('--tile-max')); // "none" on phones: the tiles fill the row
   const groups = [...box.querySelectorAll('.tile-group .tiles')];
