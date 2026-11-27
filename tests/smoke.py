@@ -11465,10 +11465,13 @@ def web_unlock(browser, base, problems):
         problems.append(f"unlock {label}: expected a card with {want!r}, got {text()!r}")
         return False
 
-    def enter(code, label):
+    def enter(code, label, key=False):
         page.wait_for_selector(".code-input")
         page.fill(".code-input", code)
-        page.click("#ov-buttons button >> nth=0")
+        if key:
+            page.press(".code-input", "Enter")  # Enter in the field submits too
+        else:
+            page.click("#ov-buttons button >> nth=0")
         page.wait_for_timeout(150)
 
     def again():
@@ -11510,14 +11513,17 @@ def web_unlock(browser, base, problems):
         problems.append("unlock: cancelling the gate left a card open")
     page.click("#btn-full")
     page.locator("#ov-parents button").click()
-    solve_gate(page, "nl")
+    page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), { opener: 1 }); }")
+    solve_gate(page, "nl")  # with Enter: it must not also press the next card's first button
     page.wait_for_timeout(150)
+    if page.evaluate("window.__opened"):
+        problems.append(f"unlock: the gate's Enter also opened {page.evaluate('window.__opened')}")
     labels = page.locator("#ov-buttons button").all_inner_texts()
     if labels != ["Naar betalen (€1)", "Ik heb al een code", "Later"]:
         problems.append(f"unlock: after the gate the card shows {labels}")
     # how it works, in plain words, before anyone leaves for the payment page
     steps = page.locator("#ov-steps li").all_inner_texts()
-    if page.inner_text("#ov-text") != "Zo werkt het:" or len(steps) != 4 or "Stripe" not in steps[0] or "Betaal €1 via Stripe (iDEAL of kaart)" not in steps[1] \
+    if page.inner_text("#ov-text") != "Zo werkt het:" or len(steps) != 4 or "Stripe" not in steps[0] or "Betaal €1 via Stripe (bijvoorbeeld iDEAL of kaart)" not in steps[1] \
             or "QR-code" not in steps[2] or "Ik heb al een code" not in steps[3] or "tot 10" not in steps[3]:
         problems.append(f"unlock: the how-it-works steps are {page.inner_text('#ov-text')!r} {steps}")
     if page.evaluate("(() => { const c = document.querySelector('#overlay .card'); return c.scrollWidth > c.clientWidth + 1; })()"):
@@ -11546,8 +11552,8 @@ def web_unlock(browser, base, problems):
 
     # refused before any call: garbled, forged, revoked
     for code, want, label in (("BZB1.dit-is-geen-code", "Deze code klopt niet", "garbled"), (codes["forged"], "Deze code klopt niet", "forged"),
-                              (codes["a"][:-3] + "AAA", "Deze code klopt niet", "changed"), (codes["revoked"], "Deze code is ingetrokken", "revoked")):
-        enter(code, label)
+                              (codes["a"][:-10] + ("B" if codes["a"][-10] == "A" else "A") + codes["a"][-9:], "Deze code klopt niet", "changed"), (codes["revoked"], "Deze code is ingetrokken", "revoked")):
+        enter(code, label, key=label == "forged")
         wait_card(want, label)
         again()
     if calls:

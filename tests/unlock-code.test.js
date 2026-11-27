@@ -74,6 +74,9 @@ const verify = (code, opts = {}) => verifyCode(code, { publicKey: PUB, ...opts }
 const VALID = await makeCode();
 const ID_HEX = '0102030405060708090a';
 
+/** The code with one character changed (never the same code: a signature can end in 'AA'). */
+const flipAt = (code, i) => code.slice(0, i) + (code[i] === 'A' ? 'B' : 'A') + code.slice(i + 1);
+
 test('base64url: round trip, one spelling only, no padding', () => {
   for (const n of [16, 32, 64]) {
     const bytes = Uint8Array.from({ length: n }, (_, i) => (i * 37 + 11) & 0xff);
@@ -447,7 +450,7 @@ test('entry: a valid code opens everything through createUnlock, like a purchase
 test('entry: wrong, revoked, over the limit or too old a browser never opens and keeps nothing', async () => {
   for (const [code, opts, reason] of [
     ['BZB1.garbled', {}, 'format'],
-    [VALID.slice(0, -2) + 'AA', {}, 'signature'],
+    [flipAt(VALID, VALID.length - 10), {}, 'signature'],
     [VALID, { revoked: [ID_HEX] }, 'revoked'],
     [VALID, { answer: 'limit' }, 'limit'],
     [VALID, { answer: 'revoked' }, 'revoked'],

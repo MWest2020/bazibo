@@ -31,7 +31,7 @@ so in the app none of it exists. `tests/unlock-code.test.js` and the smoke part 
 **The flow.** The child's offer card on the website still says only OK; under it a small
 "Voor ouders: volledige versie (€1)" opens the parental gate, then a card that first says how it
 works in four numbered steps ("Zo werkt het: 1) Tik op 'Naar betalen': je gaat naar Stripe.
-2) Betaal €1 via Stripe (iDEAL of kaart) en vul je e-mailadres in. 3) Binnen een paar minuten krijg
+2) Betaal €1 via Stripe (bijvoorbeeld iDEAL of kaart) en vul je e-mailadres in. 3) Binnen een paar minuten krijg
 je een mail met je code, een link en een QR-code. 4) Tik op de link, of kies hier 'Ik heb al een
 code'. Je kunt de code op al je apparaten invullen (tot 10)."; Mark: "als de flow maar duidelijk
 is"), then "Naar betalen (€1)" (`PAY_URL` in `unlock-code.js`, opened in a new tab with `opener`
@@ -48,8 +48,8 @@ never logged.
 
 **Paying: a Stripe Payment Link** (Mark, 27 Nov 2026). The first build linked to a Buy Me a Coffee
 Extra, but BMC sent the issuer no webhook for real purchases, and BMC's coffee price can only be 3,
-5 or 10, so a €1 donation was no way out either. `PAY_URL` is the live Stripe Payment Link (€1,
-iDEAL or card); the issuer's `POST /webhooks/stripe` mints and mails the code for every paid
+5 or 10, so a €1 donation was no way out either. `PAY_URL` is the live Stripe Payment Link (€1; the
+payment methods are whatever Mark's Stripe Dashboard has switched on, iDEAL and cards at least); the issuer's `POST /webhooks/stripe` mints and mails the code for every paid
 session of that link. `PAY_URL` is `https://buy.stripe.com/7sY9AT9N0cZ26zn5Rv48000` (live since 27
 Nov 2026, after a test-mode run end to end). An empty `PAY_URL` means "binnenkort": the parents'
 card then says "Betalen in de browser kan binnenkort" and offers only "Ik heb al een code" (smoke
