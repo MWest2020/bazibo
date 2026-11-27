@@ -94,7 +94,7 @@ const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
  */
 export function extractCode(input) {
   if (typeof input !== 'string' || input.length > MAX_INPUT) return null;
-  const text = input.replace(/\s+/g, '');
+  const text = input.replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g, ''); // also the zero-width spaces some mail clients add
   if (text.startsWith(CODE_PREFIX)) return text;
   if (/^https?:\/\//i.test(text)) {
     try {
@@ -303,7 +303,9 @@ export function createCodeBilling({ load, keep, verify, activate: act, online = 
       onRefused(a);
       return;
     }
-    keep({ code, activated: a === 'ok', retried: true });
+    // a 400 "invalid" here counts as our server's problem: a child is never closed out by it later
+    // (at entry it refuses, with a "try again later"); a parent's own entry meanwhile may have counted it
+    keep({ code, activated: a === 'ok' || load()?.activated === true, retried: true });
   }
 
   return {
@@ -342,6 +344,9 @@ export function createCodeBilling({ load, keep, verify, activate: act, online = 
       if (!r.ok) return { ok: false, reason: r.reason };
       const had = load();
       if (had?.code === r.code && had.activated === true) return { ok: true, owned: true, activated: true }; // counted already
+      // a device that already has its own code (checked at start) keeps it: someone else's code from
+      // a link never replaces it, nor sends anything
+      if (had?.code && had.code !== r.code) return { ok: true, owned: true, already: true };
       const a = await act(r.code);
       if (a === 'limit' || a === 'revoked' || a === 'invalid') return { ok: false, reason: a };
       keep({ code: r.code, activated: a === 'ok', retried: false });

@@ -559,6 +559,10 @@ const CODE_PROBLEM = { revoked: 'code.revoked', limit: 'code.limit', unsupported
 async function redeemCode(text, { again = null, after = null } = {}) {
   showOverlay({ title: t('busy.title'), text: t('code.checking'), buttons: [] });
   const r = await unlock.redeem(String(text ?? '').slice(0, MAX_INPUT));
+  if (r.already) {
+    showOverlay({ art: LOCK_ART, title: t('offer.title'), text: t('offer.owned'), buttons: [[t('common.ok'), 'big primary', after || hideOverlay]] });
+    return r;
+  }
   if (r.ok) {
     showUnlocked(t('unlocked.code'), after);
     return r;

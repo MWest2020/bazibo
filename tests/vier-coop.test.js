@@ -451,7 +451,7 @@ test('no STUN, no TURN, no other ICE server anywhere in the app; one RTCPeerConn
   // the CSP stays as strict as it was: nothing was added for WebRTC (the one outside address is the
   // website's unlock activation, unlock-code.js, which the app's own policy takes away again)
   const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
-  assert.match(html, /content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https:\/\/api\.westerweel\.work; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"/);
+  assert.match(html, /content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https:\/\/api\.westerweel\.work\/bazibo\/activate; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"/);
 });
 
 test('proto: "again" right after the winning move waits for the falling token, and the next game\'s first move is kept', () => {

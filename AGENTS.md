@@ -91,8 +91,10 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
   requests outside the game's own origin; the CSP in `web/index.html` stays strict. One documented
   exception, web only: when a parent enters a code, one POST to api.westerweel.work/bazibo/activate
   with the code and a random device id (Mark, 27 Nov 2026); if that could not reach the server, it
-  is tried once more on a later start. Never in the app (`web/js/app-csp.js` adds `connect-src
-  'self'` there), never at any other moment. The only
+  is tried once more on a later start, and a code that came in through Voortgang overzetten is
+  activated once at the next start of the receiving device (one more device). Never in the app
+  (`web/js/app-csp.js` adds `connect-src 'self'` there, and the app keeps no code from a transfer),
+  never at any other moment. The CSP names that one address, not the whole host. The only
   native additions are Capacitor, `@capacitor/preferences`, `@capacitor/app` (back button) and
   `cordova-plugin-purchase` (all MIT), with the store's own billing library. Never add a receipt server, RevenueCat or anything like it.
 - No CDN and no build step. Any library is vendored with its licence and listed in `CREDITS.md`.

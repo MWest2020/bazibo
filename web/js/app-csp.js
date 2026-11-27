@@ -1,5 +1,5 @@
 // The app's own Content-Security-Policy. index.html allows one address outside the origin for the
-// website (connect-src https://api.westerweel.work: the one activation call of a web unlock code,
+// website (connect-src https://api.westerweel.work/bazibo/activate: the one activation call of a web unlock code,
 // unlock-code.js). The Android and iOS apps ship the same index.html, so here, as the first script
 // of the page and before any other runs, the app adds a second policy with connect-src 'self'.
 // Two policies are both enforced, so in the app nothing outside the origin can be fetched at all.

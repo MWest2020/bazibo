@@ -102,6 +102,7 @@ test('a valid code passes, with its id and day; the same code in a link or wrapp
   assert.deepEqual(r, { ok: true, code: VALID, id: ID_HEX, day: 20419 });
   assert.equal((await verify(`  ${VALID}\n`)).ok, true);
   assert.equal((await verify(`${VALID.slice(0, 50)}\n${VALID.slice(50)}`)).ok, true);
+  assert.equal((await verify(`${VALID.slice(0, 50)}\u200B${VALID.slice(50)}\uFEFF`)).ok, true); // zero-width spaces from a mail
   assert.equal((await verify(`https://bazibo.nl/?unlock=${VALID}`)).ok, true);
   assert.equal((await verify(`https://bazibo.nl/#unlock=${VALID}`)).ok, true);
   assert.equal(looksLikeCode(`https://bazibo.nl/#unlock=${VALID}`), true);
@@ -331,7 +332,7 @@ test('the app\'s own CSP: app-csp.js adds connect-src \'self\' exactly where inA
   const appCsp = head.indexOf('<script src="js/app-csp.js"></script>');
   assert.ok(csp > 0 && appCsp > csp, 'app-csp.js comes right after the CSP');
   assert.equal(head.slice(0, appCsp).includes('<script'), false, 'no script runs before app-csp.js');
-  assert.match(head, /connect-src 'self' https:\/\/api\.westerweel\.work;/);
+  assert.match(head, /connect-src 'self' https:\/\/api\.westerweel\.work\/bazibo\/activate;/); // the one address, not the whole host
 });
 
 // ---------- activation ----------
@@ -422,6 +423,11 @@ test('entry: a valid code opens everything through createUnlock, like a purchase
   // the same code again: counted already, no second call
   await h.unlock.redeem(VALID);
   assert.equal(h.acts.length, 1);
+  // someone else's valid code (an ungated link) never replaces the device's own, nor calls
+  const OTHER = await makeCode({ id: [7, 7, 7, 7, 7, 7, 7, 7, 7, 7] });
+  assert.deepEqual(await h.unlock.redeem(OTHER), { ok: true, owned: true, already: true });
+  assert.equal(h.entry().code, VALID);
+  assert.equal(h.acts.length, 1);
   assert.deepEqual(await harness().unlock.buy(), { ok: false, reason: 'external' }); // bought in a new tab
 });
 
@@ -502,6 +508,18 @@ test('start: one quiet retry of an activation that could not reach the server', 
   await ok.unlock.start();
   await ok.billing.retrying;
   assert.equal(ok.acts.length, 1, 'no more calls after that');
+
+  // a parent's own entry counted it while the retry was out: the retry keeps activated
+  let raceEntry = { code: VALID, activated: false, retried: false };
+  const raceBilling = createCodeBilling({
+    load: () => raceEntry,
+    keep: (e) => (raceEntry = e),
+    verify: (code) => verify(code),
+    activate: async () => ((raceEntry = { code: VALID, activated: true, retried: false }), 'offline'),
+  });
+  await raceBilling.start();
+  await raceBilling.retrying;
+  assert.equal(raceEntry.activated, true);
 
   // a late 400 "invalid" never closes a child out: like away, given up
   const inv = harness({ stored: { code: VALID, activated: false, retried: false }, answer: 'invalid' });
@@ -588,6 +606,9 @@ test('transfer round trip: the code travels, is checked for shape, counts as a n
   const own = { ...storage.emptySave(), webUnlock: { code: OTHER, activated: true, retried: false } };
   assert.equal(mergeTransfer(own, payload).webUnlock.code, OTHER);
   assert.equal(replaceTransfer(own, payload).webUnlock.code, OTHER);
+  // the app neither keeps nor sends on a web code (transfer-ui.js passes withCode: false there)
+  assert.equal('webUnlock' in mergeTransfer(receiver, payload, { withCode: false }), false);
+  assert.equal('webUnlock' in replaceTransfer(receiver, payload, { withCode: false }), false);
   // without a code nothing is added
   const plain = await decodeText(await encodeSave(storage.emptySave()));
   assert.equal('unlockCode' in plain, false);

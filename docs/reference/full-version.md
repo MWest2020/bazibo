@@ -84,9 +84,11 @@ in it, never transferred, never derived from the device). The server counts devi
 A code opened with `activated: false` is activated once more, quietly and in the background, on the
 first later start while `navigator.onLine`; whatever that answers, it is not tried again
 (`retried: true`), unless the answer is 409 or 403 "revoked", which closes it again with the
-message. After a successful activation there are no more calls: every start checks the kept code
+message (a 400 there counts as our server's problem: a child is never closed out by it later). A
+device that already keeps a valid code keeps it: a different code from a link (no gate) never
+replaces it and sends nothing ("Je hebt de volledige versie al"). After a successful activation there are no more calls: every start checks the kept code
 offline only. The CSP of `web/index.html` allows exactly `connect-src 'self'
-https://api.westerweel.work`; in the apps `web/js/app-csp.js`, the first script of the page, adds a
+https://api.westerweel.work/bazibo/activate` (that one address, not the whole host); in the apps `web/js/app-csp.js`, the first script of the page, adds a
 second policy `connect-src 'self'` (both policies are enforced), so the app can never reach it.
 
 **Storage.** The code itself is kept in the save (`webUnlock: {code, activated, retried}`,
@@ -96,7 +98,13 @@ draw their menus. A tampered, forged or revoked kept code is cleared and opens n
 one says so). Voortgang overzetten carries the code (`unlockCode` in the payload, only the exact
 shape passes `sanitizePayload`; the activation state stays behind): on the other device it is kept
 as not yet activated, checked offline at the next start and activated there once, as one more
-device. A device that has its own code keeps it. The store purchase never travels.
+device. A device that has its own code keeps it. The app neither keeps nor sends on a code that
+reaches it in a transfer (`mergeTransfer`/`replaceTransfer` with `withCode: false`). The store
+purchase never travels.
+
+**Changing the key or the format** clears every kept code at the next start (a kept code that no
+longer verifies is treated as tampered). A key rotation therefore needs both keys in the verifier
+for a while, or a new mail to every buyer; never just swap `UNLOCK_PUBLIC_KEY`.
 
 **Revoking a code.** Add its id (the 10 random bytes of the payload as 20 lowercase hex characters,
 as the issuer reports it) to `REVOKED` in `web/js/revoked.js`, with the date and why in a comment;

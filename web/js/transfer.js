@@ -484,9 +484,10 @@ export function sanitizePayload(doc) {
 }
 
 /** The code that came in, kept as one that still has to be counted on this device; never over a
- *  code this device already has. */
-function withCode(out, stored, payload) {
-  if (typeof payload.unlockCode === 'string' && !(typeof stored?.webUnlock?.code === 'string')) out.webUnlock = { code: payload.unlockCode, activated: false, retried: false };
+ *  code this device already has, and never in the app (`withCode: false`: transfer-ui.js passes it
+ *  there, so the app neither keeps nor sends on a web code). */
+function withCode(out, stored, payload, keep = true) {
+  if (keep && typeof payload.unlockCode === 'string' && !(typeof stored?.webUnlock?.code === 'string')) out.webUnlock = { code: payload.unlockCode, activated: false, retried: false };
   return out;
 }
 
@@ -513,7 +514,7 @@ const SPECIAL = new Set(['stars', 'random', 'howSeen', 'art', 'drawings']);
  * pages merge per region (newer wins), how-to cards seen in either stay seen; a game option this
  * device already has stays, a missing one is taken. Settings and the purchase stay this device's.
  */
-export function mergeTransfer(stored, payload) {
+export function mergeTransfer(stored, payload, { withCode: keepCode = true } = {}) {
   const incoming = clone(payload.games || {});
   const randoms = {};
   for (const [id, g] of Object.entries(incoming)) {
@@ -530,7 +531,7 @@ export function mergeTransfer(stored, payload) {
     const mine = out.games[id];
     for (const [k, v] of Object.entries(g)) if (!SPECIAL.has(k) && !(k in mine)) mine[k] = clone(v);
   }
-  return withCode(out, stored, payload);
+  return withCode(out, stored, payload, keepCode);
 }
 
 /** How many drawings that came in would not fit this device's album when merged (mergeDrawings). */
@@ -545,7 +546,7 @@ export function droppedDrawings(stored, payload) {
  * Replace: the progress and settings that came in; this device keeps its purchase. A code made
  * "without colouring pages" (or "without drawings") leaves this device's own as they are.
  */
-export function replaceTransfer(stored, payload) {
+export function replaceTransfer(stored, payload, { withCode: keepCode = true } = {}) {
   const out = clone(stored);
   out.games = clone(payload.games || {});
   for (const [flag, key] of [['noArt', 'art'], ['noDrawings', 'drawings']]) {
@@ -557,5 +558,5 @@ export function replaceTransfer(stored, payload) {
     }
   }
   out.settings = { ...out.settings, ...clone(payload.settings || {}) };
-  return withCode(out, stored, payload);
+  return withCode(out, stored, payload, keepCode);
 }

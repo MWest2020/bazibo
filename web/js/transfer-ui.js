@@ -309,7 +309,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap,
       title: t('transfer.got'),
       text: `${summaryText(payload)} ${t('transfer.choose')}${capNote(payload)}`,
       buttons: [
-        [t('transfer.merge'), 'big primary', () => apply(mergeTransfer(store.snapshot(), payload))],
+        [t('transfer.merge'), 'big primary', () => apply(mergeTransfer(store.snapshot(), payload, { withCode: !!onCode }))],
         [t('transfer.replace'), 'big secondary', () => confirmReplace(payload)],
         [t('common.cancel'), 'big secondary', cancelReceive],
       ],
@@ -321,7 +321,7 @@ export function createTransfer({ t, show, showOverlay, hideOverlay, onShow, tap,
       title: t('transfer.sure'),
       text: [t('transfer.sureText'), payload.noArt ? t('transfer.sureKeepArt') : '', payload.noDrawings ? t('transfer.sureKeepDrawings') : ''].filter(Boolean).join(' '),
       buttons: [
-        [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload))],
+        [t('transfer.replace'), 'big primary', () => apply(replaceTransfer(store.snapshot(), payload, { withCode: !!onCode }))],
         [t('common.cancel'), 'big secondary', () => askWhatToDo(payload)],
       ],
     });
