@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-865049896a';
+const VERSION = 'bubbels-28563df57d';
 const ASSETS = [
   './',
   'index.html',
@@ -284,16 +284,54 @@ const ASSETS = [
   'roadmap/index.html',
 ];
 
+// Every file is fetched past the browser's HTTP cache (`cache: 'reload'`): otherwise a new worker
+// could fill its new cache with a stale copy that the HTTP cache still held from the old version.
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches
+      .open(VERSION)
+      .then((c) => c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting()),
+  );
 });
+
+// A page that answers within this long reloads itself at a calm moment (main.js); one that does not
+// (a build from before this worker) is reloaded by the worker, so it never keeps running old code.
+const ANSWER_MS = 1000;
+
+function tellOrReload(client) {
+  return new Promise((done) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => {
+      channel.port1.close();
+      Promise.resolve()
+        .then(() => client.navigate(client.url))
+        .catch(() => {})
+        .then(done);
+    }, ANSWER_MS);
+    channel.port1.onmessage = () => {
+      clearTimeout(timer);
+      channel.port1.close();
+      done();
+    };
+    try {
+      client.postMessage({ type: 'bazibo-updated', version: VERSION }, [channel.port2]);
+    } catch {
+      /* the timer reloads it */
+    }
+  });
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+    (async () => {
+      const old = (await caches.keys()).filter((k) => k !== VERSION);
+      await Promise.all(old.map((k) => caches.delete(k)));
+      await self.clients.claim();
+      if (!old.length) return; // the first install: the open page already runs this version
+      const pages = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(pages.map(tellOrReload));
+    })(),
   );
 });
 

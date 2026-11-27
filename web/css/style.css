@@ -508,6 +508,12 @@ html, body {
 .card h2 { margin: 6px 0 6px; font-size: 2.2rem; font-weight: var(--bz-weight-brand); color: var(--bz-brand); }
 .card p { margin: 0 0 20px; font-size: 1.15rem; font-weight: var(--bz-weight-text); color: var(--bz-ink-soft); line-height: 1.4; }
 .card p:empty { display: none; }
+/* numbered steps under a card's text (the website's "how it works" before Buy Me a Coffee) */
+.ov-steps { margin: -8px 0 20px; padding: 0 0 0 1.6em; text-align: left; font-size: 1.05rem; font-weight: var(--bz-weight-text); color: var(--bz-ink-soft); line-height: 1.4; }
+.ov-steps[hidden] { display: none; }
+/* Settings: the website's "I have a code" under "More about the full version" */
+#btn-code { margin-top: 12px; }
+.ov-steps li + li { margin-top: 6px; }
 .ov-buttons { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .ov-buttons .btn.big { min-width: 0; width: 100%; max-width: 300px; font-size: 1.5rem; min-height: 68px; }
 .ov-art { display: flex; justify-content: center; gap: 6px; min-height: 8px; }

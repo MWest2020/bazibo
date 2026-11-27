@@ -91,7 +91,7 @@ test('base64url: round trip, one spelling only, no padding', () => {
 
 test('the real public key is a raw 32-byte key; the BMC and activation addresses are fixed', () => {
   assert.equal(b64urlDecode(UNLOCK_PUBLIC_KEY, 32)?.length, 32);
-  assert.equal(BMC_URL, 'https://buymeacoffee.com/mark.westerweel/e/603413');
+  assert.equal(BMC_URL, 'https://buymeacoffee.com/mark.westerweel'); // a plain donation, not an Extra (27 Nov 2026)
   assert.equal(ACTIVATE_URL, 'https://api.westerweel.work/bazibo/activate');
   assert.equal(CODE_CHARS, 114);
   assert.equal(VALID.length, CODE_CHARS);
@@ -267,6 +267,14 @@ test('native hidden: main.js builds the code adapter only on the website, and th
   const html = readFileSync(join(WEB, 'index.html'), 'utf8');
   assert.doesNotMatch(html, /buymeacoffee|ik heb een code|BZB1/i);
   assert.match(html, /<div id="ov-parents" class="ov-parents" hidden><\/div>/);
+  // the parents' "how it works" before Buy Me a Coffee: four numbered steps
+  assert.match(main, /steps: \[t\('code\.step1'\), t\('code\.step2'\), t\('code\.step3'\), t\('code\.step4'\)\]/);
+  // Settings has a lasting way in for a parent with a code, built by JS for the code adapter only
+  assert.match(main, /if \(unlock\.kind === 'code'\) codeButton\(\)\.hidden = unlock\.owned;/);
+  assert.match(main, /askParent\(\(\) => askCode\(\)\)/);
+  assert.doesNotMatch(html, /btn-code|settings\.haveCode/);
+  // the mail's link in an open tab: listened to from the start, redeemed once ready, web only
+  assert.match(main, /if \(WEB_CODE\) \{\s*window\.addEventListener\('hashchange'/);
 });
 
 test('only unlock-code.js names Buy Me a Coffee and the activation endpoint (and the CSP its host)', () => {
@@ -371,7 +379,7 @@ test('activation: one POST with the code and the device id; 200, 409, 403 revoke
   const t0 = Date.now();
   assert.equal(await activate(VALID, 'x', { fetchFn: fakeFetch('hang'), timeoutMs: 60 }), 'offline');
   assert.ok(Date.now() - t0 < 1000);
-  assert.equal(await activate(VALID, 'x', { fetchFn: undefined }), 'offline');
+  assert.equal(await activate(VALID, 'x', { fetchFn: null }), 'offline'); // no fetch at all (never the real network in a test)
 });
 
 test('the device id is random, 128 bits, made once and kept; never derived from the device', () => {

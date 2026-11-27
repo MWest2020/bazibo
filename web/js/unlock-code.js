@@ -1,5 +1,5 @@
-// The full version on the website: a signed code bought through Buy Me a Coffee (Mark, 27 Nov 2026:
-// "dat via een code doen en buy me a coffee? … ook 1 euro"). WEB ONLY: inside the Android or iOS
+// The full version on the website: a signed code for a €1 donation on Buy Me a Coffee (Mark, 27 Nov
+// 2026: "dat via een code doen en buy me a coffee? … ook 1 euro"; "1 is goed als de flow maar duidelijk is"). WEB ONLY: inside the Android or iOS
 // app none of this is shown or run (Google Play's payments policy: no external payment for digital
 // goods in the app). main.js only builds the code adapter when `webCodeAllowed(window)` is true.
 //
@@ -33,8 +33,9 @@ const CONTEXT = 'bazibo-unlock-v1';
 
 /** The issuer's public key (raw 32 bytes, base64url). The private key never comes near this repo. */
 export const UNLOCK_PUBLIC_KEY = 'Dpnm6nFTwx1A-kFUf7IMoz4SVUF-O_biI-edjvzpP_4';
-/** Where a parent buys the code (a Buy Me a Coffee "Extra"); opened in a new tab, never fetched. */
-export const BMC_URL = 'https://buymeacoffee.com/mark.westerweel/e/603413';
+/** Where a parent gets the code: a plain €1 donation on Buy Me a Coffee (Mark, 27 Nov 2026: BMC
+ *  sends the issuer webhooks for donations only, not for an "Extra"); opened in a new tab, never fetched. */
+export const BMC_URL = 'https://buymeacoffee.com/mark.westerweel';
 /** The one request outside the origin, web only: counts devices per code. */
 export const ACTIVATE_URL = 'https://api.westerweel.work/bazibo/activate';
 export const ACTIVATE_TIMEOUT_MS = 5000;

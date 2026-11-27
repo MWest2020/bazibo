@@ -109,8 +109,9 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 - One purchase opens every game; each game declares its free part in its `meta.js` (Bubbels:
   levels 1-10) and offers the full version at the end of it through the shell's `offerUnlock`.
   Never fake a purchase. The full version is owned through a store purchase in the app
-  (`unlock_all`, `web/js/billing-native.js`); on the web also a signed code bought via Buy Me a
-  Coffee (Mark, 27 Nov 2026; `web/js/unlock-code.js`, checked offline with WebCrypto Ed25519,
+  (`unlock_all`, `web/js/billing-native.js`); on the web also a signed code for a €1 donation on Buy
+  Me a Coffee (Mark, 27 Nov 2026; a plain donation, not a BMC Extra, since BMC sends the issuer
+  webhooks only for donations; `web/js/unlock-code.js`, checked offline with WebCrypto Ed25519,
   activated once, revocable in `web/js/revoked.js`); never a code or external payment link inside
   the app. Both go through `createUnlock` (`web/js/unlock.js`), one `owned` flag; main.js builds
   the code adapter only when `webCodeAllowed(window)`, and all of its UI hangs on
@@ -119,8 +120,10 @@ phones, 2 at 320 px, the sections side by side on wider screens; a section wider
 - Buying, restoring and any link that leaves the app go through the parental gate
   (`askParent` in `main.js`, logic in `web/js/parental-gate.js`). Store rules for kids' apps
   require it. On the website that includes the Buy Me a Coffee link and entering a code (the
-  child's offer card keeps only OK; the parents' way in is the small button under it); only the
-  mail's `#unlock=` link needs no gate. The privacy page shows the email address as plain text, not as a link.
+  child's offer card keeps only OK; the parents' way in is the small button under it, and
+  "Voor ouders: ik heb een code" in Settings, built by `main.js` for the code adapter only); only the
+  mail's `#unlock=` link needs no gate. The card before Buy Me a Coffee says how it works in four
+  numbered steps (`code.step1`-`4`, Mark: "als de flow maar duidelijk is"). The privacy page shows the email address as plain text, not as a link.
 - The store links on bazibo.nl ("Download in Google Play", "App Store: binnenkort"; on the home
   screen under the tiles and on Plannen / Roadmap) are for parents on the website only: they ship
   `hidden` inside a `data-store-links` block and `web/js/store-links.js` shows them only when it is
@@ -243,6 +246,10 @@ different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with
 `tests/random.test.js` green (200 seeds per tier). After changing anything under `web/`, run
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
+A new version reaches returning visitors without a second reload: the worker caches past the HTTP
+cache, takes over and posts `bazibo-updated`; `main.js` reloads at a calm moment only (home screen
+with no card, or a hidden tab; never while a code is checked), and a page too old to answer is
+reloaded by the worker (`tests/sw.test.js`, smoke `sw_update`). Keep that handshake when you touch `sw.js`.
 Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pure, seeded in the
 tests: hard and medium never miss a win or a block, easy loses often to a simple strategy, every
 level plays only legal moves). Never call it "Connect Four" and never use its blue frame with red

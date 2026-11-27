@@ -119,6 +119,15 @@ const TESTING = new URLSearchParams(location.search).has('test');
 const unlockKey = () => (TESTING && typeof window.__baziboUnlockTestKey === 'string' ? window.__baziboUnlockTestKey : UNLOCK_PUBLIC_KEY);
 const unlockRevoked = () => (TESTING && Array.isArray(window.__baziboUnlockTestRevoked) ? [...REVOKED, ...window.__baziboUnlockTestRevoked] : REVOKED);
 const NO_CACHE = { get: () => false, set() {} }; // the website trusts only a code that checks out, never a cached flag
+// The link opened in a tab that already shows Bazibo only changes the #fragment (no reload). Listened
+// to from the first moment, so a link that arrives while the games are still loading is not lost:
+// the code is taken out of the address at once and redeemed once the home screen is up.
+if (WEB_CODE) {
+  window.addEventListener('hashchange', () => {
+    const code = takeUnlockParam(window);
+    if (code !== null) whenReady(() => unlock?.kind === 'code' && redeemCode(code));
+  });
+}
 
 // ---------- screens ----------
 
@@ -129,6 +138,7 @@ function show(name) {
   hideOverlay();
   if (name === 'settings') renderSettings();
   for (const fn of showHooks) fn(name);
+  reloadIfUpdated();
 }
 
 // Until boot() has loaded the save data, settings taps would change a default save (review of PR #3).
@@ -206,8 +216,30 @@ document.querySelectorAll('[data-sound]').forEach((b) =>
 function renderSettings() {
   if (!unlock) return; // still loading the save data
   for (const b of document.querySelectorAll('[data-sound]')) b.setAttribute('aria-pressed', String((b.dataset.sound === 'off') === settings.muted));
-  $('#full-status').textContent = unlock.owned ? t('settings.fullOwned') : unlock.available ? t('settings.fullApp') : t('settings.fullWeb'); // the website's code is "available" too
+  $('#full-status').textContent = unlock.owned ? t('settings.fullOwned') : unlock.kind === 'code' ? t('settings.fullCode') : unlock.available ? t('settings.fullApp') : t('settings.fullWeb');
   $('#btn-full').hidden = unlock.owned;
+  if (unlock.kind === 'code') codeButton().hidden = unlock.owned;
+}
+
+// The website only: a parent with a code from the mail (on another device, or before any lock was
+// tapped) finds the way in here too, behind the gate. Built here, never in index.html, so the app
+// carries none of it.
+function codeButton() {
+  let b = $('#btn-code');
+  if (!b) {
+    b = document.createElement('button');
+    b.id = 'btn-code';
+    b.type = 'button';
+    b.className = 'btn secondary wide';
+    b.addEventListener('click', () => {
+      if (starting()) return;
+      tap();
+      askParent(() => askCode());
+    });
+    $('#btn-full').after(b);
+  }
+  b.textContent = t('settings.haveCode');
+  return b;
 }
 $('#btn-full').addEventListener('click', () => {
   tap();
@@ -513,12 +545,14 @@ function offerUnlock(lead = '') {
 
 const LOCK_ART = `<svg class="lock" viewBox="0 0 24 24" aria-hidden="true">${LOCK}</svg>`;
 
-/** For a parent, after the gate: buy on Buy Me a Coffee (a new tab), or enter the code. */
+/** For a parent, after the gate: how it works in four steps, then a €1 donation on Buy Me a Coffee
+ *  (a new tab), or enter the code (Mark, 27 Nov 2026: "1 is goed als de flow maar duidelijk is"). */
 function showWebFull() {
   showOverlay({
     art: LOCK_ART,
     title: t('offer.title'),
     text: t('code.buyText'),
+    steps: [t('code.step1'), t('code.step2'), t('code.step3'), t('code.step4')],
     buttons: [
       [t('code.buy'), 'big primary', openBuyMeACoffee],
       [t('code.have'), 'big secondary', () => askCode()],
@@ -558,7 +592,13 @@ const CODE_PROBLEM = { revoked: 'code.revoked', limit: 'code.limit', unsupported
  */
 async function redeemCode(text, { again = null, after = null } = {}) {
   showOverlay({ title: t('busy.title'), text: t('code.checking'), buttons: [] });
-  const r = await unlock.redeem(String(text ?? '').slice(0, MAX_INPUT));
+  redeeming += 1; // a new version never reloads the page while a code is being checked
+  let r;
+  try {
+    r = await unlock.redeem(String(text ?? '').slice(0, MAX_INPUT));
+  } finally {
+    redeeming -= 1;
+  }
   if (r.already) {
     showOverlay({ art: LOCK_ART, title: t('offer.title'), text: t('offer.owned'), buttons: [[t('common.ok'), 'big primary', after || hideOverlay]] });
     return r;
@@ -642,10 +682,18 @@ function askParent(onPass) {
 
 // ---------- overlay ----------
 
-function showOverlay({ art = '', title = '', text = '', buttons = [], field = null, parents = null }) {
+function showOverlay({ art = '', title = '', text = '', steps = null, buttons = [], field = null, parents = null }) {
   $('#ov-art').innerHTML = art;
   $('#ov-title').textContent = title;
   $('#ov-text').textContent = text;
+  const list = $('#ov-steps');
+  list.textContent = '';
+  list.hidden = !steps;
+  for (const step of steps || []) {
+    const li = document.createElement('li');
+    li.textContent = step;
+    list.appendChild(li);
+  }
   const box = $('#ov-buttons');
   box.textContent = '';
   // a small way in for parents under the child's buttons (the website's offer only)
@@ -705,6 +753,7 @@ function showOverlay({ art = '', title = '', text = '', buttons = [], field = nu
 
 function hideOverlay() {
   $('#overlay').hidden = true;
+  reloadIfUpdated();
 }
 
 // ---------- boot ----------
@@ -1157,11 +1206,6 @@ async function boot() {
     // the mail's link first; otherwise say kindly why a kept code no longer opens anything
     if (deepCode !== null) redeemCode(deepCode);
     else if (codeStart?.reason === 'revoked') showCodeRefused('revoked');
-    // the link opened in a tab that already shows Bazibo only changes the #fragment: no reload
-    window.addEventListener('hashchange', () => {
-      const code = takeUnlockParam(window);
-      if (code !== null) redeemCode(code);
-    });
   } else unlock.start(); // asks the store in the app
 }
 
@@ -1238,6 +1282,30 @@ function listenForBack() {
 boot();
 
 // The apps ship their files inside the package, so only the web version needs the offline cache.
+//
+// A new version (sw.js): the new worker takes over at once (skipWaiting, clients.claim) and tells every
+// open page. This page then reloads itself, but only at a calm moment: on the home screen with no
+// card open, or when the tab is in the background, and never while a code is being checked. Without
+// this a returning visitor kept playing the old cached build until a second reload (27 Nov 2026: the
+// code entry seemed missing on a browser that had visited bazibo.nl before). A page too old to answer
+// the worker's message is reloaded by the worker itself.
+let updateReady = false;
+let redeeming = 0;
+function reloadIfUpdated() {
+  if (!updateReady || redeeming) return;
+  const calm = document.hidden || (currentScreen() === 'home' && $('#overlay').hidden);
+  if (!calm) return;
+  updateReady = false;
+  location.reload();
+}
 if (!isNativeApp() && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type !== 'bazibo-updated') return;
+    e.ports?.[0]?.postMessage('later'); // "I reload myself": the worker does not
+    updateReady = true;
+    whenReady(reloadIfUpdated);
+  });
+  navigator.serviceWorker.startMessages?.();
+  document.addEventListener('visibilitychange', reloadIfUpdated);
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
