@@ -11357,7 +11357,7 @@ def kermis_csp(browser, base, problems):
 # ---------- the website's unlock code (web/js/unlock-code.js) ----------
 
 ACTIVATE_URL = "https://api.westerweel.work/bazibo/activate"
-BMC_URL = "https://buymeacoffee.com/mark.westerweel/extras"
+BMC_URL = "https://buymeacoffee.com/mark.westerweel/e/603413"
 CSP_WATCH = "document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))"
 
 # Signs test codes in the page with a key made there (WebCrypto Ed25519): the real private key is

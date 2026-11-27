@@ -34,7 +34,7 @@ const CONTEXT = 'bazibo-unlock-v1';
 /** The issuer's public key (raw 32 bytes, base64url). The private key never comes near this repo. */
 export const UNLOCK_PUBLIC_KEY = 'Dpnm6nFTwx1A-kFUf7IMoz4SVUF-O_biI-edjvzpP_4';
 /** Where a parent buys the code (a Buy Me a Coffee "Extra"); opened in a new tab, never fetched. */
-export const BMC_URL = 'https://buymeacoffee.com/mark.westerweel/extras';
+export const BMC_URL = 'https://buymeacoffee.com/mark.westerweel/e/603413';
 /** The one request outside the origin, web only: counts devices per code. */
 export const ACTIVATE_URL = 'https://api.westerweel.work/bazibo/activate';
 export const ACTIVATE_TIMEOUT_MS = 5000;

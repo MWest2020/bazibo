@@ -91,7 +91,7 @@ test('base64url: round trip, one spelling only, no padding', () => {
 
 test('the real public key is a raw 32-byte key; the BMC and activation addresses are fixed', () => {
   assert.equal(b64urlDecode(UNLOCK_PUBLIC_KEY, 32)?.length, 32);
-  assert.equal(BMC_URL, 'https://buymeacoffee.com/mark.westerweel/extras');
+  assert.equal(BMC_URL, 'https://buymeacoffee.com/mark.westerweel/e/603413');
   assert.equal(ACTIVATE_URL, 'https://api.westerweel.work/bazibo/activate');
   assert.equal(CODE_CHARS, 114);
   assert.equal(VALID.length, CODE_CHARS);

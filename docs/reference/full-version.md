@@ -40,8 +40,8 @@ and the address cleaned with `history.replaceState` before anything else reads i
 too, but the fragment is preferred because it never reaches a web server's access log. The code is
 never logged.
 
-> TODO (Mark): the exact Buy Me a Coffee Extra address. `BMC_URL` is
-> `https://buymeacoffee.com/mark.westerweel/extras` until then; change that one constant.
+The Buy Me a Coffee Extra is "Bazibo full version unlock!", id 603413 (Mark, 27 Nov 2026):
+`BMC_URL` is `https://buymeacoffee.com/mark.westerweel/e/603413`. The issuer matches purchases on that id.
 
 **The code** (format v1, shared with the issuer):
 
