@@ -29,13 +29,14 @@ offer in a stand-in app, from "Later" to a purchase; the player always lands on 
 with the save kept), `bubbels` (that Bubbels part alone, about 20 s) or `unlock` (the website's
 unlock code, `web_unlock` and `web_unlock_native`, about a minute: under the real CSP, test codes
 signed in the page with a key made there, the parents' way in under the offer's OK and the gate,
-the Buy Me a Coffee link opened (never fetched), garbled, forged, changed and revoked codes refused
+the four how-it-works steps and the payment link opened (a `?test` stand-in, never fetched), the
+"binnenkort" card without a payment link (`web_unlock_soon`), garbled, forged, changed and revoked codes refused
 before any call, the activation mocked by route interception as 400, 409, 200, 503 and a cut
 network, every game's first screen with nothing locked, kept after a reload with no call, a
 tampered and a revoked kept code closed again, the `#unlock=` link (new load and `hashchange`) and
 the older `?unlock=` link removed from the address, one quiet retry on the next start and no call
 after it, a code through the transfer screen's scanner; no request outside the origin but the
-activation; in a stand-in app no parents' link, no code entry, no BMC link, the deep link ignored,
+activation; in a stand-in app no parents' link, no code entry, no payment link, the deep link ignored,
 the scanner ignoring a code and the app's own CSP blocking the activation address; Settings' "Voor
 ouders: ik heb een code" behind the gate (gone once open, absent in the app); `sw_update`, on its
 own server over a copy of `web/`: the build from before the update fix, opened from a `#unlock=`

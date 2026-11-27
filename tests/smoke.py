@@ -11357,7 +11357,7 @@ def kermis_csp(browser, base, problems):
 # ---------- the website's unlock code (web/js/unlock-code.js) ----------
 
 ACTIVATE_URL = "https://api.westerweel.work/bazibo/activate"
-BMC_URL = "https://buymeacoffee.com/mark.westerweel/e/603413"
+PAY_TEST_URL = "https://buy.stripe.com/smoke_stand_in"  # set only through ?test (window.__baziboPayUrl)
 CSP_WATCH = "document.addEventListener('securitypolicyviolation', (e) => (window.__csp = window.__csp || []).push(`${e.violatedDirective} ${e.blockedURI} ${e.sample || ''}`.trim()))"
 
 # Signs test codes in the page with a key made there (WebCrypto Ed25519): the real private key is
@@ -11420,7 +11420,7 @@ def web_unlock(browser, base, problems):
     codes = unlock_codes(browser, base)
     ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     ctx.add_init_script(CSP_WATCH)
-    ctx.add_init_script(f"window.__baziboUnlockTestKey = {json.dumps(codes['pub'])}; window.__baziboUnlockTestRevoked = [{json.dumps(codes['revokedId'])}];")
+    ctx.add_init_script(f"window.__baziboUnlockTestKey = {json.dumps(codes['pub'])}; window.__baziboUnlockTestRevoked = [{json.dumps(codes['revokedId'])}]; window.__baziboPayUrl = {json.dumps(PAY_TEST_URL)};")
     mode = {"answer": 200}
     calls, foreign = [], []
 
@@ -11465,10 +11465,13 @@ def web_unlock(browser, base, problems):
         problems.append(f"unlock {label}: expected a card with {want!r}, got {text()!r}")
         return False
 
-    def enter(code, label):
+    def enter(code, label, key=False):
         page.wait_for_selector(".code-input")
         page.fill(".code-input", code)
-        page.click("#ov-buttons button >> nth=0")
+        if key:
+            page.press(".code-input", "Enter")  # Enter in the field submits too
+        else:
+            page.click("#ov-buttons button >> nth=0")
         page.wait_for_timeout(150)
 
     def again():
@@ -11510,17 +11513,28 @@ def web_unlock(browser, base, problems):
         problems.append("unlock: cancelling the gate left a card open")
     page.click("#btn-full")
     page.locator("#ov-parents button").click()
-    solve_gate(page, "nl")
+    page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), { opener: 1 }); }")
+    solve_gate(page, "nl")  # with Enter: it must not also press the next card's first button
     page.wait_for_timeout(150)
+    if page.evaluate("window.__opened"):
+        problems.append(f"unlock: the gate's Enter also opened {page.evaluate('window.__opened')}")
     labels = page.locator("#ov-buttons button").all_inner_texts()
-    if labels != ["Koop de volledige versie (€1)", "Ik heb een code", "Later"]:
+    if labels != ["Naar betalen (€1)", "Ik heb al een code", "Later"]:
         problems.append(f"unlock: after the gate the card shows {labels}")
+    # how it works, in plain words, before anyone leaves for the payment page
+    steps = page.locator("#ov-steps li").all_inner_texts()
+    if page.inner_text("#ov-text") != "Zo werkt het:" or len(steps) != 4 or "Stripe" not in steps[0] or "Betaal €1 via Stripe (bijvoorbeeld iDEAL of kaart)" not in steps[1] \
+            or "QR-code" not in steps[2] or "Ik heb al een code" not in steps[3] or "tot 10" not in steps[3]:
+        problems.append(f"unlock: the how-it-works steps are {page.inner_text('#ov-text')!r} {steps}")
+    if page.evaluate("(() => { const c = document.querySelector('#overlay .card'); return c.scrollWidth > c.clientWidth + 1; })()"):
+        problems.append("unlock: the how-it-works card scrolls sideways")
+    page.screenshot(path=str(SHOTS / "unlock-how.png"))
     page.evaluate("() => { window.__opened = []; window.open = (u, t) => (window.__opened.push([u, t]), { opener: 1 }); }")
     page.click("#ov-buttons button >> nth=0")
     page.wait_for_timeout(100)
-    if page.evaluate("window.__opened") != [[BMC_URL, "_blank"]]:
+    if page.evaluate("window.__opened") != [[PAY_TEST_URL, "_blank"]]:
         problems.append(f"unlock: the buy button opened {page.evaluate('window.__opened')}")
-    page.click("#ov-buttons button >> nth=1")  # Ik heb een code
+    page.click("#ov-buttons button >> nth=1")  # Ik heb al een code
     page.wait_for_selector(".code-input")
     page.screenshot(path=str(SHOTS / "unlock-code-entry.png"))
     # the lasting way in for a parent with a code: Settings, behind the gate (no lock tapped first)
@@ -11538,8 +11552,8 @@ def web_unlock(browser, base, problems):
 
     # refused before any call: garbled, forged, revoked
     for code, want, label in (("BZB1.dit-is-geen-code", "Deze code klopt niet", "garbled"), (codes["forged"], "Deze code klopt niet", "forged"),
-                              (codes["a"][:-3] + "AAA", "Deze code klopt niet", "changed"), (codes["revoked"], "Deze code is ingetrokken", "revoked")):
-        enter(code, label)
+                              (codes["a"][:-10] + ("B" if codes["a"][-10] == "A" else "A") + codes["a"][-9:], "Deze code klopt niet", "changed"), (codes["revoked"], "Deze code is ingetrokken", "revoked")):
+        enter(code, label, key=label == "forged")
         wait_card(want, label)
         again()
     if calls:
@@ -11788,6 +11802,29 @@ def sw_update(browser, base, problems):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def web_unlock_soon(browser, base, problems):
+    """Without a payment link (PAY_URL empty, the state until the live Stripe link exists) the parents'
+    card says "binnenkort" and offers only "Ik heb al een code" (and Later), never a payment button."""
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844})
+    ctx.add_init_script("window.__baziboPayUrl = '';")  # as if PAY_URL were empty
+    page = ctx.new_page()
+    page.goto(base + "/index.html?test")
+    page.wait_for_selector("html[data-ready='1']")
+    page.click("#btn-settings")
+    page.click("#btn-full")
+    page.locator("#ov-parents button").click()
+    solve_gate(page, "nl")
+    page.wait_for_timeout(150)
+    labels = page.locator("#ov-buttons button").all_inner_texts()
+    if labels != ["Ik heb al een code", "Later"] or "binnenkort" not in page.inner_text("#ov-text") or page.is_visible("#ov-steps"):
+        problems.append(f"unlock soon: the card without a payment link shows {labels} {page.inner_text('#ov-text')!r}")
+    page.screenshot(path=str(SHOTS / "unlock-soon.png"))
+    page.click("#ov-buttons button >> nth=0")
+    if not page.is_visible(".code-input"):
+        problems.append("unlock soon: 'Ik heb al een code' did not open the code card")
+    ctx.close()
+
+
 UNOWNED_APP = OWNED_APP.replace("owned: () => true", "owned: () => false")
 
 
@@ -11824,7 +11861,7 @@ def web_unlock_native(browser, base, problems):
     dom = page.evaluate("document.documentElement.outerHTML + document.body.innerText")
     if page.locator("#btn-code").count():
         problems.append("unlock native: Settings has the website's code button")
-    for word in ("buymeacoffee", "Buy Me a Coffee", "Ik heb een code", "ik heb een code", "code-input", "btn-code", "Voor ouders: volledige versie"):
+    for word in ("buymeacoffee", "Buy Me a Coffee", "stripe", "Stripe", "Naar betalen", "Ik heb al een code", "ik heb een code", "code-input", "btn-code", "Voor ouders: volledige versie"):
         if word in dom:
             problems.append(f"unlock native: {word!r} is in the app's page")
     page.click("#btn-transfer")
@@ -12042,6 +12079,7 @@ def main():
             home_targets(browser, base, problems)
             home_calm(browser, base, problems)
             web_unlock(browser, base, problems)
+            web_unlock_soon(browser, base, problems)
             web_unlock_native(browser, base, problems)
             sw_update(browser, base, problems)
             home_grid(browser, base, problems)
@@ -12076,7 +12114,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links, home_targets, home_calm),
-         "unlock": (web_unlock, web_unlock_native, sw_update),
+         "unlock": (web_unlock, web_unlock_soon, web_unlock_native, sw_update),
          "home": (home_grid,),
          "tekenen": (tekenen_play, tekenen_delete, tekenen_fits, tekenen_locked_four),
          "kleuren": (kleuren_play, kleuren_delete, kleuren_fits)}

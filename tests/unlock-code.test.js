@@ -14,7 +14,8 @@ import {
   CODE_CHARS,
   MAX_INPUT,
   UNLOCK_PUBLIC_KEY,
-  BMC_URL,
+  PAY_URL,
+  WEB_PRICE,
   ACTIVATE_URL,
   DEVICE_KEY,
   b64urlEncode,
@@ -73,6 +74,9 @@ const verify = (code, opts = {}) => verifyCode(code, { publicKey: PUB, ...opts }
 const VALID = await makeCode();
 const ID_HEX = '0102030405060708090a';
 
+/** The code with one character changed (never the same code: a signature can end in 'AA'). */
+const flipAt = (code, i) => code.slice(0, i) + (code[i] === 'A' ? 'B' : 'A') + code.slice(i + 1);
+
 test('base64url: round trip, one spelling only, no padding', () => {
   for (const n of [16, 32, 64]) {
     const bytes = Uint8Array.from({ length: n }, (_, i) => (i * 37 + 11) & 0xff);
@@ -89,9 +93,11 @@ test('base64url: round trip, one spelling only, no padding', () => {
   assert.equal(b64urlDecode(123, 16), null);
 });
 
-test('the real public key is a raw 32-byte key; the BMC and activation addresses are fixed', () => {
+test('the real public key is a raw 32-byte key; the payment and activation addresses are fixed', () => {
   assert.equal(b64urlDecode(UNLOCK_PUBLIC_KEY, 32)?.length, 32);
-  assert.equal(BMC_URL, 'https://buymeacoffee.com/mark.westerweel/e/603413');
+  // the Stripe Payment Link: empty ("binnenkort") until the live link exists, never a test-mode link
+  assert.ok(PAY_URL === '' || /^https:\/\/buy\.stripe\.com\/(?!test_)[A-Za-z0-9]+$/.test(PAY_URL), PAY_URL);
+  assert.equal(WEB_PRICE, '€1');
   assert.equal(ACTIVATE_URL, 'https://api.westerweel.work/bazibo/activate');
   assert.equal(CODE_CHARS, 114);
   assert.equal(VALID.length, CODE_CHARS);
@@ -230,7 +236,7 @@ test('the deep link: #unlock= (the mail) and ?unlock= (before) are taken and rem
   assert.equal(takeUnlockParam(long.win).length, MAX_INPUT);
 });
 
-test('native hidden: in the app the deep link, the code and the BMC link do not exist', () => {
+test('native hidden: in the app the deep link, the code and the payment link do not exist', () => {
   const apps = [
     { Capacitor: { isNativePlatform: () => true }, href: `https://bazibo.nl/?unlock=${VALID}` },
     { Capacitor: { isNativePlatform: () => true }, href: `https://bazibo.nl/#unlock=${VALID}` },
@@ -256,16 +262,19 @@ test('native hidden: main.js builds the code adapter only on the website, and th
   assert.match(main, /const billing = isNativeApp\(\)\s*\?\s*createNativeBilling\(\)\s*:\s*WEB_CODE\s*\?\s*createCodeBilling\(/);
   assert.match(main, /const WEB_CODE = webCodeAllowed\(window\);/);
   assert.equal(main.match(/createCodeBilling\(/g).length, 1);
-  // every way to the code UI and the BMC link hangs on the code adapter
+  // every way to the code UI and the payment link hangs on the code adapter
   assert.match(main, /if \(unlock\.kind === 'code'\) \{\s*\/\/ the website/);
   assert.match(main, /onCode: unlock\.kind === 'code' \?/);
   assert.match(main, /if \(unlock\.kind === 'code'\) \{\s*\/\/ the mail's link first/);
   assert.equal(main.match(/showWebFull\b/g).length, 2, 'showWebFull is defined once and reached once (behind askParent)');
   assert.match(main, /askParent\(showWebFull\)/);
-  assert.equal(main.match(/openBuyMeACoffee\b/g).length, 2);
-  // the static page has none of it: the parents' button and the BMC link exist only once JS puts them there
+  assert.equal(main.match(/openPayPage\b/g).length, 2);
+  // how it works, before the payment page; without a link only "Ik heb al een code"
+  assert.match(main, /steps: \[t\('code\.step1'\), t\('code\.step2', price\), t\('code\.step3'\), t\('code\.step4'\)\]/);
+  assert.match(main, /if \(!payUrl\(\)\) \{/);
+  // the static page has none of it: the parents' button and the payment link exist only once JS puts them there
   const html = readFileSync(join(WEB, 'index.html'), 'utf8');
-  assert.doesNotMatch(html, /buymeacoffee|ik heb een code|BZB1/i);
+  assert.doesNotMatch(html, /buymeacoffee|stripe\.com|ik heb (al )?een code|BZB1/i);
   assert.match(html, /<div id="ov-parents" class="ov-parents" hidden><\/div>/);
   // Settings has a lasting way in for a parent with a code, built by JS for the code adapter only
   assert.match(main, /if \(unlock\.kind === 'code'\) codeButton\(\)\.hidden = unlock\.owned;/);
@@ -275,7 +284,7 @@ test('native hidden: main.js builds the code adapter only on the website, and th
   assert.match(main, /if \(WEB_CODE\) \{\s*window\.addEventListener\('hashchange'/);
 });
 
-test('only unlock-code.js names Buy Me a Coffee and the activation endpoint (and the CSP its host)', () => {
+test('only unlock-code.js names the payment page and the activation endpoint (and the CSP its host)', () => {
   const files = [];
   const walk = (dir) => {
     for (const f of readdirSync(dir)) {
@@ -288,7 +297,8 @@ test('only unlock-code.js names Buy Me a Coffee and the activation endpoint (and
   for (const f of files) {
     const s = readFileSync(f, 'utf8');
     const rel = f.slice(WEB.length);
-    if (/buymeacoffee\.com/i.test(s)) assert.equal(rel, 'js/unlock-code.js', `${rel} names Buy Me a Coffee's address`);
+    assert.doesNotMatch(s, /buymeacoffee\.com/i, `${rel} still names Buy Me a Coffee's address`);
+    if (/buy\.stripe\.com/i.test(s)) assert.equal(rel, 'js/unlock-code.js', `${rel} names the payment link`);
     const outsideWebOnly = s.replace(/<(section|li)\b[^>]*\bdata-web-only hidden>[\s\S]*?<\/\1>/g, '');
     if (/api\.westerweel\.work/.test(outsideWebOnly)) assert.ok(['js/unlock-code.js', 'index.html', 'js/app-csp.js'].includes(rel), `${rel} names the activation host`);
   }
@@ -304,7 +314,7 @@ test('native hidden: the parents\' pages speak of the web code only in data-web-
     // every element that says data-web-only also ships hidden
     for (const m of s.matchAll(/<[a-z]+\b[^>]*data-web-only[^>]*>/g)) assert.match(m[0], /\bhidden\b/, `${page}: ${m[0]}`);
     const rest = s.replace(/<(section|li)\b[^>]*\bdata-web-only hidden>[\s\S]*?<\/\1>/g, '');
-    assert.doesNotMatch(rest, /Buy Me a Coffee|buymeacoffee|api\.westerweel|met een code|with a .?1 code|code van/i, `${page}: the web code is mentioned where the app shows it`);
+    assert.doesNotMatch(rest, /Buy Me a Coffee|buymeacoffee|Stripe|api\.westerweel|met een code|with a .?1 code|code van/i, `${page}: the web code is mentioned where the app shows it`);
   }
 });
 
@@ -440,7 +450,7 @@ test('entry: a valid code opens everything through createUnlock, like a purchase
 test('entry: wrong, revoked, over the limit or too old a browser never opens and keeps nothing', async () => {
   for (const [code, opts, reason] of [
     ['BZB1.garbled', {}, 'format'],
-    [VALID.slice(0, -2) + 'AA', {}, 'signature'],
+    [flipAt(VALID, VALID.length - 10), {}, 'signature'],
     [VALID, { revoked: [ID_HEX] }, 'revoked'],
     [VALID, { answer: 'limit' }, 'limit'],
     [VALID, { answer: 'revoked' }, 'revoked'],

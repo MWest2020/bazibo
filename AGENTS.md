@@ -108,8 +108,9 @@ scaled as one and the screen takes the rest. Never put a locked choice in a shot
 - One purchase opens every game; each game declares its free part in its `meta.js` (Bubbels:
   levels 1-10) and offers the full version at the end of it through the shell's `offerUnlock`.
   Never fake a purchase. The full version is owned through a store purchase in the app
-  (`unlock_all`, `web/js/billing-native.js`); on the web also a signed code bought via Buy Me a
-  Coffee (Mark, 27 Nov 2026; `web/js/unlock-code.js`, checked offline with WebCrypto Ed25519,
+  (`unlock_all`, `web/js/billing-native.js`); on the web also a signed code bought through a
+  Stripe Payment Link (Mark, 27 Nov 2026; `PAY_URL`, the live link; empty = "binnenkort"; never a test-mode link;
+  price in `WEB_PRICE`; `web/js/unlock-code.js`, checked offline with WebCrypto Ed25519,
   activated once, revocable in `web/js/revoked.js`); never a code or external payment link inside
   the app. Both go through `createUnlock` (`web/js/unlock.js`), one `owned` flag; main.js builds
   the code adapter only when `webCodeAllowed(window)`, and all of its UI hangs on
@@ -117,10 +118,11 @@ scaled as one and the screen takes the rest. Never put a locked choice in a shot
   revoke a code: `docs/reference/full-version.md`.
 - Buying, restoring and any link that leaves the app go through the parental gate
   (`askParent` in `main.js`, logic in `web/js/parental-gate.js`). Store rules for kids' apps
-  require it. On the website that includes the Buy Me a Coffee link and entering a code (the
+  require it. On the website that includes the payment link and entering a code (the
   child's offer card keeps only OK; the parents' way in is the small button under it, and
   "Voor ouders: ik heb een code" in Settings, built by `main.js` for the code adapter only); only the
-  mail's `#unlock=` link needs no gate. The privacy page shows the email address as plain text, not as a link.
+  mail's `#unlock=` link needs no gate. The card before the payment page says how it works in four
+  numbered steps (`code.step1`-`4`, Mark: "als de flow maar duidelijk is"). The privacy page shows the email address as plain text, not as a link.
 - The store links on bazibo.nl ("Download in Google Play", "App Store: binnenkort"; on the home
   screen under the tiles and on Plannen / Roadmap) are for parents on the website only: they ship
   `hidden` inside a `data-store-links` block and `web/js/store-links.js` shows them only when it is
