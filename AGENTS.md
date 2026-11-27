@@ -118,7 +118,8 @@ scaled as one and the screen takes the rest. Never put a locked choice in a shot
 - Buying, restoring and any link that leaves the app go through the parental gate
   (`askParent` in `main.js`, logic in `web/js/parental-gate.js`). Store rules for kids' apps
   require it. On the website that includes the Buy Me a Coffee link and entering a code (the
-  child's offer card keeps only OK; the parents' way in is the small button under it); only the
+  child's offer card keeps only OK; the parents' way in is the small button under it, and
+  "Voor ouders: ik heb een code" in Settings, built by `main.js` for the code adapter only); only the
   mail's `#unlock=` link needs no gate. The privacy page shows the email address as plain text, not as a link.
 - The store links on bazibo.nl ("Download in Google Play", "App Store: binnenkort"; on the home
   screen under the tiles and on Plannen / Roadmap) are for parents on the website only: they ship
@@ -242,6 +243,12 @@ different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with
 `tests/random.test.js` green (200 seeds per tier). After changing anything under `web/`, run
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
+A new version reaches returning visitors without a second reload: the worker caches past the HTTP
+cache, takes over and, once activated, posts `bazibo-updated`; `main.js` reloads at a calm moment
+only (the home screen with no card open; never in a game, Settings or a card, never while a code is
+checked or waits to be), and a visible page too old to answer within 3 s is reloaded by the worker,
+its `#unlock=` carried as `?unlock=` (`tests/sw.test.js`, smoke `sw_update`). Never await a reload
+inside `activate`: the browser holds every fetch until it settles. Keep that handshake when you touch `sw.js`.
 Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pure, seeded in the
 tests: hard and medium never miss a win or a block, easy loses often to a simple strategy, every
 level plays only legal moves). Never call it "Connect Four" and never use its blue frame with red

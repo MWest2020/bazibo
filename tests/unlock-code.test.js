@@ -267,6 +267,12 @@ test('native hidden: main.js builds the code adapter only on the website, and th
   const html = readFileSync(join(WEB, 'index.html'), 'utf8');
   assert.doesNotMatch(html, /buymeacoffee|ik heb een code|BZB1/i);
   assert.match(html, /<div id="ov-parents" class="ov-parents" hidden><\/div>/);
+  // Settings has a lasting way in for a parent with a code, built by JS for the code adapter only
+  assert.match(main, /if \(unlock\.kind === 'code'\) codeButton\(\)\.hidden = unlock\.owned;/);
+  assert.match(main, /askParent\(\(\) => askCode\(\)\)/);
+  assert.doesNotMatch(html, /btn-code|settings\.haveCode/);
+  // the mail's link in an open tab: listened to from the start, redeemed once ready, web only
+  assert.match(main, /if \(WEB_CODE\) \{\s*window\.addEventListener\('hashchange'/);
 });
 
 test('only unlock-code.js names Buy Me a Coffee and the activation endpoint (and the CSP its host)', () => {

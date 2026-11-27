@@ -36,8 +36,12 @@ tampered and a revoked kept code closed again, the `#unlock=` link (new load and
 the older `?unlock=` link removed from the address, one quiet retry on the next start and no call
 after it, a code through the transfer screen's scanner; no request outside the origin but the
 activation; in a stand-in app no parents' link, no code entry, no BMC link, the deep link ignored,
-the scanner ignoring a code and the app's own CSP blocking the activation address; screenshots
-`shots/unlock-*`).
+the scanner ignoring a code and the app's own CSP blocking the activation address; Settings' "Voor
+ouders: ik heb een code" behind the gate (gone once open, absent in the app); `sw_update`, on its
+own server over a copy of `web/`: the build from before the update fix, opened from a `#unlock=`
+link, replaced by a new one (the worker reloads the old page itself and the code comes along as
+`?unlock=`), then a new build reaching the page on the home screen without a second reload, and
+with a card open only after it is closed; screenshots `shots/unlock-*`).
 
 CI runs the whole smoke test on every push and PR (the `smoke` job in `.github/workflows/ci.yml`,
 Playwright 1.65.2 and its headless Chromium installed on the runner; the screenshots are kept as
