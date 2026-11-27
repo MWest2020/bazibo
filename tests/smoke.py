@@ -11705,7 +11705,11 @@ def sw_update(browser, base, problems):
     old_sw = old_sw.replace("c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })))", "c.addAll(ASSETS)")
     if "tellOrReload" in old_sw or "new Request(url" in old_sw or "e.data?.type !== 'bazibo-updated'" not in sw0:
         problems.append("sw update: could not build the old version for the test")
-    (root / "js" / "main.js").write_text(sw0.replace("e.data?.type !== 'bazibo-updated'", "true") + "\nwindow.__swBuild = 0;\n")
+    # ... and, like the builds from before the code existed, it leaves the mail's #unlock= alone
+    old_main = sw0.replace("e.data?.type !== 'bazibo-updated'", "true").replace("const deepCode = takeUnlockParam(window);", "const deepCode = null;").replace("if (WEB_CODE) {\n  window.addEventListener('hashchange'", "if (false) {\n  window.addEventListener('hashchange'")
+    if old_main.count("const deepCode = null;") != 1 or "if (false) {" not in old_main:
+        problems.append("sw update: could not build the old page for the test")
+    (root / "js" / "main.js").write_text(old_main + "\nwindow.__swBuild = 0;\n")
     (root / "sw.js").write_text(re.sub(r"const VERSION = '[^']+';", "const VERSION = 'bubbels-smoke-0';", old_sw))
     port = free_port()
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Quiet, directory=str(root)))
@@ -11733,7 +11737,7 @@ def sw_update(browser, base, problems):
         page.evaluate("navigator.serviceWorker.getRegistration().then((r) => r && r.update())")
 
     try:
-        page.goto(url)
+        page.goto(url + "#unlock=BZB1.kapot")  # the mail's link, opened in the old build
         page.wait_for_selector("html[data-ready='1']")
         page.evaluate("navigator.serviceWorker.ready.then(() => true)")
         for _ in range(50):
@@ -11747,11 +11751,24 @@ def sw_update(browser, base, problems):
 
         # the old build in place, this fix arrives: the new worker reloads the old page itself
         # (the old page cannot answer), so the visitor never keeps the stale build
+        if "#unlock=" not in page.url or page.is_visible("#overlay"):
+            problems.append(f"sw update: the old build should have left the link alone: {page.url}")
         release(1)
         update()
         if not wait_build(1):
             problems.append(f"sw update: the old page kept build {build()} after the fix arrived")
         page.wait_for_selector("html[data-ready='1']")
+        # the code from the link came along (as ?unlock=) and was checked by the new build
+        for _ in range(50):
+            if page.is_visible("#overlay") and "Deze code klopt niet" in page.inner_text("#ov-text"):
+                break
+            page.wait_for_timeout(100)
+        else:
+            problems.append(f"sw update: the link's code was lost in the reload ({page.url})")
+        if "unlock" in page.url:
+            problems.append(f"sw update: the code stayed in the address: {page.url}")
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button >> nth=0")
 
         # on the home screen, nothing open: the new build is there without a second reload
         release(2)

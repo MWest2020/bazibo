@@ -107,6 +107,10 @@ const LOCK = '<path d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H
 // Filled in boot(), after the save data has loaded (storage.js: Preferences in the apps).
 let settings = { muted: false, lang: null };
 let unlock = null; // the full version: bought in the Android/iOS app; on the website with a signed code
+// A new version is ready (sw.js told us) and waits for a calm moment; codes being checked, or taken
+// from the address and still to be checked, hold it back (see reloadIfUpdated at the end).
+let updateReady = false;
+let redeeming = 0;
 
 // The website's code (unlock-code.js), never in the app: `#unlock=<code>` (or `?unlock=`) from the parent's mail is
 // taken out of the address at once (before anything else reads it) and redeemed once the games are
@@ -125,7 +129,15 @@ const NO_CACHE = { get: () => false, set() {} }; // the website trusts only a co
 if (WEB_CODE) {
   window.addEventListener('hashchange', () => {
     const code = takeUnlockParam(window);
-    if (code !== null) whenReady(() => unlock?.kind === 'code' && redeemCode(code));
+    if (code === null) return;
+    redeeming += 1; // gone from the address: no update reload until it is being checked
+    whenReady(() => {
+      try {
+        if (unlock?.kind === 'code') redeemCode(code);
+      } finally {
+        redeeming -= 1;
+      }
+    });
   });
 }
 
@@ -1201,7 +1213,10 @@ async function boot() {
     };
   }
   document.documentElement.dataset.ready = '1';
+  const holdForCode = unlock.kind === 'code' && deepCode !== null;
+  if (holdForCode) redeeming += 1; // the queued update reload must not drop the mail's code
   for (const fn of readyQueue.splice(0)) fn();
+  if (holdForCode) redeeming -= 1;
   if (unlock.kind === 'code') {
     // the mail's link first; otherwise say kindly why a kept code no longer opens anything
     if (deepCode !== null) redeemCode(deepCode);
@@ -1285,15 +1300,15 @@ boot();
 //
 // A new version (sw.js): the new worker takes over at once (skipWaiting, clients.claim) and tells every
 // open page. This page then reloads itself, but only at a calm moment: on the home screen with no
-// card open, or when the tab is in the background, and never while a code is being checked. Without
+// card open, never while a code is being checked or waits to be. Without
 // this a returning visitor kept playing the old cached build until a second reload (27 Nov 2026: the
 // code entry seemed missing on a browser that had visited bazibo.nl before). A page too old to answer
 // the worker's message is reloaded by the worker itself.
-let updateReady = false;
-let redeeming = 0;
 function reloadIfUpdated() {
   if (!updateReady || redeeming) return;
-  const calm = document.hidden || (currentScreen() === 'home' && $('#overlay').hidden);
+  // calm: the home screen with no card open. Never a game, Settings or a card (a hidden tab is no
+  // excuse: a parent copying the code from the mail app comes back to the card they left).
+  const calm = currentScreen() === 'home' && $('#overlay').hidden;
   if (!calm) return;
   updateReady = false;
   location.reload();
@@ -1306,6 +1321,5 @@ if (!isNativeApp() && 'serviceWorker' in navigator && location.protocol.startsWi
     whenReady(reloadIfUpdated);
   });
   navigator.serviceWorker.startMessages?.();
-  document.addEventListener('visibilitychange', reloadIfUpdated);
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }

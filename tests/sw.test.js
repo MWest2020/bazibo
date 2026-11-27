@@ -41,18 +41,18 @@ function loadWorker({ cacheNames = [] } = {}) {
       this.cache = init.cache;
     }
   }
-  const ctx = { self, caches, Request, MessageChannel, setTimeout, clearTimeout, Promise, URL };
+  const ctx = { self, caches, Request, MessageChannel, setTimeout, clearTimeout, Promise, URL, URLSearchParams };
   vm.runInNewContext(readFileSync(new URL('../web/sw.js', import.meta.url), 'utf8'), ctx);
   const fire = async (type) => {
     let wait = Promise.resolve();
     listeners[type]({ waitUntil: (p) => (wait = p) });
     await wait;
   };
-  return { fire, added, deleted, pages };
+  return { fire, added, deleted, pages, ctx };
 }
 
-function page(url, { answers }) {
-  const p = { url, navigated: [], messages: [] };
+function page(url, { answers, visible = true }) {
+  const p = { url, navigated: [], messages: [], visibilityState: visible ? 'visible' : 'hidden' };
   p.navigate = async (u) => p.navigated.push(u);
   p.postMessage = (data, [port]) => {
     p.messages.push(data);
@@ -79,12 +79,26 @@ test('a first install reloads nothing; an update tells every page, and reloads t
   const w = loadWorker({ cacheNames: ['bubbels-old'] });
   const current = page('https://bazibo.test/?x', { answers: true });
   const old = page('https://bazibo.test/#unlock=BZB1.x', { answers: false });
-  w.pages.push(current, old);
+  const asleep = page('https://bazibo.test/', { answers: false, visible: false });
+  const safari = page('https://bazibo.test/', { answers: false });
+  safari.navigate = undefined; // no WindowClient.navigate: nothing breaks
+  w.pages.push(current, old, asleep, safari);
   await w.fire('activate');
   assert.deepEqual(w.deleted, ['bubbels-old']);
+  assert.deepEqual(old.messages, [], 'the pages are told after activation, not inside it');
+  await new Promise((r) => setTimeout(r, 3300));
   assert.equal(current.messages[0]?.type, 'bazibo-updated');
   assert.deepEqual(current.navigated, [], 'a page that answers reloads itself, at a calm moment');
-  assert.deepEqual(old.navigated, ['https://bazibo.test/#unlock=BZB1.x'], 'an old page is reloaded on its own address');
+  assert.deepEqual(old.navigated, ['https://bazibo.test/?unlock=BZB1.x'], 'an old page is reloaded, its #unlock= as ?unlock=');
+  assert.deepEqual(asleep.navigated, [], 'a hidden page is left alone');
+});
+
+test('the reload address never keeps a #fragment (that would not reload)', () => {
+  const { ctx } = loadWorker();
+  assert.equal(ctx.reloadUrl('https://bazibo.nl/'), 'https://bazibo.nl/');
+  assert.equal(ctx.reloadUrl('https://bazibo.nl/#unlock=BZB1.a.b'), 'https://bazibo.nl/?unlock=BZB1.a.b');
+  assert.equal(ctx.reloadUrl('https://x.github.io/bazibo/index.html?test#unlock=BZB1.c'), 'https://x.github.io/bazibo/index.html?test&unlock=BZB1.c');
+  assert.equal(ctx.reloadUrl('https://bazibo.nl/#other'), 'https://bazibo.nl/');
 });
 
 test('main.js reloads after an update only at a calm moment, never while a code is checked', () => {
@@ -92,6 +106,10 @@ test('main.js reloads after an update only at a calm moment, never while a code 
   assert.match(main, /e\.data\?\.type !== 'bazibo-updated'/);
   assert.match(main, /e\.ports\?\.\[0\]\?\.postMessage\('later'\)/);
   assert.match(main, /if \(!updateReady \|\| redeeming\) return;/);
-  assert.match(main, /document\.hidden \|\| \(currentScreen\(\) === 'home' && \$\('#overlay'\)\.hidden\)/);
+  assert.match(main, /const calm = currentScreen\(\) === 'home' && \$\('#overlay'\)\.hidden;/);
+  assert.doesNotMatch(main, /document\.hidden/, 'a hidden tab is no calm moment');
+  // a code taken from the address holds the reload until it is being checked
+  assert.match(main, /if \(holdForCode\) redeeming \+= 1;/);
+  assert.match(main, /redeeming \+= 1; \/\/ gone from the address/);
   assert.match(main, /function hideOverlay\(\) \{\s*\$\('#overlay'\)\.hidden = true;\s*reloadIfUpdated\(\);/);
 });

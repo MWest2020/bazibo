@@ -53,17 +53,22 @@ to a BMC Extra ("Bazibo full version unlock!", id 603413), but on Mark's account
 only for "support created" (donations): a real Extra purchase produced no webhook at all. The issuer
 mints a code for every live donation of at least `NETNL_BAZIBO_DONATION_MIN` (1) while
 `NETNL_BAZIBO_FROM_DONATIONS=1`; a donation of 2 or more also gets the netnl supporter key, in its
-own mail. The coffee price on Mark's BMC page must allow €1 (see the PR of this change).
+own mail. The coffee price on Mark's BMC page must allow €1 ([#129](https://github.com/MWest2020/bazibo/issues/129),
+`waiting-on-mark`).
 
 **A new version reaches returning visitors at once** (27 Nov 2026: Mark scanned the mail's QR on
 one device, then found no code entry in a browser that had visited bazibo.nl before: it was still
 running the cached build from before the code existed). `web/sw.js` fills its new cache past the
-browser's HTTP cache (`cache: 'reload'`), takes over at once (`skipWaiting`, `clients.claim`) and
-posts `bazibo-updated` to every open page. `main.js` answers and reloads itself at a calm moment:
-on the home screen with no card open, or with the tab in the background, never while a code is
-being checked (`reloadIfUpdated`). A page that does not answer within a second (a build from
-before this change) is reloaded by the worker itself (`client.navigate`). The first install
-reloads nothing. `tests/sw.test.js` and the smoke part `unlock` (`sw_update`) check it.
+browser's HTTP cache (`cache: 'reload'`), takes over at once (`skipWaiting`, `clients.claim`) and,
+once activated, posts `bazibo-updated` to every open page. `main.js` answers and reloads itself at
+a calm moment only: the home screen with no card open; never in a game, in Settings or on a card
+(also not when the tab is hidden: a parent copying the code from the mail comes back to the card),
+never while a code is being checked or was just taken from the address (`reloadIfUpdated`,
+`redeeming`). A visible page that does not answer within 3 seconds (a build from before this
+change) is reloaded by the worker itself (`client.navigate`), wherever it is, once; a `#unlock=`
+in its address travels as `?unlock=`, because a fragment-only navigation would not reload. Hidden
+pages and browsers without `WindowClient.navigate` are left for their next start. The first
+install reloads nothing. `tests/sw.test.js` and the smoke part `unlock` (`sw_update`) check it.
 
 **The code** (format v1, shared with the issuer):
 

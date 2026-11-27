@@ -247,9 +247,11 @@ different by shape and colour. Grid rules go in `web/games/bubbels/grid.js` with
 `npm run stamp`: it writes a content hash into `VERSION` in `web/sw.js` so installed copies update.
 `npm test` fails if you forget, or if a new file is missing from the service worker's `ASSETS`.
 A new version reaches returning visitors without a second reload: the worker caches past the HTTP
-cache, takes over and posts `bazibo-updated`; `main.js` reloads at a calm moment only (home screen
-with no card, or a hidden tab; never while a code is checked), and a page too old to answer is
-reloaded by the worker (`tests/sw.test.js`, smoke `sw_update`). Keep that handshake when you touch `sw.js`.
+cache, takes over and, once activated, posts `bazibo-updated`; `main.js` reloads at a calm moment
+only (the home screen with no card open; never in a game, Settings or a card, never while a code is
+checked or waits to be), and a visible page too old to answer within 3 s is reloaded by the worker,
+its `#unlock=` carried as `?unlock=` (`tests/sw.test.js`, smoke `sw_update`). Never await a reload
+inside `activate`: the browser holds every fetch until it settles. Keep that handshake when you touch `sw.js`.
 Vier op een rij: rules in `web/games/vier/rules.js`, the computer in `ai.js` (pure, seeded in the
 tests: hard and medium never miss a win or a block, easy loses often to a simple strategy, every
 level plays only legal moves). Never call it "Connect Four" and never use its blue frame with red
