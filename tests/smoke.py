@@ -11523,6 +11523,18 @@ def web_unlock(browser, base, problems):
     page.click("#ov-buttons button >> nth=1")  # Ik heb een code
     page.wait_for_selector(".code-input")
     page.screenshot(path=str(SHOTS / "unlock-code-entry.png"))
+    # the lasting way in for a parent with a code: Settings, behind the gate (no lock tapped first)
+    page.click("#ov-buttons button >> nth=2")  # Annuleren
+    code_btn = page.locator("#btn-code")
+    if not code_btn.is_visible() or code_btn.inner_text() != "Voor ouders: ik heb een code" or code_btn.bounding_box()["height"] < 48:
+        problems.append(f"unlock: Settings has no visible 'Voor ouders: ik heb een code' ({code_btn.count()})")
+    page.screenshot(path=str(SHOTS / "unlock-settings.png"))
+    code_btn.click()
+    page.wait_for_selector(".gate-input")
+    if page.locator(".code-input").count():
+        problems.append("unlock: Settings' code entry skipped the parental gate")
+    solve_gate(page, "nl")
+    page.wait_for_selector(".code-input")
 
     # refused before any call: garbled, forged, revoked
     for code, want, label in (("BZB1.dit-is-geen-code", "Deze code klopt niet", "garbled"), (codes["forged"], "Deze code klopt niet", "forged"),
@@ -11567,6 +11579,9 @@ def web_unlock(browser, base, problems):
     ready()
     if not page.evaluate("window.__bubbels.full()") or len(calls) != n:
         problems.append(f"unlock: after a reload full {page.evaluate('window.__bubbels.full()')}, calls {len(calls) - n}")
+    page.click("#btn-settings")
+    if page.locator("#btn-code").is_visible():
+        problems.append("unlock: Settings still offers a code with the full version open")
 
     # a tampered kept code closes again; a revoked kept code says so
     page.evaluate("""(c) => { const s = JSON.parse(localStorage.getItem('bubbels.save')); s.webUnlock.code = c; localStorage.setItem('bubbels.save', JSON.stringify(s)); }""", codes["a"][:40] + ("B" if codes["a"][40] == "A" else "A") + codes["a"][41:])
@@ -11653,6 +11668,126 @@ def web_unlock(browser, base, problems):
     ctx.close()
 
 
+def sw_update(browser, base, problems):
+    """A new version reaches a returning visitor without a second reload (27 Nov 2026: a browser that had
+    visited bazibo.nl kept the old cached build, without the code entry): the app is served from a copy
+    of web/, a new sw.js and main.js are put there, the worker updates, and the page reloads itself on
+    the home screen at once; with a card open it waits until the card is closed. `base` is not used:
+    this part runs its own server on the copy."""
+    import shutil
+    import tempfile
+
+    tmp = Path(tempfile.mkdtemp(prefix="bazibo-sw-"))
+    root = tmp / "web"
+    shutil.copytree(WEB, root)
+    sw0 = (root / "js" / "main.js").read_text()
+    sw_src = (root / "sw.js").read_text()
+
+    def release(n):
+        (root / "js" / "main.js").write_text(sw0 + f"\nwindow.__swBuild = {n};\n")
+        (root / "sw.js").write_text(re.sub(r"const VERSION = '[^']+';", f"const VERSION = 'bubbels-smoke-{n}';", sw_src))
+
+    # the build that was live before this fix (bazibo #127): its worker took over without telling
+    # anyone and its page never reloaded, so the old page has no listener and does not answer
+    old_activate = """self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+});
+"""
+    old_sw = re.sub(r"// A page that answers.*?\n\}\);\n", lambda m: old_activate, sw_src, count=1, flags=re.S)
+    old_sw = old_sw.replace("c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })))", "c.addAll(ASSETS)")
+    if "tellOrReload" in old_sw or "new Request(url" in old_sw or "e.data?.type !== 'bazibo-updated'" not in sw0:
+        problems.append("sw update: could not build the old version for the test")
+    # ... and, like the builds from before the code existed, it leaves the mail's #unlock= alone
+    old_main = sw0.replace("e.data?.type !== 'bazibo-updated'", "true").replace("const deepCode = takeUnlockParam(window);", "const deepCode = null;").replace("if (WEB_CODE) {\n  window.addEventListener('hashchange'", "if (false) {\n  window.addEventListener('hashchange'")
+    if old_main.count("const deepCode = null;") != 1 or "if (false) {" not in old_main:
+        problems.append("sw update: could not build the old page for the test")
+    (root / "js" / "main.js").write_text(old_main + "\nwindow.__swBuild = 0;\n")
+    (root / "sw.js").write_text(re.sub(r"const VERSION = '[^']+';", "const VERSION = 'bubbels-smoke-0';", old_sw))
+    port = free_port()
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Quiet, directory=str(root)))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{port}/index.html?test"
+    ctx = browser.new_context(locale="nl-NL", viewport={"width": 390, "height": 844})
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    def build():
+        try:
+            return page.evaluate("window.__swBuild")
+        except Exception:
+            return None  # reloading
+
+    def wait_build(n, seconds=15):
+        for _ in range(seconds * 10):
+            if build() == n:
+                return True
+            page.wait_for_timeout(100)
+        return False
+
+    def update():
+        page.evaluate("navigator.serviceWorker.getRegistration().then((r) => r && r.update())")
+
+    try:
+        page.goto(url + "#unlock=BZB1.kapot")  # the mail's link, opened in the old build
+        page.wait_for_selector("html[data-ready='1']")
+        page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        for _ in range(50):
+            if page.evaluate("!!navigator.serviceWorker.controller"):
+                break
+            page.wait_for_timeout(100)
+        page.reload()  # a returning visitor: served by the old worker from now on
+        page.wait_for_selector("html[data-ready='1']")
+        if build() != 0:
+            problems.append(f"sw update: the old build is {build()}")
+
+        # the old build in place, this fix arrives: the new worker reloads the old page itself
+        # (the old page cannot answer), so the visitor never keeps the stale build
+        if "#unlock=" not in page.url or page.is_visible("#overlay"):
+            problems.append(f"sw update: the old build should have left the link alone: {page.url}")
+        release(1)
+        update()
+        if not wait_build(1):
+            problems.append(f"sw update: the old page kept build {build()} after the fix arrived")
+        page.wait_for_selector("html[data-ready='1']")
+        # the code from the link came along (as ?unlock=) and was checked by the new build
+        for _ in range(50):
+            if page.is_visible("#overlay") and "Deze code klopt niet" in page.inner_text("#ov-text"):
+                break
+            page.wait_for_timeout(100)
+        else:
+            problems.append(f"sw update: the link's code was lost in the reload ({page.url})")
+        if "unlock" in page.url:
+            problems.append(f"sw update: the code stayed in the address: {page.url}")
+        if page.is_visible("#overlay"):
+            page.click("#ov-buttons button >> nth=0")
+
+        # on the home screen, nothing open: the new build is there without a second reload
+        release(2)
+        update()
+        if not wait_build(2):
+            problems.append(f"sw update: still build {build()} on the home screen after an update")
+        page.wait_for_selector("html[data-ready='1']")
+
+        # a card open: no reload until it is closed (never in the middle of something)
+        page.evaluate("window.__bubbels.offer()")
+        page.wait_for_selector("#overlay:not([hidden])")
+        release(3)
+        update()
+        page.wait_for_timeout(4000)
+        if build() != 2 or not page.is_visible("#overlay"):
+            problems.append(f"sw update: reloaded with a card open (build {build()}, card {page.is_visible('#overlay')})")
+        page.click("#ov-buttons button >> nth=0")
+        if not wait_build(3):
+            problems.append(f"sw update: still build {build()} after the card was closed")
+        if errors:
+            problems.append(f"sw update: page errors {errors[:3]}")
+    finally:
+        ctx.close()
+        httpd.shutdown()
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 UNOWNED_APP = OWNED_APP.replace("owned: () => true", "owned: () => false")
 
 
@@ -11687,7 +11822,9 @@ def web_unlock_native(browser, base, problems):
     page.screenshot(path=str(SHOTS / "unlock-native-offer.png"))
     page.click("#ov-buttons button >> nth=2")
     dom = page.evaluate("document.documentElement.outerHTML + document.body.innerText")
-    for word in ("buymeacoffee", "Buy Me a Coffee", "Ik heb een code", "code-input", "Voor ouders: volledige versie"):
+    if page.locator("#btn-code").count():
+        problems.append("unlock native: Settings has the website's code button")
+    for word in ("buymeacoffee", "Buy Me a Coffee", "Ik heb een code", "ik heb een code", "code-input", "btn-code", "Voor ouders: volledige versie"):
         if word in dom:
             problems.append(f"unlock native: {word!r} is in the app's page")
     page.click("#btn-transfer")
@@ -11906,6 +12043,7 @@ def main():
             home_calm(browser, base, problems)
             web_unlock(browser, base, problems)
             web_unlock_native(browser, base, problems)
+            sw_update(browser, base, problems)
             home_grid(browser, base, problems)
             browser.close()
     finally:
@@ -11938,7 +12076,7 @@ PARTS = {"dammen": (dammen_flow, dammen_layouts), "baghchal": (baghchal_flow, ba
          "doolhof": (doolhof_play,),
          "klok": (klok_layouts, klok_touch, klok_digital, klok_digital_layouts),
          "store": (store_links, home_targets, home_calm),
-         "unlock": (web_unlock, web_unlock_native),
+         "unlock": (web_unlock, web_unlock_native, sw_update),
          "home": (home_grid,),
          "tekenen": (tekenen_play, tekenen_delete, tekenen_fits, tekenen_locked_four),
          "kleuren": (kleuren_play, kleuren_delete, kleuren_fits)}

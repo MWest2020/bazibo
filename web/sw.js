@@ -1,7 +1,7 @@
 // Offline play: precache the whole (small) app with all its games, then serve cache-first.
 // VERSION is a hash of every file in ASSETS, written by `npm run stamp` (tools/stamp-sw.mjs).
 // `npm test` fails when it does not match, so a release cannot leave players on an old build.
-const VERSION = 'bubbels-68063b05be';
+const VERSION = 'bubbels-8e0bc7be6f';
 const ASSETS = [
   './',
   'index.html',
@@ -285,16 +285,77 @@ const ASSETS = [
   'roadmap/index.html',
 ];
 
+// Every file is fetched past the browser's HTTP cache (`cache: 'reload'`): otherwise a new worker
+// could fill its new cache with a stale copy that the HTTP cache still held from the old version.
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .open(VERSION)
+      .then((c) => c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+// A page that answers within this long reloads itself at a calm moment (main.js); a visible one that
+// does not (a build from before this worker, 27 Nov 2026) is reloaded by the worker, so it never keeps
+// running old code. A hidden page is left alone (it may be a new build that is merely suspended).
+// The fallback can go once the builds from before the handshake are gone.
+const ANSWER_MS = 3000;
+
+/** The address to reload: a #fragment would make it a same-document jump, not a reload, so it is
+ *  dropped; the mail's `#unlock=<code>` travels as `?unlock=` (main.js takes either, and this worker
+ *  serves the page from its cache, so it reaches no server log). */
+function reloadUrl(href) {
+  const url = new URL(href);
+  if (!url.hash) return url.href;
+  const code = new URLSearchParams(url.hash.slice(1)).get('unlock');
+  url.hash = '';
+  if (code) url.search = `${url.search ? `${url.search}&` : '?'}unlock=${encodeURIComponent(code)}`;
+  return url.href.replace(/#$/, '');
+}
+
+function tellOrReload(client) {
+  return new Promise((done) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => {
+      channel.port1.close();
+      if (client.visibilityState === 'visible') {
+        // not awaited: the reload's own fetch must not wait on this worker's event
+        Promise.resolve()
+          .then(() => client.navigate(reloadUrl(client.url)))
+          .catch(() => {});
+      }
+      done();
+    }, ANSWER_MS);
+    channel.port1.onmessage = () => {
+      clearTimeout(timer);
+      channel.port1.close();
+      done();
+    };
+    try {
+      client.postMessage({ type: 'bazibo-updated', version: VERSION }, [channel.port2]);
+    } catch {
+      /* the timer reloads it */
+    }
+  });
+}
+
+// The pages are told after activation has finished, never inside it: until `activate` settles, the
+// browser holds every fetch, so a reload started from within it would wait minutes for this worker.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const old = (await caches.keys()).filter((k) => k !== VERSION);
+      await Promise.all(old.map((k) => caches.delete(k)));
+      await self.clients.claim();
+      if (!old.length) return; // the first install: the open page already runs this version
+      setTimeout(() => {
+        self.clients
+          .matchAll({ type: 'window' })
+          .then((pages) => Promise.all(pages.map(tellOrReload)))
+          .catch(() => {});
+      }, 0);
+    })(),
   );
 });
 

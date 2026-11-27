@@ -33,7 +33,9 @@ so in the app none of it exists. `tests/unlock-code.test.js` and the smoke part 
 versie (€1)" (Buy Me a Coffee's Extra, `BMC_URL` in `unlock-code.js`, opened in a new tab with
 `opener` cut, never fetched), "Ik heb een code" (paste the code, or "Scan de QR-code", which opens
 the transfer screen's scanner; it hands a code to the unlock instead of reading it as progress) and
-"Later". After buying, the issuer (internetnl-cli, its own repo) mails the code and a link
+"Later". Settings has a lasting way in too: "Voor ouders: ik heb een code" (`#btn-code`, built by
+`main.js` for the code adapter only, hidden once the full version is open), through the gate to the
+same code card, so a parent with a code from the mail needs no locked item first. After buying, the issuer (internetnl-cli, its own repo) mails the code and a link
 `https://bazibo.nl/#unlock=<code>`. The link needs no gate (the parent opened it from their mail):
 on load (or on `hashchange`, when the tab already showed Bazibo) the code is taken from the address
 and the address cleaned with `history.replaceState` before anything else reads it; `?unlock=` works
@@ -42,6 +44,21 @@ never logged.
 
 The Buy Me a Coffee Extra is "Bazibo full version unlock!", id 603413 (Mark, 27 Nov 2026):
 `BMC_URL` is `https://buymeacoffee.com/mark.westerweel/e/603413`. The issuer matches purchases on that id.
+
+**A new version reaches returning visitors at once** (27 Nov 2026: Mark scanned the mail's QR on
+one device, then found no code entry in a browser that had visited bazibo.nl before: it was still
+running the cached build from before the code existed; closing and reopening fixed it).
+`web/sw.js` fills its new cache past the browser's HTTP cache (`cache: 'reload'`), takes over at
+once (`skipWaiting`, `clients.claim`) and, once activated, posts `bazibo-updated` to every open
+page. `main.js` answers and reloads itself at a calm moment only: the home screen with no card
+open; never in a game, in Settings or on a card (also not when the tab is hidden: a parent copying
+the code from the mail comes back to the card), never while a code is being checked or was just
+taken from the address (`reloadIfUpdated`, `redeeming`). A visible page that does not answer
+within 3 seconds (a build from before this change) is reloaded by the worker itself
+(`client.navigate`), wherever it is, once; a `#unlock=` in its address travels as `?unlock=`,
+because a fragment-only navigation would not reload. Hidden pages and browsers without
+`WindowClient.navigate` are left for their next start. The first install reloads nothing.
+`tests/sw.test.js` and the smoke part `unlock` (`sw_update`) check it.
 
 **The code** (format v1, shared with the issuer):
 
